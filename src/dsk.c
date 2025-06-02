@@ -949,7 +949,7 @@ LispPTR DSK_getfilename(LispPTR *args)
        * "New" file means the "not existing" file.  Thus it is not
        * necessary that dir is an existing directory.  If dir is not
        * an existing directory, we returns the specified file name
-       * as if, the subsequent OPENFILE will find the truth.
+       * as is, the subsequent OPENFILE will find the truth.
        */
       if (true_name(dir, sizeof(dir)) != -1) {
         strlcpy(vname, file, sizeof(vname));
@@ -1013,7 +1013,7 @@ LispPTR DSK_getfilename(LispPTR *args)
        * file is dealt with specially, it does not have any version, even
        * if it is on {DSK} device.  Only we have to do here is to make
        * sure the path to reach to the specified file is an existing
-       * directories.  The file name itself is recognized as if.
+       * directories.  The file name itself is recognized as is.
        */
       if (true_name(dir, sizeof(dir)) != -1) return (NIL);
       conc_dir_and_name(dir, name, vname, sizeof(vname));
@@ -2642,7 +2642,7 @@ static int locate_file(char *dir, size_t dirsize, char *name)
   struct find_t dirp;
   struct direct *dp;
 
-  /* First of all, recognize as if. */
+  /* First of all, recognize as is. */
   snprintf(path, sizeof(path), "%s\\%s", dir, name);
   DIR_OR_FILE_P(path, type);
   if (type != 0) {
@@ -2661,7 +2661,7 @@ static int locate_file(char *dir, size_t dirsize, char *name)
   DIR *dirp;
   struct dirent *dp;
 
-  /* First of all, recognize as if. */
+  /* First of all, recognize as is. */
   snprintf(path, sizeof(path), "%s/%s", dir, name);
   DIR_OR_FILE_P(path, type);
   if (type != 0) {
@@ -3998,7 +3998,7 @@ static int get_new(char *dir, FileName *varray, char *afile, char *vfile)
     else {
       /*
        * A version other than 1 is specified.  "New" file
-       * is recognized as if.
+       * is recognized as is.
        */
       conc_dir_and_name(dir, afile, vfile, MAXPATHLEN);
       strlcpy(afile, vfile, MAXPATHLEN);
@@ -4044,7 +4044,7 @@ static int get_new(char *dir, FileName *varray, char *afile, char *vfile)
       }
       /*
        * There is not a file with the specified version in varray.
-       * The specified file can be recognized as if.
+       * The specified file can be recognized as is.
        * Most user will hope to create a new file in same case as
        * old.   One of case sensitive names in the files are stored
        * in the trail marker entry in varray by get_version_array
@@ -4085,7 +4085,7 @@ static int get_new(char *dir, FileName *varray, char *afile, char *vfile)
         return (1);
       } else {
         /*
-         * Other versions than 1 are recognized as if.
+         * Other versions than 1 are recognized as is.
          */
         conc_dir_and_name(dir, afile, vfile, MAXPATHLEN);
         strlcpy(afile, vfile, MAXPATHLEN);
@@ -4142,7 +4142,7 @@ static int get_new(char *dir, FileName *varray, char *afile, char *vfile)
           /*
            * There is not a file with the specified
            * version in varray.  The specified file can
-           * be recognized as if.
+           * be recognized as is.
            * Most user will hope to create a new file in
            * same case as old.   One of case sensitive
            * names in the files are stored in the trail
@@ -4199,7 +4199,7 @@ static int get_new(char *dir, FileName *varray, char *afile, char *vfile)
         /*
          * There is not a file with the specified
          * version in varray.  The specified file can
-         * be recognized as if.
+         * be recognized as is.
          * Most user will hope to create a new file in
          * same case as old.   We will use the name of
          * the highest versioned file as the name of the
@@ -4287,7 +4287,7 @@ static int get_old_new(char *dir, FileName *varray, char *afile, char *vfile)
     } else {
       /*
        * A version other than 1 is specified.  "New" file
-       * is recognized as if.
+       * is recognized as is.
        */
       conc_dir_and_name(dir, afile, vfile, MAXPATHLEN);
       strlcpy(afile, vfile, MAXPATHLEN);
@@ -4324,7 +4324,7 @@ static int get_old_new(char *dir, FileName *varray, char *afile, char *vfile)
       }
       /*
        * There is not a file with the specified version in varray.
-       * The specified file can be recognized as if.
+       * The specified file can be recognized as is.
        * Most user will hope to create a new file in same case as
        * old.   One of case sensitive names in the files are stored
        * in the trail marker entry in varray by get_version_array
@@ -4365,7 +4365,7 @@ static int get_old_new(char *dir, FileName *varray, char *afile, char *vfile)
         return (1);
       } else {
         /*
-         * Other versions than 1 are recognized as if.
+         * Other versions than 1 are recognized as is.
          */
         conc_dir_and_name(dir, afile, vfile, MAXPATHLEN);
         strlcpy(afile, vfile, MAXPATHLEN);
@@ -4421,7 +4421,7 @@ static int get_old_new(char *dir, FileName *varray, char *afile, char *vfile)
           /*
            * There is not a file with the specified
            * version in varray.  The specified file can
-           * be recognized as if.
+           * be recognized as is.
            * Most user will hope to create a new file in
            * same case as old.   One of case sensitive
            * names in the files are stored in the trail
@@ -4469,7 +4469,7 @@ static int get_old_new(char *dir, FileName *varray, char *afile, char *vfile)
         /*
          * There is not a file with the specified
          * version in varray.  The specified file can
-         * be recognized as if.
+         * be recognized as is.
          * Most user will hope to create a new file in
          * same case as old.   We will use the name of
          * the highest versioned file as the name of the
