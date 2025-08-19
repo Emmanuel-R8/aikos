@@ -1528,7 +1528,8 @@ LispPTR DSK_directorynamep(LispPTR *args)
  *
  * Value:	If failed, returns Lisp NIL.  If succeed, returned value is
  *		different according to the attribute requested.
- *		In the case of LENGTH, WDATE, RDATE, and PROTECTION, returns Lisp T.
+ *		In the case of LENGTH, WDATE, RDATE, and PROTECTION, INODE_LO, and
+                INODE_HI, returns Lisp T.
  *		In the case of AUTHOR and ALL, returns the length of the author name
  *		copied into the specified buffer.
  *
@@ -1672,6 +1673,14 @@ LispPTR COM_getfileinfo(LispPTR *args)
 #endif /* DOS */
       return (GetPosSmallp(len));
     }
+    case INODE_HI:
+      bufp = (unsigned *)NativeAligned4FromLAddr(args[2]);
+      *bufp = ((uint64_t)sbuf.st_ino) >> 32;
+      return (ATOM_T);
+    case INODE_LO:
+      bufp = (unsigned *)NativeAligned4FromLAddr(args[2]);
+      *bufp = ((uint64_t)sbuf.st_ino) & 0xffffffff;
+      return (ATOM_T);
     case ALL: {
       /*
        * The format of the buffer which has been allocated by Lisp

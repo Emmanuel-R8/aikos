@@ -35,6 +35,8 @@
 #define	PROTECTION		(S_POSITIVE | 6)
 #define	EOL			(S_POSITIVE | 7)
 #define	ALL			(S_POSITIVE | 8)
+#define INODE_LO		(S_POSITIVE | 9)
+#define INODE_HI		(S_POSITIVE | 10)
 
 #define	ToLispTime(x)	((int)(x) + 29969152)
 			/* For getfileinfo. For WDATE&RDATE */
