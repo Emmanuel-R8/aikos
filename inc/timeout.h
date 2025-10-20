@@ -37,6 +37,10 @@ extern	unsigned int TIMEOUT_TIME;
     alarm(0);		\
   } while (0)
 
+
+/* After any use of S_TOUT one should call alarm(0) to cancel
+ * the last pending alarm.
+ */
 #define	S_TOUT(exp)	\
   alarm(TIMEOUT_TIME),  \
     (exp)
