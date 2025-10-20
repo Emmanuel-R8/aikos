@@ -2554,40 +2554,19 @@ int true_name(char *path, size_t pathsize)
 
 void conc_dir_and_name(char *dir, char *name, char *fname, size_t fname_size)
 {
-  char	*lf_cp1, *lf_cp2;
+  size_t current_len;
 
-  lf_cp1 = dir;
-  lf_cp2 = dir;
+  /* Start with the directory */
+  strlcpy(fname, dir, fname_size);
+  current_len = strlen(fname);
 
-  while (*lf_cp2 != '\0') {
-    switch (*lf_cp2) {
-
-    case '/':
-      lf_cp1 = lf_cp2;
-      lf_cp2++;
-      break;
-
-    default:
-      lf_cp2++;
-      break;
-    }
-  }
-  if (lf_cp1 == (lf_cp2 - 1)) {
-    if (lf_cp1 == (dir)) {
-      /* dir is a root directory. */
-      strlcpy(fname, "/", fname_size);
-      strlcat(fname, name, fname_size);
-    } else {
-      /* The trail directory is included. */
-      strlcpy(fname, dir, fname_size);
-      strlcat(fname, name, fname_size);
-    }
-  } else {
-    /* The trail directory is not included */
-    strlcpy(fname, dir, fname_size);
+  /* Ensure the directory has a final slash */
+  if ((current_len == 0) || (current_len > 0 && fname[current_len - 1] != '/')) {
     strlcat(fname, "/", fname_size);
-    strlcat(fname, name, fname_size);
   }
+
+  /* Append the name as given */
+  strlcat(fname, name, fname_size);
 }
 
 /*
