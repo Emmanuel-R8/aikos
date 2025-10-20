@@ -672,7 +672,7 @@ LispPTR COM_closefile(LispPTR *args)
   time[1].tv_sec = (long)ToUnixTime(cdate);
   time[1].tv_usec = 0L;
 #endif /* DOS */
-  TIMEOUT(rval = close(fd)); // cancels alarm from S_TOUT
+  TIMEOUT(rval = close(fd));
   if (rval == -1) {
     *Lisp_errno = errno;
     return (NIL);
