@@ -922,7 +922,7 @@ int unixpathname(char *src, char *dst, size_t dstlen, int versionp, int genp)
     else
       *ver2 = '\0';
 #endif /* DOS */
-    conc_name_and_version(fbuf2, ver2, dst, MAXPATHLEN);
+    conc_name_and_version(fbuf2, ver2, dst, dstlen);
   }
   return (1);
 }
@@ -1181,7 +1181,7 @@ int lisppathname(char *fullname, char *lispname, size_t lispnamesize, int dirp, 
     *cp = '\0';
   }
   if (versionp && *ver != '\0') {
-    conc_name_and_version(fbuf, ver, namebuf, MAXPATHLEN);
+    conc_name_and_version(fbuf, ver, namebuf, sizeof(namebuf));
   } else {
     strlcpy(namebuf, fbuf, sizeof(namebuf));
   }
