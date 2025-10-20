@@ -951,7 +951,7 @@ static int enum_dsk(char *dir, char *name, char *ver, FINFO **finfo_buf)
       nextp->dirp = 1;
       quote_dname(namebuf, sizeof(namebuf));
       strlcpy(nextp->lname, namebuf, sizeof(nextp->lname));
-      strlcat(nextp->lname, LISPDIRCHAR, sizeof(nextp->lname));
+      strlcat(nextp->lname, LISPDIRSTR, sizeof(nextp->lname));
       nextp->lname_len = strlen(nextp->lname);
     } else {
       /* All other types than directory. */
@@ -1324,18 +1324,14 @@ static int enum_ufs(char *dir, char *name, char *ver, FINFO **finfo_buf)
       nextp->dirp = 1;
       quote_dname(namebuf, sizeof(namebuf));
       strlcpy(nextp->lname, namebuf, sizeof(nextp->lname));
-      len = strlen(namebuf);
-      *(nextp->lname + len) = LISPDIRCHAR;
-      *(nextp->lname + len + 1) = '\0';
-      nextp->lname_len = len + 1;
+      strlcat(nextp->lname, LISPDIRSTR, sizeof(nextp->lname));
+      nextp->lname_len = strlen(nextp->lname);
     } else {
       /* All other types than directory. */
       nextp->dirp = 0;
       quote_fname_ufs(namebuf, sizeof(namebuf));
-      len = strlen(namebuf);
       strlcpy(nextp->lname, namebuf, sizeof(nextp->lname));
-      *(nextp->lname + len) = '\0';
-      nextp->lname_len = len;
+      nextp->lname_len = strlen(nextp->lname);
     }
 
     strlcpy(namebuf, dirp.name, sizeof(namebuf));

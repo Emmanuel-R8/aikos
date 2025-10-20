@@ -664,6 +664,7 @@ LispPTR COM_closefile(LispPTR *args)
     for (; rval == 0; S_TOUT(rval = _dos_findnext(&dirp))) {
       snprintf(file, sizeof(file), "%s\\%s", dir, dirp.name);
     }
+    alarm(0);
   }
 #ifndef DOS /* effectively NEVER, since we're in an ifdef DOS */
   time[0].tv_sec = (long)sbuf.st_atime;
