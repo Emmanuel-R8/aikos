@@ -259,6 +259,10 @@ static int quote_fname(char *file, size_t filesize)
   cp = file;
   dp = fbuf;
 
+  /* safety check for overflow - highly unlikely! */
+  if (strlen(file) * 2 + 1 > sizeof(fbuf)) {
+    return (0);
+  }
   while (*cp) {
     switch (*cp) {
       case '>':
@@ -344,6 +348,10 @@ static int quote_fname_ufs(char *file, size_t filesize)
   cp = file;
   dp = fbuf;
 
+  /* safety check for overflow - highly unlikely! */
+  if (strlen(file) * 2 + 1 > sizeof(fbuf)) {
+    return (0);
+  }
   while (*cp) {
     switch (*cp) {
       case '>':
@@ -419,6 +427,10 @@ static int quote_dname(char *dir, size_t dirsize)
   cp = dir;
   dp = fbuf;
 
+  /* safety check for overflow - highly unlikely! */
+  if (strlen(dir) * 2 + 1 > sizeof(fbuf)) {
+    return (0);
+  }
   while (*cp) {
     switch (*cp) {
       case '>':
