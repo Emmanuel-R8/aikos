@@ -312,94 +312,10 @@ do  {				\
 /* * * * * it gave "Too many characters in a character constant" errors!        */
 #include "lispver1.h"
 #else /* DOS */
-/* NON-DOS version of the macro LispVersionToUnixVersion */
-#include "lispver2.h"
+/* NON-DOS version is inline in ufs.c */
 #endif /* DOS */
 
-
-/*		
- * Name:	UnixVersionToLispVersion
- *
- * Argument:	char	*pathname
- *				UNIX syntax pathname.
- *		int	vlessp
- *				If 0, versionless file is converted to version 1.
- *				Otherwise, remains as versionless.
- *
- * Value:	On success returns 1, otherwise 0.
- *
- * Side Effect:	The version part of pathname is destructively modified.
- *
- * Description:
- *
- * Destructively modifies the version part of pathname which is following the
- * UNIX file naming convention to Xerox Lisp one.
- * This macro should be called, in the routines which convert the UNIX pathname
- * to Lisp one, just before it returns the result to Lisp, because converting
- * version field will append a semicolon which may confuse the routine
- * The file which does not have a valid version field, that is ".~##~" form, is
- * dealt with as version 1. 
- */
-
-#define UnixVersionToLispVersion(pathname, vlessp) do {				\
-										\
-	char	*start;							\
-	char	*end;							\
-	char	*lf_cp;							\
-	int	ver_no;								\
-	size_t	len;								\
-	char		ver_buf[VERSIONLEN];					\
-										\
-	if ((start = strchr(pathname, '~')) != NULL) {				\
-		/* First of all, find the version field in pathname. */		\
-		end = start;							\
-		lf_cp = start + 1;							\
-		while (*lf_cp) {							\
-			if (*lf_cp == '~') {					\
-				start = end;					\
-				end = lf_cp;					\
-				lf_cp++;						\
-			} else {						\
-				lf_cp++;						\
-			}							\
-		}								\
-										\
-		if (start != end && *(start - 1) == '.' && end == (lf_cp - 1)) {	\
-			/*							\
-			 * pathname ends in the form ".~###~".  But we		\
-			 * check ### is a valid number or not.			\
-			 */							\
-			len = (end - start) - 1;			\
-			strncpy(ver_buf, start + 1, len);			\
-			ver_buf[len] = '\0';					\
-			NumericStringP(ver_buf, YES, NO);			\
-		      YES:							\
-			*(start - 1) = ';';					\
-			*start = '\0';						\
-			*end = '\0';						\
-			/* call strtoul() to eliminate leading 0s. */		\
-			ver_no = strtoul(start + 1, (char **)NULL, 10);		\
-			sprintf(ver_buf, "%u", ver_no);				\
-			strcat(pathname, ver_buf);				\
-			goto CONT;						\
-										\
-		      NO:							\
-			/* Dealt with as version 1 unless vlessp */		\
-			if (!(vlessp)) strcat(pathname, ";1");                  \
-		      CONT:							\
-			lf_cp--;	/* Just for label */			\
-		} else {							\
-			/* Dealt with as version 1 unless vlessp. */		\
-                        if (!(vlessp)) strcat(pathname, ";1");                  \
-		}								\
-	} else {								\
-		/* Dealt with as version 1 unless vlessp. */			\
-                if (!(vlessp)) strcat(pathname, ";1");                          \
-	}									\
-  } while (0)
-
-#define	 VERSIONLEN		16
-
+#define	VERSIONLEN		24
 #define	MAXVERSION		999999999
 
 #define	LASTVERSIONARRAY	((unsigned) -1)

@@ -9,6 +9,7 @@
 
 #include "version.h"
 
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <setjmp.h>
@@ -429,6 +430,95 @@ LispPTR UFS_directorynamep(LispPTR *args)
 }
 
 /*
+ * Name: UnixVersionToLispVersion
+ *
+ * Argument:  char     *pathname
+ *            size_t    pathsize
+ *            int       vlessp
+ *
+ * Description:
+ *
+ * Converts the Unix version in pathname to a Lisp syntax version.
+ * If there is no recognizable version present, and vlessp is not
+ * true then a Lisp version 1 (";1") will be added to the name.
+ *
+ * Initially only the "standard" .~nnn~ form of a version is recognized.
+ * It may be possible in the future to recognize IFS "!nnn"
+ */
+
+void UnixVersionToLispVersion(char *pathname, size_t pathsize, int vlessp) {
+    char *ep = &pathname[strlen(pathname) - 1];
+    char *uvp;
+
+#ifdef IFSVERSION
+    if (isdigit(*ep)) goto maybeifsversion;       /* possibly foo!## */
+#endif
+    if (*ep-- != '~') goto noversion;             /* definitely not .~###~ */
+    if (!isdigit(*ep)) goto noversion;            /* requires at least one digit */
+    while (isdigit(*ep)) ep--;                    /* consume all digits */
+    if (*ep-- != '~') goto noversion;             /* definitely not .~###~ */
+    if (*ep != '.') goto noversion;
+    /* must end .~###~ and ep points at the dot */
+    *ep++ = ';';  /* smash . to ; and point to ~  where version will go*/
+    for (uvp = ep + 1; *uvp == '0' && *(uvp + 1) != '~'; uvp++); /* skip leading zeroes */
+    while (*uvp != '~') *ep++ = *uvp++;           /* shift version back */
+    *ep = '\0';                                   /* terminate the string */
+    return;
+ noversion:
+    if (!vlessp) strlcat(pathname, ";1", pathsize);
+    return;
+#ifdef IFSVERSION
+ maybeifsversion:
+    while (isdigit(*ep)) ep--;                     /* consume all digits */
+    if (*ep != '!') goto noversion;
+    *ep = ';';
+    return;
+#endif
+}
+
+/*
+ * Name: LispVersionToUnixVersion
+ *
+ * Arguments:    char *pathname     Xerox Lisp style pathname
+ *               size_t pathsize    Length of pathname buffer
+ *
+ * Helper procedure used by unixpathname to convert from a Lisp style path
+ * with ";version" style version number to the ".~version~" format used in
+ * the underlying host file system.
+ * If a syntactically correct version (all numeric, starting at the rightmost
+ * unescaped (') semicolon) is found it will be replaced by the host version,
+ * otherwise the procedure will return the pathname unchanged.
+ *
+ */
+void LispVersionToUnixVersion(char *pathname, size_t pathsize) {
+    char version[VERSIONLEN] = {0};
+    char *vp = NULL;
+    char *ep = &pathname[strlen(pathname) - 1];   /* from the end */
+    while (ep >= pathname) {                      /* until the beginning */
+        if (*ep == ';' &&                           /* found a semicolon */
+            (ep == pathname || *(ep - 1) != '\'')) {/* at the beginning or not quoted */
+            vp = ep;                                  /* version starts at unquoted semicolon */
+            break;                                    /* stop when found version */
+        }
+        ep--;                                       /* previous character */
+    }
+
+    if (vp == NULL) return;                       /* there was no version field */
+
+    *vp++ = '\0';                                 /* end name at the semicolon */
+    if (*vp == '\0') return;                      /* empty version field */
+
+    while (*vp == '0') vp++;                      /* skip leading zeros */
+    if (*vp == '\0') return;                      /* all zero version is no version */
+    version[0] = '.';                             /* leading version marker */
+    version[1] = '~';                             /* leading version marker */
+    strlcat(version, vp, VERSIONLEN);             /* the trimmed version from the source */
+    strlcat(version, "~", VERSIONLEN);            /* trailing version marker */
+    strlcat(pathname, version, pathsize);         /* concatenate version to pathname */
+    return;
+}
+
+/*
  * Name:	unixpathname
  *
  * Argument:	char	*src	Xerox Lisp syntax pathname.
@@ -511,7 +601,7 @@ int unixpathname(char *src, char *dst, size_t dstlen, int versionp, int genp)
 #ifdef DOS
   if (versionp) LispVersionToUnixVersion(lfname, version); else version = -1;
 #else
-  if (versionp) LispVersionToUnixVersion(lfname);
+  if (versionp) LispVersionToUnixVersion(lfname, sizeof(lfname));
 #endif /* DOS */
 
   cp = lfname;
@@ -1099,7 +1189,7 @@ int lisppathname(char *fullname, char *lispname, size_t lispnamesize, int dirp, 
   /*
    * Now, it's time to convert the version field.
    */
-  if (!dirp && versionp) UnixVersionToLispVersion(namebuf, 0);
+  if (!dirp && versionp) UnixVersionToLispVersion(namebuf, sizeof(namebuf), 0);
 
   strlcpy(lispname, namebuf, lispnamesize);
   return (1);

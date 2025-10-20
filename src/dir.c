@@ -216,6 +216,7 @@ int make_old_version(char *old, size_t oldsize, char *file)
 /******** E N D   O F   P A T T E R N - M A T C H I N G   C O D E *******/
 /************************************************************************/
 
+
 /************************************************************************/
 /************** B E G I N  O F   Q U O T I N G   C O D E ****************/
 /************************************************************************/
@@ -310,7 +311,7 @@ static int quote_fname(char *file, size_t filesize)
   } else {
     strlcpy(namebuf, fbuf, sizeof(namebuf));
   }
-  UnixVersionToLispVersion(namebuf, 1);
+  UnixVersionToLispVersion(namebuf, sizeof(namebuf), 1);
   strlcpy(file, namebuf, filesize);
   return (1);
 }
