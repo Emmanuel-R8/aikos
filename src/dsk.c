@@ -965,7 +965,7 @@ LispPTR DSK_getfilename(LispPTR *args)
         dirp = 1;
       } else {
         conc_dir_and_name(dir, name, aname, sizeof(aname));
-        if ((rval = true_name(aname, sizeof(aname))) == -1) {
+        if (true_name(aname, sizeof(aname)) == -1) {
           strlcpy(vname, aname, sizeof(vname));
           dirp = 1;
         } else {
@@ -995,7 +995,7 @@ LispPTR DSK_getfilename(LispPTR *args)
         dirp = 0;
       } else {
         conc_dir_and_name(dir, name, aname, sizeof(aname));
-        if ((rval = true_name(aname, sizeof(aname))) == -1) {
+        if (true_name(aname, sizeof(aname)) == -1) {
           strlcpy(vname, aname, sizeof(vname));
           dirp = 1;
         } else {
@@ -2561,7 +2561,7 @@ void conc_dir_and_name(char *dir, char *name, char *fname, size_t fname_size)
   current_len = strlen(fname);
 
   /* Ensure the directory has a final slash */
-  if ((current_len == 0) || (current_len > 0 && fname[current_len - 1] != '/')) {
+  if ((current_len == 0) || (fname[current_len - 1] != '/')) {
     strlcat(fname, "/", fname_size);
   }
 
