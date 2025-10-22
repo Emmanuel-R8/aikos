@@ -1033,7 +1033,6 @@ static int enum_dsk(char *dir, char *name, char *ver, FINFO **finfo_buf)
   FINFO *prevp;
   FINFO *nextp;
   int n, rval;
-  size_t len;
   DIR *dirp;
   struct stat sbuf;
   char namebuf[MAXPATHLEN];
@@ -1132,7 +1131,7 @@ static int enum_ufs_prop(char *dir, char *name, char *ver, FINFO **finfo_buf)
   struct direct *dp;
   FINFO *prevp;
   FINFO *nextp;
-  int n, len, rval;
+  int n, rval;
   struct find_t dirp;
   /* struct passwd *pwd; -- From author support */
   struct stat sbuf;
@@ -1201,7 +1200,6 @@ static int enum_ufs_prop(char *dir, char *name, char *ver, FINFO **finfo_buf)
   FINFO *prevp;
   FINFO *nextp;
   int n, rval;
-  size_t len;
   DIR *dirp;
   /* struct passwd *pwd; -- From author support */
   struct stat sbuf;
@@ -1347,7 +1345,6 @@ static int enum_ufs(char *dir, char *name, char *ver, FINFO **finfo_buf)
     }
 
     strlcpy(namebuf, dirp.name, sizeof(namebuf));
-    len = strlen(namebuf);
     nextp->ino = sbuf.st_ino;
     n++;
   }
@@ -1361,7 +1358,6 @@ static int enum_ufs(char *dir, char *name, char *ver, FINFO **finfo_buf)
   FINFO *prevp;
   FINFO *nextp;
   int n, rval;
-  size_t len;
   DIR *dirp;
   struct stat sbuf;
   char namebuf[MAXPATHLEN];
