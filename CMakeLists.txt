@@ -364,7 +364,6 @@ SET(MAIKO_HDRS
     inc/lispemul.h
     inc/lispmap.h
     inc/lispver1.h
-    inc/lispver2.h
     inc/llcolordefs.h
     inc/lldsp.h
     inc/llstkdefs.h
