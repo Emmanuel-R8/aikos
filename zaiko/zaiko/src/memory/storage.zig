@@ -29,7 +29,7 @@ pub const Storage = struct {
     }
 
     pub fn deinit(self: *Storage) void {
-        self.allocator.free(self.heap_base[0..@intFromPtr(self.heap_end) - @intFromPtr(self.heap_base)]);
+        self.allocator.free(self.heap_base[0 .. @intFromPtr(self.heap_end) - @intFromPtr(self.heap_base)]);
     }
 };
 

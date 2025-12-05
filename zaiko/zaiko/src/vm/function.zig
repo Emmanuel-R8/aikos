@@ -10,14 +10,14 @@ const FX = stack.FX;
 /// Function header structure
 /// Per data-model.md
 pub const FunctionHeader = packed struct {
-    stkmin: types.DLword,          // Minimum stack size
-    na: types.DLword,              // Number of arguments
-    pv: types.DLword,              // Number of PVars
-    startpc: types.DLword,         // Starting PC
-    framename: LispPTR,      // Frame name atom
-    ntsize: types.DLword,          // Name table size
-    nlocals: types.DLword,         // Number of local variables
-    fvaroffset: types.DLword,      // FVar offset
+    stkmin: types.DLword, // Minimum stack size
+    na: types.DLword, // Number of arguments
+    pv: types.DLword, // Number of PVars
+    startpc: types.DLword, // Starting PC
+    framename: LispPTR, // Frame name atom
+    ntsize: types.DLword, // Name table size
+    nlocals: types.DLword, // Number of local variables
+    fvaroffset: types.DLword, // FVar offset
     // Name table and code follow in memory
 };
 

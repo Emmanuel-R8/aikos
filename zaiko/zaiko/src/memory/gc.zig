@@ -7,10 +7,10 @@ const LispPTR = types.LispPTR;
 /// GC hash table entry (matches C hash table structure)
 /// Per data-model.md
 pub const HashEntry = packed struct {
-    count: u15,              // Reference count (15 bits)
-    stackref: u1,            // Stack reference flag (1 bit)
-    segnum: u15,             // Segment number (15 bits)
-    collision: u1,            // Collision flag (1 bit)
+    count: u15, // Reference count (15 bits)
+    stackref: u1, // Stack reference flag (1 bit)
+    segnum: u15, // Segment number (15 bits)
+    collision: u1, // Collision flag (1 bit)
 };
 
 /// Overflow table entry
@@ -29,9 +29,9 @@ pub const GCOperation = enum {
 /// Garbage collector state
 pub const GC = struct {
     allocator: std.mem.Allocator,
-    htmain: []HashEntry,     // Main hash table
-    htcoll: []LispPTR,        // Collision table
-    htbig: []OverflowEntry,   // Overflow table
+    htmain: []HashEntry, // Main hash table
+    htcoll: []LispPTR, // Collision table
+    htbig: []OverflowEntry, // Overflow table
 
     pub fn init(allocator: std.mem.Allocator, table_size: usize) !GC {
         const htmain_table = try allocator.alloc(HashEntry, table_size);

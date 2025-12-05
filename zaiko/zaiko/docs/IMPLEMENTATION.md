@@ -1,7 +1,7 @@
 # Implementation Notes: Maiko Emulator in Zig
 
-**Date**: 2025-12-04  
-**Version**: 0.1.0  
+**Date**: 2025-12-04
+**Version**: 0.1.0
 **Status**: In Progress
 
 ## Overview

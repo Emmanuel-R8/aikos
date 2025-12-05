@@ -9,10 +9,10 @@ test "function call - basic frame setup" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
-    
+
     var vm = try stack.VM.init(allocator, 1024);
     defer vm.deinit();
-    
+
     // Create a function header
     var func_header = function_module.FunctionHeader{
         .stkmin = 0,
@@ -24,14 +24,14 @@ test "function call - basic frame setup" {
         .nlocals = 2, // 2 local variables
         .fvaroffset = 0,
     };
-    
+
     // Call function
     try function_module.callFunction(&vm, &func_header, 0);
-    
+
     // Check that new frame was created
     try testing.expect(vm.current_frame != null);
     try testing.expect(vm.pc == 100); // PC set to function start
-    
+
     // Check frame has function header set
     const frame = vm.current_frame.?;
     try testing.expect(frame.fnheader != 0);
@@ -41,24 +41,24 @@ test "function return - basic" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
-    
+
     var vm = try stack.VM.init(allocator, 1024);
     defer vm.deinit();
-    
+
     // Set up initial frame
     const frame1 = try stack.allocateStackFrame(&vm, 2);
     frame1.pcoffset = 50; // Save PC
     vm.pc = 100; // Current PC
-    
+
     // Set return value on stack
     try stack.pushStack(&vm, 42);
-    
+
     // Return from function
     const return_value = try function_module.returnFromFunction(&vm);
-    
+
     // Check return value
     try testing.expect(return_value == 42);
-    
+
     // Check PC was restored
     try testing.expect(vm.pc == 50);
 }
@@ -67,15 +67,15 @@ test "function call and return - nested" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
-    
+
     var vm = try stack.VM.init(allocator, 1024);
     defer vm.deinit();
-    
+
     // Set up outer frame
     const outer_frame = try stack.allocateStackFrame(&vm, 1);
     outer_frame.pcoffset = 10;
     vm.pc = 20;
-    
+
     // Create function header for inner function
     var func_header = function_module.FunctionHeader{
         .stkmin = 0,
@@ -87,24 +87,24 @@ test "function call and return - nested" {
         .nlocals = 1,
         .fvaroffset = 0,
     };
-    
+
     // Call inner function
     try function_module.callFunction(&vm, &func_header, 0);
-    
+
     // Check inner frame is active
     try testing.expect(vm.current_frame != null);
     try testing.expect(vm.current_frame != outer_frame);
     try testing.expect(vm.pc == 200);
-    
+
     // Set return value
     try stack.pushStack(&vm, 99);
-    
+
     // Return from inner function
     const return_value = try function_module.returnFromFunction(&vm);
-    
+
     // Check return value
     try testing.expect(return_value == 99);
-    
+
     // Check outer frame restored
     try testing.expect(vm.current_frame == outer_frame);
     try testing.expect(vm.pc == 10); // PC restored from outer frame
@@ -114,10 +114,10 @@ test "function call with arguments" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
-    
+
     var vm = try stack.VM.init(allocator, 1024);
     defer vm.deinit();
-    
+
     // Create function header expecting 2 parameters
     var func_header = function_module.FunctionHeader{
         .stkmin = 0,
@@ -129,13 +129,13 @@ test "function call with arguments" {
         .nlocals = 0,
         .fvaroffset = 0,
     };
-    
+
     // Set up arguments (would normally be on stack)
     const args = [_]types.LispPTR{ 10, 20 };
-    
+
     // Setup frame with arguments
     const frame = try function_module.setupFunctionFrame(&vm, &func_header, &args);
-    
+
     // Check arguments were set
     try testing.expect(stack.getPVar(frame, 0) == 10);
     try testing.expect(stack.getPVar(frame, 1) == 20);
@@ -145,24 +145,24 @@ test "RETURN opcode handler" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
-    
+
     var vm = try stack.VM.init(allocator, 1024);
     defer vm.deinit();
-    
+
     // Set up frame
     const frame = try stack.allocateStackFrame(&vm, 0);
     frame.pcoffset = 5;
     vm.pc = 10;
-    
+
     // Set return value on stack
     try stack.pushStack(&vm, 777);
-    
+
     // Execute RETURN opcode
     try opcodes.handleRETURN(&vm);
-    
+
     // Check return value is still on stack
     try testing.expect(stack.getTopOfStack(&vm) == 777);
-    
+
     // Check PC was restored
     try testing.expect(vm.pc == 5);
 }
@@ -171,24 +171,24 @@ test "function return - top level" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
-    
+
     var vm = try stack.VM.init(allocator, 1024);
     defer vm.deinit();
-    
+
     // Set up frame with no link (top level)
     const frame = try stack.allocateStackFrame(&vm, 0);
     frame.link = 0; // No previous frame
     frame.pcoffset = 0;
-    
+
     // Set return value
     try stack.pushStack(&vm, 123);
-    
+
     // Return from top level function
     const return_value = try function_module.returnFromFunction(&vm);
-    
+
     // Check return value
     try testing.expect(return_value == 123);
-    
+
     // Check frame cleared (top level return)
     try testing.expect(vm.current_frame == null);
     try testing.expect(vm.pc == 0);
