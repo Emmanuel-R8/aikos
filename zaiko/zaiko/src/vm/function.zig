@@ -6,19 +6,18 @@ const types = @import("../utils/types.zig");
 const VM = stack.VM;
 const LispPTR = types.LispPTR;
 const FX = stack.FX;
-const DLword = types.DLword;
 
 /// Function header structure
 /// Per data-model.md
 pub const FunctionHeader = packed struct {
-    stkmin: types.DLword, // Minimum stack size
-    na: types.DLword, // Number of arguments
-    pv: types.DLword, // Number of PVars
-    startpc: types.DLword, // Starting PC
-    framename: LispPTR, // Frame name atom
-    ntsize: types.DLword, // Name table size
-    nlocals: types.DLword, // Number of local variables
-    fvaroffset: types.DLword, // FVar offset
+    stkmin: types.DLword,          // Minimum stack size
+    na: types.DLword,              // Number of arguments
+    pv: types.DLword,              // Number of PVars
+    startpc: types.DLword,         // Starting PC
+    framename: LispPTR,      // Frame name atom
+    ntsize: types.DLword,          // Name table size
+    nlocals: types.DLword,         // Number of local variables
+    fvaroffset: types.DLword,      // FVar offset
     // Name table and code follow in memory
 };
 
@@ -28,19 +27,15 @@ pub fn callFunction(vm: *VM, func_header: *FunctionHeader, arg_count: u8) errors
     // Save current PC (will be restored on return)
     if (vm.current_frame) |frame| {
         // Save PC in current frame before calling new function
-        // CRITICAL: PC is stored in frame.pc field (DLword)
-        frame.pc = @as(DLword, @truncate(vm.pc));
+        frame.pcoffset = vm.pc;
     }
 
     // Allocate new frame for called function
-    const frame_size = @as(u32, @intCast(func_header.nlocals));
+    const frame_size = @as(usize, func_header.nlocals);
     const new_frame = try stack.allocateStackFrame(vm, frame_size);
 
     // Set function header in frame
-    // CRITICAL: fnheader is 24-bit (non-BIGVM): hi2fnheader (8 bits) + lofnheader (16 bits)
-    const fnheader_addr = @as(LispPTR, @truncate(@intFromPtr(func_header)));
-    new_frame.lofnheader = @as(DLword, @truncate(fnheader_addr));
-    new_frame.hi1fnheader_hi2fnheader = @as(u16, @truncate(fnheader_addr >> 16));
+    new_frame.fnheader = @as(LispPTR, @intFromPtr(func_header));
 
     // Set up arguments in PVar area
     // Arguments are popped from stack and stored as parameters
@@ -69,7 +64,7 @@ pub fn returnFromFunction(vm: *VM) errors.VMError!LispPTR {
     };
 
     // Get previous frame from activation link
-    const previous_frame_addr = stack.getAlink(current_frame);
+    const previous_frame_addr = current_frame.link;
     if (previous_frame_addr == 0) {
         // No previous frame - this is top level return
         vm.current_frame = null;
@@ -78,21 +73,11 @@ pub fn returnFromFunction(vm: *VM) errors.VMError!LispPTR {
     }
 
     // Restore previous frame
-    // CRITICAL: alink is a DLword offset from Stackspace, not a native address
-    const STK_OFFSET: u32 = 0x00010000; // DLword offset from Lisp_world
-    const stackspace_byte_offset = STK_OFFSET * 2;
-    const previous_frame_byte_offset = stackspace_byte_offset + (@as(usize, @intCast(previous_frame_addr)) * 2);
-    
-    if (vm.virtual_memory == null or previous_frame_byte_offset + @sizeOf(FX) > vm.virtual_memory.?.len) {
-        return error.InvalidAddress;
-    }
-    
-    const virtual_memory_mut: []u8 = @constCast(vm.virtual_memory.?);
-    const previous_frame: *align(1) FX = @ptrFromInt(@intFromPtr(virtual_memory_mut.ptr) + previous_frame_byte_offset);
+    const previous_frame: *FX = @as(*FX, @ptrFromInt(@as(usize, previous_frame_addr)));
     vm.current_frame = previous_frame;
 
     // Restore PC from previous frame
-    vm.pc = stack.getPC(previous_frame);
+    vm.pc = previous_frame.pcoffset;
 
     return return_value;
 }

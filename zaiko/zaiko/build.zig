@@ -14,7 +14,8 @@ pub fn build(b: *std.Build) void {
     });
 
     // Link SDL2 library and set up C interop
-    exe.linkSystemLibrary("SDL2");
+    // TODO: Make SDL2 optional or find it in Nix environment
+    // exe.linkSystemLibrary("SDL2");
     exe.linkLibC();
 
     b.installArtifact(exe);
@@ -31,7 +32,7 @@ pub fn build(b: *std.Build) void {
     const unit_tests = b.addTest(.{
         .root_module = exe.root_module,
     });
-    unit_tests.linkSystemLibrary("SDL2");
+    // unit_tests.linkSystemLibrary("SDL2");
     unit_tests.linkLibC();
 
     const run_unit_tests = b.addRunArtifact(unit_tests);

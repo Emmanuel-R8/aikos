@@ -5,16 +5,11 @@
 pub const VMError = error{
     InvalidAddress,
     StackOverflow,
-    StackUnderflow,
     InvalidOpcode,
     StorageFull,
     SysoutLoadFailed,
     InterruptError,
     MemoryAccessFailed,
-    InvalidStackPointer,
-    InvalidFramePointer,
-    DivisionByZero,
-    InvalidNumberType,
 };
 
 /// Memory management errors
@@ -25,16 +20,14 @@ pub const MemoryError = error{
     SysoutLoadFailed,
     SysoutSaveFailed,
     StorageFull,
-    GCOverflow,
 };
 
 /// Display subsystem errors
 pub const DisplayError = error{
     SDLInitFailed,
-    SDLWindowCreationFailed,
-    SDLRendererCreationFailed,
-    SDLTextureCreationFailed,
-    SDLPixelFormatFailed,
+    WindowCreationFailed,
+    RendererCreationFailed,
+    TextureCreationFailed,
     InvalidRegion,
 };
 

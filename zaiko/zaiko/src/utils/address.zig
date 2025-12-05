@@ -75,25 +75,3 @@ pub fn lispAddressFromNative(native: [*]DLword, fptovp: []LispPTR) LispPTR {
     const native_addr = @intFromPtr(native);
     return @as(LispPTR, @intCast(native_addr));
 }
-
-/// Translate LispPTR to offset in virtual_memory slice
-/// C: NativeAligned4FromLAddr(LAddr) = (void *)(Lisp_world + LAddr)
-/// CRITICAL: LispPTR is a DLword offset from Lisp_world, not a byte offset!
-/// Per maiko/inc/lspglob.h: "Pointers in Cell or any object means DLword offset from Lisp_world"
-/// Since Lisp_world is DLword*, pointer arithmetic: Lisp_world + LAddr = LAddr DLwords = LAddr * 2 bytes
-/// Per maiko/inc/adr68k.h and maiko/inc/lspglob.h
-/// NOTE: fptovp_table parameter is for compatibility but not actually used (direct offset calculation)
-pub fn translateLispPTRToOffset(ptr: LispPTR, fptovp_table: *const @import("../data/sysout.zig").FPtoVPTable, virtual_memory_len: usize) ?usize {
-    _ = fptovp_table; // FPtoVP is used during page loading, but address translation is direct offset
-
-    // C: NativeAligned4FromLAddr(LAddr) = (void *)(Lisp_world + LAddr)
-    // Lisp_world is DLword*, so Lisp_world + LAddr adds LAddr DLwords = LAddr * 2 bytes
-    // Per maiko/inc/lspglob.h: "Pointers in Cell or any object means DLword offset from Lisp_world"
-    const byte_offset = @as(usize, @intCast(ptr)) * 2; // Convert DLword offset to byte offset
-
-    if (byte_offset >= virtual_memory_len) {
-        return null; // Address out of bounds
-    }
-
-    return byte_offset;
-}

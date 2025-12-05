@@ -5,10 +5,10 @@ const types = @import("../src/utils/types.zig");
 
 test "instruction fetch" {
     const code: []const types.ByteCode = &[_]types.ByteCode{ 0xC0, 0xC1, 0xC2 };
-
+    
     const opcode0 = dispatch_module.fetchInstruction(0, code);
     try testing.expect(opcode0 == 0xC0);
-
+    
     const opcode1 = dispatch_module.fetchInstruction(1, code);
     try testing.expect(opcode1 == 0xC1);
 }
@@ -44,17 +44,17 @@ test "constant opcodes NIL and T" {
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
     const stack_module = @import("../src/vm/stack.zig");
-
+    
     var vm = try stack_module.VM.init(allocator, 1024);
     defer vm.deinit();
-
+    
     // Test NIL opcode
-    const nil_code: []const types.ByteCode = &[_]types.ByteCode{0x68}; // NIL
+    const nil_code: []const types.ByteCode = &[_]types.ByteCode{ 0x68 }; // NIL
     try dispatch_module.dispatch(&vm, nil_code);
     try testing.expect(stack_module.getTopOfStack(&vm) == 0);
-
+    
     // Test T opcode
-    const t_code: []const types.ByteCode = &[_]types.ByteCode{0x69}; // T
+    const t_code: []const types.ByteCode = &[_]types.ByteCode{ 0x69 }; // T
     try dispatch_module.dispatch(&vm, t_code);
     try testing.expect(stack_module.getTopOfStack(&vm) == 1);
 }
@@ -64,16 +64,16 @@ test "dispatch loop - simple program" {
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
     const stack_module = @import("../src/vm/stack.zig");
-
+    
     var vm = try stack_module.VM.init(allocator, 1024);
     defer vm.deinit();
-
+    
     // Simple program: push NIL, push T
     const code: []const types.ByteCode = &[_]types.ByteCode{
         0x68, // NIL
         0x69, // T
     };
-
+    
     // Should execute without error
     try dispatch_module.dispatch(&vm, code);
     try testing.expect(stack_module.getTopOfStack(&vm) == 1); // T is on top
@@ -84,24 +84,24 @@ test "dispatch loop - arithmetic program" {
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
     const stack_module = @import("../src/vm/stack.zig");
-
+    
     var vm = try stack_module.VM.init(allocator, 1024);
     defer vm.deinit();
-
+    
     // Program: push 10, push 20, add
     const code: []const types.ByteCode = &[_]types.ByteCode{
         0x68, // NIL (we'll use as placeholder - actual implementation needs PUSH with value)
         // For now, test with manual stack setup
     };
-
+    
     // Manual setup for testing
     try stack_module.pushStack(&vm, 10);
     try stack_module.pushStack(&vm, 20);
-
+    
     // Execute IPLUS2 directly
     const opcodes_module = @import("../src/vm/opcodes.zig");
     try opcodes_module.handleIPLUS2(&vm);
-
+    
     try testing.expect(stack_module.getTopOfStack(&vm) == 30);
 }
 

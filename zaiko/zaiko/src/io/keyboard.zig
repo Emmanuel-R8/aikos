@@ -4,10 +4,10 @@ const errors = @import("../utils/errors.zig");
 /// Keyboard event (translated to Lisp format)
 /// Per data-model.md
 pub const KeyboardEvent = struct {
-    event_type: EventType, // KEY_PRESS or KEY_RELEASE
-    keycode: u16, // Lisp keycode
-    modifiers: u16, // Modifier flags
-    timestamp: u32, // Event timestamp
+    event_type: EventType,   // KEY_PRESS or KEY_RELEASE
+    keycode: u16,            // Lisp keycode
+    modifiers: u16,          // Modifier flags
+    timestamp: u32,          // Event timestamp
 };
 
 /// Event type
@@ -45,6 +45,7 @@ pub const KeyEventQueue = struct {
 
     pub fn deinit(self: *KeyEventQueue, allocator: std.mem.Allocator) void {
         allocator.free(self.events);
+        _ = self;
     }
 };
 

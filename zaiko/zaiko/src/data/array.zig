@@ -4,38 +4,21 @@ const types = @import("../utils/types.zig");
 const LispPTR = types.LispPTR;
 const DLword = types.DLword;
 
-/// OneDArray structure (matches C OneDArray from lsptypes.h)
-/// Non-BIGVM version (most common)
-pub const OneDArray = packed struct {
-    nil1: u8, // Unused (8 bits)
-    base: u24, // Base address (24 bits for non-BIGVM)
-    readonlyp: u1, // Read-only flag
-    indirectp: u1, // Indirect flag
-    bitp: u1, // Bit array flag
-    stringp: u1, // String flag
-    ajustablep: u1, // Adjustable flag
-    displacedp: u1, // Displaced flag
-    fillpointerp: u1, // Fill pointer flag
-    extendablep: u1, // Extendable flag
-    typenumber: u8, // Element type number
-    offset: DLword, // Offset into array
-    fillpointer: DLword, // Fill pointer
-    totalsize: DLword, // Total size of array
+/// Array type enumeration
+pub const ArrayType = enum(u8) {
+    TYP_ARRAY = 0,
+    TYP_STRING = 1,
+    TYP_BITBLT = 2,
+    TYP_SMALLPCL = 3,
+    TYP_BIGNUM = 4,
+    // Add more types as needed
 };
 
-/// Array type numbers (from C implementation)
-pub const TYPE_POINTER: u8 = 38; // Pointer: 32 bits
-pub const TYPE_SIGNED_16: u8 = 20; // Signed: 16 bits
-pub const TYPE_SIGNED_32: u8 = 22; // Signed: 32 bits
-pub const TYPE_CHARACTER: u8 = 67; // Character: 8 bits
-pub const TYPE_UNSIGNED_1BIT: u8 = 0; // Unsigned: 1 bit per element
-pub const TYPE_UNSIGNED_8BIT: u8 = 3; // Unsigned: 8 bits per element
-
-/// Array header structure (legacy, kept for compatibility)
+/// Array header structure
 pub const ArrayHeader = packed struct {
-    type_code: u8, // Array type code
-    fill_pointer: DLword, // Fill pointer (for arrays)
-    length: DLword, // Array length
+    type_code: u8,           // Array type code
+    fill_pointer: DLword,   // Fill pointer (for arrays)
+    length: DLword,          // Array length
     // Data follows in memory
 };
 

@@ -29,7 +29,7 @@ pub const Storage = struct {
     }
 
     pub fn deinit(self: *Storage) void {
-        self.allocator.free(self.heap_base[0 .. @intFromPtr(self.heap_end) - @intFromPtr(self.heap_base)]);
+        self.allocator.free(self.heap_base[0..@intFromPtr(self.heap_end) - @intFromPtr(self.heap_base)]);
     }
 };
 
@@ -42,8 +42,7 @@ pub fn allocateConsCell(storage: *Storage) errors.MemoryError!LispPTR {
         return error.StorageFull;
     }
 
-    const aligned_ptr = @as([*]align(@alignOf(cons.ConsCell)) u8, @alignCast(storage.heap_ptr));
-    const cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(aligned_ptr));
+    const cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(storage.heap_ptr));
     cell.* = cons.ConsCell{
         .car_field = 0,
         .cdr_code = 0,
