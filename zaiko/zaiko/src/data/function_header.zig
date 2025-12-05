@@ -7,14 +7,14 @@ const DLword = types.DLword;
 /// Function header structure (matches C fnhead)
 /// Per data-model.md
 pub const FunctionHeader = packed struct {
-    stkmin: DLword,          // Minimum stack size
-    na: DLword,              // Number of arguments
-    pv: DLword,              // Number of PVars
-    startpc: DLword,         // Starting PC
-    framename: LispPTR,      // Frame name atom
-    ntsize: DLword,          // Name table size
-    nlocals: DLword,         // Number of local variables
-    fvaroffset: DLword,      // FVar offset
+    stkmin: DLword, // Minimum stack size
+    na: DLword, // Number of arguments
+    pv: DLword, // Number of PVars
+    startpc: DLword, // Starting PC
+    framename: LispPTR, // Frame name atom
+    ntsize: DLword, // Name table size
+    nlocals: DLword, // Number of local variables
+    fvaroffset: DLword, // FVar offset
     // Name table and code follow in memory
 };
 

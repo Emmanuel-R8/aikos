@@ -8,10 +8,10 @@ const DLword = types.DLword;
 /// Interface page (matches C IFPAGE)
 /// Per data-model.md
 pub const IFPAGE = packed struct {
-    keyval: u32,             // Validation key
-    version: u32,            // Version number
-    currentfxp: LispPTR,     // Current frame pointer
-    endofstack: LispPTR,     // End of stack
+    keyval: u32, // Validation key
+    version: u32, // Version number
+    currentfxp: LispPTR, // Current frame pointer
+    endofstack: LispPTR, // End of stack
     // ... other VM state fields
 };
 

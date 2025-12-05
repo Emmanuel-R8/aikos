@@ -10,7 +10,7 @@ const DLword = types.DLword;
 pub const VirtualMemory = struct {
     allocator: std.mem.Allocator,
     pages: std.ArrayList([*]u8),
-    fptovp: []LispPTR,  // FPtoVP mapping table
+    fptovp: []LispPTR, // FPtoVP mapping table
 
     pub fn init(allocator: std.mem.Allocator, num_pages: usize) !VirtualMemory {
         const fptovp_table = try allocator.alloc(LispPTR, num_pages);

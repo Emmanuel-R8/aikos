@@ -12,21 +12,20 @@ const DLword = types.DLword;
 
 /// Arithmetic opcode handlers
 /// Per rewrite documentation opcodes.md
-
 /// IPLUS2: Integer plus 2 operands
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleIPLUS2(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // Pop two values from stack
     const b = try stack_module.popStack(vm);
     const a = try stack_module.popStack(vm);
-    
+
     // Add them (treating as signed integers)
     const a_signed = @as(i32, @bitCast(@as(u32, a)));
     const b_signed = @as(i32, @bitCast(@as(u32, b)));
     const result = @as(LispPTR, @bitCast(@as(u32, @intCast(a_signed + b_signed))));
-    
+
     // Push result
     try stack_module.pushStack(vm, result);
 }
@@ -35,14 +34,14 @@ pub fn handleIPLUS2(vm: *VM) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleIDIFFERENCE(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     const b = try stack_module.popStack(vm);
     const a = try stack_module.popStack(vm);
-    
+
     const a_signed = @as(i32, @bitCast(@as(u32, a)));
     const b_signed = @as(i32, @bitCast(@as(u32, b)));
     const result = @as(LispPTR, @bitCast(@as(u32, @intCast(a_signed - b_signed))));
-    
+
     try stack_module.pushStack(vm, result);
 }
 
@@ -50,14 +49,14 @@ pub fn handleIDIFFERENCE(vm: *VM) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleITIMES2(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     const b = try stack_module.popStack(vm);
     const a = try stack_module.popStack(vm);
-    
+
     const a_signed = @as(i32, @bitCast(@as(u32, a)));
     const b_signed = @as(i32, @bitCast(@as(u32, b)));
     const result = @as(LispPTR, @bitCast(@as(u32, @intCast(a_signed * b_signed))));
-    
+
     try stack_module.pushStack(vm, result);
 }
 
@@ -65,18 +64,18 @@ pub fn handleITIMES2(vm: *VM) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleIQUO(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     const b = try stack_module.popStack(vm);
     const a = try stack_module.popStack(vm);
-    
+
     if (b == 0) {
         return error.InvalidOpcode; // Division by zero
     }
-    
+
     const a_signed = @as(i32, @bitCast(@as(u32, a)));
     const b_signed = @as(i32, @bitCast(@as(u32, b)));
     const result = @as(LispPTR, @bitCast(@as(u32, @intCast(@divTrunc(a_signed, b_signed)))));
-    
+
     try stack_module.pushStack(vm, result);
 }
 
@@ -84,18 +83,18 @@ pub fn handleIQUO(vm: *VM) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleIREM(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     const b = try stack_module.popStack(vm);
     const a = try stack_module.popStack(vm);
-    
+
     if (b == 0) {
         return error.InvalidOpcode; // Division by zero
     }
-    
+
     const a_signed = @as(i32, @bitCast(@as(u32, a)));
     const b_signed = @as(i32, @bitCast(@as(u32, b)));
     const result = @as(LispPTR, @bitCast(@as(u32, @intCast(@rem(a_signed, b_signed)))));
-    
+
     try stack_module.pushStack(vm, result);
 }
 
@@ -109,16 +108,16 @@ pub fn handleIREM(vm: *VM) errors.VMError!void {
 /// Falls back to float addition if not integers
 pub fn handlePLUS2(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     const b = try stack_module.popStack(vm);
     const a = try stack_module.popStack(vm);
-    
+
     // Check if both are integers (low bit = 0 for fixnums)
     // For now, treat as integer addition (will be extended for floats)
     const a_signed = @as(i32, @bitCast(@as(u32, a)));
     const b_signed = @as(i32, @bitCast(@as(u32, b)));
     const result = @as(LispPTR, @bitCast(@as(u32, @intCast(a_signed + b_signed))));
-    
+
     try stack_module.pushStack(vm, result);
 }
 
@@ -127,15 +126,15 @@ pub fn handlePLUS2(vm: *VM) errors.VMError!void {
 /// Pops two values, performs subtraction (a - b), pushes result
 pub fn handleDIFFERENCE(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     const b = try stack_module.popStack(vm);
     const a = try stack_module.popStack(vm);
-    
+
     // For now, treat as integer subtraction (will be extended for floats)
     const a_signed = @as(i32, @bitCast(@as(u32, a)));
     const b_signed = @as(i32, @bitCast(@as(u32, b)));
     const result = @as(LispPTR, @bitCast(@as(u32, @intCast(a_signed - b_signed))));
-    
+
     try stack_module.pushStack(vm, result);
 }
 
@@ -144,15 +143,15 @@ pub fn handleDIFFERENCE(vm: *VM) errors.VMError!void {
 /// Pops two values, performs multiplication, pushes result
 pub fn handleTIMES2(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     const b = try stack_module.popStack(vm);
     const a = try stack_module.popStack(vm);
-    
+
     // For now, treat as integer multiplication (will be extended for floats)
     const a_signed = @as(i32, @bitCast(@as(u32, a)));
     const b_signed = @as(i32, @bitCast(@as(u32, b)));
     const result = @as(LispPTR, @bitCast(@as(u32, @intCast(a_signed * b_signed))));
-    
+
     try stack_module.pushStack(vm, result);
 }
 
@@ -162,19 +161,19 @@ pub fn handleTIMES2(vm: *VM) errors.VMError!void {
 pub fn handleQUOTIENT(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
     const errors_module = @import("../utils/errors.zig");
-    
+
     const b = try stack_module.popStack(vm);
     const a = try stack_module.popStack(vm);
-    
+
     if (b == 0) {
         return errors_module.VMError.InvalidAddress; // Division by zero
     }
-    
+
     // For now, treat as integer division (will be extended for floats)
     const a_signed = @as(i32, @bitCast(@as(u32, a)));
     const b_signed = @as(i32, @bitCast(@as(u32, b)));
     const result = @as(LispPTR, @bitCast(@as(u32, @intCast(@divTrunc(a_signed, b_signed)))));
-    
+
     try stack_module.pushStack(vm, result);
 }
 
@@ -187,13 +186,13 @@ pub fn handleQUOTIENT(vm: *VM) errors.VMError!void {
 /// Pops two values, performs bitwise OR, pushes result
 pub fn handleLOGOR2(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     const b = try stack_module.popStack(vm);
     const a = try stack_module.popStack(vm);
-    
+
     // Perform bitwise OR
     const result: LispPTR = a | b;
-    
+
     try stack_module.pushStack(vm, result);
 }
 
@@ -202,13 +201,13 @@ pub fn handleLOGOR2(vm: *VM) errors.VMError!void {
 /// Pops two values, performs bitwise AND, pushes result
 pub fn handleLOGAND2(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     const b = try stack_module.popStack(vm);
     const a = try stack_module.popStack(vm);
-    
+
     // Perform bitwise AND
     const result: LispPTR = a & b;
-    
+
     try stack_module.pushStack(vm, result);
 }
 
@@ -217,13 +216,13 @@ pub fn handleLOGAND2(vm: *VM) errors.VMError!void {
 /// Pops two values, performs bitwise XOR, pushes result
 pub fn handleLOGXOR2(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     const b = try stack_module.popStack(vm);
     const a = try stack_module.popStack(vm);
-    
+
     // Perform bitwise XOR
     const result: LispPTR = a ^ b;
-    
+
     try stack_module.pushStack(vm, result);
 }
 
@@ -233,14 +232,14 @@ pub fn handleLOGXOR2(vm: *VM) errors.VMError!void {
 /// Positive shift amount = left shift, negative = right shift
 pub fn handleLSH(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // Pop shift amount and value
     const shift_amount = try stack_module.popStack(vm);
     const value = try stack_module.popStack(vm);
-    
+
     // Convert shift amount to signed integer
     const shift_signed = @as(i32, @bitCast(@as(u32, shift_amount)));
-    
+
     // Perform shift operation
     const result: LispPTR = if (shift_signed >= 0) blk: {
         // Left shift
@@ -254,7 +253,7 @@ pub fn handleLSH(vm: *VM) errors.VMError!void {
         const safe_shift = @min(shift_u, 31);
         break :blk value >> safe_shift;
     };
-    
+
     try stack_module.pushStack(vm, result);
 }
 
@@ -263,10 +262,10 @@ pub fn handleLSH(vm: *VM) errors.VMError!void {
 /// Shifts TOS left by 1 bit
 pub fn handleLLSH1(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     const value = stack_module.getTopOfStack(vm);
     const result: LispPTR = value << 1;
-    
+
     stack_module.setTopOfStack(vm, result);
 }
 
@@ -275,10 +274,10 @@ pub fn handleLLSH1(vm: *VM) errors.VMError!void {
 /// Shifts TOS left by 8 bits
 pub fn handleLLSH8(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     const value = stack_module.getTopOfStack(vm);
     const result: LispPTR = value << 8;
-    
+
     stack_module.setTopOfStack(vm, result);
 }
 
@@ -287,10 +286,10 @@ pub fn handleLLSH8(vm: *VM) errors.VMError!void {
 /// Shifts TOS right by 1 bit (logical, zero-fill)
 pub fn handleLRSH1(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     const value = stack_module.getTopOfStack(vm);
     const result: LispPTR = value >> 1;
-    
+
     stack_module.setTopOfStack(vm, result);
 }
 
@@ -299,15 +298,14 @@ pub fn handleLRSH1(vm: *VM) errors.VMError!void {
 /// Shifts TOS right by 8 bits (logical, zero-fill)
 pub fn handleLRSH8(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     const value = stack_module.getTopOfStack(vm);
     const result: LispPTR = value >> 8;
-    
+
     stack_module.setTopOfStack(vm, result);
 }
 
 /// Stack manipulation opcodes
-
 /// PUSH: Push value onto stack
 /// Per rewrite documentation instruction-set/opcodes.md
 /// Note: PUSH typically pushes a constant value from instruction operand
@@ -333,7 +331,7 @@ pub fn handlePOP(vm: *VM) errors.VMError!void {
 pub fn handlePOP_N(vm: *VM, count: u8) errors.VMError!void {
     const stack_module = @import("stack.zig");
     const errors_module = @import("../utils/errors.zig");
-    
+
     // Pop count values from stack
     var i: u8 = 0;
     while (i < count) : (i += 1) {
@@ -352,11 +350,11 @@ pub fn handlePOP_N(vm: *VM, count: u8) errors.VMError!void {
 /// Swaps the top two values on the stack
 pub fn handleSWAP(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // Pop top two values
     const top = try stack_module.popStack(vm);
     const second = try stack_module.popStack(vm);
-    
+
     // Push them back in swapped order
     try stack_module.pushStack(vm, top);
     try stack_module.pushStack(vm, second);
@@ -371,7 +369,6 @@ pub fn handleNOP(vm: *VM) errors.VMError!void {
 }
 
 /// Function call opcodes
-
 /// CALL: Call function
 /// Per rewrite documentation instruction-set/opcodes.md and vm-core/function-calls.md
 /// Note: This is a simplified version - full implementation needs function object lookup
@@ -379,19 +376,19 @@ pub fn handleCALL(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
     const function_module = @import("function.zig");
     const errors_module = @import("../utils/errors.zig");
-    
+
     // For FN0-FN4, function object and arguments are on stack
     // Pop function object (for now, we'll use a placeholder)
     const func_obj = try stack_module.popStack(vm);
-    
+
     if (func_obj == 0) {
         return errors_module.VMError.InvalidAddress; // Invalid function object
     }
-    
+
     // TODO: Lookup function header from function object
     // For now, create a minimal function header for testing
     // In real implementation, this would come from atom table or function registry
-    
+
     // Placeholder: Create a simple function header
     // This will be replaced with proper function lookup
     var func_header = function_module.FunctionHeader{
@@ -404,7 +401,7 @@ pub fn handleCALL(vm: *VM) errors.VMError!void {
         .nlocals = 0,
         .fvaroffset = 0,
     };
-    
+
     // Call function (arg_count determined by opcode variant)
     try function_module.callFunction(vm, &func_header, 0);
 }
@@ -414,10 +411,10 @@ pub fn handleCALL(vm: *VM) errors.VMError!void {
 pub fn handleRETURN(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
     const function_module = @import("function.zig");
-    
+
     // Get return value and restore frame
     const return_value = try function_module.returnFromFunction(vm);
-    
+
     // Set return value on stack
     stack_module.setTopOfStack(vm, return_value);
 }
@@ -432,18 +429,18 @@ pub fn handleRETURN(vm: *VM) errors.VMError!void {
 /// Stack: [value_N, atom_N, ..., value_0, atom_0] -> []
 pub fn handleBIND(vm: *VM, count: u8) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // BIND requires:
     // 1. Atom table access (needs atom table structure)
     // 2. Binding frame allocation
     // 3. Variable binding storage
-    
+
     // TODO: Proper implementation needs:
     // 1. Atom table lookup for each atom_index
     // 2. Binding frame (BF) allocation
     // 3. Store bindings in binding frame
     // 4. Link binding frame to current frame
-    
+
     // For now, pop count pairs from stack (atom_index, value)
     var i: u8 = 0;
     while (i < count) : (i += 1) {
@@ -462,12 +459,12 @@ pub fn handleUNBIND(vm: *VM) errors.VMError!void {
     // 1. Binding frame access
     // 2. Restore previous variable values
     // 3. Deallocate binding frame
-    
+
     // TODO: Proper implementation needs:
     // 1. Get current binding frame
     // 2. Restore variable values
     // 3. Unlink and deallocate binding frame
-    
+
     _ = vm; // Will be used when binding system is implemented
 }
 
@@ -479,17 +476,16 @@ pub fn handleDUNBIND(vm: *VM) errors.VMError!void {
     // 1. Dynamic scope handling
     // 2. Binding frame traversal
     // 3. Variable value restoration
-    
+
     // TODO: Proper implementation needs:
     // 1. Dynamic scope lookup
     // 2. Binding frame traversal
     // 3. Variable value restoration
-    
+
     _ = vm; // Will be used when binding system is implemented
 }
 
 /// Control flow opcodes
-
 /// JUMP: Unconditional jump
 /// Per rewrite documentation instruction-set/opcodes.md
 /// Note: PC update is handled by dispatch loop based on returned offset
@@ -559,14 +555,14 @@ pub fn handleTJUMPX(vm: *VM, offset: i16) errors.VMError!void {
 pub fn handleCAR(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
     const errors_module = @import("../utils/errors.zig");
-    
+
     const list_ptr = stack_module.getTopOfStack(vm);
-    
+
     if (list_ptr == 0) {
         // NIL - CAR of NIL is NIL
         return;
     }
-    
+
     // Get cons cell from memory using address translation
     if (vm.virtual_memory) |vmem| {
         // Translate LispPTR to native pointer (4-byte aligned for cons cell)
@@ -574,10 +570,10 @@ pub fn handleCAR(vm: *VM) errors.VMError!void {
             // Invalid address - leave value unchanged
             return;
         };
-        
+
         // Cast to cons cell pointer
         const cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(native_ptr)));
-        
+
         // Handle indirect CDR encoding
         var car_value = cons.getCAR(cell);
         if (cell.cdr_code == cons.CDR_INDIRECT) {
@@ -589,7 +585,7 @@ pub fn handleCAR(vm: *VM) errors.VMError!void {
             const indirect_cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(indirect_native)));
             car_value = cons.getCAR(indirect_cell);
         }
-        
+
         stack_module.setTopOfStack(vm, car_value);
     } else {
         // No virtual memory - can't access memory
@@ -602,14 +598,14 @@ pub fn handleCAR(vm: *VM) errors.VMError!void {
 pub fn handleCDR(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
     const errors_module = @import("../utils/errors.zig");
-    
+
     const list_ptr = stack_module.getTopOfStack(vm);
-    
+
     if (list_ptr == 0) {
         // NIL - CDR of NIL is NIL
         return;
     }
-    
+
     // Get cons cell from memory using address translation
     if (vm.virtual_memory) |vmem| {
         // Translate LispPTR to native pointer (4-byte aligned for cons cell)
@@ -617,13 +613,13 @@ pub fn handleCDR(vm: *VM) errors.VMError!void {
             // Invalid address - leave value unchanged
             return;
         };
-        
+
         // Cast to cons cell pointer
         const cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(native_ptr)));
-        
+
         // Decode CDR using CDR coding
         const cdr_value = cons.getCDR(cell, list_ptr);
-        
+
         stack_module.setTopOfStack(vm, cdr_value);
     } else {
         // No virtual memory - can't access memory
@@ -637,11 +633,11 @@ pub fn handleCONS(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
     const storage_module = @import("../memory/storage.zig");
     const errors_module = @import("../utils/errors.zig");
-    
+
     // Pop CDR and CAR values
     const cdr_value = try stack_module.popStack(vm);
     const car_value = try stack_module.popStack(vm);
-    
+
     // Allocate cons cell from storage
     if (vm.storage) |storage| {
         const cell_addr = storage_module.allocateConsCell(storage) catch |err| {
@@ -650,21 +646,21 @@ pub fn handleCONS(vm: *VM) errors.VMError!void {
                 else => errors_module.VMError.MemoryAccessFailed,
             };
         };
-        
+
         // Get native pointer to cons cell
         if (vm.virtual_memory) |vmem| {
             const native_ptr = virtual_memory_module.translateAddress(cell_addr, vmem.fptovp, 4) catch {
                 return errors_module.VMError.MemoryAccessFailed;
             };
-            
+
             const cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(native_ptr)));
-            
+
             // Set CAR
             cons.setCAR(cell, car_value);
-            
+
             // Encode CDR using helper function
             cons.setCDR(cell, cell_addr, cdr_value);
-            
+
             // Push cons cell address
             try stack_module.pushStack(vm, cell_addr);
         } else {
@@ -682,23 +678,23 @@ pub fn handleCONS(vm: *VM) errors.VMError!void {
 pub fn handleRPLACA(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
     const errors_module = @import("../utils/errors.zig");
-    
+
     // Pop new CAR value and cons cell pointer
     const new_car = try stack_module.popStack(vm);
     const cons_cell_ptr = try stack_module.popStack(vm);
-    
+
     if (cons_cell_ptr == 0) {
         return errors_module.VMError.InvalidAddress; // NIL is not a cons cell
     }
-    
+
     // Get cons cell from memory
     if (vm.virtual_memory) |vmem| {
         const native_ptr = virtual_memory_module.translateAddress(cons_cell_ptr, vmem.fptovp, 4) catch {
             return errors_module.VMError.MemoryAccessFailed;
         };
-        
+
         const cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(native_ptr)));
-        
+
         // Handle indirect CDR encoding
         if (cell.cdr_code == cons.CDR_INDIRECT) {
             // CAR is stored in indirect cell
@@ -712,7 +708,7 @@ pub fn handleRPLACA(vm: *VM) errors.VMError!void {
             // Normal CAR update
             cons.setCAR(cell, new_car);
         }
-        
+
         // Push cons cell pointer back
         try stack_module.pushStack(vm, cons_cell_ptr);
     } else {
@@ -725,26 +721,26 @@ pub fn handleRPLACA(vm: *VM) errors.VMError!void {
 pub fn handleRPLACD(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
     const errors_module = @import("../utils/errors.zig");
-    
+
     // Pop new CDR value and cons cell pointer
     const new_cdr = try stack_module.popStack(vm);
     const cons_cell_ptr = try stack_module.popStack(vm);
-    
+
     if (cons_cell_ptr == 0) {
         return errors_module.VMError.InvalidAddress; // NIL is not a cons cell
     }
-    
+
     // Get cons cell from memory
     if (vm.virtual_memory) |vmem| {
         const native_ptr = virtual_memory_module.translateAddress(cons_cell_ptr, vmem.fptovp, 4) catch {
             return errors_module.VMError.MemoryAccessFailed;
         };
-        
+
         const cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(native_ptr)));
-        
+
         // Encode and set new CDR
         cons.setCDR(cell, cons_cell_ptr, new_cdr);
-        
+
         // Push cons cell pointer back
         try stack_module.pushStack(vm, cons_cell_ptr);
     } else {
@@ -761,25 +757,25 @@ pub fn handleRPLACD(vm: *VM) errors.VMError!void {
 pub fn handleGETAEL1(vm: *VM, index: u8) errors.VMError!void {
     const stack_module = @import("stack.zig");
     const errors_module = @import("../utils/errors.zig");
-    
+
     // Pop array pointer from stack
     const array_ptr = try stack_module.popStack(vm);
-    
+
     if (array_ptr == 0) {
         return errors_module.VMError.InvalidAddress; // NIL is not an array
     }
-    
+
     // Get array header from memory
     if (vm.virtual_memory) |vmem| {
         const native_ptr = virtual_memory_module.translateAddress(array_ptr, vmem.fptovp, 4) catch {
             return errors_module.VMError.MemoryAccessFailed;
         };
-        
+
         const header: *array.ArrayHeader = @as(*array.ArrayHeader, @ptrCast(@alignCast(native_ptr)));
-        
+
         // Get array element
         const element_value = array.getArrayElement(header, index);
-        
+
         // Push element value
         try stack_module.pushStack(vm, element_value);
     } else {
@@ -792,25 +788,25 @@ pub fn handleGETAEL1(vm: *VM, index: u8) errors.VMError!void {
 pub fn handleGETAEL2(vm: *VM, index: u16) errors.VMError!void {
     const stack_module = @import("stack.zig");
     const errors_module = @import("../utils/errors.zig");
-    
+
     // Pop array pointer from stack
     const array_ptr = try stack_module.popStack(vm);
-    
+
     if (array_ptr == 0) {
         return errors_module.VMError.InvalidAddress; // NIL is not an array
     }
-    
+
     // Get array header from memory
     if (vm.virtual_memory) |vmem| {
         const native_ptr = virtual_memory_module.translateAddress(array_ptr, vmem.fptovp, 4) catch {
             return errors_module.VMError.MemoryAccessFailed;
         };
-        
+
         const header: *array.ArrayHeader = @as(*array.ArrayHeader, @ptrCast(@alignCast(native_ptr)));
-        
+
         // Get array element
         const element_value = array.getArrayElement(header, index);
-        
+
         // Push element value
         try stack_module.pushStack(vm, element_value);
     } else {
@@ -823,26 +819,26 @@ pub fn handleGETAEL2(vm: *VM, index: u16) errors.VMError!void {
 pub fn handleSETAEL1(vm: *VM, index: u8) errors.VMError!void {
     const stack_module = @import("stack.zig");
     const errors_module = @import("../utils/errors.zig");
-    
+
     // Pop value and array pointer from stack
     const value = try stack_module.popStack(vm);
     const array_ptr = try stack_module.popStack(vm);
-    
+
     if (array_ptr == 0) {
         return errors_module.VMError.InvalidAddress; // NIL is not an array
     }
-    
+
     // Get array header from memory
     if (vm.virtual_memory) |vmem| {
         const native_ptr = virtual_memory_module.translateAddress(array_ptr, vmem.fptovp, 4) catch {
             return errors_module.VMError.MemoryAccessFailed;
         };
-        
+
         const header: *array.ArrayHeader = @as(*array.ArrayHeader, @ptrCast(@alignCast(native_ptr)));
-        
+
         // Set array element
         array.setArrayElement(header, index, value);
-        
+
         // Push array pointer back
         try stack_module.pushStack(vm, array_ptr);
     } else {
@@ -855,26 +851,26 @@ pub fn handleSETAEL1(vm: *VM, index: u8) errors.VMError!void {
 pub fn handleSETAEL2(vm: *VM, index: u16) errors.VMError!void {
     const stack_module = @import("stack.zig");
     const errors_module = @import("../utils/errors.zig");
-    
+
     // Pop value and array pointer from stack
     const value = try stack_module.popStack(vm);
     const array_ptr = try stack_module.popStack(vm);
-    
+
     if (array_ptr == 0) {
         return errors_module.VMError.InvalidAddress; // NIL is not an array
     }
-    
+
     // Get array header from memory
     if (vm.virtual_memory) |vmem| {
         const native_ptr = virtual_memory_module.translateAddress(array_ptr, vmem.fptovp, 4) catch {
             return errors_module.VMError.MemoryAccessFailed;
         };
-        
+
         const header: *array.ArrayHeader = @as(*array.ArrayHeader, @ptrCast(@alignCast(native_ptr)));
-        
+
         // Set array element
         array.setArrayElement(header, index, value);
-        
+
         // Push array pointer back
         try stack_module.pushStack(vm, array_ptr);
     } else {
@@ -890,10 +886,10 @@ pub fn handleSETAEL2(vm: *VM, index: u16) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleEQ(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     const b = try stack_module.popStack(vm);
     const a = try stack_module.popStack(vm);
-    
+
     // EQ compares pointer equality
     const result: LispPTR = if (a == b) 1 else 0; // T or NIL
     try stack_module.pushStack(vm, result);
@@ -905,10 +901,10 @@ pub fn handleEQ(vm: *VM) errors.VMError!void {
 pub fn handleEQL(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
     const errors_module = @import("../utils/errors.zig");
-    
+
     const b = try stack_module.popStack(vm);
     const a = try stack_module.popStack(vm);
-    
+
     // EQL does deep comparison
     const result = eqlDeep(vm, a, b) catch |err| {
         return switch (err) {
@@ -916,7 +912,7 @@ pub fn handleEQL(vm: *VM) errors.VMError!void {
             else => errors_module.VMError.MemoryAccessFailed,
         };
     };
-    
+
     const result_value: LispPTR = if (result) 1 else 0; // T or NIL
     try stack_module.pushStack(vm, result_value);
 }
@@ -924,27 +920,27 @@ pub fn handleEQL(vm: *VM) errors.VMError!void {
 /// Deep equality comparison helper
 /// Recursively compares two Lisp values
 fn eqlDeep(vm: *VM, a: LispPTR, b: LispPTR) errors.VMError!bool {
-    
+
     // Pointer equality check first (fast path)
     if (a == b) {
         return true;
     }
-    
+
     // Both NIL
     if (a == 0 and b == 0) {
         return true;
     }
-    
+
     // One is NIL, other is not
     if (a == 0 or b == 0) {
         return false;
     }
-    
+
     // Both are fixnums (odd addresses)
     if ((a & 1) != 0 and (b & 1) != 0) {
         return a == b; // Compare as integers
     }
-    
+
     // Both are pointers (even addresses) - need to compare structures
     if ((a & 1) == 0 and (b & 1) == 0) {
         if (vm.virtual_memory) |vmem| {
@@ -955,16 +951,16 @@ fn eqlDeep(vm: *VM, a: LispPTR, b: LispPTR) errors.VMError!bool {
             const b_native = virtual_memory_module.translateAddress(b, vmem.fptovp, 4) catch {
                 return false; // Invalid address
             };
-            
+
             const a_cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(a_native)));
             const b_cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(b_native)));
-            
+
             // Compare CAR recursively
             const car_equal = try eqlDeep(vm, cons.getCAR(a_cell), cons.getCAR(b_cell));
             if (!car_equal) {
                 return false;
             }
-            
+
             // Compare CDR recursively
             const a_cdr = cons.getCDR(a_cell, a);
             const b_cdr = cons.getCDR(b_cell, b);
@@ -974,7 +970,7 @@ fn eqlDeep(vm: *VM, a: LispPTR, b: LispPTR) errors.VMError!bool {
             return a == b;
         }
     }
-    
+
     // Different types (one fixnum, one pointer)
     return false;
 }
@@ -983,14 +979,14 @@ fn eqlDeep(vm: *VM, a: LispPTR, b: LispPTR) errors.VMError!bool {
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleLESSP(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     const b = try stack_module.popStack(vm);
     const a = try stack_module.popStack(vm);
-    
+
     const a_signed = @as(i32, @bitCast(@as(u32, a)));
     const b_signed = @as(i32, @bitCast(@as(u32, b)));
     const result: LispPTR = if (a_signed < b_signed) 1 else 0;
-    
+
     try stack_module.pushStack(vm, result);
 }
 
@@ -998,14 +994,14 @@ pub fn handleLESSP(vm: *VM) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleGREATERP(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     const b = try stack_module.popStack(vm);
     const a = try stack_module.popStack(vm);
-    
+
     const a_signed = @as(i32, @bitCast(@as(u32, a)));
     const b_signed = @as(i32, @bitCast(@as(u32, b)));
     const result: LispPTR = if (a_signed > b_signed) 1 else 0;
-    
+
     try stack_module.pushStack(vm, result);
 }
 
@@ -1013,14 +1009,14 @@ pub fn handleGREATERP(vm: *VM) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleIGREATERP(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     const b = try stack_module.popStack(vm);
     const a = try stack_module.popStack(vm);
-    
+
     const a_signed = @as(i32, @bitCast(@as(u32, a)));
     const b_signed = @as(i32, @bitCast(@as(u32, b)));
     const result: LispPTR = if (a_signed > b_signed) 1 else 0;
-    
+
     try stack_module.pushStack(vm, result);
 }
 
@@ -1034,10 +1030,10 @@ pub fn handleIGREATERP(vm: *VM) errors.VMError!void {
 pub fn handleNTYPX(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
     const value = stack_module.getTopOfStack(vm);
-    
+
     // Get type of value
     const value_type = getValueType(value, vm);
-    
+
     // Push type code on stack
     try stack_module.pushStack(vm, @as(LispPTR, value_type));
 }
@@ -1055,10 +1051,10 @@ pub fn handleNTYPX(vm: *VM) errors.VMError!void {
 pub fn handleTYPEP(vm: *VM, type_code: u8) errors.VMError!void {
     const stack_module = @import("stack.zig");
     const value = stack_module.getTopOfStack(vm);
-    
+
     // Get type of value
     const value_type = getValueType(value, vm);
-    
+
     // Check if value type matches requested type_code
     const result: LispPTR = if (value_type == type_code) 1 else 0;
     stack_module.setTopOfStack(vm, result);
@@ -1069,19 +1065,19 @@ pub fn handleTYPEP(vm: *VM, type_code: u8) errors.VMError!void {
 /// Tests if TOS value equals the atom at given atom_index
 pub fn handleDTEST(vm: *VM, atom_index: u16) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // DTEST requires:
     // 1. Atom table lookup (from atom_index)
     // 2. Get atom object
     // 3. Compare with TOS value
-    
+
     // TODO: Proper implementation needs:
     // 1. Atom table access (needs atom table structure)
     // 2. Atom object retrieval
     // 3. Value comparison
-    
+
     const value = stack_module.getTopOfStack(vm);
-    
+
     // For now, placeholder: compare with atom_index (will be properly implemented)
     const result: LispPTR = if (value == @as(LispPTR, atom_index)) 1 else 0;
     stack_module.setTopOfStack(vm, result);
@@ -1095,12 +1091,12 @@ pub fn handleUNWIND(vm: *VM, unwind_params: u16) errors.VMError!void {
     // 1. Parse unwind parameters (frame count, etc.)
     // 2. Unwind stack frames
     // 3. Restore previous frame state
-    
+
     // TODO: Proper implementation needs:
     // 1. Frame unwinding logic
     // 2. Exception handling integration
     // 3. Cleanup of local variables
-    
+
     _ = vm;
     _ = unwind_params; // Placeholder for now
 }
@@ -1112,25 +1108,25 @@ fn getValueType(value: LispPTR, vm: *VM) u8 {
     if (value == 0) {
         return 0; // NIL type
     }
-    
+
     // Fixnums have low bit set (odd addresses)
     if ((value & 1) != 0) {
         return 1; // Fixnum type
     }
-    
+
     // Even addresses are pointers
     // For now, we can't fully determine type without memory access
     // This is a simplified implementation that can be extended
-    
+
     // If we have virtual memory, we could check the type tag
     // For now, return a generic pointer type (2)
     // TODO: When virtual memory is available, check actual type tags
     _ = vm; // Will be used when type tag lookup is implemented
-    
+
     // Basic heuristics:
     // - Very small even values might be special constants
     // - Larger even values are likely pointers to objects
-    
+
     // For now, return generic pointer type
     // This can be extended to check actual type tags from memory
     return 2; // Generic pointer type
@@ -1140,7 +1136,7 @@ fn getValueType(value: LispPTR, vm: *VM) u8 {
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleFIXP(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     const value = stack_module.getTopOfStack(vm);
     // Fixnum check: low bit should be 0 (even address)
     const result: LispPTR = if ((value & 1) == 0) 1 else 0;
@@ -1151,7 +1147,7 @@ pub fn handleFIXP(vm: *VM) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleSMALLP(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     const value = stack_module.getTopOfStack(vm);
     // Small integer check: value fits in small integer range
     // Small integers are typically in range -32768 to 32767
@@ -1164,7 +1160,7 @@ pub fn handleSMALLP(vm: *VM) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleLISTP(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     const value = stack_module.getTopOfStack(vm);
     // LISTP: NIL or cons cell (even address, not a fixnum)
     const result: LispPTR = if (value == 0 or ((value & 1) == 0 and (value & 0x3) != 0)) 1 else 0;
@@ -1181,16 +1177,16 @@ pub fn handleLISTP(vm: *VM) errors.VMError!void {
 /// Character objects are typically represented as fixnums with character code
 pub fn handleCHARCODE(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // Pop character object from stack
     const char_obj = try stack_module.popStack(vm);
-    
+
     // Extract character code from character object
     // In Lisp, characters are typically represented as fixnums
     // Character code is typically in the low 8 bits (or 16 bits for wide chars)
     // For now, treat as 8-bit character code
     const char_code: LispPTR = char_obj & 0xFF;
-    
+
     // Push character code
     try stack_module.pushStack(vm, char_code);
 }
@@ -1201,16 +1197,16 @@ pub fn handleCHARCODE(vm: *VM) errors.VMError!void {
 /// Character code is typically a small integer (0-255 for 8-bit, 0-65535 for 16-bit)
 pub fn handleCHARN(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // Pop character code from stack
     const char_code = try stack_module.popStack(vm);
-    
+
     // Create character object from code
     // In Lisp, characters are typically represented as fixnums
     // Character code is stored in the low bits
     // For now, treat as 8-bit character code (mask to ensure valid range)
     const char_obj: LispPTR = char_code & 0xFF;
-    
+
     // Push character object
     try stack_module.pushStack(vm, char_obj);
 }
@@ -1224,12 +1220,12 @@ pub fn handleCHARN(vm: *VM) errors.VMError!void {
 pub fn handleIVAR(vm: *VM, index: u8) errors.VMError!void {
     const stack_module = @import("stack.zig");
     const errors_module = @import("../utils/errors.zig");
-    
+
     // Get current frame
     const frame = vm.current_frame orelse {
         return errors_module.VMError.InvalidAddress; // No current frame
     };
-    
+
     // IVar access: variables stored at nextblock offset
     const ivar_value = stack_module.getIVar(frame, index);
     try stack_module.pushStack(vm, ivar_value);
@@ -1240,12 +1236,12 @@ pub fn handleIVAR(vm: *VM, index: u8) errors.VMError!void {
 pub fn handlePVAR(vm: *VM, index: u8) errors.VMError!void {
     const stack_module = @import("stack.zig");
     const errors_module = @import("../utils/errors.zig");
-    
+
     // Get current frame
     const frame = vm.current_frame orelse {
         return errors_module.VMError.InvalidAddress; // No current frame
     };
-    
+
     // PVar access: parameters stored right after frame header (FRAMESIZE offset)
     // Use helper function to get parameter value
     const pvar_value = stack_module.getPVar(frame, index);
@@ -1261,22 +1257,22 @@ pub fn handleFVAR(vm: *VM, index: u8) errors.VMError!void {
     const errors_module = @import("../utils/errors.zig");
     const function_header_module = @import("../data/function_header.zig");
     const types_module = @import("../utils/types.zig");
-    
+
     // Get current frame
     const frame = vm.current_frame orelse {
         return errors_module.VMError.InvalidAddress; // No current frame
     };
-    
+
     // Get function header from frame
     const fnheader_ptr = frame.fnheader;
     if (fnheader_ptr == 0) {
         return errors_module.VMError.InvalidAddress; // No function header
     }
-    
+
     // Translate function header address to native pointer
     // For now, assume direct mapping (will need proper address translation later)
     const fnheader: *function_header_module.FunctionHeader = @as(*function_header_module.FunctionHeader, @ptrFromInt(@as(usize, fnheader_ptr)));
-    
+
     // Free variables are stored in PVar area after regular parameters
     // PVars are stored as LispPTR (4 bytes each)
     // Free variables are stored as 2 DLwords (2 bytes each) = 4 bytes total
@@ -1286,32 +1282,32 @@ pub fn handleFVAR(vm: *VM, index: u8) errors.VMError!void {
     const pvar_count = fnheader.pv + 1; // PVar count includes return value slot
     const pvar_area_size = @as(usize, pvar_count) * @sizeOf(LispPTR);
     const fvar_offset_bytes = pvar_area_size + (@as(usize, index) * 4); // Each FVAR is 4 bytes (2 DLwords)
-    
+
     // Access free variable slot (2 words)
     const frame_addr = @intFromPtr(frame);
     const frame_size = @sizeOf(stack.FX);
     const pvar_base_addr = frame_addr + frame_size;
-    
+
     // Get low word and high word (each is 2 bytes)
     const low_word_addr = pvar_base_addr + fvar_offset_bytes;
     const high_word_addr = low_word_addr + @sizeOf(types_module.DLword);
-    
+
     const low_word_ptr: *types_module.DLword = @as(*types_module.DLword, @ptrFromInt(low_word_addr));
     const high_word_ptr: *types_module.DLword = @as(*types_module.DLword, @ptrFromInt(high_word_addr));
-    
+
     const low_word = low_word_ptr.*;
     const high_word = high_word_ptr.*;
-    
+
     // Check if unbound (LSB of low word indicates unbound)
     // For now, we'll skip the lookup and just return the value
     // TODO: Implement nfvlookup for unbound variables
-    
+
     // Construct LispPTR from two words: (high_word << 16) | low_word
     const fvar_value: LispPTR = (@as(LispPTR, high_word) << 16) | @as(LispPTR, low_word);
-    
+
     // Mask to get pointer (clear tag bits)
     const masked_value = fvar_value & 0xFFFFFFFE; // Clear LSB
-    
+
     // Push value onto stack
     try stack_module.pushStack(vm, masked_value);
 }
@@ -1321,19 +1317,19 @@ pub fn handleFVAR(vm: *VM, index: u8) errors.VMError!void {
 /// Accesses global variable via atom index
 pub fn handleGVAR(vm: *VM, atom_index: u16) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // GVAR access requires:
     // 1. Atom table lookup (from atom_index)
     // 2. Get DEFCELL from atom
     // 3. Get global variable value from DEFCELL
     // 4. Push value on stack
-    
+
     // TODO: Proper implementation needs:
     // 1. Atom table access (needs atom table structure)
     // 2. DEFCELL lookup
     // 3. Global variable value extraction
     // For now, return NIL (will be properly implemented with atom tables)
-    
+
     // Placeholder: push NIL for now
     try stack_module.pushStack(vm, 0);
     _ = atom_index; // Use atom_index when atom tables are implemented
@@ -1344,17 +1340,17 @@ pub fn handleGVAR(vm: *VM, atom_index: u16) errors.VMError!void {
 /// Pushes atom constant by atom index
 pub fn handleACONST(vm: *VM, atom_index: u16) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // ACONST requires:
     // 1. Atom table lookup (from atom_index)
     // 2. Get atom object
     // 3. Push atom on stack
-    
+
     // TODO: Proper implementation needs:
     // 1. Atom table access (needs atom table structure)
     // 2. Atom object creation/retrieval
     // For now, push atom_index as placeholder (will be properly implemented with atom tables)
-    
+
     // Placeholder: push atom_index as atom pointer (will be properly implemented)
     try stack_module.pushStack(vm, @as(LispPTR, atom_index));
 }
@@ -1364,17 +1360,17 @@ pub fn handleACONST(vm: *VM, atom_index: u16) errors.VMError!void {
 /// Pushes global constant atom by atom index
 pub fn handleGCONST(vm: *VM, atom_index: u16) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // GCONST requires:
     // 1. Atom table lookup (from atom_index)
     // 2. Get global constant atom object
     // 3. Push atom on stack
-    
+
     // TODO: Proper implementation needs:
     // 1. Atom table access (needs atom table structure)
     // 2. Global constant atom object creation/retrieval
     // For now, push atom_index as placeholder (will be properly implemented with atom tables)
-    
+
     // Placeholder: push atom_index as atom pointer (will be properly implemented)
     try stack_module.pushStack(vm, @as(LispPTR, atom_index));
 }

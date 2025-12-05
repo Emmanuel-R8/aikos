@@ -16,9 +16,9 @@ pub const ArrayType = enum(u8) {
 
 /// Array header structure
 pub const ArrayHeader = packed struct {
-    type_code: u8,           // Array type code
-    fill_pointer: DLword,   // Fill pointer (for arrays)
-    length: DLword,          // Array length
+    type_code: u8, // Array type code
+    fill_pointer: DLword, // Fill pointer (for arrays)
+    length: DLword, // Array length
     // Data follows in memory
 };
 

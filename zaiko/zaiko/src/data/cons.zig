@@ -7,16 +7,16 @@ const DLword = types.DLword;
 /// Cons cell structure (matches C ConsCell)
 /// Per data-model.md
 pub const ConsCell = packed struct {
-    car_field: LispPTR,      // CAR field
-    cdr_code: u8,            // CDR coding (low 8 bits)
+    car_field: LispPTR, // CAR field
+    cdr_code: u8, // CDR coding (low 8 bits)
     // CDR coding values: CDR_NIL, CDR_ONPAGE, CDR_INDIRECT
 };
 
 /// CDR coding constants
-pub const CDR_NIL: u8 = 8;           // NEWCDRCODING: CDR is NIL
-pub const CDR_INDIRECT: u8 = 0;      // CDR stored indirectly
-pub const CDR_ONPAGE_MIN: u8 = 8;    // Same page encoding start
-pub const CDR_ONPAGE_MAX: u8 = 15;   // Same page encoding end
+pub const CDR_NIL: u8 = 8; // NEWCDRCODING: CDR is NIL
+pub const CDR_INDIRECT: u8 = 0; // CDR stored indirectly
+pub const CDR_ONPAGE_MIN: u8 = 8; // Same page encoding start
+pub const CDR_ONPAGE_MAX: u8 = 15; // Same page encoding end
 
 /// Decode CDR from cons cell
 /// Per rewrite documentation data-structures/cons-cells.md

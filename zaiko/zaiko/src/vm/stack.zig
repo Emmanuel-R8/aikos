@@ -8,10 +8,10 @@ const DLword = types.DLword;
 /// Stack frame structure (matches C FX)
 /// Per data-model.md
 pub const FX = packed struct {
-    nextblock: LispPTR,      // Next stack block pointer
-    link: LispPTR,           // Activation link (previous frame)
-    fnheader: LispPTR,       // Function header pointer
-    pcoffset: DLword,        // PC offset
+    nextblock: LispPTR, // Next stack block pointer
+    link: LispPTR, // Activation link (previous frame)
+    fnheader: LispPTR, // Function header pointer
+    pcoffset: DLword, // PC offset
     // Local variables follow in memory after this struct
 };
 
