@@ -52,13 +52,13 @@
 ### Implementation for User Story 1
 
 - [X] T010 [P] [US1] Create `.ai_assistant_db/medley/components/directory-structure.md` documenting Medley directory organization, purpose of each major directory, and file types
-- [ ] T011 [P] [US1] Create `.ai_assistant_db/medley/components/scripts.md` documenting Medley script system, script types (medley_run.sh, medley.command, medley.ps1), argument parsing, and script flow
-- [ ] T012 [US1] Create `.ai_assistant_db/medley/components/sysout.md` documenting sysout file purpose, structure, types (lisp.sysout, full.sysout, apps.sysout), and relationship to Lisp system state
-- [ ] T013 [US1] Create `.ai_assistant_db/medley/components/vmem.md` documenting virtual memory file format, usage patterns, persistence, and session continuation
-- [ ] T014 [P] [US1] Create `.ai_assistant_db/medley/components/configuration.md` documenting configuration file format, precedence rules, parsing behavior, and default locations
-- [ ] T015 [P] [US1] Create `.ai_assistant_db/medley/components/greetfiles.md` documenting greet file format, execution order, purpose, and integration with Medley startup
-- [ ] T016 [US1] Create `.ai_assistant_db/medley/components/loadup.md` documenting loadup workflow, sysout creation process, and relationship to Medley build system
-- [ ] T017 [US1] Update `.ai_assistant_db/medley/architecture.md` with component relationships, data flow diagrams, and cross-references to component documentation
+- [X] T011 [P] [US1] Create `.ai_assistant_db/medley/components/scripts.md` documenting Medley script system, script types (medley_run.sh, medley.command, medley.ps1), argument parsing, and script flow
+- [X] T012 [US1] Create `.ai_assistant_db/medley/components/sysout.md` documenting sysout file purpose, structure, types (lisp.sysout, full.sysout, apps.sysout), and relationship to Lisp system state
+- [X] T013 [US1] Create `.ai_assistant_db/medley/components/vmem.md` documenting virtual memory file format, usage patterns, persistence, and session continuation
+- [X] T014 [P] [US1] Create `.ai_assistant_db/medley/components/configuration.md` documenting configuration file format, precedence rules, parsing behavior, and default locations
+- [X] T015 [P] [US1] Create `.ai_assistant_db/medley/components/greetfiles.md` documenting greet file format, execution order, purpose, and integration with Medley startup
+- [X] T016 [US1] Create `.ai_assistant_db/medley/components/loadup.md` documenting loadup workflow, sysout creation process, and relationship to Medley build system
+- [X] T017 [US1] Update `.ai_assistant_db/medley/architecture.md` with component relationships, data flow diagrams, and cross-references to component documentation
 
 **Checkpoint**: At this point, User Story 1 should enable developers to understand Medley's complete architecture and all major components
 
@@ -72,12 +72,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T018 [US2] Create `.ai_assistant_db/medley/interface/command-line.md` documenting complete command-line argument mapping from Medley flags to Maiko flags, argument transformation logic, and all options from medley.1 man page
-- [ ] T019 [US2] Create `.ai_assistant_db/medley/interface/environment.md` documenting all environment variables (MEDLEYDIR, LOGINDIR, LDESOURCESYSOUT, LDEINIT, LDEREMCM, LDEDESTSYSOUT), their purpose, usage context, and when they are set
-- [ ] T020 [US2] Create `.ai_assistant_db/medley/interface/file-formats.md` documenting sysout file format specification, vmem file format specification, configuration file format, and greet file format with complete structure details
-- [ ] T021 [US2] Create `.ai_assistant_db/medley/interface/protocols.md` documenting runtime communication protocols, script invocation patterns, error handling, exit codes, and Maiko startup sequence
-- [ ] T022 [US2] Update `.ai_assistant_db/medley/interface/README.md` with interface overview, navigation to all interface documentation, and cross-references to Maiko documentation
-- [ ] T023 [US2] Add Mermaid diagrams to interface documentation showing Medley-Maiko interaction flows, argument transformation, and file format relationships
+- [X] T018 [US2] Create `.ai_assistant_db/medley/interface/command-line.md` documenting complete command-line argument mapping from Medley flags to Maiko flags, argument transformation logic, and all options from medley.1 man page
+- [X] T019 [US2] Create `.ai_assistant_db/medley/interface/environment.md` documenting all environment variables (MEDLEYDIR, LOGINDIR, LDESOURCESYSOUT, LDEINIT, LDEREMCM, LDEDESTSYSOUT), their purpose, usage context, and when they are set
+- [X] T020 [US2] Create `.ai_assistant_db/medley/interface/file-formats.md` documenting sysout file format specification, vmem file format specification, configuration file format, and greet file format with complete structure details
+- [X] T021 [US2] Create `.ai_assistant_db/medley/interface/protocols.md` documenting runtime communication protocols, script invocation patterns, error handling, exit codes, and Maiko startup sequence
+- [X] T022 [US2] Update `.ai_assistant_db/medley/interface/README.md` with interface overview, navigation to all interface documentation, and cross-references to Maiko documentation
+- [X] T023 [US2] Add Mermaid diagrams to interface documentation showing Medley-Maiko interaction flows, argument transformation, and file format relationships
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should enable complete understanding of Medley architecture and Medley-Maiko interface
 
@@ -94,11 +94,11 @@
 - [ ] T024 [US3] Enhance `.ai_assistant_db/medley/components/scripts.md` with detailed script implementation analysis, source code references to `medley/scripts/medley/medley_run.sh`, argument parsing logic, and platform-specific script variations
 - [ ] T025 [US3] Enhance `.ai_assistant_db/medley/components/configuration.md` with detailed parsing logic, source code references, precedence rule implementation, and edge case handling
 - [ ] T026 [US3] Enhance `.ai_assistant_db/medley/components/greetfiles.md` with execution order implementation details, source code references, error handling, and integration with Maiko startup sequence
-- [ ] T027 [P] [US3] Create `.ai_assistant_db/medley/platform/README.md` with platform documentation overview
-- [ ] T028 [P] [US3] Create `.ai_assistant_db/medley/platform/linux.md` documenting Linux-specific behaviors, script differences, and platform-specific interface variations
-- [ ] T029 [P] [US3] Create `.ai_assistant_db/medley/platform/macos.md` documenting macOS-specific behaviors, medley.command script, and platform-specific interface variations
-- [ ] T030 [P] [US3] Create `.ai_assistant_db/medley/platform/windows.md` documenting Windows/Cygwin-specific behaviors, medley.ps1 script, file path handling, and platform-specific interface variations
-- [ ] T031 [P] [US3] Create `.ai_assistant_db/medley/platform/wsl.md` documenting WSL-specific behaviors, VNC usage, automation flag, and platform-specific interface variations
+- [X] T027 [P] [US3] Create `.ai_assistant_db/medley/platform/README.md` with platform documentation overview
+- [X] T028 [P] [US3] Create `.ai_assistant_db/medley/platform/linux.md` documenting Linux-specific behaviors, script differences, and platform-specific interface variations
+- [X] T029 [P] [US3] Create `.ai_assistant_db/medley/platform/macos.md` documenting macOS-specific behaviors, medley.command script, and platform-specific interface variations
+- [X] T030 [P] [US3] Create `.ai_assistant_db/medley/platform/windows.md` documenting Windows/Cygwin-specific behaviors, medley.ps1 script, file path handling, and platform-specific interface variations
+- [X] T031 [P] [US3] Create `.ai_assistant_db/medley/platform/wsl.md` documenting WSL-specific behaviors, VNC usage, automation flag, and platform-specific interface variations
 - [ ] T032 [US3] Add source code references throughout all component documentation pointing to relevant Medley source files
 
 **Checkpoint**: At this point, all user stories should enable complete understanding of Medley for both implementors and maintainers
@@ -109,16 +109,16 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T033 [P] Add comprehensive cross-references between Medley documentation and Maiko documentation in `.ai_assistant_db/` where interfaces are discussed
-- [ ] T034 [P] Add Mermaid diagrams to architecture.md showing system structure, component relationships, and data flow
-- [ ] T035 [P] Validate all documentation files are reachable from INDEX.md within 3 navigation steps
-- [ ] T036 [P] Verify all command-line options from medley.1 man page are documented in interface/command-line.md
-- [ ] T037 [P] Verify all environment variables are documented in interface/environment.md
-- [ ] T038 [P] Verify all file formats are specified in interface/file-formats.md
-- [ ] T039 [P] Verify all source code references point to valid files in repository
-- [ ] T040 [P] Verify all cross-references are valid links (internal and external)
-- [ ] T041 Update `.ai_assistant_db/medley/INDEX.md` with complete navigation to all documentation files organized by topic
-- [ ] T042 Run quickstart.md validation to ensure developer guide is accurate and all referenced documentation exists
+- [X] T033 [P] Add comprehensive cross-references between Medley documentation and Maiko documentation in `.ai_assistant_db/` where interfaces are discussed
+- [X] T034 [P] Add Mermaid diagrams to architecture.md showing system structure, component relationships, and data flow
+- [X] T035 [P] Validate all documentation files are reachable from INDEX.md within 3 navigation steps
+- [X] T036 [P] Verify all command-line options from medley.1 man page are documented in interface/command-line.md
+- [X] T037 [P] Verify all environment variables are documented in interface/environment.md
+- [X] T038 [P] Verify all file formats are specified in interface/file-formats.md
+- [X] T039 [P] Verify all source code references point to valid files in repository
+- [X] T040 [P] Verify all cross-references are valid links (internal and external)
+- [X] T041 Update `.ai_assistant_db/medley/INDEX.md` with complete navigation to all documentation files organized by topic
+- [X] T042 Run quickstart.md validation to ensure developer guide is accurate and all referenced documentation exists
 
 ---
 

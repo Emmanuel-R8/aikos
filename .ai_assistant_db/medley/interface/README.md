@@ -122,6 +122,55 @@ This interface documentation provides:
 - ✅ Platform-specific interface variations
 - ✅ Cross-references to Maiko documentation
 
+## Documentation Files
+
+### [Command-Line Interface](command-line.md)
+
+Complete documentation of command-line argument mapping from Medley flags to Maiko flags.
+
+**Contents**:
+- Complete flag mapping table
+- Argument transformation logic
+- Maiko invocation pattern
+- All options from medley.1 man page
+- Examples and usage patterns
+
+### [Environment Variables](environment.md)
+
+Complete specification of all environment variables used for Medley-Maiko communication.
+
+**Contents**:
+- MEDLEYDIR, LOGINDIR specifications
+- LDESOURCESYSOUT, LDEDESTSYSOUT specifications
+- LDEINIT, LDEREMCM specifications
+- Variable lifecycle and resolution
+- Platform considerations
+
+### [File Formats](file-formats.md)
+
+Complete specifications of all file formats used in Medley-Maiko communication.
+
+**Contents**:
+- Sysout file format specification
+- Vmem file format specification
+- Config file format specification
+- Greet file format specification
+- REM.CM file format specification
+
+### [Protocols](protocols.md)
+
+Complete documentation of runtime communication protocols.
+
+**Contents**:
+- Script invocation patterns
+- Startup sequence
+- Session continuation protocol
+- Error handling
+- Exit codes
+- Session management
+- Repeat protocol
+- VNC protocol (WSL)
+
 ## For Implementors
 
 If you are implementing a Medley-compatible system or a Maiko-compatible emulator:

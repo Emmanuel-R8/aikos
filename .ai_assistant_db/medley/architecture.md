@@ -261,12 +261,16 @@ sequenceDiagram
 - Scripts find greet files based on `-r` flag or defaults
 - Scripts read config files from standard locations
 
+**See**: [Scripts Component](components/scripts.md) for script system details
+
 ### Scripts → Maiko
 
 - Scripts transform arguments for Maiko
 - Scripts set environment variables for Maiko
 - Scripts invoke Maiko executable with arguments
 - Scripts handle Maiko exit codes and errors
+
+**See**: [Scripts Component](components/scripts.md) and [Interface Documentation](interface/README.md) for interface details
 
 ### Files → Maiko
 
@@ -275,12 +279,72 @@ sequenceDiagram
 - Maiko executes greet files during startup
 - Maiko saves vmem files on exit
 
+**See**: [Sysout Files Component](components/sysout.md), [Virtual Memory Files Component](components/vmem.md), and [Greet Files Component](components/greetfiles.md) for file details
+
 ### Loadup → Sysout Files
 
 - Loadup process creates sysout files from Lisp source
 - Loadup runs in sequential stages
 - Each stage produces a sysout file used by the next stage
 - Final sysout files are copied to `loadups/` directory
+
+**See**: [Loadup Workflow Component](components/loadup.md) for loadup process details
+
+## Component Interaction Diagram
+
+```mermaid
+graph TB
+    subgraph User["User"]
+        CLI["Command Line"]
+        ConfigFile["Config File"]
+    end
+
+    subgraph Scripts["Script System"]
+        ArgParse["Argument Parser"]
+        FileResolve["File Resolver"]
+        EnvSetup["Environment Setup"]
+        MaikoInvoke["Maiko Invocation"]
+    end
+
+    subgraph Files["File System"]
+        Sysout["Sysout Files"]
+        Vmem["Vmem Files"]
+        Greet["Greet Files"]
+        Config["Config Files"]
+    end
+
+    subgraph Loadup["Loadup Process"]
+        LoadupStages["Loadup Stages"]
+        SourceCode["Lisp Source Code"]
+    end
+
+    subgraph Maiko["Maiko Emulator"]
+        VM["VM Core"]
+        Memory["Memory Management"]
+    end
+
+    User --> CLI
+    User --> ConfigFile
+    CLI --> ArgParse
+    ConfigFile --> ArgParse
+    ArgParse --> FileResolve
+    FileResolve --> Sysout
+    FileResolve --> Vmem
+    FileResolve --> Greet
+    FileResolve --> Config
+    ArgParse --> EnvSetup
+    EnvSetup --> MaikoInvoke
+    FileResolve --> MaikoInvoke
+    MaikoInvoke --> Maiko
+    Sysout --> Maiko
+    Vmem --> Maiko
+    Greet --> Maiko
+    Maiko --> VM
+    Maiko --> Memory
+    LoadupStages --> SourceCode
+    SourceCode --> LoadupStages
+    LoadupStages --> Sysout
+```
 
 ## Platform Abstraction
 

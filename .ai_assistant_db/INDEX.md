@@ -24,6 +24,14 @@ Quick reference guide to all documentation files.
 │   └── overview.md             # API overview
 ├── implementations/             # Alternative implementations
 │   └── lisp-implementation.md  # Common Lisp implementation
+├── medley/                      # Medley Interlisp documentation
+│   ├── README.md               # Medley documentation overview
+│   ├── INDEX.md                # Medley quick reference
+│   ├── architecture.md         # Medley system architecture
+│   ├── components/             # Medley component documentation
+│   ├── interface/              # Medley-Maiko interface
+│   ├── platform/               # Platform-specific documentation
+│   └── glossary.md             # Medley terminology
 └── rewrite-spec/                # Language-agnostic specifications
     ├── instruction-set/        # Bytecode specifications
     ├── vm-core/                # Execution engine specs
@@ -42,6 +50,7 @@ Quick reference guide to all documentation files.
 2. **Understanding Architecture?** → Read [architecture.md](architecture.md)
 3. **Building the Project?** → See [build-system.md](build-system.md)
 4. **Looking for Terms?** → Check [glossary.md](glossary.md)
+5. **Understanding Medley?** → See [medley/README.md](medley/README.md) - Medley Interlisp documentation
 
 ### By Topic
 
