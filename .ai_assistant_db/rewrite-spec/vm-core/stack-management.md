@@ -1,0 +1,271 @@
+# Stack Management Specification
+
+**Navigation**: [README](README.md) | [Execution Model](execution-model.md) | [Function Calls](function-calls.md)
+
+Complete specification of stack frame structure, stack operations, and frame management.
+
+## Overview
+
+The VM uses a stack-based execution model where each function call creates a stack frame (FX - Frame eXtended). The stack manages function activation, local variables, parameters, and return addresses.
+
+## Stack Frame Structure
+
+### Frame Layout
+
+```mermaid
+graph TD
+    Frame[Stack Frame FX] --> Flags[Flags Word]
+    Frame --> Alink[Activation Link]
+    Frame --> FnHeader[Function Header Ptr]
+    Frame --> NextBlock[Next Block Ptr]
+    Frame --> PC[Program Counter]
+    Frame --> NameTable[Name Table Ptr]
+    Frame --> Blink[Binding Link]
+    Frame --> Clink[Closure Link]
+    Frame --> Locals[Local Variables]
+```
+
+### Frame Structure (FX)
+
+```pseudocode
+struct FrameEx:
+    flags: 3 bits          // Frame flags
+    fast: 1 bit            // Fast call flag
+    nil2: 1 bit            // Reserved
+    incall: 1 bit          // In-call flag
+    validnametable: 1 bit  // Name table valid flag
+    nopush: 1 bit          // No push flag
+    usecount: 8 bits       // Use count for GC
+    alink: DLword          // Activation link (previous frame)
+    fnheader: LispPTR      // Function header pointer
+    nextblock: DLword      // Next stack block offset
+    pc: DLword             // Program counter offset
+    nametable: LispPTR     // Name table pointer
+    blink: DLword          // Binding link
+    clink: DLword          // Closure link
+    // ... local variables follow ...
+```
+
+### Frame Markers
+
+**FX_MARK (0xC000)**:
+
+- Marks start of frame
+- Used for frame identification
+
+**BF_MARK (0x8000)**:
+
+- Marks binding frame
+- Used for variable binding tracking
+
+**STK_FSB_WORD (0xA000)**:
+
+- Marks free stack block
+- Used for stack space management
+
+## Stack Operations
+
+### Push Stack
+
+```pseudocode
+function PushStack(value):
+    CurrentStackPTR = CurrentStackPTR - 2  // Move down (stack grows down)
+    *CurrentStackPTR = value
+    TopOfStack = value
+
+    // Check stack overflow
+    if CurrentStackPTR < EndSTKP:
+        HandleStackOverflow()
+```
+
+### Pop Stack
+
+```pseudocode
+function PopStack():
+    value = *CurrentStackPTR
+    CurrentStackPTR = CurrentStackPTR + 2  // Move up
+    TopOfStack = *(CurrentStackPTR - 2)
+    return value
+```
+
+### Stack Frame Allocation
+
+```pseudocode
+function AllocateStackFrame(function_obj):
+    // Calculate frame size
+    frame_size = FRAMESIZE + function_obj.local_count * 2
+
+    // Check available space
+    if CurrentStackPTR - frame_size < EndSTKP:
+        ExtendStack()
+
+    // Allocate frame
+    frame_ptr = CurrentStackPTR - frame_size
+    CurrentStackPTR = frame_ptr
+
+    // Initialize frame
+    frame = GetFrame(frame_ptr)
+    frame.flags = FX_MARK
+    frame.fnheader = function_obj.address
+    frame.pc = 0
+    frame.alink = LAddrFromNative(PreviousFrame)
+
+    return frame_ptr
+```
+
+## Frame Management
+
+### Activation Links
+
+Activation links chain frames together:
+
+```pseudocode
+function SetActivationLink(new_frame, previous_frame):
+    new_frame.alink = LAddrFromNative(previous_frame)
+```
+
+### Frame Traversal
+
+```pseudocode
+function GetPreviousFrame(current_frame):
+    if current_frame.alink == 0:
+        return null
+    return NativeAligned4FromLAddr(current_frame.alink)
+```
+
+### Current Frame Access
+
+```pseudocode
+function GetCurrentFrame():
+    return NativeAligned4FromStackOffset(CurrentFrameOffset)
+```
+
+## Variable Access
+
+### IVar (Local Variables)
+
+```pseudocode
+function GetIVar(index):
+    frame = GetCurrentFrame()
+    ivar_base = NativeAligned2FromStackOffset(frame.nextblock)
+    return ivar_base[index]
+```
+
+### PVar (Parameter Variables)
+
+```pseudocode
+function GetPVar(index):
+    frame = GetCurrentFrame()
+    pvar_base = frame + FRAMESIZE
+    return pvar_base[index]
+```
+
+### FVar (Free Variables)
+
+```pseudocode
+function GetFVar(index):
+    frame = GetCurrentFrame()
+    fvar_offset = frame.fnheader.fvaroffset
+    nametable = GetNameTable(frame)
+    fvar_base = nametable + fvar_offset
+    return fvar_base[index]
+```
+
+## Stack Extension
+
+### Extend Stack Algorithm
+
+```pseudocode
+function ExtendStack():
+    // Check if extension needed
+    if CurrentStackPTR < EndSTKP:
+        return  // No extension needed
+
+    // Allocate new stack page
+    new_page = AllocateStackPage()
+
+    // Initialize free stack block
+    free_block = GetFreeStackBlock(new_page)
+    free_block.marker = STK_FSB_WORD
+    free_block.size = DLWORDSPER_PAGE - 2
+
+    // Update end of stack
+    EndSTKP = new_page + DLWORDSPER_PAGE
+
+    // Set up guard block
+    guard_block = GetGuardBlock(EndSTKP)
+    guard_block.marker = STK_GUARD_WORD
+```
+
+## Stack Overflow Handling
+
+### Overflow Detection
+
+```pseudocode
+function CheckStackOverflow(required_space):
+    if CurrentStackPTR - required_space < EndSTKP:
+        if CurrentStackPTR < GuardStackAddr:
+            SetInterruptFlag(STACKOVERFLOW)
+            return true
+        else:
+            ExtendStack()
+            return false
+    return false
+```
+
+### Overflow Recovery
+
+```pseudocode
+function HandleStackOverflow():
+    // Set interrupt flag
+    interrupt_state.stackoverflow = true
+    interrupt_state.waitinginterrupt = true
+
+    // Trigger interrupt handler
+    TriggerInterrupt(STACKOVERFLOW)
+```
+
+## Free Stack Block Management
+
+### Free Block Structure
+
+```pseudocode
+struct FreeStackBlock:
+    marker: DLword      // STK_FSB_WORD
+    size: DLword        // Size in words
+    // ... free space ...
+```
+
+### Merge Free Blocks
+
+```pseudocode
+function MergeFreeBlocks(block_ptr):
+    while GetNextBlock(block_ptr).marker == STK_FSB_WORD:
+        next_block = GetNextBlock(block_ptr)
+        block_ptr.size += next_block.size
+        block_ptr = next_block
+    return block_ptr
+```
+
+## Frame Cleanup
+
+### Frame Deallocation
+
+```pseudocode
+function DeallocateFrame(frame_ptr):
+    frame = GetFrame(frame_ptr)
+
+    // Mark as free stack block
+    free_block = GetFreeStackBlock(frame_ptr)
+    free_block.marker = STK_FSB_WORD
+    free_block.size = CalculateFrameSize(frame)
+
+    // Merge with adjacent free blocks
+    MergeFreeBlocks(free_block)
+```
+
+## Related Documentation
+
+- [Execution Model](execution-model.md) - How stack is used in execution
+- [Function Calls](function-calls.md) - Frame creation during calls
+- [Memory Management](../memory/) - Stack memory allocation
