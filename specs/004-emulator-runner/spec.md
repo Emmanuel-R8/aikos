@@ -1,9 +1,17 @@
 # Feature Specification: Emulator Runner Scripts for Interlisp
 
-**Feature Branch**: `004-emulator-runner`  
-**Created**: 2025-01-27  
-**Status**: Draft  
+**Feature Branch**: `004-emulator-runner`
+**Created**: 2025-01-27
+**Status**: Draft
 **Input**: User description: "I want scripts to run the Interlisp system from Medley using my choice of emulators."
+
+## Clarifications
+
+### Session 2025-01-27
+
+- Q: If the selected emulator fails to start (e.g., crashes, can't load sysout, display error), should the system attempt automatic fallback to another emulator, or fail with an error? → A: Fail with clear error message (no fallback)
+- Q: Should the system proactively detect corrupted/non-executable emulator files before attempting to run, or let the emulator fail naturally when invoked? → A: Proactively detect (check permissions, basic validation) and show clear error
+- Q: Should the system allow or prevent multiple Interlisp instances running simultaneously with different emulators? → A: Prevent concurrent runs (implement locking mechanism)
 
 ## User Scenarios & Testing
 
@@ -59,11 +67,11 @@ A developer wants to run Interlisp with a specific emulator, and if that emulato
 
 - What happens when the specified emulator doesn't exist in the unified build location?
 - How does the system handle invalid emulator names (e.g., `--emulator invalid`)?
-- What happens when multiple emulators are available but the selected one fails to start?
+- What happens when multiple emulators are available but the selected one fails to start? → System fails with clear error message (no automatic fallback)
 - How does the system handle platform-specific emulator availability (e.g., Lisp emulator not available on certain platforms)?
-- What happens when the emulator executable exists but is corrupted or not executable?
-- How does the system handle concurrent runs with different emulators?
-- What happens when the unified build location exists but contains stale or incomplete builds?
+- What happens when the emulator executable exists but is corrupted or not executable? → System proactively detects (checks permissions, basic validation) and shows clear error before attempting to run
+- How does the system handle concurrent runs with different emulators? → System prevents concurrent runs using a locking mechanism
+- What happens when the unified build location exists but contains stale or incomplete builds? → Stale builds (executables exist but outdated) are handled by build system; incomplete builds are detected by proactive validation (FR-015) or fail when executed
 
 ## Requirements
 
@@ -82,6 +90,9 @@ A developer wants to run Interlisp with a specific emulator, and if that emulato
 - **FR-011**: System MUST work with all existing Medley run scripts (run-medley, medley.command, medley_run.sh)
 - **FR-012**: System MUST handle platform-specific emulator availability gracefully (e.g., inform user if emulator not available for current platform)
 - **FR-013**: System MUST maintain executable naming conventions expected by Medley scripts (lde, ldeinit, ldex, ldesdl, maiko-zig, maiko-lisp)
+- **FR-014**: System MUST fail with clear error message when selected emulator fails to start (no automatic fallback to other emulators)
+- **FR-015**: System MUST proactively detect corrupted or non-executable emulator files (check permissions, basic validation) and display clear error messages before attempting to run
+- **FR-016**: System MUST prevent concurrent runs using a locking mechanism (e.g., lock file) to ensure only one Interlisp instance runs at a time
 
 ### Key Entities
 
