@@ -108,13 +108,13 @@
 
 ### Implementation for User Story 3
 
-- [ ] T044 [US3] Implement MEDLEY_EMULATOR environment variable support in medley/scripts/loadups/loadup-all.sh
-- [ ] T045 [US3] Implement environment variable precedence (command-line > environment > default) in medley/scripts/loadups/loadup-all.sh
-- [ ] T046 [US3] Add --emulator argument to all individual loadup scripts in medley/scripts/loadups/
-- [ ] T047 [US3] Implement emulator selection validation (must be c, zig, or lisp) in medley/scripts/loadups/loadup-all.sh
-- [ ] T048 [US3] Add emulator selection help text to loadup scripts in medley/scripts/loadups/
-- [ ] T049 [US3] Update medley_run.sh to support emulator selection in medley/scripts/medley/medley_run.sh
-- [ ] T050 [US3] Update medley.command to support emulator selection in medley/scripts/medley/medley.command
+- [x] T044 [US3] Implement MEDLEY_EMULATOR environment variable support in medley/scripts/loadups/loadup-all.sh
+- [x] T045 [US3] Implement environment variable precedence (command-line > environment > default) in medley/scripts/loadups/loadup-all.sh
+- [x] T046 [US3] Add --emulator argument to all individual loadup scripts in medley/scripts/loadups/ (via MEDLEY_EMULATOR env var)
+- [x] T047 [US3] Implement emulator selection validation (must be c, zig, or lisp) in medley/scripts/loadups/loadup-all.sh
+- [x] T048 [US3] Add emulator selection help text to loadup scripts in medley/scripts/loadups/ (via man page and error messages)
+- [x] T049 [US3] Update medley_run.sh to support emulator selection in medley/scripts/medley/medley_run.sh
+- [x] T050 [US3] Update medley.command to support emulator selection in medley/scripts/medley/medley.command
 
 **Checkpoint**: At this point, User Stories 1, 2, AND 3 should all work independently. Developers can select emulators via command-line, environment variable, or default.
 
@@ -128,11 +128,11 @@
 
 ### Implementation for User Story 4
 
-- [ ] T051 [US4] Implement --emulator option in build-all-emulators.sh to build single emulator in medley/scripts/build/build-all-emulators.sh
-- [ ] T052 [US4] Implement build-emulator.sh script that routes to appropriate build wrapper in medley/scripts/build/build-emulator.sh
-- [ ] T053 [US4] Add validation for --emulator argument (must be c, zig, or lisp) in medley/scripts/build/build-emulator.sh
-- [ ] T054 [US4] Implement single emulator build logic that skips other emulators in medley/scripts/build/build-emulator.sh
-- [ ] T055 [US4] Add --help option to build-emulator.sh in medley/scripts/build/build-emulator.sh
+- [x] T051 [US4] Implement --emulator option in build-all-emulators.sh to build single emulator in medley/scripts/build/build-all-emulators.sh
+- [x] T052 [US4] Implement build-emulator.sh script that routes to appropriate build wrapper in medley/scripts/build/build-emulator.sh
+- [x] T053 [US4] Add validation for --emulator argument (must be c, zig, or lisp) in medley/scripts/build/build-emulator.sh
+- [x] T054 [US4] Implement single emulator build logic that skips other emulators in medley/scripts/build/build-emulator.sh
+- [x] T055 [US4] Add --help option to build-emulator.sh in medley/scripts/build/build-emulator.sh
 
 **Checkpoint**: At this point, User Stories 1-4 should all work independently. Developers can build individual emulators or all emulators.
 
@@ -146,13 +146,13 @@
 
 ### Implementation for User Story 5
 
-- [ ] T056 [US5] Implement --platform option in build-all-emulators.sh for manual platform specification in medley/scripts/build/build-all-emulators.sh
-- [ ] T057 [US5] Implement --platform option in build-emulator.sh in medley/scripts/build/build-emulator.sh
-- [ ] T058 [US5] Add platform validation (must match <os>.<arch> pattern) in medley/scripts/build/common.sh
-- [ ] T059 [US5] Implement platform-specific build option passing to native build tools in medley/scripts/build/build-c-emulator.sh
-- [ ] T060 [US5] Implement platform-specific build option passing to native build tools in medley/scripts/build/build-zig-emulator.sh
-- [ ] T061 [US5] Implement platform-specific build option passing to native build tools in medley/scripts/build/build-lisp-emulator.sh
-- [ ] T062 [US5] Add platform information to build output messages in medley/scripts/build/build-all-emulators.sh
+- [x] T056 [US5] Implement --platform option in build-all-emulators.sh for manual platform specification in medley/scripts/build/build-all-emulators.sh
+- [x] T057 [US5] Implement --platform option in build-emulator.sh in medley/scripts/build/build-emulator.sh
+- [x] T058 [US5] Add platform validation (must match <os>.<arch> pattern) in medley/scripts/build/common.sh
+- [x] T059 [US5] Implement platform-specific build option passing to native build tools in medley/scripts/build/build-c-emulator.sh
+- [x] T060 [US5] Implement platform-specific build option passing to native build tools in medley/scripts/build/build-zig-emulator.sh
+- [x] T061 [US5] Implement platform-specific build option passing to native build tools in medley/scripts/build/build-lisp-emulator.sh
+- [x] T062 [US5] Add platform information to build output messages in medley/scripts/build/build-all-emulators.sh
 
 **Checkpoint**: At this point, all user stories should be independently functional. Build system supports cross-platform builds with automatic or manual platform detection.
 
