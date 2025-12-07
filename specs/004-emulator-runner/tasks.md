@@ -50,13 +50,13 @@
 
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] Add --emulator argument parsing to medley/run-medley (accept c|zig|lisp, validate input)
-- [ ] T013 [US1] Integrate select_emulator() function into medley/run-medley argument processing
-- [ ] T014 [US1] Integrate find_emulator_executable() function into medley/run-medley (replace existing emulator location logic)
-- [ ] T015 [US1] Integrate validate_emulator_executable() function into medley/run-medley (before emulator invocation)
-- [ ] T016 [US1] Integrate acquire_run_lock() and release_run_lock() into medley/run-medley (prevent concurrent runs)
-- [ ] T017 [US1] Update emulator executable selection logic in medley/run-medley to use selected emulator type
-- [ ] T018 [US1] Add --override-lock argument parsing to medley/run-medley
+- [X] T012 [US1] Add --emulator argument parsing to medley/run-medley (accept c|zig|lisp, validate input)
+- [X] T013 [US1] Integrate select_emulator() function into medley/run-medley argument processing
+- [X] T014 [US1] Integrate find_emulator_executable() function into medley/run-medley (replace existing emulator location logic)
+- [X] T015 [US1] Integrate validate_emulator_executable() function into medley/run-medley (before emulator invocation)
+- [X] T016 [US1] Integrate acquire_run_lock() and release_run_lock() into medley/run-medley (prevent concurrent runs)
+- [X] T017 [US1] Update emulator executable selection logic in medley/run-medley to use selected emulator type
+- [X] T018 [US1] Add --override-lock argument parsing to medley/run-medley
 - [ ] T019 [US1] Update medley/scripts/medley/medley.command to add --emulator argument parsing
 - [ ] T020 [US1] Integrate select_emulator() function into medley/scripts/medley/medley.command
 - [ ] T021 [US1] Enhance check_unified_build_location() in medley/scripts/medley/medley.command to use selected emulator
