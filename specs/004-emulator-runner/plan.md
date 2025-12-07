@@ -15,6 +15,7 @@ Create scripts to run the Interlisp system from Medley using the user's choice o
 
 **Language/Version**: Shell scripts (bash/sh), compatible with existing Medley script infrastructure
 **Primary Dependencies**:
+
 - Unified build system (spec 003) for emulator location and building
 - Existing Medley run scripts (run-medley, medley.command, medley_run.sh)
 - Maiko platform detection utilities (osversion, machinetype)
@@ -41,22 +42,27 @@ Create scripts to run the Interlisp system from Medley using the user's choice o
 ### Pre-Research Check (Phase 0)
 
 ### I. Platform Portability ✅
+
 **Status**: COMPLIANT
 **Rationale**: The emulator runner scripts will leverage existing Medley script infrastructure which already supports multiple platforms (macOS, FreeBSD, Linux, Solaris, Windows). Emulator selection will work across all platforms where Medley runs. Platform detection uses existing Maiko utilities (osversion, machinetype) consistent with existing scripts.
 
 ### II. Build System Flexibility ✅
+
 **Status**: COMPLIANT
 **Rationale**: The emulator runner scripts do not modify build systems. They use emulators built by the unified build system (spec 003) which orchestrates multiple build systems (CMake/Make for C, Zig build for Zig, ASDF for Lisp) without replacing them. The runner scripts only invoke already-built executables.
 
 ### III. Display Abstraction ✅
+
 **Status**: COMPLIANT
 **Rationale**: The emulator runner scripts pass display subsystem options to emulators without modifying display abstraction layers. Each emulator (C with X11/SDL2, Zig with SDL2, Lisp with SDL3) handles display independently. The runner scripts only select which emulator to invoke.
 
 ### IV. Code Quality & Memory Safety ✅
+
 **Status**: COMPLIANT
 **Rationale**: The emulator runner scripts will be implemented as shell scripts following existing Medley script patterns. Shell scripts do not have memory safety concerns. Code quality will follow existing Medley script conventions and include comprehensive error handling.
 
 ### V. Testing & Validation ✅
+
 **Status**: COMPLIANT
 **Rationale**: The emulator runner scripts will be tested with actual emulator execution on target platforms. Integration tests will verify compatibility with existing Medley run scripts and emulator selection correctness. Script changes will be validated across platforms.
 
@@ -65,22 +71,27 @@ Create scripts to run the Interlisp system from Medley using the user's choice o
 ### Post-Design Check (Phase 1)
 
 ### I. Platform Portability ✅
+
 **Status**: COMPLIANT
 **Rationale**: Implementation uses existing Medley script infrastructure which supports multiple platforms. Emulator selection works identically across all platforms. Lock file mechanism uses standard Unix patterns (PID-based) compatible with all target platforms.
 
 ### II. Build System Flexibility ✅
+
 **Status**: COMPLIANT
 **Rationale**: Runner scripts do not modify build systems. They invoke emulators built by the unified build system which orchestrates multiple build systems without replacing them. Auto-build integration calls existing build-emulator.sh script.
 
 ### III. Display Abstraction ✅
+
 **Status**: COMPLIANT
 **Rationale**: Runner scripts pass display options to emulators without modifying display layers. Each emulator handles display independently (C with X11/SDL2, Zig with SDL2, Lisp with SDL3).
 
 ### IV. Code Quality & Memory Safety ✅
+
 **Status**: COMPLIANT
 **Rationale**: Implementation uses shell scripts following existing Medley patterns. Comprehensive error handling, validation, and lock file cleanup ensure robust operation. No memory safety concerns with shell scripts.
 
 ### V. Testing & Validation ✅
+
 **Status**: COMPLIANT
 **Rationale**: Design includes validation functions (validate_emulator_executable) and comprehensive error handling. Integration with existing test infrastructure. Scripts will be tested with actual emulator execution on target platforms.
 

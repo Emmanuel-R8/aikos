@@ -278,4 +278,3 @@ All scripts MUST:
 2. Display error messages to stderr
 3. Provide actionable guidance (suggested commands, flags)
 4. Preserve existing error handling behavior for non-emulator errors
-

@@ -225,4 +225,3 @@ Since this is a script enhancement project with tight integration:
 - Error messages must be clear and actionable per contracts
 - Lock mechanism must prevent concurrent runs (FR-016)
 - All three run scripts (run-medley, medley.command, medley_run.sh) must support all features
-

@@ -124,4 +124,3 @@ Represents the lock mechanism preventing concurrent Interlisp runs.
 3. Platform detection: MUST succeed or provide clear error
 4. Lock validation: MUST check for stale locks before blocking
 5. Configuration completeness: All required attributes MUST be set before execution
-
