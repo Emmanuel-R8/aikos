@@ -83,18 +83,18 @@
 
 ### Implementation for User Story 2
 
-- [ ] T032 [US2] Add --emulator argument parsing to loadup-all.sh in medley/scripts/loadups/loadup-all.sh
-- [ ] T033 [US2] Add --auto-build and --no-auto-build argument parsing to loadup-all.sh in medley/scripts/loadups/loadup-all.sh
-- [ ] T034 [US2] Implement emulator selection logic with default to C emulator in medley/scripts/loadups/loadup-all.sh
-- [ ] T035 [US2] Implement automatic emulator building before loadup in medley/scripts/loadups/loadup-all.sh
-- [ ] T036 [US2] Implement emulator executable location resolution using find_emulator_executable() in medley/scripts/loadups/loadup-all.sh
-- [ ] T037 [US2] Implement incomplete build detection and rebuild logic in medley/scripts/loadups/loadup-all.sh
-- [ ] T038 [US2] Modify loadup-init.sh to support emulator selection in medley/scripts/loadups/loadup-init.sh
-- [ ] T039 [US2] Modify loadup-mid-from-init.sh to support emulator selection in medley/scripts/loadups/loadup-mid-from-init.sh
-- [ ] T040 [US2] Modify loadup-lisp-from-mid.sh to support emulator selection in medley/scripts/loadups/loadup-lisp-from-mid.sh
-- [ ] T041 [US2] Modify loadup-full-from-lisp.sh to support emulator selection in medley/scripts/loadups/loadup-full-from-lisp.sh
-- [ ] T042 [US2] Preserve backward compatibility with existing Maiko location resolution in medley/scripts/loadups/
-- [ ] T043 [US2] Update run-medley script to support emulator selection in medley/run-medley
+- [x] T032 [US2] Add --emulator argument parsing to loadup-all.sh in medley/scripts/loadups/loadup-all.sh
+- [x] T033 [US2] Add --auto-build and --no-auto-build argument parsing to loadup-all.sh in medley/scripts/loadups/loadup-all.sh
+- [x] T034 [US2] Implement emulator selection logic with default to C emulator in medley/scripts/loadups/loadup-all.sh
+- [x] T035 [US2] Implement automatic emulator building before loadup in medley/scripts/loadups/loadup-all.sh
+- [x] T036 [US2] Implement emulator executable location resolution using find_emulator_executable() in medley/scripts/loadups/loadup-all.sh
+- [x] T037 [US2] Implement incomplete build detection and rebuild logic in medley/scripts/loadups/loadup-all.sh
+- [x] T038 [US2] Modify loadup-init.sh to support emulator selection in medley/scripts/loadups/loadup-init.sh
+- [x] T039 [US2] Modify loadup-mid-from-init.sh to support emulator selection in medley/scripts/loadups/loadup-mid-from-init.sh
+- [x] T040 [US2] Modify loadup-lisp-from-mid.sh to support emulator selection in medley/scripts/loadups/loadup-lisp-from-mid.sh
+- [x] T041 [US2] Modify loadup-full-from-lisp.sh to support emulator selection in medley/scripts/loadups/loadup-full-from-lisp.sh
+- [x] T042 [US2] Preserve backward compatibility with existing Maiko location resolution in medley/scripts/loadups/
+- [x] T043 [US2] Update run-medley script to support emulator selection in medley/run-medley
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently. Loadup scripts should automatically build and use selected emulators.
 
