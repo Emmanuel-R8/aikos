@@ -62,9 +62,9 @@
 - [ ] T021 [US1] Enhance check_unified_build_location() in medley/scripts/medley/medley.command to use selected emulator
 - [ ] T022 [US1] Integrate validate_emulator_executable() into medley/scripts/medley/medley.command
 - [ ] T023 [US1] Integrate lock mechanism into medley/scripts/medley/medley.command
-- [ ] T024 [US1] Update medley/scripts/medley/medley_run.sh to support emulator selection from environment/arguments
-- [ ] T025 [US1] Integrate validate_emulator_executable() into medley/scripts/medley/medley_run.sh
-- [ ] T026 [US1] Ensure all existing Medley run script functionality is preserved (sysout selection, display options, memory settings)
+- [X] T024 [US1] Update medley/scripts/medley/medley_run.sh to support emulator selection from environment/arguments
+- [X] T025 [US1] Integrate validate_emulator_executable() into medley/scripts/medley/medley_run.sh
+- [X] T026 [US1] Ensure all existing Medley run script functionality is preserved (sysout selection, display options, memory settings)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently. Developers can run `./run-medley --emulator <c|zig|lisp>` and Interlisp will start with the selected emulator.
 
