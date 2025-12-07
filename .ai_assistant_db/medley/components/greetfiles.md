@@ -54,7 +54,8 @@ Default greet file depends on sysout type:
 - **Standard sysout** (`-f`, `-l`): `MEDLEYDIR/greetfiles/MEDLEYDIR-INIT`
 - **Apps sysout** (`-a`): `MEDLEYDIR/greetfiles/APPS-INIT`
 
-**Source Code Reference**: 
+**Source Code Reference**:
+
 - [medley/scripts/medley/medley_args.sh](medley/scripts/medley/medley_args.sh) - Greet file resolution and LDEINIT setup
 - [medley/greetfiles/README.md](medley/greetfiles/README.md) - Greet file directory documentation
 
@@ -222,4 +223,3 @@ Greet file paths follow platform conventions:
 - **Interface - File Formats**: [File Formats](../interface/file-formats.md) - Greet file format specification
 - **Interface - Environment Variables**: [Environment Variables](../interface/environment.md) - LDEINIT and LDEREMCM variables
 - **Interface - Protocols**: [Protocols](../interface/protocols.md) - Startup sequence and execution
-

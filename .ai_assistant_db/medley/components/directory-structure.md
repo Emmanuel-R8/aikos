@@ -17,6 +17,7 @@ MEDLEYDIR is the top-level directory of the Medley installation. It contains all
 Medley scripts for running and building Medley.
 
 **Key Subdirectories**:
+
 - `scripts/medley/`: Main Medley startup scripts
   - `medley_run.sh`: Linux/macOS shell script
   - `medley.command`: macOS application bundle script
@@ -41,6 +42,7 @@ Medley scripts for running and building Medley.
 Lisp source code for Interlisp and Common Lisp implementations.
 
 **Contents**:
+
 - Interlisp implementation source files (UPPERCASE, no extensions)
 - Common Lisp implementation source files
 - Compiled files (`.LCOM` for Interlisp, `.DFASL` for Common Lisp)
@@ -52,6 +54,7 @@ Lisp source code for Interlisp and Common Lisp implementations.
 Sysout files and build artifacts created by the loadup process.
 
 **Contents**:
+
 - `lisp.sysout`: Minimal sysout
 - `full.sysout`: Full sysout with development tools
 - `apps.sysout`: Apps sysout with applications
@@ -66,6 +69,7 @@ Sysout files and build artifacts created by the loadup process.
 Greet files executed during Medley startup.
 
 **Contents**:
+
 - `INIT.LISP`: Default greet file
 - `APPS-INIT`: Greet file for apps sysout
 - `MEDLEYDIR-INIT`: Greet file setting MEDLEYDIR
@@ -81,6 +85,7 @@ Greet files executed during Medley startup.
 Supported packages (historically maintained packages).
 
 **Contents**:
+
 - Package source files (UPPERCASE, no extensions)
 - Compiled files (`.LCOM`)
 - Documentation files (`.TEDIT`, `.TXT`)
@@ -92,6 +97,7 @@ Supported packages (historically maintained packages).
 User-contributed packages (historically half-supported).
 
 **Contents**:
+
 - User-contributed package source files
 - Compiled files (`.LCOM`)
 - Documentation files (`.TEDIT`, `.TXT`)
@@ -103,6 +109,7 @@ User-contributed packages (historically half-supported).
 Documentation files in various formats.
 
 **Subdirectories**:
+
 - `docs/man-page/`: Man page source and generated files
   - `medley.1`: Man page source
   - `medley.1.md`: Markdown source
@@ -122,6 +129,7 @@ Documentation files in various formats.
 Font files for display, PostScript, Interpress, and press formats.
 
 **Subdirectories**:
+
 - `fonts/displayfonts/`: Display fonts (`.DISPLAYFONT`)
 - `fonts/ipfonts/`: Interpress fonts (`.wd`)
 - `fonts/postscriptfonts/`: PostScript fonts (`.PSCFONT`)
@@ -135,6 +143,7 @@ Font files for display, PostScript, Interpress, and press formats.
 Early implementation of Common Lisp Object System (CLOS).
 
 **Contents**:
+
 - CLOS implementation source files (`.lisp`)
 - Compiled files (`.dfasl`, `.DFASL`)
 - Documentation (`.TEDIT`)
@@ -146,6 +155,7 @@ Early implementation of Common Lisp Object System (CLOS).
 Implementation of ROOMS window/desktop manager.
 
 **Contents**:
+
 - ROOMS source files
 - Compiled files (`.DFASL`)
 - Documentation (`.TEDIT`)
@@ -157,6 +167,7 @@ Implementation of ROOMS window/desktop manager.
 Files for Common Lisp, the Language 2nd edition conformance.
 
 **Contents**:
+
 - CLTL2 conformance source files
 - Compiled files (`.LCOM`, `.DFASL`)
 
@@ -167,6 +178,7 @@ Files for Common Lisp, the Language 2nd edition conformance.
 Data files for XCCS to and from Unicode mappings.
 
 **Subdirectories**:
+
 - `unicode/eastasia/`: East Asian character mappings
 - `unicode/iso8859/`: ISO 8859 character mappings
 - `unicode/vendors/`: Vendor-specific mappings
@@ -179,6 +191,7 @@ Data files for XCCS to and from Unicode mappings.
 Internal implementation files (historically internal to Venue).
 
 **Contents**:
+
 - Internal implementation source files
 - Compiled files (`.LCOM`)
 
@@ -195,6 +208,7 @@ Files that should be removed from the repository.
 Installation scripts and packages for various platforms.
 
 **Subdirectories**:
+
 - `installers/deb/`: Debian package installer
 - `installers/macos/`: macOS installer
 - `installers/cygwin/`: Cygwin installer

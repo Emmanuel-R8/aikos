@@ -41,6 +41,7 @@ The loadup process runs in 5 sequential stages:
 **Purpose**: Create minimal sysout with basic Interlisp and Common Lisp.
 
 **Contents**:
+
 - Basic Interlisp implementation
 - Basic Common Lisp implementation
 - Minimal functionality
@@ -58,6 +59,7 @@ The loadup process runs in 5 sequential stages:
 **Purpose**: Create full sysout with complete environment and development tools.
 
 **Contents**:
+
 - Everything in lisp.sysout
 - Complete Interlisp and Common Lisp
 - Development tools (TEdit, etc.)
@@ -76,6 +78,7 @@ The loadup process runs in 5 sequential stages:
 **Purpose**: Create apps sysout with applications.
 
 **Contents**:
+
 - Everything in full.sysout
 - Medley applications (Notecards, Rooms, CLOS, Buttons)
 - Pre-installed documentation links
@@ -92,7 +95,8 @@ Two independent stages can be run after Stage 4 completes:
 
 **Script**: `loadup-aux.sh`
 
-**Products**: 
+**Products**:
+
 - `whereis.hash`: Hash file directory index
 - `exports.all`: Exports database
 
@@ -123,11 +127,13 @@ Two independent stages can be run after Stage 4 completes:
 Orchestrates complete loadup process.
 
 **Usage**:
+
 ```bash
 ./scripts/loadup-all.sh [-apps]
 ```
 
 **Stages**:
+
 - Stages 1-4: Always run
 - Stage 6: Always run
 - Stage 5: Run only if `-apps` flag is specified
@@ -141,6 +147,7 @@ Orchestrates complete loadup process.
 Runs stages 1-4 only, no copy to loadups.
 
 **Usage**:
+
 ```bash
 ./scripts/loadup-full.sh
 ```
@@ -154,6 +161,7 @@ Runs stages 1-4 only, no copy to loadups.
 Runs stage 7 only, based on full.sysout in loadups directory.
 
 **Usage**:
+
 ```bash
 ./scripts/loadup-db.sh
 ```
@@ -283,6 +291,7 @@ Each stage creates a dribble file containing terminal output:
 If `MEDLEYDIR` is a git directory, `gitinfo` file is created:
 
 **Contents**:
+
 - Git commit hash
 - Git branch name
 - Git status information
@@ -342,4 +351,3 @@ export LOADUP_WORKDIR=./tmp
 - **Scripts**: [Scripts Component](scripts.md) - Script system
 - **Directory Structure**: [Directory Structure Component](directory-structure.md) - Directory organization
 - **BUILDING.md**: [medley/BUILDING.md](medley/BUILDING.md) - Building instructions
-

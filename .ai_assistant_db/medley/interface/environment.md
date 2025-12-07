@@ -17,6 +17,7 @@ Medley scripts set environment variables that Maiko reads during initialization 
 **Purpose**: Top-level directory of the Medley installation.
 
 **Computation**:
+
 1. Resolve all symbolic links in medley script path
 2. MEDLEYDIR is the directory containing the resolved script
 3. In standard global installation: `/usr/local/interlisp/medley`
@@ -38,7 +39,8 @@ Medley scripts set environment variables that Maiko reads during initialization 
 
 **Override**: `-x DIR, --logindir DIR` flag
 
-**Usage**: 
+**Usage**:
+
 - Location for vmem files: `LOGINDIR/vmem/`
 - Location for user greet files: `LOGINDIR/INIT.LISP`
 - Working directory for Medley sessions
@@ -83,7 +85,8 @@ Medley scripts set environment variables that Maiko reads during initialization 
 
 **Purpose**: Greet file path that Maiko should execute during startup.
 
-**Default**: 
+**Default**:
+
 - Standard sysout: `MEDLEYDIR/greetfiles/MEDLEYDIR-INIT`
 - Apps sysout: `MEDLEYDIR/greetfiles/APPS-INIT`
 
@@ -233,4 +236,3 @@ On WSL, environment variables follow WSL conventions:
 - **Protocols**: [Protocols](protocols.md) - Runtime communication protocols
 - **Virtual Memory Files**: [Virtual Memory Files Component](../components/vmem.md) - Vmem file details
 - **Greet Files**: [Greet Files Component](../components/greetfiles.md) - Greet file details
-

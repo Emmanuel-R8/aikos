@@ -40,7 +40,8 @@ Vmem files are binary files containing:
 
 **See**: [Interface - File Formats](../interface/file-formats.md#vmem-file-format) for detailed format specification
 
-**Related Maiko Documentation**: 
+**Related Maiko Documentation**:
+
 - `../../components/memory-management.md` - Virtual memory management
 - `../../rewrite-spec/memory/virtual-memory.md` - Virtual memory specification
 
@@ -237,4 +238,3 @@ Platform-specific path conventions apply:
 - **Interface - File Formats**: [File Formats](../interface/file-formats.md) - Vmem file format specification
 - **Interface - Environment Variables**: [Environment Variables](../interface/environment.md) - LDEDESTSYSOUT and related variables
 - **Interface - Protocols**: [Protocols](../interface/protocols.md) - Session management protocols
-

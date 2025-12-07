@@ -15,6 +15,7 @@ Windows Subsystem for Linux (WSL) is supported by Medley with special VNC suppor
 **Location**: `medley/scripts/medley/medley_run.sh`
 
 **Characteristics**:
+
 - Standard Linux shell script
 - VNC support for better display scaling
 - WSL1 vs WSL2 detection
@@ -78,11 +79,13 @@ VNC is recommended on WSL for better display scaling.
 **Usage**: Specify with `-v, --vnc` flag (or always on for WSL1)
 
 **Benefits**:
+
 - Better scaling on high-resolution displays
 - Follows Windows desktop scaling settings
 - More usable than X11 on WSL
 
-**Implementation**: 
+**Implementation**:
+
 - Xvnc server on Linux side
 - VNC viewer on Windows side
 - Scripts coordinate both sides
@@ -96,6 +99,7 @@ X11 is available on WSL but scales poorly.
 **Usage**: Specify with `-v -, --vnc -` to disable VNC
 
 **Limitations**:
+
 - Poor scaling on high-resolution displays
 - Not recommended for WSL
 
@@ -205,4 +209,3 @@ Scripts locate Maiko executable in this order:
 - **Scripts Component**: [Scripts Component](../components/scripts.md) - Script system
 - **Interface Documentation**: [Interface Documentation](../interface/) - Interface mechanisms
 - **Protocols**: [Protocols](../interface/protocols.md#vnc-protocol-wsl) - VNC protocol details
-

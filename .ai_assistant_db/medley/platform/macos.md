@@ -11,12 +11,14 @@ macOS (Darwin) is supported by Medley with macOS-specific optimizations. Medley 
 ### Scripts Used
 
 **Primary Scripts**:
+
 - `medley_run.sh`: Standard shell script (Linux/macOS)
 - `medley.command`: macOS application bundle script
 
 **Location**: `medley/scripts/medley/medley.command`
 
 **Characteristics**:
+
 - macOS-specific script
 - Can be double-clicked in Finder
 - Handles macOS-specific path conventions
@@ -115,6 +117,7 @@ Scripts locate Maiko executable in this order:
 4. PATH: `lde` on PATH
 
 **Platform Identifiers**:
+
 - **Intel Macs**: `darwin.x86_64`
 - **Apple Silicon Macs**: `darwin.aarch64`
 
@@ -123,4 +126,3 @@ Scripts locate Maiko executable in this order:
 - **Platform Overview**: [Platform Overview](README.md) - Platform documentation overview
 - **Scripts Component**: [Scripts Component](../components/scripts.md) - Script system
 - **Interface Documentation**: [Interface Documentation](../interface/) - Interface mechanisms
-

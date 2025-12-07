@@ -15,6 +15,7 @@ Linux is the standard Unix platform for Medley. Medley scripts on Linux use stan
 **Location**: `medley/scripts/medley/medley_run.sh`
 
 **Characteristics**:
+
 - Bash/shell script
 - Standard Unix behavior
 - Handles X11 and SDL display backends
@@ -113,4 +114,3 @@ Scripts locate Maiko executable in this order:
 - **Platform Overview**: [Platform Overview](README.md) - Platform documentation overview
 - **Scripts Component**: [Scripts Component](../components/scripts.md) - Script system
 - **Interface Documentation**: [Interface Documentation](../interface/) - Interface mechanisms
-

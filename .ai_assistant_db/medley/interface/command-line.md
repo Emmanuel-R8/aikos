@@ -51,6 +51,7 @@ Medley scripts transform arguments in this order:
 | `-t STRING, --title STRING` | `-title STRING` | Direct pass-through | Window title |
 
 **Platform Notes**:
+
 - `-ps, --pixelscale`: Only applicable when display is SDL-based (Windows/Cygwin)
 - `-d, --display`: Set to "SDL" to select SDL instead of X11
 - `-t, --title`: Ignored when `--vnc` flag is set
@@ -310,4 +311,3 @@ graph LR
 - **File Formats**: [File Formats](file-formats.md) - File format specifications
 - **Protocols**: [Protocols](protocols.md) - Runtime communication protocols
 - **Man Page**: [medley/docs/man-page/medley.1.md](medley/docs/man-page/medley.1.md) - Complete man page source
-

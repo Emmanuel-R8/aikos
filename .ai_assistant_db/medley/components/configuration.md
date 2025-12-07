@@ -46,7 +46,8 @@ Quotes are stripped during parsing.
 -m 512
 ```
 
-**Source Code Reference**: 
+**Source Code Reference**:
+
 - [medley/scripts/medley/medley_configfile.sh](medley/scripts/medley/medley_configfile.sh) - Config file parsing logic (lines 17-75)
 - [medley/scripts/medley/medley_args.sh](medley/scripts/medley/medley_args.sh) - Argument processing with config file support
 
@@ -251,4 +252,3 @@ Config files should be readable by the user running Medley. No special permissio
 - **Scripts**: [Scripts Component](scripts.md) - Script system and argument parsing
 - **Directory Structure**: [Directory Structure Component](directory-structure.md) - Config file locations
 - **Interface - File Formats**: [File Formats](../interface/file-formats.md) - Config file format specification
-

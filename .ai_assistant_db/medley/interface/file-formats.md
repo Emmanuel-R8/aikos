@@ -14,7 +14,8 @@ Sysout files are binary files containing a complete Lisp system state. They are 
 
 **See**: [Sysout Files Component](../components/sysout.md) for sysout file usage and purpose
 
-**Related Maiko Documentation**: 
+**Related Maiko Documentation**:
+
 - `../rewrite-spec/data-structures/sysout-format.md` - Complete sysout format specification
 - `../components/memory-management.md` - Memory management and sysout loading
 - `../architecture.md` - Maiko system architecture
@@ -50,6 +51,7 @@ Sysout File
 Located at fixed address: `IFPAGE_ADDRESS`
 
 **Key Fields**:
+
 - `key`: Validation key (must be `IFPAGE_KEYVAL`)
 - `lversion`: Lisp version
 - `minbversion`: Minimum bytecode version
@@ -68,6 +70,7 @@ Located at fixed address: `IFPAGE_ADDRESS`
 Maps file page numbers to virtual page numbers.
 
 **Structure**:
+
 - Array of virtual page numbers
 - Special value `0177777` (0xFFFF): Page not present in file
 - Other values: Virtual page number
@@ -139,7 +142,8 @@ Default location: `LOGINDIR/vmem/lisp_{run-id}.virtualmem` or `LOGINDIR/vmem/lis
 2. **Loading**: Loaded on next startup (if present and no sysout specified)
 3. **Update**: Updated on each Medley exit
 
-**Related Maiko Documentation**: 
+**Related Maiko Documentation**:
+
 - `../components/memory-management.md` - Virtual memory management
 - `../rewrite-spec/memory/virtual-memory.md` - Virtual memory specification
 
@@ -156,10 +160,12 @@ Config files are text files containing default command-line arguments for Medley
 **Text Format**: Plain text file, one argument per line
 
 **Line Format**:
+
 - **Single token**: Flag without value (e.g., `-f`, `--full`, `-ns`)
 - **Two tokens**: Flag with value (e.g., `-g 1024x768`, `--geometry 1024x768`, `-i myid`)
 
 **Value Quoting**: Values can be quoted with double quotes if they contain spaces:
+
 ```
 -t "My Medley Window"
 ```
@@ -208,6 +214,7 @@ Greet files are Lisp source files executed during Medley startup.
 **Text Format**: Plain text file containing Lisp source code
 
 **Format**:
+
 - **File Format**: Plain text, Lisp source code
 - **Encoding**: Platform-specific (typically UTF-8 or platform default)
 - **Line Endings**: Platform-specific (LF on Unix, CRLF on Windows)
@@ -283,4 +290,3 @@ REM.CM files are executed:
 - **Greet Files**: [Greet Files Component](../components/greetfiles.md) - Greet file usage
 - **Maiko Sysout Format**: `../rewrite-spec/data-structures/sysout-format.md` - Complete sysout format specification
 - **Maiko Virtual Memory**: See Maiko documentation for vmem file structure
-

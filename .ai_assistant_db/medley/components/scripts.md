@@ -15,6 +15,7 @@ Shell script for Linux and macOS platforms.
 **Location**: `medley/scripts/medley/medley_run.sh`
 
 **Characteristics**:
+
 - Bash/shell script
 - Handles X11 and SDL display backends
 - Supports standard Unix path conventions
@@ -29,6 +30,7 @@ macOS application bundle script.
 **Location**: `medley/scripts/medley/medley.command`
 
 **Characteristics**:
+
 - macOS-specific script
 - Can be double-clicked in Finder
 - Handles macOS-specific path conventions
@@ -43,6 +45,7 @@ PowerShell script for Windows/Cygwin.
 **Location**: `medley/scripts/medley/medley.ps1`
 
 **Characteristics**:
+
 - PowerShell script
 - Handles Windows/Cygwin path conventions
 - May use Docker for execution
@@ -415,4 +418,3 @@ graph TD
 - **Interface - Environment**: [Environment Variables](../interface/environment.md) - Environment variables
 - **Interface - Protocols**: [Protocols](../interface/protocols.md) - Runtime protocols
 - **Platform Documentation**: [Platform Documentation](../platform/) - Platform-specific behaviors
-

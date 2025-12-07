@@ -15,6 +15,7 @@ Medley and Maiko communicate through four primary mechanisms:
 Medley scripts parse user arguments and transform them into Maiko command-line flags. The complete mapping of Medley flags to Maiko flags is documented in [command-line.md](command-line.md).
 
 **Key Topics**:
+
 - Argument transformation logic
 - Flag mapping (Medley → Maiko)
 - Pass-through arguments (after `--`)
@@ -27,6 +28,7 @@ Medley scripts parse user arguments and transform them into Maiko command-line f
 Medley scripts set environment variables that Maiko reads during initialization and execution. These variables communicate file paths, configuration, and runtime state.
 
 **Key Variables**:
+
 - `MEDLEYDIR`: Top-level Medley installation directory
 - `LOGINDIR`: User-specific Medley directory
 - `LDESOURCESYSOUT`: Source sysout file path
@@ -41,6 +43,7 @@ Medley scripts set environment variables that Maiko reads during initialization 
 Medley and Maiko coordinate through standardized file formats. These formats enable sysout loading, session persistence, configuration, and initialization.
 
 **File Types**:
+
 - **Sysout Files**: Binary format containing Lisp system state
 - **Vmem Files**: Binary format for session persistence
 - **Config Files**: Text format for default arguments
@@ -53,6 +56,7 @@ Medley and Maiko coordinate through standardized file formats. These formats ena
 Medley scripts invoke Maiko and coordinate the startup sequence, error handling, and session management through runtime protocols.
 
 **Protocols**:
+
 - Script invocation patterns
 - Error handling and exit codes
 - Maiko startup sequence
@@ -129,6 +133,7 @@ This interface documentation provides:
 Complete documentation of command-line argument mapping from Medley flags to Maiko flags.
 
 **Contents**:
+
 - Complete flag mapping table
 - Argument transformation logic
 - Maiko invocation pattern
@@ -140,6 +145,7 @@ Complete documentation of command-line argument mapping from Medley flags to Mai
 Complete specification of all environment variables used for Medley-Maiko communication.
 
 **Contents**:
+
 - MEDLEYDIR, LOGINDIR specifications
 - LDESOURCESYSOUT, LDEDESTSYSOUT specifications
 - LDEINIT, LDEREMCM specifications
@@ -151,6 +157,7 @@ Complete specification of all environment variables used for Medley-Maiko commun
 Complete specifications of all file formats used in Medley-Maiko communication.
 
 **Contents**:
+
 - Sysout file format specification
 - Vmem file format specification
 - Config file format specification
@@ -162,6 +169,7 @@ Complete specifications of all file formats used in Medley-Maiko communication.
 Complete documentation of runtime communication protocols.
 
 **Contents**:
+
 - Script invocation patterns
 - Startup sequence
 - Session continuation protocol

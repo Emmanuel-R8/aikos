@@ -13,11 +13,13 @@ Sysout files are binary files containing a complete Lisp system state that Maiko
 Minimal Interlisp and Common Lisp environment.
 
 **Contents**:
+
 - Basic Interlisp implementation
 - Basic Common Lisp implementation
 - Minimal functionality
 
 **Use Cases**:
+
 - Stripped-down Medley sessions
 - Testing minimal functionality
 - Base for custom loadups
@@ -33,6 +35,7 @@ Minimal Interlisp and Common Lisp environment.
 Complete Interlisp and Common Lisp environment with development tools.
 
 **Contents**:
+
 - Everything in lisp.sysout
 - Complete Interlisp implementation
 - Complete Common Lisp implementation
@@ -40,6 +43,7 @@ Complete Interlisp and Common Lisp environment with development tools.
 - Modernizations and updates
 
 **Use Cases**:
+
 - Primary sysout for running Medley sessions
 - Development work
 - Standard Medley functionality
@@ -55,6 +59,7 @@ Complete Interlisp and Common Lisp environment with development tools.
 Full sysout plus Medley applications.
 
 **Contents**:
+
 - Everything in full.sysout
 - Medley applications:
   - Notecards
@@ -64,6 +69,7 @@ Full sysout plus Medley applications.
 - Pre-installed links to key Medley documentation
 
 **Use Cases**:
+
 - Running Medley with applications
 - Using Notecards, Rooms, CLOS
 - Complete Medley experience
@@ -88,7 +94,8 @@ Sysout files are binary files containing:
 
 **See**: [Interface - File Formats](../interface/file-formats.md#sysout-file-format) for detailed format specification
 
-**Related Maiko Documentation**: 
+**Related Maiko Documentation**:
+
 - `../../rewrite-spec/data-structures/sysout-format.md` - Complete sysout format specification
 - `../../components/memory-management.md` - Memory management and sysout loading
 - `../../architecture.md` - Maiko system architecture
@@ -230,4 +237,3 @@ medley
 - **Loadup Workflow**: [Loadup Workflow Component](loadup.md) - Loadup process and sysout creation
 - **Interface - File Formats**: [File Formats](../interface/file-formats.md) - File format specifications
 - **Interface - Protocols**: [Protocols](../interface/protocols.md) - Startup sequence and loading protocols
-

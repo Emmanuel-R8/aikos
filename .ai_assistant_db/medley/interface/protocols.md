@@ -325,4 +325,3 @@ graph TB
 - **File Formats**: [File Formats](file-formats.md) - File format specifications
 - **Virtual Memory Files**: [Virtual Memory Files Component](../components/vmem.md) - Vmem file coordination
 - **Platform Documentation**: [Platform Documentation](../platform/) - Platform-specific protocols
-
