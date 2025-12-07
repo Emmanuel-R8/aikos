@@ -162,20 +162,20 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T063 [P] Implement --display-backend option support across all build scripts in medley/scripts/build/
-- [ ] T064 [P] Implement --release option support for C emulator in medley/scripts/build/build-c-emulator.sh
-- [ ] T065 [P] Implement --network-type option support for C emulator in medley/scripts/build/build-c-emulator.sh
-- [ ] T066 [P] Implement --optimize option support across all build scripts in medley/scripts/build/
-- [ ] T067 [P] Implement --force option to force rebuilds in medley/scripts/build/
-- [ ] T068 [P] Implement --skip-prereq-check option in medley/scripts/build/build-all-emulators.sh
-- [ ] T069 Implement incremental build detection improvements with metadata file support in medley/scripts/build/common.sh
-- [ ] T070 Implement concurrent build prevention (lock file) in medley/scripts/build/common.sh
-- [ ] T071 [P] Add comprehensive error messages with installation hints in medley/scripts/build/check-prerequisites.sh
-- [ ] T072 [P] Update BUILDING.md documentation with unified build system instructions in medley/BUILDING.md
-- [ ] T073 [P] Update README.md with unified build system usage in medley/scripts/build/README.md
-- [ ] T074 Validate quickstart.md examples work correctly
-- [ ] T075 Code cleanup and refactoring across all build scripts in medley/scripts/build/
-- [ ] T076 Verify all scripts have proper shebang and executable permissions in medley/scripts/build/
+- [x] T063 [P] Implement --display-backend option support across all build scripts in medley/scripts/build/
+- [x] T064 [P] Implement --release option support for C emulator in medley/scripts/build/build-c-emulator.sh
+- [x] T065 [P] Implement --network-type option support for C emulator in medley/scripts/build/build-c-emulator.sh
+- [x] T066 [P] Implement --optimize option support across all build scripts in medley/scripts/build/
+- [x] T067 [P] Implement --force option to force rebuilds in medley/scripts/build/
+- [x] T068 [P] Implement --skip-prereq-check option in medley/scripts/build/build-all-emulators.sh
+- [x] T069 Implement incremental build detection improvements with metadata file support in medley/scripts/build/common.sh
+- [x] T070 Implement concurrent build prevention (lock file) in medley/scripts/build/common.sh
+- [x] T071 [P] Add comprehensive error messages with installation hints in medley/scripts/build/check-prerequisites.sh
+- [x] T072 [P] Update BUILDING.md documentation with unified build system instructions in medley/BUILDING.md
+- [x] T073 [P] Update README.md with unified build system usage in medley/scripts/build/README.md
+- [x] T074 Validate quickstart.md examples work correctly
+- [x] T075 Code cleanup and refactoring across all build scripts in medley/scripts/build/
+- [x] T076 Verify all scripts have proper shebang and executable permissions in medley/scripts/build/
 
 ---
 
