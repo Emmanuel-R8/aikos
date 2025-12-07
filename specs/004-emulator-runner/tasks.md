@@ -17,9 +17,9 @@
 
 **Purpose**: Create shared utility functions and infrastructure for emulator runner scripts
 
-- [ ] T001 Create shared utility script for emulator runner functions in medley/scripts/medley/emulator_utils.sh
-- [ ] T002 [P] Create lock file directory structure helper function in medley/scripts/medley/emulator_utils.sh
-- [ ] T003 [P] Add error message formatting functions to medley/scripts/medley/emulator_utils.sh
+- [X] T001 Create shared utility script for emulator runner functions in medley/scripts/medley/emulator_utils.sh
+- [X] T002 [P] Create lock file directory structure helper function in medley/scripts/medley/emulator_utils.sh
+- [X] T003 [P] Add error message formatting functions to medley/scripts/medley/emulator_utils.sh
 
 ---
 
@@ -29,14 +29,14 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Implement select_emulator() function in medley/scripts/medley/emulator_utils.sh (handles command-line, environment, default precedence)
-- [ ] T005 Implement find_emulator_executable() function in medley/scripts/medley/emulator_utils.sh (unified build location → MAIKODIR → PATH)
-- [ ] T006 Implement validate_emulator_executable() function in medley/scripts/medley/emulator_utils.sh (checks existence, permissions, basic validation)
-- [ ] T007 Implement acquire_run_lock() function in medley/scripts/medley/emulator_utils.sh (PID-based lock with stale detection)
-- [ ] T008 Implement release_run_lock() function in medley/scripts/medley/emulator_utils.sh (cleanup on exit)
-- [ ] T009 Implement build_emulator_if_needed() function in medley/scripts/medley/emulator_utils.sh (calls build-emulator.sh when --auto-build specified)
-- [ ] T010 [P] Integrate platform detection utilities (osversion, machinetype) into emulator_utils.sh
-- [ ] T011 [P] Add error message constants and formatting to medley/scripts/medley/emulator_utils.sh
+- [X] T004 Implement select_emulator() function in medley/scripts/medley/emulator_utils.sh (handles command-line, environment, default precedence)
+- [X] T005 Implement find_emulator_executable() function in medley/scripts/medley/emulator_utils.sh (unified build location → MAIKODIR → PATH)
+- [X] T006 Implement validate_emulator_executable() function in medley/scripts/medley/emulator_utils.sh (checks existence, permissions, basic validation)
+- [X] T007 Implement acquire_run_lock() function in medley/scripts/medley/emulator_utils.sh (PID-based lock with stale detection)
+- [X] T008 Implement release_run_lock() function in medley/scripts/medley/emulator_utils.sh (cleanup on exit)
+- [X] T009 Implement build_emulator_if_needed() function in medley/scripts/medley/emulator_utils.sh (calls build-emulator.sh when --auto-build specified)
+- [X] T010 [P] Integrate platform detection utilities (osversion, machinetype) into emulator_utils.sh
+- [X] T011 [P] Add error message constants and formatting to medley/scripts/medley/emulator_utils.sh
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
