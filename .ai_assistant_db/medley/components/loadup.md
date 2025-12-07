@@ -351,3 +351,4 @@ export LOADUP_WORKDIR=./tmp
 - **Scripts**: [Scripts Component](scripts.md) - Script system
 - **Directory Structure**: [Directory Structure Component](directory-structure.md) - Directory organization
 - **BUILDING.md**: [medley/BUILDING.md](medley/BUILDING.md) - Building instructions
+

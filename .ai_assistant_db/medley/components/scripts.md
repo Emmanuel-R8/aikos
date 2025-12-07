@@ -418,3 +418,4 @@ graph TD
 - **Interface - Environment**: [Environment Variables](../interface/environment.md) - Environment variables
 - **Interface - Protocols**: [Protocols](../interface/protocols.md) - Runtime protocols
 - **Platform Documentation**: [Platform Documentation](../platform/) - Platform-specific behaviors
+

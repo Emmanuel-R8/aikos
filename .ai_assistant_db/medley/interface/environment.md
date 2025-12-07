@@ -236,3 +236,4 @@ On WSL, environment variables follow WSL conventions:
 - **Protocols**: [Protocols](protocols.md) - Runtime communication protocols
 - **Virtual Memory Files**: [Virtual Memory Files Component](../components/vmem.md) - Vmem file details
 - **Greet Files**: [Greet Files Component](../components/greetfiles.md) - Greet file details
+

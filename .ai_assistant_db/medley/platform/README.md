@@ -107,3 +107,4 @@ fi
 - **Scripts Component**: [Scripts Component](../components/scripts.md) - Script system and platform variations
 - **Interface Documentation**: [Interface Documentation](../interface/) - Interface mechanisms
 - **Architecture**: [Architecture Overview](../architecture.md) - System architecture
+

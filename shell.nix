@@ -7,8 +7,8 @@
 #
 # Note: If SDL3 or Zig are not available in your nixpkgs channel,
 # you may need to use nixpkgs-unstable:
-#   pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/nixos-unstable.tar.gz") {}
-{pkgs ? import <nixpkgs> {}}:
+{  pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/nixos-unstable.tar.gz") {}}:
+# {pkgs ? import <nixpkgs> {}}:
 pkgs.mkShell {
   # Native build inputs (tools needed during build)
   nativeBuildInputs = with pkgs; [
@@ -24,16 +24,18 @@ pkgs.mkShell {
     gcc # Alternative C compiler (useful for compatibility testing)
 
     # Display libraries - include all for maximum compatibility
-    xorg.libX11 # X11 display backend (for C emulator)
-    xorg.libX11.dev # X11 development headers
     SDL2 # SDL2 display backend (for C and Zig emulators)
-    SDL2.dev # SDL2 development headers
-    SDL3 # SDL3 display backend (for Lisp emulator, preferred)
-    SDL3.dev # SDL3 development headers
+    sdl3 # SDL3 display backend (for Lisp emulator, preferred)
 
     # Language compilers
     zig # Zig compiler (for Zig emulator)
     sbcl # Steel Bank Common Lisp (for Lisp emulator)
+
+    # IDEs
+    code-cursor
+    cursor-cli
+    vscode    
+    
   ];
 
   # Set up environment variables for pkg-config

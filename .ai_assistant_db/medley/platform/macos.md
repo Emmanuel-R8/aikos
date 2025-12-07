@@ -126,3 +126,4 @@ Scripts locate Maiko executable in this order:
 - **Platform Overview**: [Platform Overview](README.md) - Platform documentation overview
 - **Scripts Component**: [Scripts Component](../components/scripts.md) - Script system
 - **Interface Documentation**: [Interface Documentation](../interface/) - Interface mechanisms
+

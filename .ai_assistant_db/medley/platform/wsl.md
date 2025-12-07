@@ -209,3 +209,4 @@ Scripts locate Maiko executable in this order:
 - **Scripts Component**: [Scripts Component](../components/scripts.md) - Script system
 - **Interface Documentation**: [Interface Documentation](../interface/) - Interface mechanisms
 - **Protocols**: [Protocols](../interface/protocols.md#vnc-protocol-wsl) - VNC protocol details
+
