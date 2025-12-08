@@ -19,13 +19,19 @@ Complete specification of all 256 bytecode opcodes (0x00-0xFF). Format: `Name (0
 - **SLRETURN (0x3F)** [1] Soft return (different frame handling).
 
 ### Jumps
-- **JUMP0-JUMP15 (0x80-0x8F)** [1] Unconditional jump, offset encoded in opcode (0-15).
-- **FJUMP0-FJUMP15 (0x90-0x9F)** [1] Jump if false (NIL), offset 0-15.
-- **TJUMP0-TJUMP15 (0xA0-0xAF)** [1] Jump if true (non-NIL), offset 0-15.
-- **JUMPX (0xB0)** [3] Unconditional jump, 16-bit signed offset.
-- **FJUMPX (0xB2)** [3] Jump if false, 16-bit offset.
-- **TJUMPX (0xB3)** [3] Jump if true, 16-bit offset.
+- **JUMP0-JUMP15 (0x80-0x8F)** [1] Unconditional jump, offset encoded in opcode (0-15). Stack: No effect.
+- **FJUMP0-FJUMP15 (0x90-0x9F)** [1] Jump if false (NIL), offset 0-15. Stack: Always pops TOS (pops regardless of condition).
+- **TJUMP0-TJUMP15 (0xA0-0xAF)** [1] Jump if true (non-NIL), offset 0-15. Stack: Always pops TOS (pops regardless of condition).
+- **JUMPX (0xB0)** [3] Unconditional jump, 16-bit signed offset. Stack: No effect.
+- **FJUMPX (0xB2)** [3] Jump if false, 16-bit offset. Stack: Always pops TOS.
+- **TJUMPX (0xB3)** [3] Jump if true, 16-bit offset. Stack: Always pops TOS.
 - **NFJUMPX (0xB4), NTJUMPX (0xB5)** [3] Negated variants.
+
+**Critical Stack Behavior for Conditional Jumps**:
+- FJUMP variants: Always pop TOS before checking condition. If TOS is NIL, jump; otherwise continue.
+- TJUMP variants: Always pop TOS before checking condition. If TOS is non-NIL, jump; otherwise continue.
+- This matches C implementation: `FJUMPMACRO(x): if (TOPOFSTACK != 0) { POP; nextop1; } else { CHECK_INTERRUPT; POP; PCMACL += (x); nextop0; }`
+- The stack is popped in both branches of the conditional, ensuring TOS is always consumed.
 
 ### Other Control
 - **UNWIND (0x07)** [3] Unwind stack to specified frame.
