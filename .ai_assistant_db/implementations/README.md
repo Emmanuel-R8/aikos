@@ -59,8 +59,8 @@ Implementation of the Maiko emulator in Zig programming language.
 
 | Implementation | Language | Status | Opcodes | Tasks | Location |
 |----------------|----------|--------|---------|-------|----------|
-| Common Lisp | SBCL | ✅ Complete | 189/256 | 77/78 | `alternatives/lisp/` |
-| Zig | Zig 0.15.2+ | 🔄 In Progress | ~50/256 | Completion Phase | `alternatives/zig/` |
+| Common Lisp | SBCL | ✅ Complete | 189/256 | 77/78 | `maiko/alternatives/lisp/` |
+| Zig | Zig 0.15.2+ | 🔄 Phase 1 Complete | ~50/256 | 22/22 Phase 1 | `maiko/alternatives/zig/` |
 
 ## Related Documentation
 

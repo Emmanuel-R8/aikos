@@ -28,9 +28,10 @@ graph TD
 
 ### File Organization
 
-- **Page-based**: File organized into 256-byte pages
-- **Sparse**: Not all pages present (FPtoVP indicates which)
+- **Page-based**: File organized into 512-byte pages (`BYTESPER_PAGE = 512`)
+- **Sparse**: Not all pages present (FPtoVP indicates which, 0xFFFF = sparse marker)
 - **Mapped**: FPtoVP table maps file pages to virtual pages
+- **IFPAGE Location**: Fixed at offset 512 bytes (`IFPAGE_ADDRESS = 512`)
 
 ## Interface Page (IFPAGE)
 
@@ -93,9 +94,14 @@ struct FPtoVP:
 
 ### Table Location
 
-- **Offset**: `ifpage.fptovpstart`
-- **Size**: `nactivepages` entries
-- **Format**: Depends on BIGVM (32-bit vs 16-bit entries)
+- **Offset**: `(ifpage.fptovpstart - 1) * BYTESPER_PAGE + offset_adjust`
+  - Non-BIGVM: `offset_adjust = 2`
+  - BIGVM: `offset_adjust = 4`
+- **Size**: `num_file_pages` entries (where `num_file_pages = sysout_size_halfpages / 2`)
+  - `sysout_size_halfpages = (file_size / BYTESPER_PAGE) * 2`
+- **Format**: Depends on BIGVM
+  - Non-BIGVM: 16-bit entries (u16), read `num_file_pages * 2` bytes
+  - BIGVM: 32-bit entries (u32), read `num_file_pages * 4` bytes
 
 ### Table Usage
 
@@ -171,9 +177,10 @@ function LoadSysoutFile(filename, process_size):
 
 ### Interface Page
 
-- **Offset**: IFPAGE_OFFSET
-- **Contents**: VM state
-- **Size**: 1 page (256 bytes)
+- **Offset**: `IFPAGE_ADDRESS` (512 bytes from file start)
+- **Contents**: VM state (~100 fields including validation key, version info, stack state, page management)
+- **Size**: ~100 fields (varies by BIGVM/BYTESWAP flags, non-BIGVM version has ~70 fields)
+- **Validation**: Key field (`ifpage.key`) must equal `IFPAGE_KEYVAL` (0x15e3)
 
 ## Byte Swapping
 
@@ -203,15 +210,23 @@ function SwapPage(page_data):
 ```pseudocode
 function CheckVersionCompatibility(ifpage):
     // Check Lisp version
+    // LVERSION = 21000 (from maiko/inc/version.h:54)
     if ifpage.lversion < LVERSION:
         Error("Sysout version %d < required %d", ifpage.lversion, LVERSION)
 
     // Check bytecode version
+    // MINBVERSION = 21001 (from maiko/inc/version.h:55)
     if ifpage.minbversion > MINBVERSION:
         Error("Sysout bytecode version %d > supported %d", ifpage.minbversion, MINBVERSION)
 
     return true
 ```
+
+**CRITICAL**: Version constants are defined in `maiko/inc/version.h`:
+- `LVERSION = 21000` - Minimum Lisp version required
+- `MINBVERSION = 21001` - Maximum bytecode version supported
+
+Any implementation must use these exact values for version compatibility checking.
 
 ## File Size Validation
 
@@ -220,16 +235,19 @@ function CheckVersionCompatibility(ifpage):
 ```pseudocode
 function ValidateFileSize(file, ifpage):
     file_size = GetFileSize(file)
-    expected_pages = ifpage.nactivepages
-
+    
+    // BYTESPER_PAGE = 512 (from maiko/inc/lispemul.h:488)
     // Check page alignment
     if file_size mod BYTESPER_PAGE != 0:
         Warning("File size not page-aligned")
 
     // Check page count
-    file_pages = file_size / BYTESPER_PAGE
-    if file_pages != expected_pages:
-        Error("File size mismatch: %d vs %d pages", file_pages, expected_pages)
+    // sysout_size is calculated in half-pages: (file_size / BYTESPER_PAGE) * 2
+    sysout_size_halfpages = (file_size / BYTESPER_PAGE) * 2
+    num_file_pages = sysout_size_halfpages / 2
+    
+    if num_file_pages != ifpage.nactivepages:
+        Error("File size mismatch: %d vs %d pages", num_file_pages, ifpage.nactivepages)
 ```
 
 ## Saving Sysout

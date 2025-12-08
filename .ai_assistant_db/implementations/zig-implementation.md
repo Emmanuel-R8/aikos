@@ -27,20 +27,21 @@ The Zig implementation provides a complete framework for the Maiko emulator in Z
 - ✅ Opcode enumeration (190+ opcodes defined)
 - ✅ Comprehensive test suite structure
 - ✅ SDL2 linking enabled in build.zig
+- ✅ **Sysout Loading** (Phase 1 Complete - 2025-12-07)
+  - ✅ IFPAGE_KEYVAL corrected (now uses 0x15e3)
+  - ✅ IFPAGE structure complete (~100 fields matching C implementation)
+  - ✅ FPtoVP table loading implemented (BIGVM and non-BIGVM support)
+  - ✅ Page loading algorithm implemented (sparse page handling)
+  - ✅ Version compatibility checks (LVERSION, MINBVERSION)
+  - ✅ VM state initialization from IFPAGE implemented
+  - ✅ Dispatch loop activated in main.zig
+  - ⚠️ Byte swapping support (stubbed, needs cross-platform testing)
 
-### 🔄 In Progress (Completion Phase)
-
-- 🔄 **Sysout Loading** (P1 - Critical Blocker)
-  - ❌ IFPAGE_KEYVAL incorrect (uses 0x12345678, should be 0x15e3)
-  - ❌ IFPAGE structure incomplete (missing many fields)
-  - ❌ FPtoVP table loading not implemented
-  - ❌ Page loading algorithm not implemented
-  - ❌ Byte swapping support missing
-
-- 🔄 **VM Execution** (P1 - Critical Blocker)
-  - ❌ VM dispatch loop commented out in main.zig
-  - ❌ VM state initialization from IFPAGE not implemented
-  - ❌ Program counter initialization missing
+- 🔄 **VM Execution** (P1 - In Progress)
+  - ✅ VM dispatch loop activated in main.zig
+  - ✅ VM state initialization from IFPAGE implemented
+  - ✅ Program counter initialization added
+  - ⚠️ Opcode handlers need completion (many stubs exist)
 
 - 🔄 **Essential Opcodes** (P1 - Critical Blocker)
   - ❌ Function calls (CALL, RETURN, UNWIND) - framework ready, needs completion
@@ -67,56 +68,111 @@ The Zig implementation provides a complete framework for the Maiko emulator in Z
 
 ## Critical Findings
 
-### IFPAGE_KEYVAL Correction
+### IFPAGE_KEYVAL Correction ✅ FIXED
 
-**CRITICAL**: The correct IFPAGE validation key is `0x15e3` (defined in `maiko/inc/ifpage.h:15`), not `0x12345678` as currently used in the Zig implementation. This must be corrected for sysout loading to work.
+**CRITICAL**: The correct IFPAGE validation key is `0x15e3` (defined in `maiko/inc/ifpage.h:15`), not `0x12345678` as initially used in the Zig implementation.
 
-**Location**: `maiko/alternatives/zig/src/data/sysout.zig:19`
+**Status**: ✅ Fixed in `maiko/alternatives/zig/src/data/sysout.zig:14` and `maiko/alternatives/zig/src/utils/types.zig:95`
 
-**Fix Required**: Change `SYSOUT_KEYVAL: u32 = 0x12345678` to `SYSOUT_KEYVAL: u32 = 0x15e3`
+**Impact**: This was a critical blocker preventing sysout validation from working.
 
-### IFPAGE Structure
+### IFPAGE Structure ✅ COMPLETE
 
-The IFPAGE structure in Zig is incomplete. It must match the C implementation exactly (~100 fields) to properly initialize VM state.
+The IFPAGE structure is now complete with ~100 fields matching the C implementation exactly.
 
-**C Reference**: `maiko/inc/ifpage.h` (varies by BIGVM and BYTESWAP flags)
+**C Reference**: `maiko/inc/ifpage.h` (non-BIGVM, non-BYTESWAP version used as base)
 
-**Zig Location**: `maiko/alternatives/zig/src/data/sysout.zig:10-16`
+**Zig Location**: `maiko/alternatives/zig/src/utils/types.zig:24-95`
 
-### FPtoVP Table Loading
+**Key Fields Implemented**:
+- Frame pointers (currentfxp, resetfxp, subovfxp, kbdfxp, etc.)
+- Version information (lversion, minrversion, minbversion, rversion, bversion)
+- Validation key (key = IFPAGE_KEYVAL = 0x15e3)
+- Page management (nactivepages, ndirtypages, fptovpstart, etc.)
+- Stack state (stackbase, endofstack)
+- VM state (miscstackfn, miscstackarg1/2/result, etc.)
 
-The FPtoVP (File Page to Virtual Page) table loading algorithm is not implemented. This is required for mapping sysout file pages to virtual memory addresses.
+### FPtoVP Table Loading ✅ IMPLEMENTED
+
+The FPtoVP (File Page to Virtual Page) table loading algorithm is now implemented.
 
 **C Reference**: `maiko/src/ldsout.c:197-250`
 
+**Implementation**: `maiko/alternatives/zig/src/data/sysout.zig:loadFPtoVPTable`
+
 **Algorithm**:
 1. Calculate offset: `(ifpage.fptovpstart - 1) * BYTESPER_PAGE + offset` (BIGVM: +4, non-BIGVM: +2)
-2. Read table entries (16-bit or 32-bit depending on BIGVM)
-3. Use entries to map file pages to virtual pages (0xFFFF = sparse page marker)
+2. Read table entries (16-bit for non-BIGVM, 32-bit for BIGVM)
+3. Convert to u16 array for non-BIGVM format
+4. Support sparse page marker (0xFFFF)
 
-### Page Loading Algorithm
+**Status**: ✅ Implemented with BIGVM/non-BIGVM format support
 
-The page loading algorithm is not implemented. This is required to load memory pages from sysout file into virtual memory.
+### Page Loading Algorithm ✅ IMPLEMENTED
+
+The page loading algorithm is now implemented.
 
 **C Reference**: `maiko/src/ldsout.c:250-350`
 
+**Implementation**: `maiko/alternatives/zig/src/data/sysout.zig:loadMemoryPages`
+
 **Algorithm**:
-1. Iterate through file pages
-2. Check FPtoVP entry (skip if 0xFFFF)
-3. Seek to file page offset
-4. Read 512 bytes
-5. Apply byte swapping if needed
-6. Write to virtual address: `virtual_page * BYTESPER_PAGE`
+1. Iterate through file pages (0 to num_file_pages)
+2. Check FPtoVP entry (skip if 0xFFFF = sparse page)
+3. Seek to file page offset: `file_page * BYTESPER_PAGE`
+4. Read 512 bytes (BYTESPER_PAGE)
+5. Write to virtual address: `virtual_page * BYTESPER_PAGE`
+6. Handle byte swapping (stubbed for now)
+
+**Status**: ✅ Implemented with sparse page handling
+
+### Version Constants
+
+**CRITICAL**: Version constants from `maiko/inc/version.h`:
+- `LVERSION = 21000` (minimum Lisp version required)
+- `MINBVERSION = 21001` (maximum bytecode version supported)
+
+**Implementation**: `maiko/alternatives/zig/src/data/sysout.zig:18-19`
+
+**Validation**: Sysout's `lversion` must be >= LVERSION, and `minbversion` must be <= MINBVERSION
+
+### Opcode Conflicts Discovered
+
+Several opcodes in the Zig implementation don't exist in the C implementation and were causing compilation conflicts:
+
+**Removed/Commented Out**:
+- Generic `JUMP`, `FJUMP`, `TJUMP` opcodes (only JUMPX, JUMPXX, and JUMP0-JUMP15 exist)
+- `CHARCODE`, `CHARN` (conflict with NFJUMPX/NTJUMPX at 0xB4-0xB5)
+- `GETAEL1`, `GETAEL2`, `SETAEL1`, `SETAEL2` (conflict with JUMP0-JUMP3 at 0x80-0x83)
+- `FIXP`, `SMALLP`, `LISTP` (conflict with TJUMP0-TJUMP2 at 0xA0-0xA2)
+- `PUSH` (conflict with ADDBASE at 0xD0)
+
+**Resolution**: These opcodes were commented out in the dispatch switch statements. They may need to be implemented via different mechanisms or may not be needed.
+
+### Compilation Issues Fixed
+
+**Type Mismatches**:
+- Fixed `usize` vs `u32` conversions in function.zig and stack.zig
+- Fixed pointer alignment issues in storage.zig using `@alignCast`
+- Fixed const vs mutable Storage pointer in VM structure
+
+**Error Types**:
+- Added `StackUnderflow` and `DivisionByZero` to VMError enum
+
+**Alignment Issues**:
+- Changed `translateAddress` alignment parameter from `u2` to `u8` to support 4-byte alignment
 
 ## Implementation Statistics
 
 | Category | Status | Count | Notes |
 |----------|--------|-------|-------|
 | **Opcodes** | Partial | ~50/256 | Essential set needed for Medley startup |
-| **IFPAGE Fields** | Incomplete | ~10/100 | Must match C structure exactly |
+| **IFPAGE Fields** | ✅ Complete | ~100/100 | Matches C structure exactly |
+| **Sysout Loading** | ✅ Complete | 22/22 | Phase 1 tasks (T001-T022) complete |
 | **GC Operations** | Framework | 0/3 | ADDREF, DELREF, reclamation pending |
 | **Display Integration** | Framework | 0/3 | Initialization, BitBLT, events pending |
 | **Test Coverage** | Structure | Framework | Needs sysout loading tests |
+| **Build Status** | ✅ Success | - | All compilation errors fixed |
 
 ## Build and Run
 
@@ -138,7 +194,7 @@ zig build -Doptimize=ReleaseFast
 ./zig-out/bin/maiko-zig path/to/sysout.sysout
 ```
 
-**Current Status**: Fails with `SysoutLoadFailed` due to incorrect IFPAGE_KEYVAL
+**Current Status**: ✅ Builds successfully. Sysout loading infrastructure complete. Ready for Phase 2 (basic bytecode execution).
 
 ### Test
 
@@ -183,22 +239,21 @@ See `specs/005-zig-completion/` for detailed completion plan:
 
 ## Known Issues
 
-1. **Sysout Loading Fails**: Wrong IFPAGE_KEYVAL (0x12345678 vs 0x15e3)
-2. **Incomplete IFPAGE**: Missing ~90 fields compared to C implementation
-3. **No FPtoVP Loading**: Required for memory page mapping
-4. **No Page Loading**: Cannot load sysout memory pages
-5. **VM Not Activated**: Dispatch loop commented out
-6. **Many Opcodes Placeholders**: ~200 opcodes need implementation
-7. **GC Incomplete**: Hash table operations pending
-8. **SDL2 Not Integrated**: Framework ready but rendering not implemented
+1. ✅ **Sysout Loading**: Fixed IFPAGE_KEYVAL, complete IFPAGE structure, FPtoVP and page loading implemented
+2. ⚠️ **Byte Swapping**: Stubbed, needs cross-platform testing
+3. ⚠️ **Many Opcodes Placeholders**: ~200 opcodes need implementation (stubs exist)
+4. ⚠️ **GC Incomplete**: Hash table operations pending (GCREF handler is stub)
+5. ⚠️ **SDL2 Not Integrated**: Framework ready but rendering not implemented
+6. ⚠️ **Opcode Conflicts**: Several opcodes removed due to conflicts with C implementation
 
 ## Next Steps
 
-1. Fix IFPAGE_KEYVAL in `src/data/sysout.zig`
-2. Complete IFPAGE structure matching C implementation
-3. Implement FPtoVP table loading
-4. Implement page loading algorithm
-5. Activate VM dispatch loop
-6. Implement essential opcodes for Medley startup
-7. Complete GC operations
-8. Integrate SDL2 display
+1. ✅ ~~Fix IFPAGE_KEYVAL in `src/data/sysout.zig`~~ **DONE**
+2. ✅ ~~Complete IFPAGE structure matching C implementation~~ **DONE**
+3. ✅ ~~Implement FPtoVP table loading~~ **DONE**
+4. ✅ ~~Implement page loading algorithm~~ **DONE**
+5. ✅ ~~Activate VM dispatch loop~~ **DONE**
+6. 🔄 **Phase 2**: Implement essential opcodes for Medley startup (T023-T034)
+7. 🔄 **Phase 3**: Complete essential opcodes for Medley startup (T035-T059)
+8. ⏳ **Phase 4**: Complete GC operations (T060-T074)
+9. ⏳ **Phase 5**: Integrate SDL2 display (T075+)
