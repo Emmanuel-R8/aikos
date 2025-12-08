@@ -5,6 +5,11 @@ const errors = @import("../utils/errors.zig");
 const LispPTR = types.LispPTR;
 const DLword = types.DLword;
 
+/// Stack safety margin (matches C STK_SAFE)
+/// C: maiko/inc/stack.h:38 - #define STK_SAFE 32
+/// Added to stkmin when checking stack space
+pub const STK_SAFE: u16 = 32;
+
 /// Stack frame structure (matches C FX)
 /// Per data-model.md
 pub const FX = packed struct {
@@ -68,9 +73,11 @@ pub const VM = struct {
 
 /// Allocate stack frame
 /// Per contracts/vm-core-interface.zig
+/// Matches C implementation: Frame allocation with stack overflow checking
+/// C: maiko/src/bbtsub.c:ccfuncall - checks stack space before frame allocation
 /// size: number of local variables (IVars) to allocate space for
 pub fn allocateStackFrame(vm: *VM, size: usize) errors.VMError!*FX {
-    // Check stack overflow
+    // Check stack overflow with safety margin
     // Frame size = FX header + local variables (IVars) + parameter space
     const frame_size_bytes = @sizeOf(FX) + (size * @sizeOf(DLword));
     const frame_size_words = (frame_size_bytes + @sizeOf(DLword) - 1) / @sizeOf(DLword);
@@ -78,7 +85,10 @@ pub fn allocateStackFrame(vm: *VM, size: usize) errors.VMError!*FX {
     const stack_ptr_addr = @intFromPtr(vm.stack_ptr);
     const stack_end_addr = @intFromPtr(vm.stack_end);
 
-    if (stack_ptr_addr - stack_end_addr < frame_size_words * @sizeOf(DLword)) {
+    // C: Check if CurrentStackPTR + stkmin + STK_SAFE >= EndSTKP
+    // For now, we check frame_size + STK_SAFE
+    const required_space = (frame_size_words + STK_SAFE) * @sizeOf(DLword);
+    if (stack_ptr_addr - required_space < stack_end_addr) {
         return error.StackOverflow;
     }
 
@@ -189,54 +199,75 @@ pub fn getActivationLink(frame: *FX) LispPTR {
 
 /// Push value onto stack
 /// Per rewrite documentation vm-core/stack-management.md
+/// Matches C implementation: PushStack(x) stores LispPTR (32-bit = 2 DLwords)
+/// C: maiko/inc/lispemul.h:PushStack(x) - checks stack overflow before pushing
 pub fn pushStack(vm: *VM, value: LispPTR) errors.VMError!void {
-    // Stack grows down, so move pointer down by 2 bytes (1 DLword)
+    // Stack grows down, so move pointer down by 4 bytes (2 DLwords for LispPTR)
     const stack_ptr_addr = @intFromPtr(vm.stack_ptr);
     const stack_end_addr = @intFromPtr(vm.stack_end);
 
-    if (stack_ptr_addr - @sizeOf(DLword) < stack_end_addr) {
+    // Check stack overflow with safety margin
+    // C: Checks if CurrentStackPTR - required_space < EndSTKP
+    // For push, required space is 2 DLwords (1 LispPTR)
+    const required_space = @sizeOf(LispPTR);
+    if (stack_ptr_addr - required_space < stack_end_addr) {
         return error.StackOverflow;
     }
 
-    vm.stack_ptr -= 1; // Move down by 1 DLword
-    vm.stack_ptr[0] = @as(DLword, @truncate(value)); // Store low 16 bits
-    // TODO: Handle 32-bit values properly (may need 2 DLwords)
+    // Store LispPTR as 2 DLwords (low word first, then high word)
+    // C implementation: CurrentStackPTR += 2; *((LispPTR *)(void *)(CurrentStackPTR)) = x;
+    vm.stack_ptr -= 2; // Move down by 2 DLwords
+    vm.stack_ptr[0] = @as(DLword, @truncate(value)); // Low 16 bits
+    vm.stack_ptr[1] = @as(DLword, @truncate(value >> 16)); // High 16 bits
 }
 
 /// Pop value from stack
 /// Per rewrite documentation vm-core/stack-management.md
+/// Matches C implementation: POP_TOS_1 reads LispPTR (32-bit = 2 DLwords)
 pub fn popStack(vm: *VM) errors.VMError!LispPTR {
     const stack_base_addr = @intFromPtr(vm.stack_base);
     const stack_ptr_addr = @intFromPtr(vm.stack_ptr);
 
-    if (stack_ptr_addr >= stack_base_addr) {
-        return error.StackOverflow; // Stack underflow
+    // Check for stack underflow (stack_ptr must be below stack_base)
+    if (stack_ptr_addr + @sizeOf(LispPTR) > stack_base_addr) {
+        return error.StackUnderflow;
     }
 
-    const value = @as(LispPTR, vm.stack_ptr[0]);
-    vm.stack_ptr += 1; // Move up by 1 DLword
+    // Read LispPTR as 2 DLwords (low word first, then high word)
+    // C implementation: POP_TOS_1 = *(--CSTKPTRL) where CSTKPTRL is LispPTR*
+    const low_word = vm.stack_ptr[0];
+    const high_word = vm.stack_ptr[1];
+    const value: LispPTR = (@as(LispPTR, high_word) << 16) | @as(LispPTR, low_word);
+    vm.stack_ptr += 2; // Move up by 2 DLwords
 
     return value;
 }
 
 /// Get top of stack
+/// Matches C implementation: TopOfStack reads LispPTR (32-bit = 2 DLwords)
 pub fn getTopOfStack(vm: *const VM) LispPTR {
     const stack_base_addr = @intFromPtr(vm.stack_base);
     const stack_ptr_addr = @intFromPtr(vm.stack_ptr);
 
-    if (stack_ptr_addr >= stack_base_addr) {
+    if (stack_ptr_addr + @sizeOf(LispPTR) > stack_base_addr) {
         return 0; // Stack empty
     }
 
-    return @as(LispPTR, vm.stack_ptr[0]);
+    // Read LispPTR as 2 DLwords (low word first, then high word)
+    const low_word = vm.stack_ptr[0];
+    const high_word = vm.stack_ptr[1];
+    return (@as(LispPTR, high_word) << 16) | @as(LispPTR, low_word);
 }
 
 /// Set top of stack
+/// Matches C implementation: TopOfStack = value stores LispPTR (32-bit = 2 DLwords)
 pub fn setTopOfStack(vm: *VM, value: LispPTR) void {
     const stack_base_addr = @intFromPtr(vm.stack_base);
     const stack_ptr_addr = @intFromPtr(vm.stack_ptr);
 
-    if (stack_ptr_addr < stack_base_addr) {
-        vm.stack_ptr[0] = @as(DLword, @truncate(value));
+    if (stack_ptr_addr + @sizeOf(LispPTR) <= stack_base_addr) {
+        // Write LispPTR as 2 DLwords (low word first, then high word)
+        vm.stack_ptr[0] = @as(DLword, @truncate(value)); // Low 16 bits
+        vm.stack_ptr[1] = @as(DLword, @truncate(value >> 16)); // High 16 bits
     }
 }

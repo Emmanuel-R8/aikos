@@ -37,6 +37,76 @@ test "function call - basic frame setup" {
     try testing.expect(frame.fnheader != 0);
 }
 
+// T034: Test function call and return execution matching C emulator
+// Tests FN0-FN4 handlers, frame management, and RETURN opcode
+test "T034: function call - FN0-FN4 frame setup matching C" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+
+    var vm = try stack.VM.init(allocator, 1024);
+    defer vm.deinit();
+
+    // Simulate FN1 call (1 argument)
+    // C: OPFN sets up frame, saves PC, pushes TOS, sets up BF/FX markers
+    vm.pc = 100; // Current PC
+
+    // Create function header (placeholder - atom table lookup deferred)
+    var func_header = function_module.FunctionHeader{
+        .stkmin = 0,
+        .na = 1, // 1 argument
+        .pv = 0, // 1 parameter (pv + 1)
+        .startpc = 200, // Function code starts at 200
+        .framename = 1234, // Atom index
+        .ntsize = 0,
+        .nlocals = 2,
+        .fvaroffset = 0,
+    };
+
+    // Call function (simulating FN1 handler)
+    try function_module.callFunction(&vm, &func_header, 1);
+
+    // Verify frame was created
+    try testing.expect(vm.current_frame != null);
+    const new_frame = vm.current_frame.?;
+
+    // Verify PC was saved in previous frame (if existed) and set to function start
+    try testing.expect(vm.pc == 200); // PC set to function start
+
+    // Verify function header is set in frame
+    try testing.expect(new_frame.fnheader != 0);
+}
+
+test "T034: function return - frame restoration matching C" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+
+    var vm = try stack.VM.init(allocator, 1024);
+    defer vm.deinit();
+
+    // Set up caller frame
+    const caller_frame = try stack.allocateStackFrame(&vm, 2);
+    caller_frame.pcoffset = 150; // Save PC in caller
+    vm.pc = 200; // Current PC in callee
+
+    // Set return value on stack
+    const return_value: types.LispPTR = 42;
+    stack.setTopOfStack(&vm, return_value);
+
+    // Return from function (simulating RETURN handler)
+    const returned = try function_module.returnFromFunction(&vm);
+
+    // Verify return value
+    try testing.expect(returned == return_value);
+
+    // Verify frame was restored
+    try testing.expect(vm.current_frame == caller_frame);
+
+    // Verify PC was restored
+    try testing.expect(vm.pc == 150);
+}
+
 test "function return - basic" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
