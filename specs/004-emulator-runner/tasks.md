@@ -78,13 +78,13 @@
 
 ### Implementation for User Story 2
 
-- [ ] T027 [US2] Enhance select_emulator() function in medley/scripts/medley/emulator_utils.sh to read MEDLEY_EMULATOR environment variable
-- [ ] T028 [US2] Ensure command-line --emulator argument takes precedence over MEDLEY_EMULATOR environment variable in select_emulator()
-- [ ] T029 [US2] Update select_emulator() to default to "c" when neither command-line nor environment variable is set
-- [ ] T030 [US2] Verify environment variable precedence works correctly in medley/run-medley
-- [ ] T031 [US2] Verify environment variable precedence works correctly in medley/scripts/medley/medley.command
-- [ ] T032 [US2] Verify environment variable precedence works correctly in medley/scripts/medley/medley_run.sh
-- [ ] T033 [US2] Add documentation for MEDLEY_EMULATOR environment variable usage
+- [X] T027 [US2] Enhance select_emulator() function in medley/scripts/medley/emulator_utils.sh to read MEDLEY_EMULATOR environment variable
+- [X] T028 [US2] Ensure command-line --emulator argument takes precedence over MEDLEY_EMULATOR environment variable in select_emulator()
+- [X] T029 [US2] Update select_emulator() to default to "c" when neither command-line nor environment variable is set
+- [X] T030 [US2] Verify environment variable precedence works correctly in medley/run-medley
+- [X] T031 [US2] Verify environment variable precedence works correctly in medley/scripts/medley/medley.command
+- [X] T032 [US2] Verify environment variable precedence works correctly in medley/scripts/medley/medley_run.sh
+- [X] T033 [US2] Add documentation for MEDLEY_EMULATOR environment variable usage
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently. Developers can set `MEDLEY_EMULATOR` for default preference, and command-line arguments override it.
 
