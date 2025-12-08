@@ -10,36 +10,37 @@ Quick reference guide to all documentation files.
 
 ```
 .ai_assistant_db/
+├── INDEX.md                     # This file - quick reference
 ├── README.md                    # Overview and navigation
-├── INDEX.md                      # This file - quick reference
-├── architecture.md               # System architecture overview
+├── CRITICAL_MEMORY.md           # CRITICAL: Documentation Improvement Memory
+├── architecture.md              # System architecture overview
 ├── build-system.md              # Build system documentation
-├── glossary.md                   # Terminology and concepts
-├── components/                   # Component documentation
-│   ├── vm-core.md              # VM core and execution
-│   ├── memory-management.md    # GC and memory
-│   ├── display.md              # Display subsystems
-│   └── io.md                   # I/O systems
+├── glossary.md                  # Terminology and concepts
+├── components/                  # Component documentation
+│   ├── vm-core.md               # VM core and execution
+│   ├── memory-management.md     # GC and memory
+│   ├── display.md               # Display subsystems
+│   └── io.md                    # I/O systems
 ├── api/                         # API reference
-│   └── overview.md             # API overview
+│   └── overview.md              # API overview
 ├── implementations/             # Alternative implementations
-│   └── lisp-implementation.md  # Common Lisp implementation
+│   └── lisp-implementation.md   # Common Lisp implementation
 ├── medley/                      # Medley Interlisp documentation
-│   ├── README.md               # Medley documentation overview
-│   ├── INDEX.md                # Medley quick reference
-│   ├── architecture.md         # Medley system architecture
-│   ├── components/             # Medley component documentation
-│   ├── interface/              # Medley-Maiko interface
-│   ├── platform/               # Platform-specific documentation
-│   └── glossary.md             # Medley terminology
+│   ├── README.md                # Medley documentation overview
+│   ├── INDEX.md                 # Medley quick reference
+│   ├── architecture.md          # Medley system architecture
+│   ├── components/              # Medley component documentation
+│   ├── interface/               # Medley-Maiko interface
+│   ├── platform/                # Platform-specific documentation
+│   └── glossary.md              # Medley terminology
 └── rewrite-spec/                # Language-agnostic specifications
-    ├── instruction-set/        # Bytecode specifications
-    ├── vm-core/                # Execution engine specs
-    ├── memory/                 # Memory management specs
-    ├── data-structures/        # Data structure formats
-    ├── display/                # Display subsystem specs
-    ├── io/                     # I/O subsystem specs
-    └── platform-abstraction/   # Platform requirements
+    ├── instruction-set/         # Bytecode specifications
+    ├── vm-core/                 # Execution engine specs
+    ├── memory/                  # Memory management specs
+    ├── data-structures/         # Data structure formats
+    ├── display/                 # Display subsystem specs
+    ├── io/                      # I/O subsystem specs
+    └── platform-abstraction/    # Platform requirements
 ```
 
 ## Quick Reference
@@ -51,6 +52,7 @@ Quick reference guide to all documentation files.
 3. **Building the Project?** → See [build-system.md](build-system.md)
 4. **Looking for Terms?** → Check [glossary.md](glossary.md)
 5. **Understanding Medley?** → See [medley/README.md](medley/README.md) - Medley Interlisp documentation
+6. **Critical steps used to improve this documentation** → See [CRITICAL_MEMORY.md](CRITICAL_MEMORY.md)
 
 ### By Topic
 

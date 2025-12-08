@@ -43,13 +43,12 @@ The Zig implementation provides a complete framework for the Maiko emulator in Z
   - ✅ Program counter initialization added
   - ⚠️ Opcode handlers need completion (many stubs exist)
 
-- ✅ **Essential Opcodes** (P1 - Phase 3 Complete)
-  - ✅ Function calls (FN0-FN4, RETURN, UNWIND) - implemented and tested
-  - ✅ Cons cell operations (CAR, CDR, CONS) - implemented matching C behavior
-  - ✅ Variable access (IVAR, PVAR, FVAR, GVAR variants) - implemented
-  - ✅ Control flow (JUMP0-JUMP15, FJUMP0-FJUMP15, TJUMP0-TJUMP15) - implemented with proper stack management
-  - ✅ List operations (RPLACA, RPLACD, UNWIND) - implemented
-  - ⚠️ LIST/APPEND opcodes - not found in C opcodes.h, may not be needed (lists created via CONS)
+- 🔄 **Essential Opcodes** (P1 - Critical Blocker)
+  - ❌ Function calls (CALL, RETURN, UNWIND) - framework ready, needs completion
+  - ❌ Cons cell operations (CAR, CDR, CONS) - framework ready, needs implementation
+  - ❌ Variable access completion (IVAR, PVAR, FVAR, GVAR variants)
+  - ❌ Control flow (JUMP variants) - some implemented, needs completion
+  - ❌ List operations (LIST, APPEND, RPLACA, RPLACD) - placeholders exist
 
 - 🔄 **GC Operations** (P2)
   - ❌ GC hash table operations (ADDREF, DELREF) - structure complete, operations pending
@@ -86,6 +85,7 @@ The IFPAGE structure is now complete with ~100 fields matching the C implementat
 **Zig Location**: `maiko/alternatives/zig/src/utils/types.zig:24-95`
 
 **Key Fields Implemented**:
+
 - Frame pointers (currentfxp, resetfxp, subovfxp, kbdfxp, etc.)
 - Version information (lversion, minrversion, minbversion, rversion, bversion)
 - Validation key (key = IFPAGE_KEYVAL = 0x15e3)
@@ -102,6 +102,7 @@ The FPtoVP (File Page to Virtual Page) table loading algorithm is now implemente
 **Implementation**: `maiko/alternatives/zig/src/data/sysout.zig:loadFPtoVPTable`
 
 **Algorithm**:
+
 1. Calculate offset: `(ifpage.fptovpstart - 1) * BYTESPER_PAGE + offset` (BIGVM: +4, non-BIGVM: +2)
 2. Read table entries (16-bit for non-BIGVM, 32-bit for BIGVM)
 3. Convert to u16 array for non-BIGVM format
@@ -118,6 +119,7 @@ The page loading algorithm is now implemented.
 **Implementation**: `maiko/alternatives/zig/src/data/sysout.zig:loadMemoryPages`
 
 **Algorithm**:
+
 1. Iterate through file pages (0 to num_file_pages)
 2. Check FPtoVP entry (skip if 0xFFFF = sparse page)
 3. Seek to file page offset: `file_page * BYTESPER_PAGE`
@@ -130,6 +132,7 @@ The page loading algorithm is now implemented.
 ### Version Constants
 
 **CRITICAL**: Version constants from `maiko/inc/version.h`:
+
 - `LVERSION = 21000` (minimum Lisp version required)
 - `MINBVERSION = 21001` (maximum bytecode version supported)
 
@@ -142,6 +145,7 @@ The page loading algorithm is now implemented.
 Several opcodes in the Zig implementation don't exist in the C implementation and were causing compilation conflicts:
 
 **Removed/Commented Out**:
+
 - Generic `JUMP`, `FJUMP`, `TJUMP` opcodes (only JUMPX, JUMPXX, and JUMP0-JUMP15 exist)
 - `CHARCODE`, `CHARN` (conflict with NFJUMPX/NTJUMPX at 0xB4-0xB5)
 - `GETAEL1`, `GETAEL2`, `SETAEL1`, `SETAEL2` (conflict with JUMP0-JUMP3 at 0x80-0x83)
@@ -157,6 +161,7 @@ Several opcodes in the Zig implementation don't exist in the C implementation an
 **Issue**: Initial implementation stored only 16 bits (1 DLword), causing incorrect value storage/retrieval.
 
 **Fix**: Updated `pushStack()`, `popStack()`, `getTopOfStack()`, and `setTopOfStack()` to handle 32-bit LispPTR values as 2 DLwords:
+
 - Low 16 bits stored in `stack_ptr[0]`
 - High 16 bits stored in `stack_ptr[1]`
 - Values reconstructed as `(high_word << 16) | low_word`
@@ -172,10 +177,12 @@ Several opcodes in the Zig implementation don't exist in the C implementation an
 **CRITICAL**: Arithmetic opcodes must handle SMALLP (small integers) and FIXP (large integers) correctly.
 
 **Implementation**: Added number extraction and encoding functions matching C `N_IGETNUMBER` and `N_ARITH_SWITCH` macros:
+
 - `extractInteger()`: Extracts integers from SMALLP (S_POSITIVE/S_NEGATIVE segments) or FIXP objects
 - `encodeIntegerResult()`: Encodes integer results as SMALLP if in range, otherwise creates FIXP
 
 **Zig-Specific Details**:
+
 - Added constants: `S_POSITIVE`, `S_NEGATIVE`, `SEGMASK`, `MAX_SMALL`, `MIN_SMALL`, `MAX_FIXP`, `MIN_FIXP`
 - Overflow checking implemented matching C behavior
 - FIXP object creation deferred to Phase 4 (GC implementation)
@@ -184,192 +191,27 @@ Several opcodes in the Zig implementation don't exist in the C implementation an
 
 **Status**: ✅ Implemented - Arithmetic opcodes (IPLUS2, IDIFFERENCE, ITIMES2, IQUO, IREM) now match C behavior
 
-### Function Call Opcodes: FN0-FN4 Implementation ✅ IMPLEMENTED
-
-**CRITICAL**: FN0-FN4 opcodes have 3-byte instruction format (opcode + 2-byte atom index) for non-BIGATOMS.
-
-**Implementation**: Implemented FN0-FN4 handlers matching C `OPFN` macro behavior:
-- Extract atom index from instruction operand (2 bytes for non-BIGATOMS)
-- Create function header (placeholder for now - atom table lookup deferred to Phase 3)
-- Call `callFunction` with appropriate argument count (0-4)
-
-**Zig-Specific Details**:
-- Instruction length corrected from 1 byte to 3 bytes (FN_OPCODE_SIZE = 3 for non-BIGATOMS)
-- Atom index extracted using `instruction.getWordOperand(0)` (DLword, 2 bytes)
-- Function header `na` field is `DLword` (u16) in Zig struct, but C uses `short` (signed). Stored as u16, signed interpretation handled when needed.
-- Placeholder function headers created until atom table lookup is implemented (Phase 3)
-
-**C Reference**: `maiko/inc/tosfns.h:OPFN`, `maiko/inc/lispemul.h:FN_OPCODE_SIZE`
-
-**Location**: `maiko/alternatives/zig/src/vm/opcodes.zig:446-511`, `maiko/alternatives/zig/src/vm/dispatch.zig:474-487`
-
-**Status**: ✅ Implemented - FN0-FN4 handlers match C instruction format and call structure
-
-### Function Return: RETURN Opcode Implementation ✅ IMPLEMENTED
-
-**Implementation**: Implemented RETURN handler matching C `OPRETURN` macro behavior:
-- Gets return value from TopOfStack
-- Restores previous frame via activation link (`alink` field)
-- Restores PC from previous frame's `pcoffset`
-- Handles top-level return (no previous frame)
-
-**Zig-Specific Details**:
-- Frame restoration uses `current_frame.link` to find previous frame
-- PC restoration uses `previous_frame.pcoffset` (saved during function call)
-- Return value preserved through frame restoration
-
-**C Reference**: `maiko/inc/tosret.h:OPRETURN`
-
-**Location**: `maiko/alternatives/zig/src/vm/opcodes.zig:513-525`, `maiko/alternatives/zig/src/vm/function.zig:53-83`
-
-**Status**: ✅ Implemented - RETURN handler matches C frame restoration behavior
-
-### Error Handling: Stack Overflow/Underflow ✅ IMPLEMENTED
-
-**CRITICAL**: Stack overflow checks must include `STK_SAFE` margin (32 words) matching C implementation.
-
-**Implementation**: Enhanced error handling in stack operations:
-- Added `STK_SAFE` constant (32 words) matching C `maiko/inc/stack.h:38`
-- Stack overflow checks include safety margin: `required_space + STK_SAFE`
-- Stack underflow already checked in `popStack()` (returns `error.StackUnderflow`)
-- Frame allocation checks overflow with safety margin
-
-**Zig-Specific Details**:
-- `STK_SAFE` defined as `u16` constant in `stack.zig`
-- Overflow check: `stack_ptr_addr - required_space < stack_end_addr`
-- Underflow check: `stack_ptr_addr + @sizeOf(LispPTR) > stack_base_addr`
-- Error handling in dispatch loop matches C behavior (returns errors, doesn't silently fail)
-
-**C Reference**: `maiko/inc/stack.h:STK_SAFE`, `maiko/src/llstk.c:do_stackoverflow()`, `maiko/src/xc.c:check_interrupt`
-
-**Location**: `maiko/alternatives/zig/src/vm/stack.zig:10-12, 198-200, 216-219, 81-83`
-
-**Status**: ✅ Implemented - Stack overflow/underflow handling matches C behavior
-
-### Error Handling: Invalid Opcodes ✅ IMPLEMENTED
-
-**Implementation**: Enhanced invalid opcode handling matching C UFN (Undefined Function Name) behavior:
-- Invalid instruction decoding returns `error.InvalidOpcode` (instead of silently breaking)
-- Error handling in dispatch loop matches C `goto op_ufn` behavior
-- UFN lookup deferred to Phase 3 (atom table implementation)
-
-**Zig-Specific Details**:
-- `decodeInstruction` returning `null` now triggers `error.InvalidOpcode`
-- Dispatch loop handles `InvalidOpcode` error explicitly
-- Error propagation allows caller to handle UFN lookup (when implemented)
-
-**C Reference**: `maiko/src/xc.c:goto op_ufn`, `maiko/inc/tosfns.h:OP_FN_COMMON`
-
-**Location**: `maiko/alternatives/zig/src/vm/dispatch.zig:393-396, 399-412`
-
-**Status**: ✅ Implemented - Invalid opcode handling matches C UFN trigger behavior
-
-### Test Cases: Phase 2 Verification ✅ IMPLEMENTED
-
-**Implementation**: Comprehensive test cases added for Phase 2 functionality:
-
-**T032: Arithmetic Opcodes Tests** (`tests/opcodes.zig`):
-- SMALLP encoding tests (S_POSITIVE, S_NEGATIVE segments)
-- Overflow handling verification
-- Division by zero error handling
-- Edge cases (MAX_SMALL + 1)
-
-**T033: Stack Operations Tests** (`tests/stack.zig`):
-- 32-bit LispPTR storage verification (2 DLwords)
-- Stack push/pop order correctness
-- Stack underflow detection
-- Multiple value handling
-
-**T034: Function Call/Return Tests** (`tests/function_calls.zig`):
-- FN0-FN4 frame setup verification
-- Frame restoration via activation link
-- PC save/restore correctness
-- Nested function calls
-- Top-level return handling
-
-**Zig-Specific Details**:
-- Tests use Zig's `std.testing` framework
-- Error unions tested with `expectError`
-- SMALLP encoding verified using `S_POSITIVE`/`S_NEGATIVE` constants
-- Frame management tested with explicit PC tracking
-
-**Location**:
-- `maiko/alternatives/zig/tests/opcodes.zig:86-136` (T032)
-- `maiko/alternatives/zig/tests/stack.zig:47-75` (T033)
-- `maiko/alternatives/zig/tests/function_calls.zig:8-111` (T034)
-
-**Status**: ✅ Implemented - Test cases verify Phase 2 functionality matches C behavior
-
-### Phase 3: Essential Opcodes for Medley Startup ✅ IMPLEMENTED
-
-**Implementation**: Complete essential opcode set for Medley Interlisp startup:
-
-**T035-T040: Cons Cell Operations** (`src/vm/opcodes.zig`):
-- CAR handler matches C OPCAR: handles NIL, indirect CDR encoding, proper address translation
-- CDR handler matches C OPCDR (NEWCDRCODING): handles CDR_NIL, CDR_ONPAGE (same page), CDR_INDIRECT (recursive), different page encoding
-- CONS handler uses storage allocation matching C N_OP_cons behavior
-
-**T041-T044: Variable Access Operations** (`src/vm/opcodes.zig`):
-- IVAR handlers (IVAR0-IVAR6, IVARX) implemented for local variable access
-- PVAR handlers (PVAR0-PVAR6, PVARX) implemented for parameter access
-- FVAR handlers (FVAR0-FVAR6, FVARX) implemented for free variable access (with TODO for unbound variable lookup)
-- GVAR handlers implemented for global variable access (with TODO for atom table lookup)
-
-**T045-T047: Jump Opcode Variants** (`src/vm/dispatch.zig`, `src/vm/opcodes.zig`):
-- JUMP0-JUMP15: Unconditional jumps with offset encoded in opcode (0-15)
-- FJUMP0-FJUMP15: Conditional false jumps (jump if NIL) with proper stack popping
-- TJUMP0-TJUMP15: Conditional true jumps (jump if not NIL) with proper stack popping
-- Helper functions `handleFJUMPWithOffset` and `handleTJUMPWithOffset` created to reduce code duplication
-- All jump handlers correctly pop stack matching C FJUMPMACRO/TJUMPMACRO behavior
-
-**T050-T052: List Operations** (`src/vm/opcodes.zig`):
-- RPLACA: Replace CAR of cons cell, handles indirect CDR encoding
-- RPLACD: Replace CDR of cons cell with proper CDR encoding
-- UNWIND: Stack unwinding handler implemented
-
-**Zig-Specific Details**:
-- Jump handlers use helper functions to reduce code duplication (30+ handlers consolidated)
-- Stack popping in FJUMP/TJUMP matches C behavior: always pop, then check condition
-- CDR coding implementation uses NEWCDRCODING constants (CDR_NIL=8, CDR_INDIRECT=0, CDR_ONPAGE_MIN=8)
-- Address translation uses `virtual_memory_module.translateAddress` with 4-byte alignment for cons cells
-
-**C Reference**: 
-- `maiko/inc/inlineC.h:OPCAR`, `OPCDR`, `CONS`
-- `maiko/inc/inlineC.h:FJUMPMACRO`, `TJUMPMACRO`, `JUMPMACRO`
-- `maiko/src/conspage.c:N_OP_cons`
-
-**Location**:
-- `maiko/alternatives/zig/src/vm/opcodes.zig:662-833` (CAR, CDR, CONS, RPLACA, RPLACD)
-- `maiko/alternatives/zig/src/vm/opcodes.zig:1379-1495` (IVAR, PVAR, FVAR, GVAR)
-- `maiko/alternatives/zig/src/vm/dispatch.zig:456-460, 607-897` (Jump handlers)
-- `maiko/alternatives/zig/src/vm/opcodes.zig:1248-1317` (UNWIND)
-
-**Status**: ✅ Implemented - Essential opcodes for Medley startup complete, matching C behavior
-
-**Note on LIST/APPEND Opcodes (T048-T049)**:
-- LIST and APPEND opcodes not found in C `opcodes.h`
-- Lists are created using CONS opcode
-- RESTLIST opcode exists (opc_RESTLIST = 35) but goes to UFN (undefined function)
-- May need verification if LIST/APPEND are required or if CONS is sufficient
-
 ### Compilation Issues Fixed
 
 **Type Mismatches**:
+
 - Fixed `usize` vs `u32` conversions in function.zig and stack.zig
 - Fixed pointer alignment issues in storage.zig using `@alignCast`
 - Fixed const vs mutable Storage pointer in VM structure
 
 **Error Types**:
+
 - Added `StackUnderflow` and `DivisionByZero` to VMError enum
 
 **Alignment Issues**:
+
 - Changed `translateAddress` alignment parameter from `u2` to `u8` to support 4-byte alignment
 
 ## Implementation Statistics
 
 | Category | Status | Count | Notes |
 |----------|--------|-------|-------|
-| **Opcodes** | Phase 3 Complete | ~80/256 | Essential set for Medley startup complete (T035-T052) |
+| **Opcodes** | Partial | ~50/256 | Essential set needed for Medley startup |
 | **IFPAGE Fields** | ✅ Complete | ~100/100 | Matches C structure exactly |
 | **Sysout Loading** | ✅ Complete | 22/22 | Phase 1 tasks (T001-T022) complete |
 | **GC Operations** | Framework | 0/3 | ADDREF, DELREF, reclamation pending |
@@ -456,7 +298,7 @@ See `specs/005-zig-completion/` for detailed completion plan:
 3. ✅ ~~Implement FPtoVP table loading~~ **DONE**
 4. ✅ ~~Implement page loading algorithm~~ **DONE**
 5. ✅ ~~Activate VM dispatch loop~~ **DONE**
-6. ✅ ~~**Phase 2**: Implement essential opcodes for Medley startup (T023-T034)~~ **DONE**
-7. ✅ ~~**Phase 3**: Complete essential opcodes for Medley startup (T035-T052)~~ **DONE** (T048-T049 pending verification, T053-T059 are test cases)
+6. 🔄 **Phase 2**: Implement essential opcodes for Medley startup (T023-T034)
+7. 🔄 **Phase 3**: Complete essential opcodes for Medley startup (T035-T059)
 8. ⏳ **Phase 4**: Complete GC operations (T060-T074)
 9. ⏳ **Phase 5**: Integrate SDL2 display (T075+)

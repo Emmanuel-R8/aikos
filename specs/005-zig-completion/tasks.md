@@ -322,6 +322,7 @@ With multiple developers:
 **Total Tasks**: 108
 
 **Tasks by User Story**:
+
 - User Story 1 (P1 - MVP): 22 tasks
 - User Story 2 (P1): 12 tasks
 - User Story 3 (P1): 25 tasks
@@ -330,12 +331,14 @@ With multiple developers:
 - Polish & Documentation: 12 tasks
 
 **Parallel Opportunities**:
+
 - User Story 3: Cons cells, variable access, jump variants, list operations can be parallelized
 - User Story 4: Reclamation operations can be parallelized
 - User Story 5: Event handling can be parallelized
 - Polish: All documentation tasks can be parallelized
 
 **Independent Test Criteria**:
+
 - **US1**: Sysout loads, VM enters dispatch loop
 - **US2**: Basic bytecode execution produces correct results
 - **US3**: Medley starts and reaches Lisp prompt
