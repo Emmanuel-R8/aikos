@@ -46,7 +46,7 @@ This document describes the Zig implementation of the Maiko emulator, including 
 - ✅ Sysout file loading framework
 - ✅ I/O subsystem structure (keyboard, mouse, filesystem)
 - ✅ Display subsystem structure (SDL backend framework)
-- ✅ Opcode enumeration (50+ opcodes defined)
+- ✅ Opcode enumeration (190+ opcodes defined)
 - ✅ Comprehensive test suite
 
 ### Implemented Logic
@@ -65,6 +65,25 @@ This document describes the Zig implementation of the Maiko emulator, including 
 - ✅ Type checking opcodes (NTYPX, TYPEP, DTEST)
 - ✅ Stack unwinding (UNWIND - placeholder)
 - ✅ Binding operations (BIND, UNBIND, DUNBIND - placeholders)
+- ✅ Function application (APPLYFN, CHECKAPPLY - placeholders)
+- ✅ Stack scanning (STKSCAN - placeholder)
+- ✅ Floating-point arithmetic (FPLUS2, FDIFFERENCE, FTIMES2, FQUOTIENT, FGREATERP - placeholders)
+- ✅ Optimized jump variants (JUMP0-JUMP15, FJUMP0-FJUMP15, TJUMP0-TJUMP15)
+- ✅ Stack-relative return (SLRETURN - placeholder)
+- ✅ Deep equality comparison (EQUAL - placeholder)
+- ✅ Number creation (MAKENUMBER - placeholder)
+- ✅ List operations (ASSOC, RPLCONS, LISTGET, RESTLIST, CREATECELL, CMLASSOC, FMEMB, CMLMEMBER, FINDKEY - placeholders)
+- ✅ I/O operations (BIN, BOUT - placeholders)
+- ✅ Evaluation operations (EVAL, ENVCALL - placeholders)
+- ✅ Miscellaneous operations (RPLPTR_N, GVAR_, MISCN - placeholders)
+- ✅ High-range opcodes (ATOMCELL_N, GETBASEBYTE, INSTANCEP, BLT, MISC10, PUTBASEBYTE, GETBASE_N, GETBASEPTR_N, GETBITS_N_FD, CMLEQUAL, PUTBASE_N, PUTBASEPTR_N, PUTBITS_N_FD, ADDBASE, VAG2, HILOC, LOLOC, IPLUS_N, IDIFFERENCE_N, BASE_LESSTHAN, UBFLOAT2, UBFLOAT1, BOXIPLUS, BOXIDIFFERENCE, FLOATBLT, FFTSTEP, MISC3, MISC4, UPCTRACE, CL_EQUAL - placeholders)
+- ✅ PVAR set operations (PVAR_0-PVAR_6, PVARX_ - placeholders)
+- ✅ Additional variable operations (ARG0, IVARX_, FVARX_, COPY, MYARGCOUNT, MYALINK - placeholders)
+- ✅ Instance cell operations (SIC, SNIC, SICX - placeholders)
+- ✅ Additional list/array operations (ELT, NTHCHC, SETA, RPLCHARCODE - placeholders)
+- ✅ Extended jump variants (JUMPXX, NFJUMPX, NTJUMPX - placeholders)
+- ✅ Multi-dimensional array operations (AREF2, ASET2 - placeholders)
+- ✅ Additional miscellaneous operations (TYPECHECK, BUSBLT, MISC8, UBFLOAT3, TYPEMASK_N, MISC7, DRAWLINE, STORE_N, COPY_N, RAID - placeholders)
 - ✅ Address translation framework
 
 ### In Progress
