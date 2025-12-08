@@ -23,7 +23,7 @@ pub const VM = struct {
     stack_ptr: [*]DLword,
     stack_end: [*]DLword,
     // Memory management (optional - can be null)
-    storage: ?*const @import("../memory/storage.zig").Storage,
+    storage: ?*@import("../memory/storage.zig").Storage,
     virtual_memory: ?*const @import("../memory/virtual.zig").VirtualMemory,
     // Execution state
     pc: LispPTR, // Current program counter (managed by dispatch loop)
@@ -49,7 +49,7 @@ pub const VM = struct {
     pub fn initWithMemory(
         allocator: std.mem.Allocator,
         stack_size: usize,
-        storage: *const @import("../memory/storage.zig").Storage,
+        storage: *@import("../memory/storage.zig").Storage,
         virtual_memory: *const @import("../memory/virtual.zig").VirtualMemory,
     ) !VM {
         var vm = try init(allocator, stack_size);
@@ -85,7 +85,7 @@ pub fn allocateStackFrame(vm: *VM, size: usize) errors.VMError!*FX {
     // Allocate frame (stack grows down)
     // Calculate aligned address
     const new_ptr_addr = stack_ptr_addr - frame_size_bytes;
-    const align_mask = @alignOf(FX) - 1;
+    const align_mask: usize = @alignOf(FX) - 1;
     const aligned_addr = new_ptr_addr & ~align_mask;
 
     // Update stack pointer
@@ -95,7 +95,7 @@ pub fn allocateStackFrame(vm: *VM, size: usize) errors.VMError!*FX {
     const frame: *FX = @as(*FX, @ptrFromInt(aligned_addr));
     frame.* = FX{
         .nextblock = 0, // Will be set to point to IVar area
-        .link = if (vm.current_frame) |cf| @intFromPtr(cf) else 0,
+        .link = if (vm.current_frame) |cf| @as(LispPTR, @truncate(@intFromPtr(cf))) else 0,
         .fnheader = 0,
         .pcoffset = 0,
     };

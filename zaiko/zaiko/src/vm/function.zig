@@ -27,15 +27,15 @@ pub fn callFunction(vm: *VM, func_header: *FunctionHeader, arg_count: u8) errors
     // Save current PC (will be restored on return)
     if (vm.current_frame) |frame| {
         // Save PC in current frame before calling new function
-        frame.pcoffset = vm.pc;
+        frame.pcoffset = @as(u16, @truncate(vm.pc));
     }
 
     // Allocate new frame for called function
-    const frame_size = @as(usize, func_header.nlocals);
+    const frame_size = @as(u32, @intCast(func_header.nlocals));
     const new_frame = try stack.allocateStackFrame(vm, frame_size);
 
     // Set function header in frame
-    new_frame.fnheader = @as(LispPTR, @intFromPtr(func_header));
+    new_frame.fnheader = @as(LispPTR, @truncate(@intFromPtr(func_header)));
 
     // Set up arguments in PVar area
     // Arguments are popped from stack and stored as parameters

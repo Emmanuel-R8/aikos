@@ -47,7 +47,8 @@ pub const VirtualMemory = struct {
 
 /// Translate LispPTR to native pointer using FPtoVP mapping
 /// Per rewrite documentation memory/address-translation.md
-pub fn translateAddress(lisp_addr: LispPTR, fptovp: []LispPTR, alignment: u2) errors.MemoryError![*]u8 {
+/// alignment: alignment requirement in bytes (1, 2, 4, 8, etc.)
+pub fn translateAddress(lisp_addr: LispPTR, fptovp: []LispPTR, alignment: u8) errors.MemoryError![*]u8 {
     const page_num = layout.getPageNumber(lisp_addr);
     const page_offset = layout.getPageOffset(lisp_addr);
 

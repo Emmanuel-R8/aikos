@@ -10,6 +10,21 @@ const VM = stack.VM;
 const LispPTR = types.LispPTR;
 const DLword = types.DLword;
 
+/// GCREF: Garbage collection reference counting
+/// Per C implementation: maiko/src/gc.c:OP_gcref
+/// alpha operand: ADDREF (0), DELREF (1), or STKREF (2)
+/// TopOfStack is the slot address to reference count
+/// TODO: Implement full GC hash table lookup (Phase 4)
+pub fn handleGCREF(vm: *VM, alpha: u8) errors.VMError!void {
+    const stack_module = @import("stack.zig");
+    _ = alpha; // TODO: Use alpha to determine ADDREF/DELREF/STKREF operation
+
+    // For now, just leave TopOfStack alone (stub implementation)
+    // Full implementation will call GCLOOKUPV with TopOfStack and alpha
+    // and replace TopOfStack with 0 if refcnt != 0
+    _ = stack_module.getTopOfStack(vm);
+}
+
 /// Arithmetic opcode handlers
 /// Per rewrite documentation opcodes.md
 /// IPLUS2: Integer plus 2 operands
@@ -1363,13 +1378,13 @@ pub fn handleAPPLYFN(vm: *VM) errors.VMError!void {
     // 1. Function object on stack
     // 2. Arguments on stack
     // 3. Function application mechanism
-    
+
     // TODO: Proper implementation needs:
     // 1. Get function object from stack
     // 2. Get argument count
     // 3. Apply function with arguments
     // 4. Handle spread arguments if needed
-    
+
     // Placeholder: for now, this is similar to CALL but handles apply semantics
     // Will be properly implemented with function application system
     _ = vm;
@@ -1383,13 +1398,13 @@ pub fn handleCHECKAPPLY(vm: *VM) errors.VMError!void {
     // 1. Function object on stack
     // 2. Argument count validation
     // 3. Type checking
-    
+
     // TODO: Proper implementation needs:
     // 1. Get function object
     // 2. Check argument count matches function signature
     // 3. Validate argument types
     // 4. Signal error if validation fails
-    
+
     // Placeholder: will be properly implemented with function validation
     _ = vm;
 }
@@ -1399,20 +1414,20 @@ pub fn handleCHECKAPPLY(vm: *VM) errors.VMError!void {
 /// Scans stack frames for variable by atom index
 pub fn handleSTKSCAN(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // STKSCAN requires:
     // 1. Atom index on TOS
     // 2. Scan current and previous frames
     // 3. Look up variable in name tables
     // 4. Return address of found value
-    
+
     // TODO: Proper implementation needs:
     // 1. Get atom index from TOS
     // 2. Traverse stack frames (current and previous)
     // 3. Look up variable in each frame's name table
     // 4. Return address of variable value
     // 5. Handle unbound variables
-    
+
     // Placeholder: for now, return NIL
     // Will be properly implemented with name table lookup
     const atom_index = stack_module.getTopOfStack(vm);
@@ -1425,18 +1440,18 @@ pub fn handleSTKSCAN(vm: *VM) errors.VMError!void {
 /// Adds two floating-point values
 pub fn handleFPLUS2(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // FPLUS2 requires:
     // 1. Two floating-point values on stack
     // 2. Floating-point addition
     // 3. Push result
-    
+
     // TODO: Proper implementation needs:
     // 1. Extract floating-point values from LispPTR encoding
     // 2. Perform floating-point addition
     // 3. Encode result as LispPTR
     // 4. Push result
-    
+
     // Placeholder: for now, treat as integer addition
     // Will be properly implemented with floating-point support
     const b = try stack_module.popStack(vm);
@@ -1450,7 +1465,7 @@ pub fn handleFPLUS2(vm: *VM) errors.VMError!void {
 /// Subtracts two floating-point values
 pub fn handleFDIFFERENCE(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // TODO: Proper floating-point implementation
     const b = try stack_module.popStack(vm);
     const a = try stack_module.popStack(vm);
@@ -1463,7 +1478,7 @@ pub fn handleFDIFFERENCE(vm: *VM) errors.VMError!void {
 /// Multiplies two floating-point values
 pub fn handleFTIMES2(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // TODO: Proper floating-point implementation
     const b = try stack_module.popStack(vm);
     const a = try stack_module.popStack(vm);
@@ -1476,7 +1491,7 @@ pub fn handleFTIMES2(vm: *VM) errors.VMError!void {
 /// Divides two floating-point values
 pub fn handleFQUOTIENT(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // TODO: Proper floating-point implementation
     const b = try stack_module.popStack(vm);
     const a = try stack_module.popStack(vm);
@@ -1492,7 +1507,7 @@ pub fn handleFQUOTIENT(vm: *VM) errors.VMError!void {
 /// Compares two floating-point values
 pub fn handleFGREATERP(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // TODO: Proper floating-point implementation
     const b = try stack_module.popStack(vm);
     const a = try stack_module.popStack(vm);
@@ -1508,12 +1523,12 @@ pub fn handleSLRETURN(vm: *VM) errors.VMError!void {
     // 1. Stack-relative return address
     // 2. Restore previous frame
     // 3. Return to caller
-    
+
     // TODO: Proper implementation needs:
     // 1. Get return address from stack-relative location
     // 2. Restore previous frame
     // 3. Set PC to return address
-    
+
     // Placeholder: similar to RETURN but uses stack-relative addressing
     // Will be properly implemented with frame management
     _ = vm;
@@ -1542,10 +1557,10 @@ fn isConsCell(ptr: LispPTR) bool {
 fn equalRecursive(vm: *VM, a: LispPTR, b: LispPTR) errors.VMError!bool {
     // Same pointer = equal
     if (a == b) return true;
-    
+
     // NIL comparison
     if (isNil(a) or isNil(b)) return false;
-    
+
     // Fixnum comparison
     if (isFixnum(a) and isFixnum(b)) {
         // Extract fixnum values (right shift by 1)
@@ -1553,30 +1568,30 @@ fn equalRecursive(vm: *VM, a: LispPTR, b: LispPTR) errors.VMError!bool {
         const b_val = @as(i32, @bitCast(@as(u32, b >> 1)));
         return a_val == b_val;
     }
-    
+
     // Type mismatch if one is fixnum and other isn't
     if (isFixnum(a) != isFixnum(b)) return false;
-    
+
     // Cons cell comparison (recursive)
     if (isConsCell(a) and isConsCell(b)) {
         if (vm.virtual_memory) |vmem| {
             // Get CAR values
             const a_native = virtual_memory_module.translateAddress(a, vmem.fptovp, 4) catch return false;
             const b_native = virtual_memory_module.translateAddress(b, vmem.fptovp, 4) catch return false;
-            
+
             const a_cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(a_native)));
             const b_cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(b_native)));
-            
+
             const a_car = cons.getCAR(a_cell);
             const b_car = cons.getCAR(b_cell);
-            
+
             // Compare CAR recursively
             if (!try equalRecursive(vm, a_car, b_car)) return false;
-            
+
             // Get CDR values
             const a_cdr = cons.decodeCDR(a_cell, a);
             const b_cdr = cons.decodeCDR(b_cell, b);
-            
+
             // Compare CDR recursively
             return try equalRecursive(vm, a_cdr, b_cdr);
         } else {
@@ -1585,7 +1600,7 @@ fn equalRecursive(vm: *VM, a: LispPTR, b: LispPTR) errors.VMError!bool {
             return a == b;
         }
     }
-    
+
     // For other types (atoms, arrays, etc.), use pointer comparison for now
     // TODO: Implement proper comparison for atoms and arrays
     return a == b;
@@ -1596,14 +1611,14 @@ fn equalRecursive(vm: *VM, a: LispPTR, b: LispPTR) errors.VMError!bool {
 /// Compares two values recursively (handles cons cells, numbers, atoms)
 pub fn handleEQUAL(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // Pop two values from stack
     const b = try stack_module.popStack(vm);
     const a = try stack_module.popStack(vm);
-    
+
     // Perform recursive comparison
     const is_equal = try equalRecursive(vm, a, b);
-    
+
     // Push result: T (1) if equal, NIL (0) if not
     const result: LispPTR = if (is_equal) 1 else 0;
     try stack_module.pushStack(vm, result);
@@ -1612,28 +1627,42 @@ pub fn handleEQUAL(vm: *VM) errors.VMError!void {
 /// MAKENUMBER: Create number object
 /// Per rewrite documentation instruction-set/opcodes.md
 /// Creates a number object from value on stack
+/// For small integers, encodes as fixnum (odd address)
 pub fn handleMAKENUMBER(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
-    // MAKENUMBER requires:
-    // 1. Value on stack (integer or float)
-    // 2. Number object creation
-    // 3. Push number object
-    
-    // TODO: Proper implementation needs:
-    // 1. Get value from stack
-    // 2. Determine if integer or float
-    // 3. Create appropriate number object:
-    //    - Small integers: encode as fixnum
-    //    - Large integers: create bignum object
-    //    - Floats: create float object
-    // 4. Push number object on stack
-    
-    // Placeholder: for now, just keep the value as-is
-    // Will be properly implemented with number object creation
+
+    // Get value from stack
     const value = stack_module.getTopOfStack(vm);
-    // Value is already on stack, so no change needed for placeholder
-    _ = value;
+
+    // Check if value is already a fixnum
+    if (isFixnum(value)) {
+        // Already a fixnum, no conversion needed
+        return;
+    }
+
+    // Check if value is NIL (0)
+    if (value == 0) {
+        // NIL is not a number, keep as-is
+        return;
+    }
+
+    // Try to encode as fixnum if it's a small integer
+    // Fixnums are encoded as (value << 1) | 1
+    // Small integers typically fit in 15 bits (signed: -16384 to 16383)
+    const value_signed = @as(i32, @bitCast(@as(u32, value)));
+
+    // Check if value fits in fixnum range
+    // Fixnum range: typically -16384 to 16383 (15 bits signed)
+    if (value_signed >= -16384 and value_signed <= 16383) {
+        // Encode as fixnum: (value << 1) | 1
+        const fixnum_value = (@as(u32, @bitCast(@as(i32, value_signed))) << 1) | 1;
+        stack_module.setTopOfStack(vm, @as(LispPTR, fixnum_value));
+        return;
+    }
+
+    // For larger integers or floats, would need bignum or float object creation
+    // TODO: Implement bignum and float object creation
+    // For now, keep value as-is (may be a pointer to number object)
 }
 
 /// RPLPTR_N: Replace pointer N
@@ -1641,17 +1670,17 @@ pub fn handleMAKENUMBER(vm: *VM) errors.VMError!void {
 /// Replaces pointer at offset N
 pub fn handleRPLPTR_N(vm: *VM, offset: u8) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // RPLPTR_N requires:
     // 1. Pointer value on stack
     // 2. Target address on stack
     // 3. Replace pointer at offset
-    
+
     // TODO: Proper implementation needs:
     // 1. Pop new pointer value
     // 2. Pop target address
     // 3. Replace pointer at target + offset
-    
+
     // Placeholder: pop values but don't modify memory
     const new_ptr = try stack_module.popStack(vm);
     const target = try stack_module.popStack(vm);
@@ -1665,19 +1694,19 @@ pub fn handleRPLPTR_N(vm: *VM, offset: u8) errors.VMError!void {
 /// Looks up key in association list
 pub fn handleASSOC(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // ASSOC requires:
     // 1. Key on stack
     // 2. Association list on stack
     // 3. Look up key-value pair
     // 4. Push value or NIL
-    
+
     // TODO: Proper implementation needs:
     // 1. Pop key and association list
     // 2. Traverse association list (list of (key . value) pairs)
     // 3. Compare keys using EQ
     // 4. Push value if found, NIL if not
-    
+
     // Placeholder: return NIL
     const key = try stack_module.popStack(vm);
     const alist = try stack_module.popStack(vm);
@@ -1691,17 +1720,17 @@ pub fn handleASSOC(vm: *VM) errors.VMError!void {
 /// Sets global variable value
 pub fn handleGVAR_(vm: *VM, atom_index: u16) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // GVAR_ requires:
     // 1. Value on stack
     // 2. Atom index
     // 3. Set global variable value
-    
+
     // TODO: Proper implementation needs:
     // 1. Get value from stack
     // 2. Look up atom in atom table
     // 3. Set DEFCELL value
-    
+
     // Placeholder: pop value but don't set variable
     const value = try stack_module.popStack(vm);
     _ = value;
@@ -1720,12 +1749,12 @@ pub fn handleCMLASSOC(vm: *VM) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleFMEMB(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // FMEMB requires:
     // 1. Item on stack
     // 2. List on stack
     // 3. Test membership
-    
+
     // TODO: Proper implementation
     // Placeholder: return NIL
     const item = try stack_module.popStack(vm);
@@ -1747,12 +1776,12 @@ pub fn handleCMLMEMBER(vm: *VM) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleFINDKEY(vm: *VM, key_index: u8) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // FINDKEY requires:
     // 1. Association list on stack
     // 2. Key index
     // 3. Find key-value pair
-    
+
     // TODO: Proper implementation
     // Placeholder: return NIL
     const alist = try stack_module.popStack(vm);
@@ -1765,19 +1794,19 @@ pub fn handleFINDKEY(vm: *VM, key_index: u8) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleCREATECELL(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // CREATECELL requires:
     // 1. CDR value on stack
     // 2. CAR value on stack
     // 3. Allocate cons cell
     // 4. Push cons cell pointer
-    
+
     // TODO: Proper implementation needs:
     // 1. Pop CDR and CAR values
     // 2. Allocate cons cell from heap
     // 3. Set CAR and CDR
     // 4. Push cons cell pointer
-    
+
     // Placeholder: similar to CONS but creates new cell
     // For now, just pop values
     const cdr = try stack_module.popStack(vm);
@@ -1794,7 +1823,7 @@ pub fn handleBIN(vm: *VM) errors.VMError!void {
     // 1. Stream on stack
     // 2. Read binary data
     // 3. Push value
-    
+
     // TODO: Proper implementation needs I/O subsystem
     // Placeholder: return NIL
     _ = vm;
@@ -1807,7 +1836,7 @@ pub fn handleBOUT(vm: *VM) errors.VMError!void {
     // 1. Value on stack
     // 2. Stream on stack
     // 3. Write binary data
-    
+
     // TODO: Proper implementation needs I/O subsystem
     // Placeholder: pop values
     const stack_module = @import("stack.zig");
@@ -1821,17 +1850,17 @@ pub fn handleBOUT(vm: *VM) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleRESTLIST(vm: *VM, count: u8) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // RESTLIST requires:
     // 1. List on stack
     // 2. Skip count elements
     // 3. Push rest of list
-    
+
     // TODO: Proper implementation needs:
     // 1. Pop list
     // 2. Traverse list count times using CDR
     // 3. Push remaining list
-    
+
     // Placeholder: return list as-is
     const list = stack_module.getTopOfStack(vm);
     _ = list;
@@ -1853,18 +1882,18 @@ pub fn handleMISCN(vm: *VM, arg1: u8, arg2: u8) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleRPLCONS(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // RPLCONS requires:
     // 1. New CDR on stack
     // 2. New CAR on stack
     // 3. Cons cell pointer on stack
     // 4. Replace CAR and CDR
-    
+
     // TODO: Proper implementation needs:
     // 1. Pop new CDR, new CAR, and cons cell pointer
     // 2. Modify cons cell in memory
     // 3. Push cons cell pointer
-    
+
     // Placeholder: pop values
     const new_cdr = try stack_module.popStack(vm);
     const new_car = try stack_module.popStack(vm);
@@ -1879,19 +1908,19 @@ pub fn handleRPLCONS(vm: *VM) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleLISTGET(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // LISTGET requires:
     // 1. Index on stack
     // 2. List on stack
     // 3. Get element at index
     // 4. Push element
-    
+
     // TODO: Proper implementation needs:
     // 1. Pop index and list
     // 2. Traverse list index times using CDR
     // 3. Get CAR
     // 4. Push element
-    
+
     // Placeholder: return NIL
     const index = try stack_module.popStack(vm);
     const list = try stack_module.popStack(vm);
@@ -1907,12 +1936,12 @@ pub fn handleEVAL(vm: *VM) errors.VMError!void {
     // 1. Expression on stack
     // 2. Evaluate expression
     // 3. Push result
-    
+
     // TODO: Proper implementation needs:
     // 1. Pop expression
     // 2. Call evaluator
     // 3. Push result
-    
+
     // Placeholder: return expression as-is
     _ = vm;
 }
@@ -1924,13 +1953,13 @@ pub fn handleENVCALL(vm: *VM) errors.VMError!void {
     // 1. Function and arguments on stack
     // 2. Call in environment context
     // 3. Push result
-    
+
     // TODO: Proper implementation needs:
     // 1. Get function and arguments
     // 2. Set up environment
     // 3. Call function
     // 4. Push result
-    
+
     // Placeholder: similar to CALL but with environment
     _ = vm;
 }
@@ -2225,15 +2254,15 @@ pub fn handleCL_EQUAL(vm: *VM) errors.VMError!void {
 /// Sets parameter variable value
 pub fn handlePVAR_SET(vm: *VM, index: u8) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // PVAR_SET requires:
     // 1. Value on stack
     // 2. Set PVAR at index
-    
+
     // TODO: Proper implementation needs:
     // 1. Get value from stack
     // 2. Set PVAR at index in current frame
-    
+
     // Placeholder: pop value but don't set variable
     const value = try stack_module.popStack(vm);
     _ = value;
@@ -2245,13 +2274,13 @@ pub fn handlePVAR_SET(vm: *VM, index: u8) errors.VMError!void {
 /// Gets first argument
 pub fn handleARG0(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // ARG0 requires:
     // 1. Get argument 0 from current frame
-    
+
     // TODO: Proper implementation needs:
     // 1. Access argument 0 from current frame
-    
+
     // Placeholder: return NIL
     try stack_module.pushStack(vm, 0); // Return NIL
 }
@@ -2261,11 +2290,11 @@ pub fn handleARG0(vm: *VM) errors.VMError!void {
 /// Sets instance variable value
 pub fn handleIVARX_(vm: *VM, index: u8) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // IVARX_ requires:
     // 1. Value on stack
     // 2. Set IVAR at index
-    
+
     // TODO: Proper implementation
     // Placeholder: pop value
     const value = try stack_module.popStack(vm);
@@ -2278,11 +2307,11 @@ pub fn handleIVARX_(vm: *VM, index: u8) errors.VMError!void {
 /// Sets free variable value
 pub fn handleFVARX_(vm: *VM, index: u8) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // FVARX_ requires:
     // 1. Value on stack
     // 2. Set FVAR at index
-    
+
     // TODO: Proper implementation
     // Placeholder: pop value
     const value = try stack_module.popStack(vm);
@@ -2295,16 +2324,16 @@ pub fn handleFVARX_(vm: *VM, index: u8) errors.VMError!void {
 /// Copies value on stack
 pub fn handleCOPY(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // COPY requires:
     // 1. Value on stack
     // 2. Push copy of value
-    
+
     // TODO: Proper implementation needs:
     // 1. Get value from stack
     // 2. Create copy (for GC purposes)
     // 3. Push copy
-    
+
     // Placeholder: duplicate value
     const value = stack_module.getTopOfStack(vm);
     try stack_module.pushStack(vm, value);
@@ -2315,14 +2344,14 @@ pub fn handleCOPY(vm: *VM) errors.VMError!void {
 /// Gets argument count for current function
 pub fn handleMYARGCOUNT(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // MYARGCOUNT requires:
     // 1. Get argument count from current frame
-    
+
     // TODO: Proper implementation needs:
     // 1. Access function header
     // 2. Get argument count
-    
+
     // Placeholder: return 0
     try stack_module.pushStack(vm, 0);
 }
@@ -2332,14 +2361,14 @@ pub fn handleMYARGCOUNT(vm: *VM) errors.VMError!void {
 /// Gets argument link for current function
 pub fn handleMYALINK(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // MYALINK requires:
     // 1. Get argument link from current frame
-    
+
     // TODO: Proper implementation needs:
     // 1. Access frame
     // 2. Get argument link
-    
+
     // Placeholder: return NIL
     try stack_module.pushStack(vm, 0); // Return NIL
 }
@@ -2348,11 +2377,11 @@ pub fn handleMYALINK(vm: *VM) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleSIC(vm: *VM, index: u8) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // SIC requires:
     // 1. Value on stack
     // 2. Set instance cell at index
-    
+
     // TODO: Proper implementation
     // Placeholder: pop value
     const value = try stack_module.popStack(vm);
@@ -2364,11 +2393,11 @@ pub fn handleSIC(vm: *VM, index: u8) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleSNIC(vm: *VM, index: u8) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // SNIC requires:
     // 1. Value on stack
     // 2. Set named instance cell at index
-    
+
     // TODO: Proper implementation
     // Placeholder: pop value
     const value = try stack_module.popStack(vm);
@@ -2380,11 +2409,11 @@ pub fn handleSNIC(vm: *VM, index: u8) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleSICX(vm: *VM, index: u16) errors.VMError!void {
     const stack_module = @import("stack.zig");
-    
+
     // SICX requires:
     // 1. Value on stack
     // 2. Set instance cell at index
-    
+
     // TODO: Proper implementation
     // Placeholder: pop value
     const value = try stack_module.popStack(vm);
@@ -2562,11 +2591,11 @@ pub fn handleAREF2(vm: *VM) errors.VMError!void {
     // AREF2 requires:
     // 1. Array and indices on stack
     // 2. Get element at indices
-    
+
     // TODO: Proper implementation needs:
     // 1. Pop indices and array
     // 2. Access multi-dimensional array element
-    
+
     // Placeholder: return NIL
     const index2 = try stack_module.popStack(vm);
     const index1 = try stack_module.popStack(vm);
@@ -2584,11 +2613,11 @@ pub fn handleASET2(vm: *VM) errors.VMError!void {
     // ASET2 requires:
     // 1. Value, indices, and array on stack
     // 2. Set element at indices
-    
+
     // TODO: Proper implementation needs:
     // 1. Pop value, indices, and array
     // 2. Set multi-dimensional array element
-    
+
     // Placeholder: pop values
     const value = try stack_module.popStack(vm);
     const index2 = try stack_module.popStack(vm);

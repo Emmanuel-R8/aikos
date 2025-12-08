@@ -5,11 +5,15 @@
 pub const VMError = error{
     InvalidAddress,
     StackOverflow,
+    StackUnderflow,
     InvalidOpcode,
     StorageFull,
     SysoutLoadFailed,
     InterruptError,
     MemoryAccessFailed,
+    InvalidStackPointer,
+    InvalidFramePointer,
+    DivisionByZero,
 };
 
 /// Memory management errors
