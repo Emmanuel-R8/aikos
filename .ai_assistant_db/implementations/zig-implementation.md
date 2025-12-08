@@ -149,6 +149,40 @@ Several opcodes in the Zig implementation don't exist in the C implementation an
 
 **Resolution**: These opcodes were commented out in the dispatch switch statements. They may need to be implemented via different mechanisms or may not be needed.
 
+### Stack Operations: LispPTR Storage Format ✅ FIXED
+
+**CRITICAL**: Stack stores LispPTR values as 32-bit (2 DLwords), not 16-bit as initially implemented.
+
+**Issue**: Initial implementation stored only 16 bits (1 DLword), causing incorrect value storage/retrieval.
+
+**Fix**: Updated `pushStack()`, `popStack()`, `getTopOfStack()`, and `setTopOfStack()` to handle 32-bit LispPTR values as 2 DLwords:
+- Low 16 bits stored in `stack_ptr[0]`
+- High 16 bits stored in `stack_ptr[1]`
+- Values reconstructed as `(high_word << 16) | low_word`
+
+**Zig-Specific Challenge**: Cannot directly cast `[*]DLword` (alignment 2) to `*LispPTR` (alignment 4) due to Zig's strict alignment checking. Solution: Manually read/write 2 DLwords instead of pointer casting.
+
+**Location**: `maiko/alternatives/zig/src/vm/stack.zig:192-242`
+
+**Status**: ✅ Fixed - Stack operations now correctly handle 32-bit values matching C implementation
+
+### Arithmetic Opcodes: SMALLP/FIXP Handling ✅ IMPLEMENTED
+
+**CRITICAL**: Arithmetic opcodes must handle SMALLP (small integers) and FIXP (large integers) correctly.
+
+**Implementation**: Added number extraction and encoding functions matching C `N_IGETNUMBER` and `N_ARITH_SWITCH` macros:
+- `extractInteger()`: Extracts integers from SMALLP (S_POSITIVE/S_NEGATIVE segments) or FIXP objects
+- `encodeIntegerResult()`: Encodes integer results as SMALLP if in range, otherwise creates FIXP
+
+**Zig-Specific Details**:
+- Added constants: `S_POSITIVE`, `S_NEGATIVE`, `SEGMASK`, `MAX_SMALL`, `MIN_SMALL`, `MAX_FIXP`, `MIN_FIXP`
+- Overflow checking implemented matching C behavior
+- FIXP object creation deferred to Phase 4 (GC implementation)
+
+**Location**: `maiko/alternatives/zig/src/utils/types.zig:124-212`
+
+**Status**: ✅ Implemented - Arithmetic opcodes (IPLUS2, IDIFFERENCE, ITIMES2, IQUO, IREM) now match C behavior
+
 ### Compilation Issues Fixed
 
 **Type Mismatches**:

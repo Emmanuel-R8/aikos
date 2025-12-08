@@ -62,8 +62,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T023 [US2] Verify existing arithmetic opcodes (IPLUS2, IDIFFERENCE, ITIMES2, IQUO, IREM) produce correct results in maiko/alternatives/zig/src/vm/opcodes.zig
-- [ ] T024 [US2] Verify existing stack operations (PUSH, POP, SWAP) handle stack state correctly in maiko/alternatives/zig/src/vm/opcodes.zig
+- [X] T023 [US2] Verify existing arithmetic opcodes (IPLUS2, IDIFFERENCE, ITIMES2, IQUO, IREM) produce correct results in maiko/alternatives/zig/src/vm/opcodes.zig
+- [X] T024 [US2] Verify existing stack operations (PUSH, POP, SWAP) handle stack state correctly in maiko/alternatives/zig/src/vm/opcodes.zig
 - [ ] T025 [US2] Implement function call opcode CALL handler in maiko/alternatives/zig/src/vm/opcodes.zig
 - [ ] T026 [US2] Implement function return opcode RETURN handler in maiko/alternatives/zig/src/vm/opcodes.zig
 - [ ] T027 [US2] Implement stack frame creation for function calls in maiko/alternatives/zig/src/vm/function.zig

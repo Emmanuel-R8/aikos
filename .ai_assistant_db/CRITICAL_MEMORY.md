@@ -5,7 +5,7 @@
 
 ## CRITICAL RULE: Emulator-Independent Documentation
 
-**ALL improvements to `.ai_assistant_db` documentation MUST be emulator-independent** so that any implementor in any language benefits from the knowledge.
+**ALL improvements to `.ai_assistant_db` documentation MUST be emulator-independent** inpriority so that any implementor in any language benefits from the knowledge.
 
 ### General Principles
 

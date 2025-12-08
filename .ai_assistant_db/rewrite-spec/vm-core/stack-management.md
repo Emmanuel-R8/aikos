@@ -67,10 +67,17 @@ struct FrameEx:
 
 ### Push Stack
 
+**CRITICAL**: Stack stores LispPTR values as 32-bit (2 DLwords). The stack pointer is a `DLword*` array, but values are stored as full LispPTR (4 bytes).
+
 ```pseudocode
-function PushStack(value):
-    CurrentStackPTR = CurrentStackPTR - 2  // Move down (stack grows down)
-    *CurrentStackPTR = value
+function PushStack(value: LispPTR):
+    // Stack grows down, move pointer down by 4 bytes (2 DLwords)
+    CurrentStackPTR = CurrentStackPTR - 2  // Move down 2 DLwords
+    
+    // Store LispPTR as 2 DLwords (low word first, then high word)
+    CurrentStackPTR[0] = value & 0xFFFF        // Low 16 bits
+    CurrentStackPTR[1] = (value >> 16) & 0xFFFF  // High 16 bits
+    
     TopOfStack = value
 
     // Check stack overflow
@@ -78,15 +85,25 @@ function PushStack(value):
         HandleStackOverflow()
 ```
 
+**C Implementation Reference**: `maiko/inc/lispemul.h:PushStack(x)` increments `CurrentStackPTR` by 2 DLwords and stores LispPTR value.
+
 ### Pop Stack
+
+**CRITICAL**: Stack stores LispPTR values as 32-bit (2 DLwords). Reading requires reconstructing the 32-bit value from 2 DLwords.
 
 ```pseudocode
 function PopStack():
-    value = *CurrentStackPTR
-    CurrentStackPTR = CurrentStackPTR + 2  // Move up
-    TopOfStack = *(CurrentStackPTR - 2)
+    // Read LispPTR as 2 DLwords (low word first, then high word)
+    low_word = CurrentStackPTR[0]   // Low 16 bits
+    high_word = CurrentStackPTR[1]  // High 16 bits
+    value = (high_word << 16) | low_word  // Reconstruct 32-bit value
+    
+    CurrentStackPTR = CurrentStackPTR + 2  // Move up 2 DLwords
+    TopOfStack = GetTopOfStack()  // Update cached top
     return value
 ```
+
+**C Implementation Reference**: `maiko/inc/tos1defs.h:POP_TOS_1` decrements `CSTKPTRL` (LispPTR*) and reads LispPTR value.
 
 ### Stack Frame Allocation
 
