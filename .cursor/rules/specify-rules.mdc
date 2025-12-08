@@ -26,9 +26,9 @@ tests/
 Markdown with Mermaid diagrams / Documentation format: Follow standard conventions
 
 ## Recent Changes
+- 004-emulator-runner: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
+- 004-emulator-runner: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 - 004-emulator-runner: Added Shell scripts (bash/sh), compatible with existing Medley script infrastructure
-- 003-unified-build-system: Added Shell scripts (bash/sh), compatible with existing Medley build infrastructure
-- 002-lisp-implementation: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 
 
 <!-- MANUAL ADDITIONS START -->

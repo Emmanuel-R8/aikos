@@ -1,101 +1,37 @@
-# Implementation Plan: Emulator Runner Scripts for Interlisp
+# Implementation Plan: [FEATURE]
 
-**Branch**: `004-emulator-runner` | **Date**: 2025-01-27 | **Spec**: [spec.md](spec.md)
-**Input**: Feature specification from `specs/004-emulator-runner/spec.md`
+**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
+**Input**: Feature specification from `specs/[###-feature-name]/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-Create scripts to run the Interlisp system from Medley using the user's choice of emulators (C, Zig, or Lisp). The system will integrate with existing Medley run scripts (run-medley, medley.command, medley_run.sh) to add emulator selection capabilities while preserving all existing functionality. The implementation will leverage the unified build system (spec 003) to locate emulator executables and support automatic emulator building on first run.
-
-**Technical Approach**: Modify existing shell scripts to add `--emulator` argument parsing, emulator selection logic, and lock file mechanism for concurrent run prevention. Leverage existing unified build location checking (from spec 003) and integrate with build-emulator.sh for auto-build functionality. Use PID-based lock files with stale detection, consistent with existing loadup and build system patterns.
+[Extract from feature spec: primary requirement + technical approach from research]
 
 ## Technical Context
 
-**Language/Version**: Shell scripts (bash/sh), compatible with existing Medley script infrastructure
-**Primary Dependencies**:
+<!--
+  ACTION REQUIRED: Replace the content in this section with the technical details
+  for the project. The structure here is presented in advisory capacity to guide
+  the iteration process.
+-->
 
-- Unified build system (spec 003) for emulator location and building
-- Existing Medley run scripts (run-medley, medley.command, medley_run.sh)
-- Maiko platform detection utilities (osversion, machinetype)
-- Emulator executables (lde, ldeinit, ldex, ldesdl for C; maiko-zig for Zig; maiko-lisp for Lisp)
-**Storage**: File system (lock files for concurrent run prevention, configuration via environment variables)
-**Testing**: Shell script testing, integration tests with actual emulator execution
-**Target Platform**: Linux, macOS, FreeBSD (same as existing Medley support)
-**Project Type**: Script enhancement (modifying existing shell scripts)
-**Performance Goals**: Emulator selection and startup in under 5 seconds (SC-001), error messages within 1 second (SC-004)
-**Constraints**:
-- Must preserve 100% backward compatibility with existing Medley run script functionality
-- Must not modify emulator implementations themselves
-- Must work with all existing Medley run scripts
-- Lock mechanism must prevent concurrent runs without blocking indefinitely
-**Scale/Scope**:
-- 3 emulator implementations (C, Zig, Lisp)
-- Multiple platforms (Linux, macOS, FreeBSD)
-- Integration with 3+ existing run scripts (run-medley, medley.command, medley_run.sh, medley.ps1)
+**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]
+**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]
+**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
+**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]
+**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
+**Project Type**: [single/web/mobile - determines source structure]
+**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]
+**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]
+**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-### Pre-Research Check (Phase 0)
-
-### I. Platform Portability ✅
-
-**Status**: COMPLIANT
-**Rationale**: The emulator runner scripts will leverage existing Medley script infrastructure which already supports multiple platforms (macOS, FreeBSD, Linux, Solaris, Windows). Emulator selection will work across all platforms where Medley runs. Platform detection uses existing Maiko utilities (osversion, machinetype) consistent with existing scripts.
-
-### II. Build System Flexibility ✅
-
-**Status**: COMPLIANT
-**Rationale**: The emulator runner scripts do not modify build systems. They use emulators built by the unified build system (spec 003) which orchestrates multiple build systems (CMake/Make for C, Zig build for Zig, ASDF for Lisp) without replacing them. The runner scripts only invoke already-built executables.
-
-### III. Display Abstraction ✅
-
-**Status**: COMPLIANT
-**Rationale**: The emulator runner scripts pass display subsystem options to emulators without modifying display abstraction layers. Each emulator (C with X11/SDL2, Zig with SDL2, Lisp with SDL3) handles display independently. The runner scripts only select which emulator to invoke.
-
-### IV. Code Quality & Memory Safety ✅
-
-**Status**: COMPLIANT
-**Rationale**: The emulator runner scripts will be implemented as shell scripts following existing Medley script patterns. Shell scripts do not have memory safety concerns. Code quality will follow existing Medley script conventions and include comprehensive error handling.
-
-### V. Testing & Validation ✅
-
-**Status**: COMPLIANT
-**Rationale**: The emulator runner scripts will be tested with actual emulator execution on target platforms. Integration tests will verify compatibility with existing Medley run scripts and emulator selection correctness. Script changes will be validated across platforms.
-
-**Pre-Research Gate Status**: ✅ **PASS** - All constitution principles satisfied
-
-### Post-Design Check (Phase 1)
-
-### I. Platform Portability ✅
-
-**Status**: COMPLIANT
-**Rationale**: Implementation uses existing Medley script infrastructure which supports multiple platforms. Emulator selection works identically across all platforms. Lock file mechanism uses standard Unix patterns (PID-based) compatible with all target platforms.
-
-### II. Build System Flexibility ✅
-
-**Status**: COMPLIANT
-**Rationale**: Runner scripts do not modify build systems. They invoke emulators built by the unified build system which orchestrates multiple build systems without replacing them. Auto-build integration calls existing build-emulator.sh script.
-
-### III. Display Abstraction ✅
-
-**Status**: COMPLIANT
-**Rationale**: Runner scripts pass display options to emulators without modifying display layers. Each emulator handles display independently (C with X11/SDL2, Zig with SDL2, Lisp with SDL3).
-
-### IV. Code Quality & Memory Safety ✅
-
-**Status**: COMPLIANT
-**Rationale**: Implementation uses shell scripts following existing Medley patterns. Comprehensive error handling, validation, and lock file cleanup ensure robust operation. No memory safety concerns with shell scripts.
-
-### V. Testing & Validation ✅
-
-**Status**: COMPLIANT
-**Rationale**: Design includes validation functions (validate_emulator_executable) and comprehensive error handling. Integration with existing test infrastructure. Scripts will be tested with actual emulator execution on target platforms.
-
-**Post-Design Gate Status**: ✅ **PASS** - All constitution principles satisfied
+[Gates determined based on constitution file]
 
 ## Project Structure
 
@@ -112,25 +48,51 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
+<!--
+  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
+  for this feature. Delete unused options and expand the chosen structure with
+  real paths (e.g., apps/admin, packages/something). The delivered plan must
+  not include Option labels.
+-->
 
 ```text
-medley/
-├── run-medley                    # Modified: Add --emulator argument and emulator selection logic
-└── scripts/
-    ├── medley/
-    │   ├── medley.command        # Modified: Add unified build location checking (already partially done in spec 003)
-    │   ├── medley_run.sh         # Modified: Add unified build location checking (already partially done in spec 003)
-    │   └── medley_main.sh        # May need modification for emulator argument parsing
-    └── build/                    # From spec 003: Used for auto-build functionality
-        └── build-emulator.sh     # Called when --auto-build is specified
+# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
+maiko/src/
+├── models/
+├── services/
+├── cli/
+└── lib/
 
-maiko/build/                      # From spec 003: Unified build output location
-├── c/<os>.<arch>/               # C emulator executables
-├── zig/<os>.<arch>/              # Zig emulator executables
-└── lisp/<os>.<arch>/             # Lisp emulator executables
+tests/
+├── contract/
+├── integration/
+└── unit/
+
+# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
+backend/
+├── src/
+│   ├── models/
+│   ├── services/
+│   └── api/
+└── tests/
+
+frontend/
+├── src/
+│   ├── components/
+│   ├── pages/
+│   └── services/
+└── tests/
+
+# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
+api/
+└── [same as backend above]
+
+ios/ or android/
+└── [platform-specific structure: feature modules, UI flows, platform tests]
 ```
 
-**Structure Decision**: This is a script enhancement project that modifies existing Medley run scripts. No new directory structure is needed. Modifications will be made to existing scripts in `medley/` and `medley/scripts/medley/`. The unified build system from spec 003 provides the emulator location structure.
+**Structure Decision**: [Document the selected structure and reference the real
+directories captured above]
 
 ## Complexity Tracking
 

@@ -40,7 +40,7 @@ Located at fixed address: `IFPAGE_ADDRESS`
 
 ```pseudocode
 struct IFPAGE:
-    key: uint             // Validation key (IFPAGE_KEYVAL)
+    key: uint             // Validation key (IFPAGE_KEYVAL = 0x15e3)
     lversion: uint        // Lisp version
     minbversion: uint     // Minimum bytecode version
     process_size: uint    // Process size in MB
@@ -53,6 +53,8 @@ struct IFPAGE:
     currentfxp: LispPTR   // Current frame pointer
     // ... other state ...
 ```
+
+**CRITICAL**: The IFPAGE validation key `IFPAGE_KEYVAL` is `0x15e3` (not `0x12345678`). This value is defined in `maiko/inc/ifpage.h:15`. Any implementation must use this exact value for sysout validation to work correctly.
 
 ### IFPAGE Validation
 

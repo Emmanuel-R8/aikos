@@ -27,11 +27,40 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL).
 - Comprehensive error handling
 - Platform-specific support (endianness, pathnames)
 
+### [Zig Implementation](zig-implementation.md)
+
+Implementation of the Maiko emulator in Zig programming language.
+
+- **Status**: 🔄 In Progress - Completion Phase
+- **Location**: `alternatives/zig/`
+- **Build System**: Zig build system (`build.zig`)
+- **Display Backend**: SDL2 (linked, integration pending)
+- **Opcodes**: ~50 of 256 implemented (essential set pending)
+- **Source Files**: Multiple Zig modules
+- **Test Files**: Test suite structure
+
+**Key Features**:
+- Complete framework structure
+- VM core framework (dispatch loop structure)
+- Memory management framework (GC, storage, virtual memory)
+- Display subsystem framework (SDL2 backend)
+- I/O subsystem framework (keyboard, mouse, filesystem)
+- Comprehensive opcode enumeration
+
+**Critical Blockers**:
+- Sysout loading fails (wrong IFPAGE_KEYVAL: 0x12345678 vs 0x15e3)
+- Incomplete IFPAGE structure
+- FPtoVP table loading not implemented
+- Page loading algorithm not implemented
+- VM dispatch loop not activated
+- Essential opcodes need implementation
+
 ## Implementation Status
 
 | Implementation | Language | Status | Opcodes | Tasks | Location |
 |----------------|----------|--------|---------|-------|----------|
 | Common Lisp | SBCL | ✅ Complete | 189/256 | 77/78 | `alternatives/lisp/` |
+| Zig | Zig 0.15.2+ | 🔄 In Progress | ~50/256 | Completion Phase | `alternatives/zig/` |
 
 ## Related Documentation
 
