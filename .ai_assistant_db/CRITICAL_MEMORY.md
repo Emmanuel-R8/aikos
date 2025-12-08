@@ -69,4 +69,3 @@ All critical insights are now documented for future reference.
 - [Contributing Guidelines](CONTRIBUTING.md) - Full documentation improvement guidelines
 - [Rewrite Specifications](rewrite-spec/README.md) - Emulator-independent specifications
 - [Implementation Notes](implementations/README.md) - Language-specific implementation details
-

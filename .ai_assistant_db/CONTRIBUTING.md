@@ -106,4 +106,3 @@ Before committing documentation changes:
 - [Rewrite Specifications](rewrite-spec/README.md) - Emulator-independent specifications
 - [Implementation Notes](implementations/README.md) - Language-specific implementation details
 - [Documentation Review](rewrite-spec/DOCUMENTATION_REVIEW.md) - Documentation completeness review
-
