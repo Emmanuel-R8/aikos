@@ -292,7 +292,7 @@ Several opcodes in the Zig implementation don't exist in the C implementation an
 - SMALLP encoding verified using `S_POSITIVE`/`S_NEGATIVE` constants
 - Frame management tested with explicit PC tracking
 
-**Location**: 
+**Location**:
 - `maiko/alternatives/zig/tests/opcodes.zig:86-136` (T032)
 - `maiko/alternatives/zig/tests/stack.zig:47-75` (T033)
 - `maiko/alternatives/zig/tests/function_calls.zig:8-111` (T034)
