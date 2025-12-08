@@ -183,6 +183,46 @@ Several opcodes in the Zig implementation don't exist in the C implementation an
 
 **Status**: ✅ Implemented - Arithmetic opcodes (IPLUS2, IDIFFERENCE, ITIMES2, IQUO, IREM) now match C behavior
 
+### Function Call Opcodes: FN0-FN4 Implementation ✅ IMPLEMENTED
+
+**CRITICAL**: FN0-FN4 opcodes have 3-byte instruction format (opcode + 2-byte atom index) for non-BIGATOMS.
+
+**Implementation**: Implemented FN0-FN4 handlers matching C `OPFN` macro behavior:
+- Extract atom index from instruction operand (2 bytes for non-BIGATOMS)
+- Create function header (placeholder for now - atom table lookup deferred to Phase 3)
+- Call `callFunction` with appropriate argument count (0-4)
+
+**Zig-Specific Details**:
+- Instruction length corrected from 1 byte to 3 bytes (FN_OPCODE_SIZE = 3 for non-BIGATOMS)
+- Atom index extracted using `instruction.getWordOperand(0)` (DLword, 2 bytes)
+- Function header `na` field is `DLword` (u16) in Zig struct, but C uses `short` (signed). Stored as u16, signed interpretation handled when needed.
+- Placeholder function headers created until atom table lookup is implemented (Phase 3)
+
+**C Reference**: `maiko/inc/tosfns.h:OPFN`, `maiko/inc/lispemul.h:FN_OPCODE_SIZE`
+
+**Location**: `maiko/alternatives/zig/src/vm/opcodes.zig:446-511`, `maiko/alternatives/zig/src/vm/dispatch.zig:474-487`
+
+**Status**: ✅ Implemented - FN0-FN4 handlers match C instruction format and call structure
+
+### Function Return: RETURN Opcode Implementation ✅ IMPLEMENTED
+
+**Implementation**: Implemented RETURN handler matching C `OPRETURN` macro behavior:
+- Gets return value from TopOfStack
+- Restores previous frame via activation link (`alink` field)
+- Restores PC from previous frame's `pcoffset`
+- Handles top-level return (no previous frame)
+
+**Zig-Specific Details**:
+- Frame restoration uses `current_frame.link` to find previous frame
+- PC restoration uses `previous_frame.pcoffset` (saved during function call)
+- Return value preserved through frame restoration
+
+**C Reference**: `maiko/inc/tosret.h:OPRETURN`
+
+**Location**: `maiko/alternatives/zig/src/vm/opcodes.zig:513-525`, `maiko/alternatives/zig/src/vm/function.zig:53-83`
+
+**Status**: ✅ Implemented - RETURN handler matches C frame restoration behavior
+
 ### Compilation Issues Fixed
 
 **Type Mismatches**:

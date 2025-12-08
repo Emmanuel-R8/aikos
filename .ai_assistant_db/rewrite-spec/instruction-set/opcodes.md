@@ -7,10 +7,10 @@ Complete specification of all 256 bytecode opcodes (0x00-0xFF). Format: `Name (0
 ## Control Flow (0x00-0x3F)
 
 ### Function Calls
-- **FN0 (0x08)** [2] Calls 0-arg function from TOS. Creates frame.
-- **FN1 (0x09)** [2] Calls 1-arg function. Creates frame.
-- **FN2-FN4 (0x0A-0x0C)** [2] Calls 2-4 arg function. Creates frame.
-- **FNX (0x0D)** [3-4] Atom index (2-3B), arg count (1B). Variable args.
+- **FN0 (0x08)** [3] Calls 0-arg function. Format: [opcode][atom_index:2B]. Atom index is 2 bytes (DLword) for non-BIGATOMS, 3-4 bytes for BIGATOMS. Creates frame.
+- **FN1 (0x09)** [3] Calls 1-arg function. Format: [opcode][atom_index:2B]. Creates frame.
+- **FN2-FN4 (0x0A-0x0C)** [3] Calls 2-4 arg function. Format: [opcode][atom_index:2B]. Creates frame.
+- **FNX (0x0D)** [4-5] Variable argument count. Format: [opcode][atom_index:2-3B][arg_count:1B]. Atom index size depends on BIGATOMS setting.
 - **APPLYFN (0x0E)** [1] Apply function to arg list on stack.
 - **CHECKAPPLY (0x0F)** [1] Validate apply args before apply.
 

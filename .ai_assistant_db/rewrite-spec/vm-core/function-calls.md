@@ -20,13 +20,27 @@ Function calls in the VM involve:
 
 **Opcode**: FN0 (0x08), FN1 (0x09), FN2 (0x0A), FN3 (0x0B), FN4 (0x0C)
 
+**Instruction Format**:
+- **Length**: 3 bytes for non-BIGATOMS (FN_OPCODE_SIZE = 3)
+  - Byte 0: Opcode (0x08-0x0C)
+  - Bytes 1-2: Atom index (DLword, 2 bytes) - `Get_AtomNo_PCMAC1` in C
+- **Length**: 4-5 bytes for BIGATOMS (FN_OPCODE_SIZE = 4-5)
+  - Byte 0: Opcode
+  - Bytes 1-3/4: Atom index (extended size)
+
+**Argument Count**: Fixed by opcode (FN0=0, FN1=1, FN2=2, FN3=3, FN4=4)
+
 **Call Algorithm**:
 
 ```pseudocode
-function ExecuteFN(arg_count):
-    // Get function object from stack
-    function_obj = PopStack()
-
+function ExecuteFN(arg_count, atom_index):
+    // Get atom index from instruction operand (bytes 1-2 for non-BIGATOMS)
+    // C: Get_AtomNo_PCMAC1 - reads DLword from PC+1
+    
+    // Lookup function definition from atom table
+    defcell = GetDEFCELL(atom_index)
+    function_obj = GetFunctionFromDefCell(defcell)
+    
     // Validate function object
     if not IsFunction(function_obj):
         ERROR_EXIT(function_obj)

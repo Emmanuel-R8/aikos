@@ -69,3 +69,13 @@ All critical insights are now documented for future reference.
 - [Contributing Guidelines](CONTRIBUTING.md) - Full documentation improvement guidelines
 - [Rewrite Specifications](rewrite-spec/README.md) - Emulator-independent specifications
 - [Implementation Notes](implementations/README.md) - Language-specific implementation details
+
+## REMINDER: NEVER FORGET THIS CHECKLIST
+
+**CRITICAL**: Before making ANY git commit, ALWAYS:
+1. ✅ Review discoveries and learnings
+2. ✅ Update general documentation (rewrite-spec/)
+3. ✅ Update language-specific documentation (implementations/)
+4. ✅ Make comprehensive commit with documentation updates
+
+**This checklist MUST be followed for EVERY commit that includes code changes.**

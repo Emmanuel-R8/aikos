@@ -64,10 +64,10 @@
 
 - [X] T023 [US2] Verify existing arithmetic opcodes (IPLUS2, IDIFFERENCE, ITIMES2, IQUO, IREM) produce correct results in maiko/alternatives/zig/src/vm/opcodes.zig
 - [X] T024 [US2] Verify existing stack operations (PUSH, POP, SWAP) handle stack state correctly in maiko/alternatives/zig/src/vm/opcodes.zig
-- [ ] T025 [US2] Implement function call opcode CALL handler in maiko/alternatives/zig/src/vm/opcodes.zig
-- [ ] T026 [US2] Implement function return opcode RETURN handler in maiko/alternatives/zig/src/vm/opcodes.zig
-- [ ] T027 [US2] Implement stack frame creation for function calls in maiko/alternatives/zig/src/vm/function.zig
-- [ ] T028 [US2] Implement stack frame cleanup for function returns in maiko/alternatives/zig/src/vm/function.zig
+- [X] T025 [US2] Implement function call opcode CALL handler in maiko/alternatives/zig/src/vm/opcodes.zig (FN0-FN4 handlers implemented)
+- [X] T026 [US2] Implement function return opcode RETURN handler in maiko/alternatives/zig/src/vm/opcodes.zig
+- [X] T027 [US2] Implement stack frame creation for function calls in maiko/alternatives/zig/src/vm/function.zig
+- [X] T028 [US2] Implement stack frame cleanup for function returns in maiko/alternatives/zig/src/vm/function.zig
 - [ ] T029 [US2] Add error handling for stack overflow in stack operations in maiko/alternatives/zig/src/vm/stack.zig
 - [ ] T030 [US2] Add error handling for stack underflow in stack operations in maiko/alternatives/zig/src/vm/stack.zig
 - [ ] T031 [US2] Implement error handling matching C emulator behavior for invalid opcodes in maiko/alternatives/zig/src/vm/dispatch.zig
