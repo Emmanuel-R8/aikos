@@ -71,9 +71,9 @@
 - [X] T029 [US2] Add error handling for stack overflow in stack operations in maiko/alternatives/zig/src/vm/stack.zig
 - [X] T030 [US2] Add error handling for stack underflow in stack operations in maiko/alternatives/zig/src/vm/stack.zig
 - [X] T031 [US2] Implement error handling matching C emulator behavior for invalid opcodes in maiko/alternatives/zig/src/vm/dispatch.zig
-- [ ] T032 [US2] Add test case for arithmetic opcode execution matching C emulator results in maiko/alternatives/zig/tests/opcodes.zig
-- [ ] T033 [US2] Add test case for stack operation execution matching C emulator results in maiko/alternatives/zig/tests/opcodes.zig
-- [ ] T034 [US2] Add test case for function call and return execution in maiko/alternatives/zig/tests/opcodes.zig
+- [X] T032 [US2] Add test case for arithmetic opcode execution matching C emulator results in maiko/alternatives/zig/tests/opcodes.zig
+- [X] T033 [US2] Add test case for stack operation execution matching C emulator results in maiko/alternatives/zig/tests/stack.zig
+- [X] T034 [US2] Add test case for function call and return execution in maiko/alternatives/zig/tests/function_calls.zig
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work - basic bytecode execution produces correct results.
 

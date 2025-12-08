@@ -226,7 +226,7 @@ const STK_SAFE = 32  // Safety margin in words (matches C: maiko/inc/stack.h:38)
 function CheckStackOverflow(required_space):
     // Add safety margin to required space
     safe_required_space = required_space + (STK_SAFE * sizeof(DLword))
-    
+
     if CurrentStackPTR - safe_required_space < EndSTKP:
         if CurrentStackPTR < GuardStackAddr:
             SetInterruptFlag(STACKOVERFLOW)

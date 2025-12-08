@@ -263,6 +263,42 @@ Several opcodes in the Zig implementation don't exist in the C implementation an
 
 **Status**: ✅ Implemented - Invalid opcode handling matches C UFN trigger behavior
 
+### Test Cases: Phase 2 Verification ✅ IMPLEMENTED
+
+**Implementation**: Comprehensive test cases added for Phase 2 functionality:
+
+**T032: Arithmetic Opcodes Tests** (`tests/opcodes.zig`):
+- SMALLP encoding tests (S_POSITIVE, S_NEGATIVE segments)
+- Overflow handling verification
+- Division by zero error handling
+- Edge cases (MAX_SMALL + 1)
+
+**T033: Stack Operations Tests** (`tests/stack.zig`):
+- 32-bit LispPTR storage verification (2 DLwords)
+- Stack push/pop order correctness
+- Stack underflow detection
+- Multiple value handling
+
+**T034: Function Call/Return Tests** (`tests/function_calls.zig`):
+- FN0-FN4 frame setup verification
+- Frame restoration via activation link
+- PC save/restore correctness
+- Nested function calls
+- Top-level return handling
+
+**Zig-Specific Details**:
+- Tests use Zig's `std.testing` framework
+- Error unions tested with `expectError`
+- SMALLP encoding verified using `S_POSITIVE`/`S_NEGATIVE` constants
+- Frame management tested with explicit PC tracking
+
+**Location**: 
+- `maiko/alternatives/zig/tests/opcodes.zig:86-136` (T032)
+- `maiko/alternatives/zig/tests/stack.zig:47-75` (T033)
+- `maiko/alternatives/zig/tests/function_calls.zig:8-111` (T034)
+
+**Status**: ✅ Implemented - Test cases verify Phase 2 functionality matches C behavior
+
 ### Compilation Issues Fixed
 
 **Type Mismatches**:
