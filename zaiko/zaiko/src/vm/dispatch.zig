@@ -392,19 +392,31 @@ pub fn dispatch(vm: *VM, code: []const ByteCode) errors.VMError!void {
         // Decode full instruction with operands
         const instruction = decodeInstruction(pc, code) orelse {
             // Invalid instruction or end of code
-            break;
+            // C: Unknown opcodes trigger UFN lookup (goto op_ufn)
+            // For now, treat as invalid opcode error
+            return error.InvalidOpcode;
         };
 
         // Execute opcode handler with instruction
         const jump_offset = executeInstruction(vm, instruction) catch |err| {
-            // Handle opcode execution errors
+            // Handle opcode execution errors matching C emulator behavior
             switch (err) {
                 error.InvalidOpcode => {
                     // Unknown opcode - could be UFN (Undefined Function Name)
-                    // For now, stop execution
-                    return;
+                    // C: goto op_ufn; - triggers UFN lookup
+                    // TODO: Implement UFN lookup (Phase 3)
+                    // For now, stop execution with error
+                    return err;
                 },
                 error.StackOverflow => {
+                    // C: Triggers do_stackoverflow() which tries to extend stack
+                    // TODO: Implement stack extension (Phase 3)
+                    // For now, return error
+                    return err;
+                },
+                error.StackUnderflow => {
+                    // C: Stack underflow typically indicates programming error
+                    // Return error immediately
                     return err;
                 },
                 else => return err,
@@ -436,6 +448,36 @@ pub fn dispatch(vm: *VM, code: []const ByteCode) errors.VMError!void {
 /// Returns jump offset if instruction is a jump, null otherwise
 pub fn executeInstruction(vm: *VM, instruction: Instruction) errors.VMError!?i64 {
     return executeOpcodeWithOperands(vm, instruction.opcode, instruction);
+}
+
+/// Helper function for FJUMP handlers
+/// C: FJUMPMACRO(x): if (TOPOFSTACK != 0) { POP; nextop1; } else { CHECK_INTERRUPT; POP; PCMACL += (x); nextop0; }
+fn handleFJUMPWithOffset(vm: *VM, offset: i8) errors.VMError!?i64 {
+    const stack_module = @import("stack.zig");
+    const tos = stack_module.getTopOfStack(vm);
+    _ = try stack_module.popStack(vm); // Always pop (C: POP in both branches)
+    if (tos == 0) {
+        // NIL - jump
+        try opcodes.handleFJUMP(vm, offset);
+        return @as(i64, offset);
+    }
+    // Not NIL - continue
+    return null;
+}
+
+/// Helper function for TJUMP handlers
+/// C: TJUMPMACRO(x): if (TOPOFSTACK == 0) { POP; nextop1; } else { CHECK_INTERRUPT; POP; PCMACL += (x); nextop0; }
+fn handleTJUMPWithOffset(vm: *VM, offset: i8) errors.VMError!?i64 {
+    const stack_module = @import("stack.zig");
+    const tos = stack_module.getTopOfStack(vm);
+    _ = try stack_module.popStack(vm); // Always pop (C: POP in both branches)
+    if (tos != 0) {
+        // Not NIL - jump
+        try opcodes.handleTJUMP(vm, offset);
+        return @as(i64, offset);
+    }
+    // NIL - continue
+    return null;
 }
 
 /// Execute opcode handler with operands
@@ -470,10 +512,31 @@ pub fn executeOpcodeWithOperands(vm: *VM, opcode: Opcode, instruction: Instructi
             return null;
         },
 
-        // Control flow
-        .FN0, .FN1, .FN2, .FN3, .FN4, .FNX => {
-            try opcodes.handleCALL(vm);
+        // Control flow - Function calls
+        .FN0 => {
+            try opcodes.handleFN0(vm, &instruction);
             return null;
+        },
+        .FN1 => {
+            try opcodes.handleFN1(vm, &instruction);
+            return null;
+        },
+        .FN2 => {
+            try opcodes.handleFN2(vm, &instruction);
+            return null;
+        },
+        .FN3 => {
+            try opcodes.handleFN3(vm, &instruction);
+            return null;
+        },
+        .FN4 => {
+            try opcodes.handleFN4(vm, &instruction);
+            return null;
+        },
+        .FNX => {
+            // FNX has variable argument count - will implement later
+            // TODO: Implement handleFNX similar to handleFN but with variable arg count
+            return error.InvalidOpcode; // Not yet implemented
         },
         .APPLYFN => try opcodes.handleAPPLYFN(vm),
         .CHECKAPPLY => try opcodes.handleCHECKAPPLY(vm),
@@ -571,297 +634,43 @@ pub fn executeOpcodeWithOperands(vm: *VM, opcode: Opcode, instruction: Instructi
         },
         // Note: No generic FJUMP opcode - use FJUMPX or FJUMP0-FJUMP15
         // Optimized false jump variants
-        .FJUMP0 => {
-            try opcodes.handleFJUMP(vm, 0);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos == 0) {
-                return 0;
-            }
-            return null;
-        },
-        .FJUMP1 => {
-            try opcodes.handleFJUMP(vm, 1);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos == 0) {
-                return 1;
-            }
-            return null;
-        },
-        .FJUMP2 => {
-            try opcodes.handleFJUMP(vm, 2);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos == 0) {
-                return 2;
-            }
-            return null;
-        },
-        .FJUMP3 => {
-            try opcodes.handleFJUMP(vm, 3);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos == 0) {
-                return 3;
-            }
-            return null;
-        },
-        .FJUMP4 => {
-            try opcodes.handleFJUMP(vm, 4);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos == 0) {
-                return 4;
-            }
-            return null;
-        },
-        .FJUMP5 => {
-            try opcodes.handleFJUMP(vm, 5);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos == 0) {
-                return 5;
-            }
-            return null;
-        },
-        .FJUMP6 => {
-            try opcodes.handleFJUMP(vm, 6);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos == 0) {
-                return 6;
-            }
-            return null;
-        },
-        .FJUMP7 => {
-            try opcodes.handleFJUMP(vm, 7);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos == 0) {
-                return 7;
-            }
-            return null;
-        },
-        .FJUMP8 => {
-            try opcodes.handleFJUMP(vm, 8);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos == 0) {
-                return 8;
-            }
-            return null;
-        },
-        .FJUMP9 => {
-            try opcodes.handleFJUMP(vm, 9);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos == 0) {
-                return 9;
-            }
-            return null;
-        },
-        .FJUMP10 => {
-            try opcodes.handleFJUMP(vm, 10);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos == 0) {
-                return 10;
-            }
-            return null;
-        },
-        .FJUMP11 => {
-            try opcodes.handleFJUMP(vm, 11);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos == 0) {
-                return 11;
-            }
-            return null;
-        },
-        .FJUMP12 => {
-            try opcodes.handleFJUMP(vm, 12);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos == 0) {
-                return 12;
-            }
-            return null;
-        },
-        .FJUMP13 => {
-            try opcodes.handleFJUMP(vm, 13);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos == 0) {
-                return 13;
-            }
-            return null;
-        },
-        .FJUMP14 => {
-            try opcodes.handleFJUMP(vm, 14);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos == 0) {
-                return 14;
-            }
-            return null;
-        },
-        .FJUMP15 => {
-            try opcodes.handleFJUMP(vm, 15);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos == 0) {
-                return 15;
-            }
-            return null;
-        },
+        // C: FJUMPMACRO(x): if (TOPOFSTACK != 0) { POP; nextop1; } else { CHECK_INTERRUPT; POP; PCMACL += (x); nextop0; }
+        .FJUMP0 => return handleFJUMPWithOffset(vm, 0),
+        .FJUMP1 => return handleFJUMPWithOffset(vm, 1),
+        .FJUMP2 => return handleFJUMPWithOffset(vm, 2),
+        .FJUMP3 => return handleFJUMPWithOffset(vm, 3),
+        .FJUMP4 => return handleFJUMPWithOffset(vm, 4),
+        .FJUMP5 => return handleFJUMPWithOffset(vm, 5),
+        .FJUMP6 => return handleFJUMPWithOffset(vm, 6),
+        .FJUMP7 => return handleFJUMPWithOffset(vm, 7),
+        .FJUMP8 => return handleFJUMPWithOffset(vm, 8),
+        .FJUMP9 => return handleFJUMPWithOffset(vm, 9),
+        .FJUMP10 => return handleFJUMPWithOffset(vm, 10),
+        .FJUMP11 => return handleFJUMPWithOffset(vm, 11),
+        .FJUMP12 => return handleFJUMPWithOffset(vm, 12),
+        .FJUMP13 => return handleFJUMPWithOffset(vm, 13),
+        .FJUMP14 => return handleFJUMPWithOffset(vm, 14),
+        .FJUMP15 => return handleFJUMPWithOffset(vm, 15),
         // Note: No generic TJUMP opcode - use TJUMPX or TJUMP0-TJUMP15
         // Note: No generic TJUMP opcode - use TJUMPX or TJUMP0-TJUMP15
         // Optimized true jump variants
-        .TJUMP0 => {
-            try opcodes.handleTJUMP(vm, 0);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos != 0) {
-                return 0;
-            }
-            return null;
-        },
-        .TJUMP1 => {
-            try opcodes.handleTJUMP(vm, 1);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos != 0) {
-                return 1;
-            }
-            return null;
-        },
-        .TJUMP2 => {
-            try opcodes.handleTJUMP(vm, 2);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos != 0) {
-                return 2;
-            }
-            return null;
-        },
-        .TJUMP3 => {
-            try opcodes.handleTJUMP(vm, 3);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos != 0) {
-                return 3;
-            }
-            return null;
-        },
-        .TJUMP4 => {
-            try opcodes.handleTJUMP(vm, 4);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos != 0) {
-                return 4;
-            }
-            return null;
-        },
-        .TJUMP5 => {
-            try opcodes.handleTJUMP(vm, 5);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos != 0) {
-                return 5;
-            }
-            return null;
-        },
-        .TJUMP6 => {
-            try opcodes.handleTJUMP(vm, 6);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos != 0) {
-                return 6;
-            }
-            return null;
-        },
-        .TJUMP7 => {
-            try opcodes.handleTJUMP(vm, 7);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos != 0) {
-                return 7;
-            }
-            return null;
-        },
-        .TJUMP8 => {
-            try opcodes.handleTJUMP(vm, 8);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos != 0) {
-                return 8;
-            }
-            return null;
-        },
-        .TJUMP9 => {
-            try opcodes.handleTJUMP(vm, 9);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos != 0) {
-                return 9;
-            }
-            return null;
-        },
-        .TJUMP10 => {
-            try opcodes.handleTJUMP(vm, 10);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos != 0) {
-                return 10;
-            }
-            return null;
-        },
-        .TJUMP11 => {
-            try opcodes.handleTJUMP(vm, 11);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos != 0) {
-                return 11;
-            }
-            return null;
-        },
-        .TJUMP12 => {
-            try opcodes.handleTJUMP(vm, 12);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos != 0) {
-                return 12;
-            }
-            return null;
-        },
-        .TJUMP13 => {
-            try opcodes.handleTJUMP(vm, 13);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos != 0) {
-                return 13;
-            }
-            return null;
-        },
-        .TJUMP14 => {
-            try opcodes.handleTJUMP(vm, 14);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos != 0) {
-                return 14;
-            }
-            return null;
-        },
-        .TJUMP15 => {
-            try opcodes.handleTJUMP(vm, 15);
-            const stack_module = @import("stack.zig");
-            const tos = stack_module.getTopOfStack(vm);
-            if (tos != 0) {
-                return 15;
-            }
-            return null;
-        },
+        // C: TJUMPMACRO(x): if (TOPOFSTACK == 0) { POP; nextop1; } else { CHECK_INTERRUPT; POP; PCMACL += (x); nextop0; }
+        .TJUMP0 => return handleTJUMPWithOffset(vm, 0),
+        .TJUMP1 => return handleTJUMPWithOffset(vm, 1),
+        .TJUMP2 => return handleTJUMPWithOffset(vm, 2),
+        .TJUMP3 => return handleTJUMPWithOffset(vm, 3),
+        .TJUMP4 => return handleTJUMPWithOffset(vm, 4),
+        .TJUMP5 => return handleTJUMPWithOffset(vm, 5),
+        .TJUMP6 => return handleTJUMPWithOffset(vm, 6),
+        .TJUMP7 => return handleTJUMPWithOffset(vm, 7),
+        .TJUMP8 => return handleTJUMPWithOffset(vm, 8),
+        .TJUMP9 => return handleTJUMPWithOffset(vm, 9),
+        .TJUMP10 => return handleTJUMPWithOffset(vm, 10),
+        .TJUMP11 => return handleTJUMPWithOffset(vm, 11),
+        .TJUMP12 => return handleTJUMPWithOffset(vm, 12),
+        .TJUMP13 => return handleTJUMPWithOffset(vm, 13),
+        .TJUMP14 => return handleTJUMPWithOffset(vm, 14),
+        .TJUMP15 => return handleTJUMPWithOffset(vm, 15),
         .JUMPX => {
             try opcodes.handleJUMPX(vm);
             return @as(i64, instruction.getSignedWordOperand(0));
@@ -1110,8 +919,9 @@ pub fn getInstructionLength(opcode: Opcode) u32 {
         .SIC, .SNIC => 2, // Opcode + 1-byte operand
         .SICX => 3, // Opcode + 2-byte operand
 
-        // 1-byte opcodes (no operands)
-        .FN0, .FN1, .FN2, .FN3, .FN4 => 1,
+        // FN0-FN4: Opcode (1 byte) + Atom index (2 bytes for non-BIGATOMS)
+        // C: FN_OPCODE_SIZE = 3 for non-BIGATOMS
+        .FN0, .FN1, .FN2, .FN3, .FN4 => 3,
         .RETURN, .UNBIND, .DUNBIND => 1,
         .CAR, .CDR, .CONS, .NTYPX, .RPLACA, .RPLACD => 1, // Data operations
         .ASSOC, .CMLASSOC, .FMEMB, .CMLMEMBER, .CREATECELL => 1, // List operations

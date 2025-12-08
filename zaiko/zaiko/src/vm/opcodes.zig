@@ -29,17 +29,29 @@ pub fn handleGCREF(vm: *VM, alpha: u8) errors.VMError!void {
 /// Per rewrite documentation opcodes.md
 /// IPLUS2: Integer plus 2 operands
 /// Per rewrite documentation instruction-set/opcodes.md
+/// Matches C implementation: maiko/src/arithops.c:N_OP_iplus2
 pub fn handleIPLUS2(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
+    const types_module = @import("../utils/types.zig");
 
-    // Pop two values from stack
-    const b = try stack_module.popStack(vm);
-    const a = try stack_module.popStack(vm);
+    // Pop two values from stack (order: tos, tosm1)
+    const tos = try stack_module.popStack(vm);
+    const tosm1 = try stack_module.popStack(vm);
 
-    // Add them (treating as signed integers)
-    const a_signed = @as(i32, @bitCast(@as(u32, a)));
-    const b_signed = @as(i32, @bitCast(@as(u32, b)));
-    const result = @as(LispPTR, @bitCast(@as(u32, @intCast(a_signed + b_signed))));
+    // Extract integers using N_IGETNUMBER equivalent
+    const arg1 = types_module.extractInteger(tosm1) catch return error.InvalidNumberType;
+    const arg2 = types_module.extractInteger(tos) catch return error.InvalidNumberType;
+
+    // Perform addition with overflow checking (matches C implementation)
+    const result_int = arg1 + arg2;
+
+    // Check for overflow (matches C overflow detection)
+    if (((arg1 >= 0) == (arg2 >= 0)) and ((result_int >= 0) != (arg1 >= 0))) {
+        return error.InvalidOpcode; // Overflow - matches C ERROR_EXIT behavior
+    }
+
+    // Encode result using N_ARITH_SWITCH equivalent
+    const result = try types_module.encodeIntegerResult(result_int);
 
     // Push result
     try stack_module.pushStack(vm, result);
@@ -47,68 +59,116 @@ pub fn handleIPLUS2(vm: *VM) errors.VMError!void {
 
 /// IDIFFERENCE: Integer difference
 /// Per rewrite documentation instruction-set/opcodes.md
+/// Matches C implementation: maiko/src/arithops.c:N_OP_idifference
 pub fn handleIDIFFERENCE(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
+    const types_module = @import("../utils/types.zig");
 
-    const b = try stack_module.popStack(vm);
-    const a = try stack_module.popStack(vm);
+    // Pop two values from stack (order: tos, tosm1)
+    const tos = try stack_module.popStack(vm);
+    const tosm1 = try stack_module.popStack(vm);
 
-    const a_signed = @as(i32, @bitCast(@as(u32, a)));
-    const b_signed = @as(i32, @bitCast(@as(u32, b)));
-    const result = @as(LispPTR, @bitCast(@as(u32, @intCast(a_signed - b_signed))));
+    // Extract integers using N_IGETNUMBER equivalent
+    const arg1 = types_module.extractInteger(tosm1) catch return error.InvalidNumberType;
+    const arg2 = types_module.extractInteger(tos) catch return error.InvalidNumberType;
+
+    // Perform subtraction with overflow checking (matches C implementation)
+    const result_int = arg1 - arg2;
+
+    // Check for overflow (matches C overflow detection)
+    if (((arg1 >= 0) == (arg2 < 0)) and ((result_int >= 0) != (arg1 >= 0))) {
+        return error.InvalidOpcode; // Overflow - matches C ERROR_EXIT behavior
+    }
+
+    // Encode result using N_ARITH_SWITCH equivalent
+    const result = try types_module.encodeIntegerResult(result_int);
 
     try stack_module.pushStack(vm, result);
 }
 
 /// ITIMES2: Integer times 2 operands
 /// Per rewrite documentation instruction-set/opcodes.md
+/// Matches C implementation: maiko/src/arithops.c:N_OP_itimes2
 pub fn handleITIMES2(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
+    const types_module = @import("../utils/types.zig");
 
-    const b = try stack_module.popStack(vm);
-    const a = try stack_module.popStack(vm);
+    // Pop two values from stack (order: tos, tosm1)
+    const tos = try stack_module.popStack(vm);
+    const tosm1 = try stack_module.popStack(vm);
 
-    const a_signed = @as(i32, @bitCast(@as(u32, a)));
-    const b_signed = @as(i32, @bitCast(@as(u32, b)));
-    const result = @as(LispPTR, @bitCast(@as(u32, @intCast(a_signed * b_signed))));
+    // Extract integers using N_IGETNUMBER equivalent
+    const arg1 = types_module.extractInteger(tosm1) catch return error.InvalidNumberType;
+    const arg2 = types_module.extractInteger(tos) catch return error.InvalidNumberType;
+
+    // Perform multiplication with overflow checking (matches C implementation)
+    const result_int = arg1 * arg2;
+
+    // Check for overflow (matches C overflow detection)
+    if (((arg1 >= 0) == (arg2 >= 0)) and ((result_int >= 0) != (arg1 >= 0))) {
+        return error.InvalidOpcode; // Overflow - matches C ERROR_EXIT behavior
+    }
+
+    // Encode result using N_ARITH_SWITCH equivalent
+    const result = try types_module.encodeIntegerResult(result_int);
 
     try stack_module.pushStack(vm, result);
 }
 
 /// IQUO: Integer quotient
 /// Per rewrite documentation instruction-set/opcodes.md
+/// Matches C implementation: maiko/src/arithops.c:N_OP_iquotient
 pub fn handleIQUO(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
+    const types_module = @import("../utils/types.zig");
 
-    const b = try stack_module.popStack(vm);
-    const a = try stack_module.popStack(vm);
+    // Pop two values from stack (order: tos, tosm1)
+    const tos = try stack_module.popStack(vm);
+    const tosm1 = try stack_module.popStack(vm);
 
-    if (b == 0) {
-        return error.InvalidOpcode; // Division by zero
+    // Extract integers using N_IGETNUMBER equivalent
+    const arg1 = types_module.extractInteger(tosm1) catch return error.InvalidNumberType;
+    const arg2 = types_module.extractInteger(tos) catch return error.InvalidNumberType;
+
+    // Check for division by zero
+    if (arg2 == 0) {
+        return error.DivisionByZero;
     }
 
-    const a_signed = @as(i32, @bitCast(@as(u32, a)));
-    const b_signed = @as(i32, @bitCast(@as(u32, b)));
-    const result = @as(LispPTR, @bitCast(@as(u32, @intCast(@divTrunc(a_signed, b_signed)))));
+    // Perform division (matches C implementation: uses integer division)
+    const result_int = @divTrunc(arg1, arg2);
+
+    // Encode result using N_ARITH_SWITCH equivalent
+    const result = try types_module.encodeIntegerResult(result_int);
 
     try stack_module.pushStack(vm, result);
 }
 
 /// IREM: Integer remainder
 /// Per rewrite documentation instruction-set/opcodes.md
+/// Matches C implementation: maiko/src/arithops.c:N_OP_iremainder
 pub fn handleIREM(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
+    const types_module = @import("../utils/types.zig");
 
-    const b = try stack_module.popStack(vm);
-    const a = try stack_module.popStack(vm);
+    // Pop two values from stack (order: tos, tosm1)
+    const tos = try stack_module.popStack(vm);
+    const tosm1 = try stack_module.popStack(vm);
 
-    if (b == 0) {
-        return error.InvalidOpcode; // Division by zero
+    // Extract integers using N_IGETNUMBER equivalent
+    const arg1 = types_module.extractInteger(tosm1) catch return error.InvalidNumberType;
+    const arg2 = types_module.extractInteger(tos) catch return error.InvalidNumberType;
+
+    // Check for division by zero
+    if (arg2 == 0) {
+        return error.DivisionByZero;
     }
 
-    const a_signed = @as(i32, @bitCast(@as(u32, a)));
-    const b_signed = @as(i32, @bitCast(@as(u32, b)));
-    const result = @as(LispPTR, @bitCast(@as(u32, @intCast(@rem(a_signed, b_signed)))));
+    // Perform remainder operation (matches C implementation)
+    const result_int = @rem(arg1, arg2);
+
+    // Encode result using N_ARITH_SWITCH equivalent
+    const result = try types_module.encodeIntegerResult(result_int);
 
     try stack_module.pushStack(vm, result);
 }
@@ -383,54 +443,86 @@ pub fn handleNOP(vm: *VM) errors.VMError!void {
     _ = vm;
 }
 
-/// Function call opcodes
-/// CALL: Call function
+/// FN0-FN4: Function call opcodes with fixed argument counts
 /// Per rewrite documentation instruction-set/opcodes.md and vm-core/function-calls.md
-/// Note: This is a simplified version - full implementation needs function object lookup
-pub fn handleCALL(vm: *VM) errors.VMError!void {
-    const stack_module = @import("stack.zig");
+/// Matches C implementation: maiko/inc/tosfns.h:OPFN
+///
+/// FN0 (0x08): Call function with 0 arguments
+/// FN1 (0x09): Call function with 1 argument
+/// FN2 (0x0A): Call function with 2 arguments
+/// FN3 (0x0B): Call function with 3 arguments
+/// FN4 (0x0C): Call function with 4 arguments
+///
+/// Instruction format: [opcode][atom_index_byte]
+/// Stack: [arg_N, ..., arg_0, function_obj] -> []
+pub fn handleFN0(vm: *VM, instruction: *const @import("dispatch.zig").Instruction) errors.VMError!void {
+    try handleFN(vm, instruction, 0);
+}
+
+pub fn handleFN1(vm: *VM, instruction: *const @import("dispatch.zig").Instruction) errors.VMError!void {
+    try handleFN(vm, instruction, 1);
+}
+
+pub fn handleFN2(vm: *VM, instruction: *const @import("dispatch.zig").Instruction) errors.VMError!void {
+    try handleFN(vm, instruction, 2);
+}
+
+pub fn handleFN3(vm: *VM, instruction: *const @import("dispatch.zig").Instruction) errors.VMError!void {
+    try handleFN(vm, instruction, 3);
+}
+
+pub fn handleFN4(vm: *VM, instruction: *const @import("dispatch.zig").Instruction) errors.VMError!void {
+    try handleFN(vm, instruction, 4);
+}
+
+/// Common FN handler implementation
+/// Matches C implementation: maiko/inc/tosfns.h:OPFN
+fn handleFN(vm: *VM, instruction: *const @import("dispatch.zig").Instruction, arg_count: u8) errors.VMError!void {
     const function_module = @import("function.zig");
-    const errors_module = @import("../utils/errors.zig");
 
-    // For FN0-FN4, function object and arguments are on stack
-    // Pop function object (for now, we'll use a placeholder)
-    const func_obj = try stack_module.popStack(vm);
+    // Get atom index from instruction operand (2 bytes after opcode for non-BIGATOMS)
+    // C: Get_AtomNo_PCMAC1 - gets atom index as DLword (2 bytes) from PC+1
+    // For non-BIGATOMS: Get_AtomNo(ptr) = Get_DLword(ptr) - 2 bytes
+    const atom_index: LispPTR = instruction.getWordOperand(0); // DLword (2 bytes) for non-BIGATOMS
 
-    if (func_obj == 0) {
-        return errors_module.VMError.InvalidAddress; // Invalid function object
-    }
+    // TODO: Lookup function definition from atom table
+    // C: defcell = GetDEFCELL68k(atom_index)
+    // For now, we'll create a placeholder function header
+    // Full implementation will need atom table lookup (Phase 3)
 
-    // TODO: Lookup function header from function object
-    // For now, create a minimal function header for testing
-    // In real implementation, this would come from atom table or function registry
-
-    // Placeholder: Create a simple function header
-    // This will be replaced with proper function lookup
+    // Placeholder: Create a minimal function header
+    // This will be replaced with proper atom table lookup
+    // Note: na is DLword (u16) in FunctionHeader struct, but C uses short (signed)
+    // For now, we store as u16 and will handle signed interpretation when needed
     var func_header = function_module.FunctionHeader{
         .stkmin = 0,
-        .na = 0,
-        .pv = 0,
-        .startpc = 0,
-        .framename = 0,
+        .na = @as(DLword, @intCast(arg_count)), // Number of arguments (negative if spread, but stored as u16)
+        .pv = 0, // Parameter variable count
+        .startpc = 0, // Code start offset
+        .framename = atom_index, // Frame name atom index
         .ntsize = 0,
         .nlocals = 0,
         .fvaroffset = 0,
     };
 
-    // Call function (arg_count determined by opcode variant)
-    try function_module.callFunction(vm, &func_header, 0);
+    // Call function with argument count
+    // C: OPFN sets up frame, pushes TOS, handles spread args, sets up BF/FX markers
+    try function_module.callFunction(vm, &func_header, arg_count);
 }
 
 /// RETURN: Return from function
 /// Per rewrite documentation instruction-set/opcodes.md and vm-core/function-calls.md
+/// Matches C implementation: maiko/inc/tosret.h:OPRETURN
 pub fn handleRETURN(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
     const function_module = @import("function.zig");
 
     // Get return value and restore frame
+    // C: OPRETURN gets return value from TOPOFSTACK, restores previous frame via alink
     const return_value = try function_module.returnFromFunction(vm);
 
-    // Set return value on stack
+    // Set return value on stack (TOS)
+    // C: TOPOFSTACK is preserved through frame restoration
     stack_module.setTopOfStack(vm, return_value);
 }
 
@@ -567,22 +659,31 @@ pub fn handleTJUMPX(vm: *VM, offset: i16) errors.VMError!void {
 
 /// CAR: Get CAR of list
 /// Per rewrite documentation instruction-set/opcodes.md
+/// CAR: Get CAR of list
+/// Per rewrite documentation instruction-set/opcodes.md
+/// Matches C implementation: maiko/inc/inlineC.h:OPCAR
 pub fn handleCAR(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
     const errors_module = @import("../utils/errors.zig");
 
     const list_ptr = stack_module.getTopOfStack(vm);
 
+    // C: Check Listp(TOPOFSTACK) first, then handle NIL_PTR and ATOM_T
+    // For now, we check NIL first (simpler)
     if (list_ptr == 0) {
-        // NIL - CAR of NIL is NIL
+        // NIL - CAR of NIL is NIL (C: nextop1, value unchanged)
         return;
     }
+
+    // TODO: Check if list_ptr == ATOM_T (1) - CAR of T is T
+    // TODO: Check Listp(list_ptr) - if not a list, goto op_ufn (UFN lookup)
 
     // Get cons cell from memory using address translation
     if (vm.virtual_memory) |vmem| {
         // Translate LispPTR to native pointer (4-byte aligned for cons cell)
+        // C: NativeAligned4FromLAddr(TOPOFSTACK)
         const native_ptr = virtual_memory_module.translateAddress(list_ptr, vmem.fptovp, 4) catch {
-            // Invalid address - leave value unchanged
+            // Invalid address - trigger UFN (for now, leave value unchanged)
             return;
         };
 
@@ -590,9 +691,11 @@ pub fn handleCAR(vm: *VM) errors.VMError!void {
         const cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(native_ptr)));
 
         // Handle indirect CDR encoding
+        // C: if (DATUM68K->cdr_code == CDR_INDIRECT) { TOPOFSTACK = indirect_cell->car_field }
         var car_value = cons.getCAR(cell);
         if (cell.cdr_code == cons.CDR_INDIRECT) {
             // CAR is stored in indirect cell
+            // C: TOPOFSTACK = ((ConsCell *)NativeAligned4FromLAddr(DATUM68K->car_field))->car_field
             const indirect_addr = car_value;
             const indirect_native = virtual_memory_module.translateAddress(indirect_addr, vmem.fptovp, 4) catch {
                 return;
@@ -601,6 +704,7 @@ pub fn handleCAR(vm: *VM) errors.VMError!void {
             car_value = cons.getCAR(indirect_cell);
         }
 
+        // C: TOPOFSTACK = car_value; nextop1;
         stack_module.setTopOfStack(vm, car_value);
     } else {
         // No virtual memory - can't access memory
@@ -610,31 +714,71 @@ pub fn handleCAR(vm: *VM) errors.VMError!void {
 
 /// CDR: Get CDR of list
 /// Per rewrite documentation instruction-set/opcodes.md
+/// Matches C implementation: maiko/inc/inlineC.h:OPCDR (NEWCDRCODING version)
 pub fn handleCDR(vm: *VM) errors.VMError!void {
     const stack_module = @import("stack.zig");
     const errors_module = @import("../utils/errors.zig");
 
     const list_ptr = stack_module.getTopOfStack(vm);
 
+    // C: Check Listp(TOPOFSTACK) first, then handle NIL_PTR
     if (list_ptr == 0) {
-        // NIL - CDR of NIL is NIL
+        // NIL - CDR of NIL is NIL (C: nextop1, value unchanged)
         return;
     }
+
+    // TODO: Check Listp(list_ptr) - if not a list, goto op_ufn (UFN lookup)
 
     // Get cons cell from memory using address translation
     if (vm.virtual_memory) |vmem| {
         // Translate LispPTR to native pointer (4-byte aligned for cons cell)
+        // C: NativeAligned4FromLAddr(TOPOFSTACK)
         const native_ptr = virtual_memory_module.translateAddress(list_ptr, vmem.fptovp, 4) catch {
-            // Invalid address - leave value unchanged
+            // Invalid address - trigger UFN (for now, leave value unchanged)
             return;
         };
 
         // Cast to cons cell pointer
         const cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(native_ptr)));
 
-        // Decode CDR using CDR coding
-        const cdr_value = cons.getCDR(cell, list_ptr);
+        // Decode CDR using CDR coding (NEWCDRCODING version)
+        // C: CDRCODEX = DATUM68K->cdr_code
+        const cdr_code = cell.cdr_code;
 
+        var cdr_value: LispPTR = 0;
+
+        // C: NEWCDRCODING version (matches maiko/inc/inlineC.h:122-150)
+        if (cdr_code == cons.CDR_NIL) {
+            // C: CDR_NIL (8) -> TOPOFSTACK = NIL_PTR
+            cdr_value = 0;
+        } else if (cdr_code > cons.CDR_ONPAGE_MIN) {
+            // C: CDR_ONPAGE (8-15) -> TOPOFSTACK = TOPOFSTACK + ((CDRCODEX & 7) << 1)
+            // Same page encoding: 3-bit offset
+            const offset = (@as(u32, cdr_code) & 7) << 1;
+            cdr_value = list_ptr + offset;
+        } else if (cdr_code == cons.CDR_INDIRECT) {
+            // C: CDR_INDIRECT (0) -> TOPOFSTACK = cdr(DATUM68K->car_field) (recursive)
+            // Recursive CDR call on indirect cell
+            const indirect_addr = cons.getCAR(cell);
+            const indirect_native = virtual_memory_module.translateAddress(indirect_addr, vmem.fptovp, 4) catch {
+                return;
+            };
+            const indirect_cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(indirect_native)));
+            // Recursive call to getCDR
+            cdr_value = cons.getCDR(indirect_cell, indirect_addr);
+        } else {
+            // C: CDR different page (1-7) -> TOPOFSTACK = ((ConsCell *)NativeAligned4FromLAddr(TOPOFSTACK + (CDRCODEX << 1)))->car_field
+            // Different page encoding: CDR stored in another cell's CAR field
+            const offset = @as(u32, cdr_code) << 1;
+            const cdr_addr = list_ptr + offset;
+            const cdr_native = virtual_memory_module.translateAddress(cdr_addr, vmem.fptovp, 4) catch {
+                return;
+            };
+            const cdr_cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(cdr_native)));
+            cdr_value = cons.getCAR(cdr_cell);
+        }
+
+        // C: TOPOFSTACK = cdr_value; nextop1;
         stack_module.setTopOfStack(vm, cdr_value);
     } else {
         // No virtual memory - can't access memory

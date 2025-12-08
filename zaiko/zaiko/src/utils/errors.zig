@@ -14,6 +14,7 @@ pub const VMError = error{
     InvalidStackPointer,
     InvalidFramePointer,
     DivisionByZero,
+    InvalidNumberType,
 };
 
 /// Memory management errors
