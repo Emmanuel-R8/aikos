@@ -68,9 +68,9 @@
 - [X] T026 [US2] Implement function return opcode RETURN handler in maiko/alternatives/zig/src/vm/opcodes.zig
 - [X] T027 [US2] Implement stack frame creation for function calls in maiko/alternatives/zig/src/vm/function.zig
 - [X] T028 [US2] Implement stack frame cleanup for function returns in maiko/alternatives/zig/src/vm/function.zig
-- [ ] T029 [US2] Add error handling for stack overflow in stack operations in maiko/alternatives/zig/src/vm/stack.zig
-- [ ] T030 [US2] Add error handling for stack underflow in stack operations in maiko/alternatives/zig/src/vm/stack.zig
-- [ ] T031 [US2] Implement error handling matching C emulator behavior for invalid opcodes in maiko/alternatives/zig/src/vm/dispatch.zig
+- [X] T029 [US2] Add error handling for stack overflow in stack operations in maiko/alternatives/zig/src/vm/stack.zig
+- [X] T030 [US2] Add error handling for stack underflow in stack operations in maiko/alternatives/zig/src/vm/stack.zig
+- [X] T031 [US2] Implement error handling matching C emulator behavior for invalid opcodes in maiko/alternatives/zig/src/vm/dispatch.zig
 - [ ] T032 [US2] Add test case for arithmetic opcode execution matching C emulator results in maiko/alternatives/zig/tests/opcodes.zig
 - [ ] T033 [US2] Add test case for stack operation execution matching C emulator results in maiko/alternatives/zig/tests/opcodes.zig
 - [ ] T034 [US2] Add test case for function call and return execution in maiko/alternatives/zig/tests/opcodes.zig

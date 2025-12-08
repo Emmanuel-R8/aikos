@@ -73,6 +73,7 @@ All critical insights are now documented for future reference.
 ## REMINDER: NEVER FORGET THIS CHECKLIST
 
 **CRITICAL**: Before making ANY git commit, ALWAYS:
+
 1. ✅ Review discoveries and learnings
 2. ✅ Update general documentation (rewrite-spec/)
 3. ✅ Update language-specific documentation (implementations/)

@@ -36,11 +36,11 @@ Function calls in the VM involve:
 function ExecuteFN(arg_count, atom_index):
     // Get atom index from instruction operand (bytes 1-2 for non-BIGATOMS)
     // C: Get_AtomNo_PCMAC1 - reads DLword from PC+1
-    
+
     // Lookup function definition from atom table
     defcell = GetDEFCELL(atom_index)
     function_obj = GetFunctionFromDefCell(defcell)
-    
+
     // Validate function object
     if not IsFunction(function_obj):
         ERROR_EXIT(function_obj)

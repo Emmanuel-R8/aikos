@@ -218,17 +218,26 @@ function ExtendStack():
 
 ### Overflow Detection
 
+**CRITICAL**: Stack overflow checks must include a safety margin (`STK_SAFE = 32` words) to prevent stack exhaustion during operations.
+
 ```pseudocode
+const STK_SAFE = 32  // Safety margin in words (matches C: maiko/inc/stack.h:38)
+
 function CheckStackOverflow(required_space):
-    if CurrentStackPTR - required_space < EndSTKP:
+    // Add safety margin to required space
+    safe_required_space = required_space + (STK_SAFE * sizeof(DLword))
+    
+    if CurrentStackPTR - safe_required_space < EndSTKP:
         if CurrentStackPTR < GuardStackAddr:
             SetInterruptFlag(STACKOVERFLOW)
             return true
         else:
-            ExtendStack()
+            ExtendStack()  // Try to extend stack
             return false
     return false
 ```
+
+**C Reference**: `maiko/inc/stack.h:STK_SAFE`, `maiko/src/llstk.c:do_stackoverflow()`
 
 ### Overflow Recovery
 

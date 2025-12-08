@@ -223,6 +223,46 @@ Several opcodes in the Zig implementation don't exist in the C implementation an
 
 **Status**: ✅ Implemented - RETURN handler matches C frame restoration behavior
 
+### Error Handling: Stack Overflow/Underflow ✅ IMPLEMENTED
+
+**CRITICAL**: Stack overflow checks must include `STK_SAFE` margin (32 words) matching C implementation.
+
+**Implementation**: Enhanced error handling in stack operations:
+- Added `STK_SAFE` constant (32 words) matching C `maiko/inc/stack.h:38`
+- Stack overflow checks include safety margin: `required_space + STK_SAFE`
+- Stack underflow already checked in `popStack()` (returns `error.StackUnderflow`)
+- Frame allocation checks overflow with safety margin
+
+**Zig-Specific Details**:
+- `STK_SAFE` defined as `u16` constant in `stack.zig`
+- Overflow check: `stack_ptr_addr - required_space < stack_end_addr`
+- Underflow check: `stack_ptr_addr + @sizeOf(LispPTR) > stack_base_addr`
+- Error handling in dispatch loop matches C behavior (returns errors, doesn't silently fail)
+
+**C Reference**: `maiko/inc/stack.h:STK_SAFE`, `maiko/src/llstk.c:do_stackoverflow()`, `maiko/src/xc.c:check_interrupt`
+
+**Location**: `maiko/alternatives/zig/src/vm/stack.zig:10-12, 198-200, 216-219, 81-83`
+
+**Status**: ✅ Implemented - Stack overflow/underflow handling matches C behavior
+
+### Error Handling: Invalid Opcodes ✅ IMPLEMENTED
+
+**Implementation**: Enhanced invalid opcode handling matching C UFN (Undefined Function Name) behavior:
+- Invalid instruction decoding returns `error.InvalidOpcode` (instead of silently breaking)
+- Error handling in dispatch loop matches C `goto op_ufn` behavior
+- UFN lookup deferred to Phase 3 (atom table implementation)
+
+**Zig-Specific Details**:
+- `decodeInstruction` returning `null` now triggers `error.InvalidOpcode`
+- Dispatch loop handles `InvalidOpcode` error explicitly
+- Error propagation allows caller to handle UFN lookup (when implemented)
+
+**C Reference**: `maiko/src/xc.c:goto op_ufn`, `maiko/inc/tosfns.h:OP_FN_COMMON`
+
+**Location**: `maiko/alternatives/zig/src/vm/dispatch.zig:393-396, 399-412`
+
+**Status**: ✅ Implemented - Invalid opcode handling matches C UFN trigger behavior
+
 ### Compilation Issues Fixed
 
 **Type Mismatches**:
