@@ -97,14 +97,16 @@
 - [ ] T042 [US3] Complete variable access PVAR implementation for all variants (PVAR_0-PVAR_6, PVARX_) in maiko/alternatives/zig/src/vm/opcodes.zig
 - [ ] T043 [US3] Complete variable access FVAR implementation for all variants in maiko/alternatives/zig/src/vm/opcodes.zig
 - [ ] T044 [US3] Complete variable access GVAR implementation for all variants in maiko/alternatives/zig/src/vm/opcodes.zig
-- [ ] T045 [US3] Implement JUMP opcode variants (JUMP0-JUMP15) in maiko/alternatives/zig/src/vm/opcodes.zig
-- [ ] T046 [US3] Implement FJUMP opcode variants (FJUMP0-FJUMP15) in maiko/alternatives/zig/src/vm/opcodes.zig
-- [ ] T047 [US3] Implement TJUMP opcode variants (TJUMP0-TJUMP15) in maiko/alternatives/zig/src/vm/opcodes.zig
+- [X] T045 [US3] Implement JUMP opcode variants (JUMP0-JUMP15) in maiko/alternatives/zig/src/vm/opcodes.zig
+- [X] T046 [US3] Implement FJUMP opcode variants (FJUMP0-FJUMP15) in maiko/alternatives/zig/src/vm/opcodes.zig
+- [X] T047 [US3] Implement TJUMP opcode variants (TJUMP0-TJUMP15) in maiko/alternatives/zig/src/vm/opcodes.zig
 - [ ] T048 [US3] Implement LIST opcode handler for list creation in maiko/alternatives/zig/src/vm/opcodes.zig
+  - NOTE: LIST opcode not found in C opcodes.h - lists are created via CONS. May need to verify if this is needed or if CONS is sufficient.
 - [ ] T049 [US3] Implement APPEND opcode handler for list concatenation in maiko/alternatives/zig/src/vm/opcodes.zig
-- [ ] T050 [US3] Implement RPLACA opcode handler for replacing CAR in maiko/alternatives/zig/src/vm/opcodes.zig
-- [ ] T051 [US3] Implement RPLACD opcode handler for replacing CDR in maiko/alternatives/zig/src/vm/opcodes.zig
-- [ ] T052 [US3] Implement UNWIND opcode handler for stack unwinding in maiko/alternatives/zig/src/vm/opcodes.zig
+  - NOTE: APPEND opcode not found in C opcodes.h - list concatenation may be done via other mechanisms. May need to verify if this is needed.
+- [X] T050 [US3] Implement RPLACA opcode handler for replacing CAR in maiko/alternatives/zig/src/vm/opcodes.zig
+- [X] T051 [US3] Implement RPLACD opcode handler for replacing CDR in maiko/alternatives/zig/src/vm/opcodes.zig
+- [X] T052 [US3] Implement UNWIND opcode handler for stack unwinding in maiko/alternatives/zig/src/vm/opcodes.zig
 - [ ] T053 [US3] Add test case for cons cell operations (CAR, CDR, CONS) in maiko/alternatives/zig/tests/cons.zig
 - [ ] T054 [US3] Add test case for variable access operations in maiko/alternatives/zig/tests/opcodes.zig
 - [ ] T055 [US3] Add test case for jump opcode variants in maiko/alternatives/zig/tests/opcodes.zig
