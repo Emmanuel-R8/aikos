@@ -57,11 +57,11 @@
 - [X] T016 [US1] Integrate acquire_run_lock() and release_run_lock() into medley/run-medley (prevent concurrent runs)
 - [X] T017 [US1] Update emulator executable selection logic in medley/run-medley to use selected emulator type
 - [X] T018 [US1] Add --override-lock argument parsing to medley/run-medley
-- [ ] T019 [US1] Update medley/scripts/medley/medley.command to add --emulator argument parsing
-- [ ] T020 [US1] Integrate select_emulator() function into medley/scripts/medley/medley.command
-- [ ] T021 [US1] Enhance check_unified_build_location() in medley/scripts/medley/medley.command to use selected emulator
-- [ ] T022 [US1] Integrate validate_emulator_executable() into medley/scripts/medley/medley.command
-- [ ] T023 [US1] Integrate lock mechanism into medley/scripts/medley/medley.command
+- [X] T019 [US1] Update medley/scripts/medley/medley.command to add --emulator argument parsing
+- [X] T020 [US1] Integrate select_emulator() function into medley/scripts/medley/medley.command
+- [X] T021 [US1] Enhance check_unified_build_location() in medley/scripts/medley/medley.command to use selected emulator
+- [X] T022 [US1] Integrate validate_emulator_executable() into medley/scripts/medley/medley.command
+- [X] T023 [US1] Integrate lock mechanism into medley/scripts/medley/medley.command
 - [X] T024 [US1] Update medley/scripts/medley/medley_run.sh to support emulator selection from environment/arguments
 - [X] T025 [US1] Integrate validate_emulator_executable() into medley/scripts/medley/medley_run.sh
 - [X] T026 [US1] Ensure all existing Medley run script functionality is preserved (sysout selection, display options, memory settings)
