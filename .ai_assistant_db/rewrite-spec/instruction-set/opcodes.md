@@ -77,12 +77,11 @@ Complete specification of all 256 bytecode opcodes (0x00-0xFF). Format: `Name (0
 - **NTYPX (0x04)** [1] TOS = type number of TOS.
 - **TYPEP (0x05)** [2] Type code (1B). TOS = (GetType(TOS) == code) ? T : NIL.
 - **DTEST (0x06)** [3] Atom index (2B). TOS = (TOS == GetAtom(index)) ? T : NIL.
-- **LISTP (0xA2)** [1] TOS = IsList(TOS) ? T : NIL.
 - **STRINGP (0xA3)** [1] TOS = IsString(TOS) ? T : NIL.
 - **ARRAYP (0xA4)** [1] TOS = IsArray(TOS) ? T : NIL.
 - **CHARACTERP (0xA5)** [1] TOS = IsCharacter(TOS) ? T : NIL.
-- **FIXP (0xA0)** [1] TOS = IsFixnum(TOS) ? T : NIL.
-- **SMALLP (0xA1)** [1] TOS = IsSmallInteger(TOS) ? T : NIL.
+
+**Note**: `FIXP` (0xA0), `SMALLP` (0xA1), and `LISTP` (0xA2) do not exist as separate opcodes. These values are used by `TJUMP0`-`TJUMP2`. Use `TYPEP` with appropriate type codes instead.
 
 ### List/Atom Operations
 - **ASSOC (0x16)** [1] Pop key, alist. Push (key, value) pair or NIL.
@@ -185,6 +184,70 @@ Complete specification of all 256 bytecode opcodes (0x00-0xFF). Format: `Name (0
 - `0xCB` (unused_203)
 
 Unused opcodes trigger UFN (Undefined Function Name) handling.
+
+## Common Misconceptions: Non-existent Opcodes
+
+**CRITICAL**: The following opcodes are commonly assumed but **DO NOT EXIST** in the Maiko VM instruction set. Implementors should use the correct alternatives listed below.
+
+### Generic Jump Opcodes
+
+**Myth**: Generic `JUMP`, `FJUMP`, `TJUMP` opcodes exist.
+
+**Reality**: Only specific variants exist:
+- **JUMP variants**: `JUMP0`-`JUMP15` (0x80-0x8F), `JUMPX` (0xB0), `JUMPXX` (0xB1)
+- **FJUMP variants**: `FJUMP0`-`FJUMP15` (0x90-0x9F), `FJUMPX` (0xB2)
+- **TJUMP variants**: `TJUMP0`-`TJUMP15` (0xA0-0xAF), `TJUMPX` (0xB3)
+
+**Why**: The optimized variants (`JUMP0`-`JUMP15`, etc.) encode small offsets directly in the opcode, reducing instruction size for common cases.
+
+### Character Opcodes
+
+**Myth**: `CHARCODE` and `CHARN` opcodes exist for character operations.
+
+**Reality**: These opcodes do not exist. Character operations are handled through other mechanisms or type-specific operations.
+
+**Note**: The opcode values 0xB4 and 0xB5 are used by `NFJUMPX` and `NTJUMPX` respectively.
+
+### Array Element Access Opcodes
+
+**Myth**: `GETAEL1`, `GETAEL2`, `SETAEL1`, `SETAEL2` opcodes exist for array element access.
+
+**Reality**: Use the correct array operations:
+- **Array read**: `AREF1` (0xB6) for 1D arrays, `AREF2` (0xEE) for 2D arrays
+- **Array write**: `ASET1` (0xB7) for 1D arrays, `ASET2` (0xEF) for 2D arrays
+
+**Note**: The opcode values 0x80-0x83 are used by `JUMP0`-`JUMP3` respectively.
+
+### Type Checking Opcodes
+
+**Myth**: Separate `FIXP`, `SMALLP`, and `LISTP` opcodes exist for type checking.
+
+**Reality**: These opcodes do not exist. Use the `TYPEP` opcode (0x05) with appropriate type codes:
+- **FIXP**: Use `TYPEP` with fixnum type code, or check if value is a fixnum directly
+- **SMALLP**: Use `TYPEP` with small integer type code
+- **LISTP**: Use `TYPEP` with list type code
+
+**Note**: The opcode values 0xA0-0xA2 are used by `TJUMP0`-`TJUMP2` respectively. The documentation previously listed `LISTP` (0xA2), `FIXP` (0xA0), and `SMALLP` (0xA1) as valid opcodes, but these conflict with the jump opcodes and do not exist in `maiko/inc/opcodes.h`.
+
+### Stack Push Opcode
+
+**Myth**: A generic `PUSH` opcode exists for pushing values onto the stack.
+
+**Reality**: Stack operations are handled implicitly by other opcodes. The opcode value 0xD0 is used by `ADDBASE`, not `PUSH`.
+
+**Alternatives**: Most opcodes that produce values implicitly push them onto the stack. For explicit stack manipulation, use:
+- Variable access opcodes (`IVAR`, `PVAR`, `FVAR`, `GVAR`) - push variable values
+- Constant opcodes (`NIL`, `T`, `CONST_0`, `CONST_1`, `ACONST`, `GCONST`) - push constants
+- Arithmetic/operation opcodes - push results
+
+### Verification Checklist
+
+When implementing opcodes, verify against `maiko/inc/opcodes.h`:
+1. ✅ Check that opcode value matches C enum value exactly
+2. ✅ Verify opcode name matches C enum name exactly
+3. ✅ Confirm opcode exists in C implementation (not just assumed)
+4. ✅ Cross-reference instruction length and operand format
+5. ✅ Test opcode decoding matches C implementation behavior
 
 ## Opcode Length Reference
 

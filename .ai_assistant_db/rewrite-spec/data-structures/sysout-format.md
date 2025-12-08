@@ -235,7 +235,7 @@ Any implementation must use these exact values for version compatibility checkin
 ```pseudocode
 function ValidateFileSize(file, ifpage):
     file_size = GetFileSize(file)
-    
+
     // BYTESPER_PAGE = 512 (from maiko/inc/lispemul.h:488)
     // Check page alignment
     if file_size mod BYTESPER_PAGE != 0:
@@ -245,7 +245,7 @@ function ValidateFileSize(file, ifpage):
     // sysout_size is calculated in half-pages: (file_size / BYTESPER_PAGE) * 2
     sysout_size_halfpages = (file_size / BYTESPER_PAGE) * 2
     num_file_pages = sysout_size_halfpages / 2
-    
+
     if num_file_pages != ifpage.nactivepages:
         Error("File size mismatch: %d vs %d pages", num_file_pages, ifpage.nactivepages)
 ```
