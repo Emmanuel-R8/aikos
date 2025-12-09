@@ -203,22 +203,23 @@ pub fn getActivationLink(frame: *FX) LispPTR {
 /// Per rewrite documentation vm-core/stack-management.md
 /// Matches C implementation: PushStack(x) stores LispPTR (32-bit = 2 DLwords)
 /// C: maiko/inc/lispemul.h:PushStack(x) - checks stack overflow before pushing
+/// C: Stackspace is BASE (lowest address), CurrentStackPTR is current top (higher address when stack has data)
+/// Stack grows DOWN, so pushing moves CurrentStackPTR DOWN (toward lower addresses)
 pub fn pushStack(vm: *VM, value: LispPTR) errors.VMError!void {
-    // Stack grows down, so move pointer down by 4 bytes (2 DLwords for LispPTR)
     const stack_ptr_addr = @intFromPtr(vm.stack_ptr);
     const stack_end_addr = @intFromPtr(vm.stack_end);
 
-    // Check stack overflow with safety margin
-    // C: Checks if CurrentStackPTR - required_space < EndSTKP
-    // For push, required space is 2 DLwords (1 LispPTR)
-    const required_space = @sizeOf(LispPTR);
-    if (stack_ptr_addr - required_space < stack_end_addr) {
+    // Check stack overflow: after pushing, stack_ptr should not go below stack_end
+    // Stack grows DOWN, so we move stack_ptr DOWN by 2 DLwords
+    const new_stack_ptr_addr = stack_ptr_addr - @sizeOf(LispPTR);
+    if (new_stack_ptr_addr < stack_end_addr) {
         return error.StackOverflow;
     }
 
     // Store LispPTR as 2 DLwords (low word first, then high word)
-    // C implementation: CurrentStackPTR += 2; *((LispPTR *)(void *)(CurrentStackPTR)) = x;
-    vm.stack_ptr -= 2; // Move down by 2 DLwords
+    // C implementation: CurrentStackPTR -= 2; *((LispPTR *)(void *)(CurrentStackPTR)) = x;
+    // Stack grows DOWN, so move DOWN by 2 DLwords first, then store
+    vm.stack_ptr -= 2; // Move DOWN by 2 DLwords (stack grows down)
     vm.stack_ptr[0] = @as(DLword, @truncate(value)); // Low 16 bits
     vm.stack_ptr[1] = @as(DLword, @truncate(value >> 16)); // High 16 bits
 }
@@ -226,37 +227,43 @@ pub fn pushStack(vm: *VM, value: LispPTR) errors.VMError!void {
 /// Pop value from stack
 /// Per rewrite documentation vm-core/stack-management.md
 /// Matches C implementation: POP_TOS_1 reads LispPTR (32-bit = 2 DLwords)
+/// C: Stackspace is BASE (lowest address), CurrentStackPTR is current top (higher address when stack has data)
+/// Stack grows DOWN, so popping moves CurrentStackPTR DOWN (toward lower addresses)
 pub fn popStack(vm: *VM) errors.VMError!LispPTR {
     const stack_base_addr = @intFromPtr(vm.stack_base);
     const stack_ptr_addr = @intFromPtr(vm.stack_ptr);
 
-    // Check for stack underflow (stack_ptr must be below stack_base)
-    if (stack_ptr_addr + @sizeOf(LispPTR) > stack_base_addr) {
+    // Check for stack underflow: stack_ptr must be > stack_base (stack has data)
+    // If stack_ptr <= stack_base, stack is empty
+    if (stack_ptr_addr <= stack_base_addr) {
         return error.StackUnderflow;
     }
 
     // Read LispPTR as 2 DLwords (low word first, then high word)
     // C implementation: POP_TOS_1 = *(--CSTKPTRL) where CSTKPTRL is LispPTR*
+    // Stack grows DOWN, so we read from current position, then move DOWN
     const low_word = vm.stack_ptr[0];
     const high_word = vm.stack_ptr[1];
     const value: LispPTR = (@as(LispPTR, high_word) << 16) | @as(LispPTR, low_word);
-    vm.stack_ptr += 2; // Move up by 2 DLwords
+    vm.stack_ptr -= 2; // Move DOWN by 2 DLwords (stack grows down)
 
     return value;
 }
 
 /// Get top of stack
 /// Matches C implementation: TopOfStack reads LispPTR (32-bit = 2 DLwords)
+/// C: Stackspace is BASE (lowest address), CurrentStackPTR is current top (higher address when stack has data)
 pub fn getTopOfStack(vm: *const VM) LispPTR {
     const stack_base_addr = @intFromPtr(vm.stack_base);
     const stack_ptr_addr = @intFromPtr(vm.stack_ptr);
 
-    // Check if stack is empty (stack_ptr must be below stack_base by at least 2 DLwords)
-    if (stack_ptr_addr + @sizeOf(LispPTR) > stack_base_addr) {
+    // Check if stack is empty: stack_ptr must be > stack_base (stack has data)
+    // If stack_ptr <= stack_base, stack is empty
+    if (stack_ptr_addr <= stack_base_addr) {
         return 0; // Stack empty - return NIL
     }
 
-    std.debug.print("DEBUG: getTopOfStack: stack_ptr=0x{x}, stack_base=0x{x}, diff={}\n", .{ stack_ptr_addr, stack_base_addr, stack_base_addr - stack_ptr_addr });
+    std.debug.print("DEBUG: getTopOfStack: stack_ptr=0x{x}, stack_base=0x{x}, diff={}\n", .{ stack_ptr_addr, stack_base_addr, stack_ptr_addr - stack_base_addr });
 
     // Read LispPTR as 2 DLwords (low word first, then high word)
     const low_word = vm.stack_ptr[0];
@@ -279,15 +286,20 @@ pub fn setTopOfStack(vm: *VM, value: LispPTR) void {
 
 /// Get stack depth (number of LispPTR values on stack)
 /// Returns 0 if stack is empty
+/// C: Stack depth = (CurrentStackPTR - Stackspace) / 2
+/// Stackspace is the BASE (lowest address), CurrentStackPTR is the current top (higher address when stack has data)
 pub fn getStackDepth(vm: *const VM) usize {
     const stack_base_addr = @intFromPtr(vm.stack_base);
     const stack_ptr_addr = @intFromPtr(vm.stack_ptr);
 
-    // Stack grows down, so depth = (stack_base - stack_ptr) / sizeof(LispPTR)
-    if (stack_ptr_addr >= stack_base_addr) {
+    // C: Stackspace is BASE (lowest address), CurrentStackPTR is current top
+    // Stack depth = (CurrentStackPTR - Stackspace) / 2 (in DLwords)
+    // If stack_ptr <= stack_base, stack is empty
+    if (stack_ptr_addr <= stack_base_addr) {
         return 0; // Stack is empty
     }
 
-    const diff = stack_base_addr - stack_ptr_addr;
-    return @as(usize, @intCast(diff / @sizeOf(LispPTR)));
+    // Stack has data: depth = (current - base) / 2 DLwords
+    const diff = stack_ptr_addr - stack_base_addr;
+    return @as(usize, @intCast(diff / 2)); // Divide by 2 to get DLwords (each DLword is 2 bytes)
 }
