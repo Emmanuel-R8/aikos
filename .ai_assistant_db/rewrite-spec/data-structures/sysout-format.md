@@ -134,7 +134,14 @@ function LoadSysoutFile(filename, process_size):
     file = OpenFile(filename)
 
     // Read IFPAGE
-    ifpage = ReadIFPAGE(file)
+    ifpage = ReadIFPAGE(file, IFPAGE_ADDRESS)
+    
+    // CRITICAL: Byte-swap IFPAGE if host is little-endian
+    // Sysout files are stored in big-endian format
+    if NeedsByteSwap():
+        SwapIFPAGE(ifpage)
+    
+    // Now validate (key check requires correct byte order)
     ValidateSysout(ifpage)
 
     // Allocate virtual memory
