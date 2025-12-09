@@ -111,28 +111,28 @@ When loading a sysout file, the PC must be initialized from the saved VM state:
 function InitializePCFromSysout(ifpage, virtual_memory):
     // Get current frame pointer from IFPAGE
     currentfxp = ifpage.currentfxp
-    
+
     // Read frame structure (FX) from virtual memory
     // CRITICAL: Frame fields are stored in big-endian format in sysout
     // Must byte-swap when reading on little-endian machines
     frame = ReadFrame(virtual_memory, currentfxp)
-    
+
     // Get function header address from frame
     fnheader_addr = frame.fnheader
-    
+
     // Read function header
     // CRITICAL: Function header fields are also big-endian
     fnheader = ReadFunctionHeader(virtual_memory, fnheader_addr)
-    
+
     // Calculate PC: function header address + startpc offset
     // C: PC = (ByteCode *)FuncObj + FuncObj->startpc;
     PC = fnheader_addr + fnheader.startpc
-    
+
     // Alternative: Use pcoffset from frame if fnheader unavailable
     // This is a fallback when proper address translation isn't available
     if PC is invalid:
         PC = frame.pcoffset  // Use saved PC offset from frame
-    
+
     return PC
 ```
 
@@ -432,12 +432,12 @@ When encountering an unknown opcode (not in the opcode table), the VM should:
 function HandleUnknownOpcode(opcode_byte, PC):
     // Log for debugging
     Log("Unknown opcode 0x%02X at PC=0x%X", opcode_byte, PC)
-    
+
     // Check if this might be a UFN (Undefined Function Name)
     // UFNs are opcodes that map to Lisp functions via UFN table
     if IsUFN(opcode_byte):
         return HandleUFN(opcode_byte, PC)
-    
+
     // For development: continue execution to identify missing opcodes
     // For production: halt with error
     if development_mode:

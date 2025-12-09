@@ -318,7 +318,7 @@ See `specs/005-zig-completion/` for detailed completion plan:
 **Challenges**:
 - Frame fields stored big-endian in sysout, must byte-swap
 - fnheader_addr may exceed virtual_memory bounds (needs FPtoVP translation)
-- Using pcoffset as fallback until proper address translation implemented
+- ✅ **RESOLVED**: Implemented `translateLispPTRToOffset()` in `utils/address.zig` to translate LispPTR addresses to virtual_memory offsets using FPtoVP table
 
 **C Reference**: `maiko/src/main.c:797-807` - `start_lisp()` initialization
 
@@ -363,7 +363,9 @@ See `specs/005-zig-completion/` for detailed completion plan:
 3. ✅ ~~Implement FPtoVP table loading~~ **DONE**
 4. ✅ ~~Implement page loading algorithm~~ **DONE**
 5. ✅ ~~Activate VM dispatch loop~~ **DONE**
-6. 🔄 **Phase 2**: Implement essential opcodes for Medley startup (T023-T034)
-7. 🔄 **Phase 3**: Complete essential opcodes for Medley startup (T035-T059)
-8. ⏳ **Phase 4**: Complete GC operations (T060-T074)
-9. ⏳ **Phase 5**: Integrate SDL2 display (T075+)
+6. ✅ ~~Implement address translation for PC initialization~~ **DONE**
+7. 🔄 **Phase 2**: Implement essential opcodes for Medley startup (T023-T034)
+8. 🔄 **Phase 3**: Complete essential opcodes for Medley startup (T035-T059)
+9. ✅ ~~**Phase 4**: Complete GC operations (T060-T074)~~ **DONE**
+10. ⏳ **Phase 5**: Integrate SDL2 display (T075+)
+11. ⏳ **Testing**: Test sysout loading and execution with actual sysout files

@@ -173,17 +173,17 @@ function ReadFrame(virtual_memory, frame_offset):
     // - link: LispPTR (4 bytes, offset 4)
     // - fnheader: LispPTR (4 bytes, offset 8)
     // - pcoffset: DLword (2 bytes, offset 12)
-    
+
     // Read fnheader field (offset 8 bytes from frame start)
     // CRITICAL: Byte-swap LispPTR from big-endian to little-endian
     fnheader_be = ReadU32BigEndian(virtual_memory, frame_offset + 8)
     fnheader_addr = ByteSwapU32(fnheader_be)
-    
+
     // Read pcoffset field (offset 12 bytes from frame start)
     // CRITICAL: Byte-swap DLword from big-endian to little-endian
     pcoffset_be = ReadU16BigEndian(virtual_memory, frame_offset + 12)
     pcoffset = ByteSwapU16(pcoffset_be)
-    
+
     return Frame(fnheader_addr, pcoffset, ...)
 ```
 
