@@ -184,24 +184,90 @@ function LoadSysoutFile(filename, process_size):
 
 ## Byte Swapping
 
+**CRITICAL**: Sysout files are stored in **big-endian byte order** (network byte order). When loading on a little-endian machine, byte swapping is required for all multi-byte values.
+
+### Byte Order in Sysout Files
+
+- **File Format**: Big-endian (network byte order)
+- **DLword fields**: Stored as `[high_byte, low_byte]`
+- **LispPTR fields**: Stored as two big-endian DLwords `[h1, l1, h2, l2]`
+- **IFPAGE structure**: All fields stored in big-endian format
+
 ### Byte Swap Detection
 
 ```pseudocode
-function NeedsByteSwap(ifpage):
-    // Check if bytes need swapping
-    // Based on host vs file byte order
-    return host_byte_order != file_byte_order
+function NeedsByteSwap():
+    // Sysout files are always big-endian
+    // Swap needed if host is little-endian
+    return host_byte_order == LITTLE_ENDIAN
 ```
 
-### Byte Swap Procedure
+**Note**: The C implementation uses `#ifdef BYTESWAP` to conditionally compile byte swapping code. On little-endian machines (e.g., x86_64), `BYTESWAP` is defined and byte swapping is performed.
+
+### Byte Swap Procedure for IFPAGE
+
+The IFPAGE structure must be byte-swapped immediately after reading from the file, before validation:
 
 ```pseudocode
-function SwapPage(page_data):
-    // Swap 16-bit words
-    for i = 0 to page_size / 2:
-        word = page_data[i * 2]
-        page_data[i * 2] = SwapBytes(word)
+function LoadSysoutFile(filename):
+    // Read IFPAGE from file
+    ifpage = ReadIFPAGE(file, IFPAGE_ADDRESS)
+    
+    // CRITICAL: Byte-swap IFPAGE if needed
+    if NeedsByteSwap():
+        SwapIFPAGE(ifpage)
+    
+    // Now validate (key check will work correctly)
+    ValidateSysout(ifpage)
+    // ... rest of loading ...
 ```
+
+### IFPAGE Byte Swapping
+
+The C implementation uses `word_swap_page()` which swaps 32-bit words using `ntohl()`:
+
+```pseudocode
+function SwapIFPAGE(ifpage):
+    // C: word_swap_page((unsigned short *)&ifpage, (3 + sizeof(IFPAGE)) / 4)
+    // This treats IFPAGE as array of u32 words and swaps each using ntohl()
+    // ntohl() converts: [b0, b1, b2, b3] -> [b3, b2, b1, b0]
+    
+    num_u32_words = (3 + sizeof(IFPAGE)) / 4
+    for i = 0 to num_u32_words:
+        word = ReadU32(ifpage, i * 4)
+        swapped_word = ntohl(word)  // Network to host long (32-bit)
+        WriteU32(ifpage, i * 4, swapped_word)
+```
+
+**Alternative Approach**: Since IFPAGE contains only DLword (u16) and LispPTR (u32) fields, swapping u16 words also works correctly:
+- DLword fields: Swap bytes `[b0, b1] -> [b1, b0]`
+- LispPTR fields: Swapped twice (once per u16), resulting in correct little-endian u32
+
+### FPtoVP Table Byte Swapping
+
+The FPtoVP table entries also need byte swapping:
+
+```pseudocode
+function LoadFPtoVPTable(file, ifpage):
+    // Read table entries
+    entries = ReadFPtoVPEntries(file, ...)
+    
+    // Byte-swap entries if needed
+    if NeedsByteSwap():
+        for i = 0 to num_entries:
+            if is_bigvm:
+                entries[i] = ntohl(entries[i])  // 32-bit entry
+            else:
+                entries[i] = ntohs(entries[i])  // 16-bit entry
+```
+
+**C Reference**: `maiko/src/ldsout.c:117-119, 254-270` - Byte swapping for IFPAGE and FPtoVP table
+
+### Memory Pages Byte Swapping
+
+Memory pages loaded from the sysout file may also need byte swapping, depending on their content type (code vs data). Code pages typically need byte swapping, while data pages may be handled differently.
+
+**C Reference**: `maiko/src/ldsout.c:327-328` - Byte swapping for memory pages
 
 ## Version Compatibility
 
