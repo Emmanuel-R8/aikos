@@ -38,6 +38,12 @@ function dispatch():
     CurrentFrame = InitialFrame
     TopOfStack = InitialValue
 
+    // CRITICAL: Stack must be initialized with at least one value (NIL = 0)
+    // before entering dispatch loop. This ensures conditional jumps (FJUMP/TJUMP)
+    // have a value to pop from the stack.
+    // C: start_lisp() -> TopOfStack = 0;
+    TopOfStack = 0  // Initialize with NIL
+
     // Main dispatch loop
     while not ErrorExit:
         // Fetch instruction
@@ -96,6 +102,43 @@ The program counter (PC) tracks the current instruction:
 - **Update**: Advanced by instruction length after execution
 - **Format**: Offset from function object base address
 - **Storage**: Stored in stack frame for return
+
+### PC Initialization from Sysout
+
+When loading a sysout file, the PC must be initialized from the saved VM state:
+
+```pseudocode
+function InitializePCFromSysout(ifpage, virtual_memory):
+    // Get current frame pointer from IFPAGE
+    currentfxp = ifpage.currentfxp
+    
+    // Read frame structure (FX) from virtual memory
+    // CRITICAL: Frame fields are stored in big-endian format in sysout
+    // Must byte-swap when reading on little-endian machines
+    frame = ReadFrame(virtual_memory, currentfxp)
+    
+    // Get function header address from frame
+    fnheader_addr = frame.fnheader
+    
+    // Read function header
+    // CRITICAL: Function header fields are also big-endian
+    fnheader = ReadFunctionHeader(virtual_memory, fnheader_addr)
+    
+    // Calculate PC: function header address + startpc offset
+    // C: PC = (ByteCode *)FuncObj + FuncObj->startpc;
+    PC = fnheader_addr + fnheader.startpc
+    
+    // Alternative: Use pcoffset from frame if fnheader unavailable
+    // This is a fallback when proper address translation isn't available
+    if PC is invalid:
+        PC = frame.pcoffset  // Use saved PC offset from frame
+    
+    return PC
+```
+
+**CRITICAL**: Frame and function header fields must be byte-swapped when reading from sysout files on little-endian machines. The sysout format stores all multi-byte values in big-endian format.
+
+**C Reference**: `maiko/src/main.c:797-807` - `start_lisp()` reads current frame and initializes PC
 
 ## Instruction Decode
 
@@ -376,6 +419,36 @@ function HandleExecutionError(error, opcode, operands):
         UnwindStack()
         ReportError(error, error_context)
 ```
+
+### Unknown Opcode Handling
+
+When encountering an unknown opcode (not in the opcode table), the VM should:
+
+1. **Log the opcode**: Record the opcode byte and PC for debugging
+2. **Check for UFN**: Unknown opcodes may be UFNs (Undefined Function Names) that require lookup
+3. **Continue or halt**: Depending on implementation, either continue execution (skipping the opcode) or halt with an error
+
+```pseudocode
+function HandleUnknownOpcode(opcode_byte, PC):
+    // Log for debugging
+    Log("Unknown opcode 0x%02X at PC=0x%X", opcode_byte, PC)
+    
+    // Check if this might be a UFN (Undefined Function Name)
+    // UFNs are opcodes that map to Lisp functions via UFN table
+    if IsUFN(opcode_byte):
+        return HandleUFN(opcode_byte, PC)
+    
+    // For development: continue execution to identify missing opcodes
+    // For production: halt with error
+    if development_mode:
+        PC = PC + 1  // Skip opcode byte
+        continue
+    else:
+        ErrorExit = true
+        ReportError("Unknown opcode", opcode_byte, PC)
+```
+
+**C Reference**: `maiko/src/xc.c:249-258` - `op_ufn` handler for unknown opcodes that are UFNs
 
 ## Related Documentation
 

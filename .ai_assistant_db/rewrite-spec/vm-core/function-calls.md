@@ -21,6 +21,7 @@ Function calls in the VM involve:
 **Opcode**: FN0 (0x08), FN1 (0x09), FN2 (0x0A), FN3 (0x0B), FN4 (0x0C)
 
 **Instruction Format**:
+
 - **Length**: 3 bytes for non-BIGATOMS (FN_OPCODE_SIZE = 3)
   - Byte 0: Opcode (0x08-0x0C)
   - Bytes 1-2: Atom index (DLword, 2 bytes) - `Get_AtomNo_PCMAC1` in C

@@ -40,7 +40,11 @@ The Zig implementation provides a complete framework for the Maiko emulator in Z
 - 🔄 **VM Execution** (P1 - In Progress)
   - ✅ VM dispatch loop activated in main.zig
   - ✅ VM state initialization from IFPAGE implemented
-  - ✅ Program counter initialization added
+  - ✅ Program counter initialization from frame.pcoffset implemented
+  - ✅ Stack initialization with NIL (TopOfStack = 0) implemented
+  - ✅ Unknown opcode handling (log and continue) implemented
+  - ✅ Frame structure reading with byte-swapping implemented
+  - ⚠️ Address translation for fnheader (needs FPtoVP translation)
   - ⚠️ Opcode handlers need completion (many stubs exist)
 
 - 🔄 **Essential Opcodes** (P1 - Critical Blocker)
@@ -209,15 +213,15 @@ Several opcodes in the Zig implementation don't exist in the C implementation an
 
 ## Implementation Statistics
 
-| Category | Status | Count | Notes |
-|----------|--------|-------|-------|
-| **Opcodes** | Partial | ~50/256 | Essential set needed for Medley startup |
-| **IFPAGE Fields** | ✅ Complete | ~100/100 | Matches C structure exactly |
-| **Sysout Loading** | ✅ Complete | 22/22 | Phase 1 tasks (T001-T022) complete |
-| **GC Operations** | Framework | 0/3 | ADDREF, DELREF, reclamation pending |
-| **Display Integration** | Framework | 0/3 | Initialization, BitBLT, events pending |
-| **Test Coverage** | Structure | Framework | Needs sysout loading tests |
-| **Build Status** | ✅ Success | - | All compilation errors fixed |
+| Category                | Status     | Count     | Notes                                   |
+| ----------------------- | ---------- | --------- | --------------------------------------- |
+| **Opcodes**             | Partial    | ~50/256   | Essential set needed for Medley startup |
+| **IFPAGE Fields**       | ✅ Complete | ~100/100  | Matches C structure exactly             |
+| **Sysout Loading**      | ✅ Complete | 22/22     | Phase 1 tasks (T001-T022) complete      |
+| **GC Operations**       | Framework  | 0/3       | ADDREF, DELREF, reclamation pending     |
+| **Display Integration** | Framework  | 0/3       | Initialization, BitBLT, events pending  |
+| **Test Coverage**       | Structure  | Framework | Needs sysout loading tests              |
+| **Build Status**        | ✅ Success  | -         | All compilation errors fixed            |
 
 ## Build and Run
 
@@ -285,11 +289,72 @@ See `specs/005-zig-completion/` for detailed completion plan:
 ## Known Issues
 
 1. ✅ **Sysout Loading**: Fixed IFPAGE_KEYVAL, complete IFPAGE structure, FPtoVP and page loading implemented
-2. ⚠️ **Byte Swapping**: Stubbed, needs cross-platform testing
-3. ⚠️ **Many Opcodes Placeholders**: ~200 opcodes need implementation (stubs exist)
-4. ⚠️ **GC Incomplete**: Hash table operations pending (GCREF handler is stub)
-5. ⚠️ **SDL2 Not Integrated**: Framework ready but rendering not implemented
-6. ⚠️ **Opcode Conflicts**: Several opcodes removed due to conflicts with C implementation
+2. ✅ **PC Initialization**: Implemented reading from frame.pcoffset with byte-swapping
+3. ✅ **Stack Initialization**: Implemented TopOfStack = 0 initialization before dispatch loop
+4. ✅ **Unknown Opcode Handling**: Implemented logging and graceful continuation for debugging
+5. ✅ **Frame Reading**: Implemented frame structure reading with big-endian byte-swapping
+6. ⚠️ **Address Translation**: fnheader_addr from frame needs FPtoVP translation (currently exceeds virtual_memory bounds)
+7. ⚠️ **Byte Swapping**: Frame and function header byte-swapping implemented, needs cross-platform testing
+8. ⚠️ **Many Opcodes Placeholders**: ~200 opcodes need implementation (stubs exist)
+9. ⚠️ **GC Incomplete**: Hash table operations pending (GCREF handler is stub)
+10. ⚠️ **SDL2 Not Integrated**: Framework ready but rendering not implemented
+11. ⚠️ **Opcode Conflicts**: Several opcodes removed due to conflicts with C implementation
+12. ✅ **LIST/APPEND Opcodes**: Verified that LIST and APPEND opcodes do not exist in C implementation (maiko/inc/opcodes.h). Lists are created via CONS opcode, which is already implemented. Tasks T048-T049 cancelled.
+
+## Recent Implementation Details (2025-12-07)
+
+### PC Initialization from Sysout
+
+**Implementation**: `maiko/alternatives/zig/src/vm/dispatch.zig:initializeVMState()`
+
+**Approach**:
+1. Read `currentfxp` from IFPAGE (stack offset)
+2. Read frame structure (FX) from virtual_memory at `currentfxp` offset
+3. Byte-swap frame fields (big-endian to little-endian)
+4. Read `fnheader` address from frame
+5. Attempt to read function header and get `startpc`
+6. Fallback to `pcoffset` from frame if fnheader address is invalid
+
+**Challenges**:
+- Frame fields stored big-endian in sysout, must byte-swap
+- fnheader_addr may exceed virtual_memory bounds (needs FPtoVP translation)
+- Using pcoffset as fallback until proper address translation implemented
+
+**C Reference**: `maiko/src/main.c:797-807` - `start_lisp()` initialization
+
+### Stack Initialization
+
+**Implementation**: `maiko/alternatives/zig/src/vm/dispatch.zig:initializeVMState()`
+
+**Approach**:
+- Push NIL (0) onto stack before entering dispatch loop
+- Ensures conditional jumps have a value to pop
+
+**C Reference**: `maiko/src/main.c:794` - `TopOfStack = 0;`
+
+### Unknown Opcode Handling
+
+**Implementation**: `maiko/alternatives/zig/src/vm/dispatch.zig:dispatch()`
+
+**Approach**:
+- Log unknown opcode byte and PC
+- Advance PC by 1 byte and continue execution
+- Allows identifying missing opcodes during development
+
+**Future**: Will implement UFN lookup for opcodes that map to Lisp functions
+
+### Frame Reading with Byte-Swapping
+
+**Implementation**: `maiko/alternatives/zig/src/vm/dispatch.zig:initializeVMState()`
+
+**Approach**:
+- Read frame fields directly from virtual_memory byte array
+- Byte-swap multi-byte fields (LispPTR, DLword) from big-endian to little-endian
+- Handle alignment requirements (frames are 2-byte aligned)
+
+**Challenges**:
+- Zig's strict alignment checking prevents direct pointer casting
+- Must read fields byte-by-byte and reconstruct values
 
 ## Next Steps
 

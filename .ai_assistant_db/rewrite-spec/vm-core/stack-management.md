@@ -63,6 +63,23 @@ struct FrameEx:
 - Marks free stack block
 - Used for stack space management
 
+## Stack Initialization
+
+### Initial Stack State
+
+**CRITICAL**: Before entering the dispatch loop, the stack must be initialized with at least one value (NIL = 0). This ensures that conditional jump opcodes (FJUMP/TJUMP) have a value to pop from the stack.
+
+```pseudocode
+function InitializeStack():
+    // C: start_lisp() -> TopOfStack = 0;
+    PushStack(0)  // Push NIL onto stack
+    // Stack is now ready for execution
+```
+
+**Rationale**: The first opcodes executed may be conditional jumps that pop from the stack. Without an initial value, these opcodes would cause stack underflow errors.
+
+**C Reference**: `maiko/src/main.c:794` - `TopOfStack = 0;` before entering dispatch loop
+
 ## Stack Operations
 
 ### Push Stack

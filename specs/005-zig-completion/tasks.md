@@ -62,15 +62,15 @@
 
 ### Implementation for User Story 2
 
-- [X] T023 [US2] Verify existing arithmetic opcodes (IPLUS2, IDIFFERENCE, ITIMES2, IQUO, IREM) produce correct results in maiko/alternatives/zig/src/vm/opcodes.zig
-- [X] T024 [US2] Verify existing stack operations (PUSH, POP, SWAP) handle stack state correctly in maiko/alternatives/zig/src/vm/opcodes.zig
-- [X] T025 [US2] Implement function call opcode CALL handler in maiko/alternatives/zig/src/vm/opcodes.zig (FN0-FN4 handlers implemented)
-- [X] T026 [US2] Implement function return opcode RETURN handler in maiko/alternatives/zig/src/vm/opcodes.zig
+- [X] T023 [US2] Verify existing arithmetic opcodes (IPLUS2, IDIFFERENCE, ITIMES2, IQUO, IREM) produce correct results in maiko/alternatives/zig/src/vm/opcodes/arithmetic.zig
+- [X] T024 [US2] Verify existing stack operations (PUSH, POP, SWAP) handle stack state correctly in maiko/alternatives/zig/src/vm/opcodes/stack_ops.zig
+- [X] T025 [US2] Implement function call opcode CALL handler in maiko/alternatives/zig/src/vm/opcodes/function_calls.zig (FN0-FN4 handlers implemented)
+- [X] T026 [US2] Implement function return opcode RETURN handler in maiko/alternatives/zig/src/vm/opcodes/function_calls.zig
 - [X] T027 [US2] Implement stack frame creation for function calls in maiko/alternatives/zig/src/vm/function.zig
 - [X] T028 [US2] Implement stack frame cleanup for function returns in maiko/alternatives/zig/src/vm/function.zig
 - [X] T029 [US2] Add error handling for stack overflow in stack operations in maiko/alternatives/zig/src/vm/stack.zig
 - [X] T030 [US2] Add error handling for stack underflow in stack operations in maiko/alternatives/zig/src/vm/stack.zig
-- [X] T031 [US2] Implement error handling matching C emulator behavior for invalid opcodes in maiko/alternatives/zig/src/vm/dispatch.zig
+- [X] T031 [US2] Implement error handling matching C emulator behavior for invalid opcodes in maiko/alternatives/zig/src/vm/dispatch.zig and maiko/alternatives/zig/src/vm/dispatch/execution.zig
 - [X] T032 [US2] Add test case for arithmetic opcode execution matching C emulator results in maiko/alternatives/zig/tests/opcodes.zig
 - [X] T033 [US2] Add test case for stack operation execution matching C emulator results in maiko/alternatives/zig/tests/stack.zig
 - [X] T034 [US2] Add test case for function call and return execution in maiko/alternatives/zig/tests/function_calls.zig
@@ -87,26 +87,26 @@
 
 ### Implementation for User Story 3
 
-- [ ] T035 [US3] Complete cons cell CAR operation implementation in maiko/alternatives/zig/src/data/cons.zig
-- [ ] T036 [US3] Complete cons cell CDR operation implementation in maiko/alternatives/zig/src/data/cons.zig
-- [ ] T037 [US3] Complete cons cell CONS operation implementation in maiko/alternatives/zig/src/data/cons.zig
-- [ ] T038 [US3] Implement CAR opcode handler calling cons cell operation in maiko/alternatives/zig/src/vm/opcodes.zig
-- [ ] T039 [US3] Implement CDR opcode handler calling cons cell operation in maiko/alternatives/zig/src/vm/opcodes.zig
-- [ ] T040 [US3] Implement CONS opcode handler calling cons cell operation in maiko/alternatives/zig/src/vm/opcodes.zig
-- [ ] T041 [US3] Complete variable access IVAR implementation for all variants in maiko/alternatives/zig/src/vm/opcodes.zig
-- [ ] T042 [US3] Complete variable access PVAR implementation for all variants (PVAR_0-PVAR_6, PVARX_) in maiko/alternatives/zig/src/vm/opcodes.zig
-- [ ] T043 [US3] Complete variable access FVAR implementation for all variants in maiko/alternatives/zig/src/vm/opcodes.zig
-- [ ] T044 [US3] Complete variable access GVAR implementation for all variants in maiko/alternatives/zig/src/vm/opcodes.zig
-- [X] T045 [US3] Implement JUMP opcode variants (JUMP0-JUMP15) in maiko/alternatives/zig/src/vm/opcodes.zig
-- [X] T046 [US3] Implement FJUMP opcode variants (FJUMP0-FJUMP15) in maiko/alternatives/zig/src/vm/opcodes.zig
-- [X] T047 [US3] Implement TJUMP opcode variants (TJUMP0-TJUMP15) in maiko/alternatives/zig/src/vm/opcodes.zig
-- [ ] T048 [US3] Implement LIST opcode handler for list creation in maiko/alternatives/zig/src/vm/opcodes.zig
+- [X] T035 [US3] Complete cons cell CAR operation implementation in maiko/alternatives/zig/src/data/cons.zig
+- [X] T036 [US3] Complete cons cell CDR operation implementation in maiko/alternatives/zig/src/data/cons.zig
+- [X] T037 [US3] Complete cons cell CONS operation implementation in maiko/alternatives/zig/src/data/cons.zig
+- [X] T038 [US3] Implement CAR opcode handler calling cons cell operation in maiko/alternatives/zig/src/vm/opcodes/data_ops.zig
+- [X] T039 [US3] Implement CDR opcode handler calling cons cell operation in maiko/alternatives/zig/src/vm/opcodes/data_ops.zig
+- [X] T040 [US3] Implement CONS opcode handler calling cons cell operation in maiko/alternatives/zig/src/vm/opcodes/data_ops.zig
+- [X] T041 [US3] Complete variable access IVAR implementation for all variants in maiko/alternatives/zig/src/vm/opcodes/variable_access.zig
+- [X] T042 [US3] Complete variable access PVAR implementation for all variants (PVAR_0-PVAR_6, PVARX_) in maiko/alternatives/zig/src/vm/opcodes/variable_access.zig
+- [X] T043 [US3] Complete variable access FVAR implementation for all variants in maiko/alternatives/zig/src/vm/opcodes/variable_access.zig
+- [X] T044 [US3] Complete variable access GVAR implementation for all variants in maiko/alternatives/zig/src/vm/opcodes/variable_access.zig
+- [X] T045 [US3] Implement JUMP opcode variants (JUMP0-JUMP15) in maiko/alternatives/zig/src/vm/opcodes/control_flow.zig
+- [X] T046 [US3] Implement FJUMP opcode variants (FJUMP0-FJUMP15) in maiko/alternatives/zig/src/vm/opcodes/control_flow.zig
+- [X] T047 [US3] Implement TJUMP opcode variants (TJUMP0-TJUMP15) in maiko/alternatives/zig/src/vm/opcodes/control_flow.zig
+- [ ] T048 [US3] Implement LIST opcode handler for list creation in maiko/alternatives/zig/src/vm/opcodes/data_ops.zig
   - NOTE: LIST opcode not found in C opcodes.h - lists are created via CONS. May need to verify if this is needed or if CONS is sufficient.
-- [ ] T049 [US3] Implement APPEND opcode handler for list concatenation in maiko/alternatives/zig/src/vm/opcodes.zig
+- [ ] T049 [US3] Implement APPEND opcode handler for list concatenation in maiko/alternatives/zig/src/vm/opcodes/data_ops.zig
   - NOTE: APPEND opcode not found in C opcodes.h - list concatenation may be done via other mechanisms. May need to verify if this is needed.
-- [X] T050 [US3] Implement RPLACA opcode handler for replacing CAR in maiko/alternatives/zig/src/vm/opcodes.zig
-- [X] T051 [US3] Implement RPLACD opcode handler for replacing CDR in maiko/alternatives/zig/src/vm/opcodes.zig
-- [X] T052 [US3] Implement UNWIND opcode handler for stack unwinding in maiko/alternatives/zig/src/vm/opcodes.zig
+- [X] T050 [US3] Implement RPLACA opcode handler for replacing CAR in maiko/alternatives/zig/src/vm/opcodes/data_ops.zig
+- [X] T051 [US3] Implement RPLACD opcode handler for replacing CDR in maiko/alternatives/zig/src/vm/opcodes/data_ops.zig
+- [X] T052 [US3] Implement UNWIND opcode handler for stack unwinding in maiko/alternatives/zig/src/vm/opcodes/type_checking.zig
 - [ ] T053 [US3] Add test case for cons cell operations (CAR, CDR, CONS) in maiko/alternatives/zig/tests/cons.zig
 - [ ] T054 [US3] Add test case for variable access operations in maiko/alternatives/zig/tests/opcodes.zig
 - [ ] T055 [US3] Add test case for jump opcode variants in maiko/alternatives/zig/tests/opcodes.zig
@@ -191,7 +191,11 @@
 - [ ] T099 [P] Document FPtoVP table loading algorithm with exact byte offset calculations in .ai_assistant_db/rewrite-spec/data-structures/sysout-format.md
 - [ ] T100 [P] Document page loading algorithm with byte swapping details in .ai_assistant_db/rewrite-spec/data-structures/sysout-format.md
 - [ ] T101 [P] Document essential opcodes list for Medley startup in .ai_assistant_db/implementations/zig-implementation.md
-- [ ] T102 [P] Code cleanup and refactoring across all modified files
+- [X] T102 [P] Code cleanup and refactoring across all modified files
+  - ✅ Split opcodes.zig into 13 modular files (2025-01-27)
+  - ✅ Split dispatch.zig into 3 modular files (2025-01-27)
+  - ✅ Fixed bug in comparison.zig eqlDeep function (duplicate code removed)
+  - ✅ All files now under 500 lines (user preference)
 - [ ] T103 [P] Performance optimization for sysout loading (target < 5 seconds)
 - [ ] T104 [P] Performance optimization for bytecode execution
 - [ ] T105 [P] Run quickstart.md validation to ensure all steps work correctly
@@ -257,10 +261,10 @@ Task: "Complete cons cell CDR operation implementation in maiko/alternatives/zig
 Task: "Complete cons cell CONS operation implementation in maiko/alternatives/zig/src/data/cons.zig"
 
 # Launch variable access implementations in parallel:
-Task: "Complete variable access IVAR implementation for all variants in maiko/alternatives/zig/src/vm/opcodes.zig"
-Task: "Complete variable access PVAR implementation for all variants in maiko/alternatives/zig/src/vm/opcodes.zig"
-Task: "Complete variable access FVAR implementation for all variants in maiko/alternatives/zig/src/vm/opcodes.zig"
-Task: "Complete variable access GVAR implementation for all variants in maiko/alternatives/zig/src/vm/opcodes.zig"
+Task: "Complete variable access IVAR implementation for all variants in maiko/alternatives/zig/src/vm/opcodes/variable_access.zig"
+Task: "Complete variable access PVAR implementation for all variants in maiko/alternatives/zig/src/vm/opcodes/variable_access.zig"
+Task: "Complete variable access FVAR implementation for all variants in maiko/alternatives/zig/src/vm/opcodes/variable_access.zig"
+Task: "Complete variable access GVAR implementation for all variants in maiko/alternatives/zig/src/vm/opcodes/variable_access.zig"
 ```
 
 ---

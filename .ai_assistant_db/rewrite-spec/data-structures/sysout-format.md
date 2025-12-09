@@ -135,12 +135,12 @@ function LoadSysoutFile(filename, process_size):
 
     // Read IFPAGE
     ifpage = ReadIFPAGE(file, IFPAGE_ADDRESS)
-    
+
     // CRITICAL: Byte-swap IFPAGE if host is little-endian
     // Sysout files are stored in big-endian format
     if NeedsByteSwap():
         SwapIFPAGE(ifpage)
-    
+
     // Now validate (key check requires correct byte order)
     ValidateSysout(ifpage)
 
@@ -161,6 +161,35 @@ function LoadSysoutFile(filename, process_size):
 
     return virtual_memory
 ```
+
+### Frame Structure Reading
+
+When reading frame structures (FX) from sysout files, multi-byte fields must be byte-swapped:
+
+```pseudocode
+function ReadFrame(virtual_memory, frame_offset):
+    // FX structure fields (all stored big-endian in sysout):
+    // - nextblock: LispPTR (4 bytes, offset 0)
+    // - link: LispPTR (4 bytes, offset 4)
+    // - fnheader: LispPTR (4 bytes, offset 8)
+    // - pcoffset: DLword (2 bytes, offset 12)
+    
+    // Read fnheader field (offset 8 bytes from frame start)
+    // CRITICAL: Byte-swap LispPTR from big-endian to little-endian
+    fnheader_be = ReadU32BigEndian(virtual_memory, frame_offset + 8)
+    fnheader_addr = ByteSwapU32(fnheader_be)
+    
+    // Read pcoffset field (offset 12 bytes from frame start)
+    // CRITICAL: Byte-swap DLword from big-endian to little-endian
+    pcoffset_be = ReadU16BigEndian(virtual_memory, frame_offset + 12)
+    pcoffset = ByteSwapU16(pcoffset_be)
+    
+    return Frame(fnheader_addr, pcoffset, ...)
+```
+
+**CRITICAL**: All multi-byte fields in frame structures are stored in big-endian format in sysout files. When reading on little-endian machines, byte swapping is required.
+
+**C Reference**: `maiko/src/main.c:797-807` - Frame reading and PC initialization
 
 ## Memory Regions in Sysout
 
@@ -219,11 +248,11 @@ The IFPAGE structure must be byte-swapped immediately after reading from the fil
 function LoadSysoutFile(filename):
     // Read IFPAGE from file
     ifpage = ReadIFPAGE(file, IFPAGE_ADDRESS)
-    
+
     // CRITICAL: Byte-swap IFPAGE if needed
     if NeedsByteSwap():
         SwapIFPAGE(ifpage)
-    
+
     // Now validate (key check will work correctly)
     ValidateSysout(ifpage)
     // ... rest of loading ...
@@ -238,7 +267,7 @@ function SwapIFPAGE(ifpage):
     // C: word_swap_page((unsigned short *)&ifpage, (3 + sizeof(IFPAGE)) / 4)
     // This treats IFPAGE as array of u32 words and swaps each using ntohl()
     // ntohl() converts: [b0, b1, b2, b3] -> [b3, b2, b1, b0]
-    
+
     num_u32_words = (3 + sizeof(IFPAGE)) / 4
     for i = 0 to num_u32_words:
         word = ReadU32(ifpage, i * 4)
@@ -247,6 +276,7 @@ function SwapIFPAGE(ifpage):
 ```
 
 **Alternative Approach**: Since IFPAGE contains only DLword (u16) and LispPTR (u32) fields, swapping u16 words also works correctly:
+
 - DLword fields: Swap bytes `[b0, b1] -> [b1, b0]`
 - LispPTR fields: Swapped twice (once per u16), resulting in correct little-endian u32
 
@@ -258,7 +288,7 @@ The FPtoVP table entries also need byte swapping:
 function LoadFPtoVPTable(file, ifpage):
     // Read table entries
     entries = ReadFPtoVPEntries(file, ...)
-    
+
     // Byte-swap entries if needed
     if NeedsByteSwap():
         for i = 0 to num_entries:
@@ -296,6 +326,7 @@ function CheckVersionCompatibility(ifpage):
 ```
 
 **CRITICAL**: Version constants are defined in `maiko/inc/version.h`:
+
 - `LVERSION = 21000` - Minimum Lisp version required
 - `MINBVERSION = 21001` - Maximum bytecode version supported
 

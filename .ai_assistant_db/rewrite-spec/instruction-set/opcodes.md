@@ -206,6 +206,21 @@ Unused opcodes trigger UFN (Undefined Function Name) handling.
 
 **Why**: The optimized variants (`JUMP0`-`JUMP15`, etc.) encode small offsets directly in the opcode, reducing instruction size for common cases.
 
+### List Creation Opcodes
+
+**Myth**: `LIST` and `APPEND` opcodes exist for list creation and concatenation.
+
+**Reality**: These opcodes do not exist in the Maiko VM instruction set:
+- **LIST opcode**: Does not exist. Lists are created using the `CONS` opcode (0x1A) repeatedly.
+- **APPEND opcode**: Does not exist. List concatenation is handled via:
+  - `RESTLIST` opcode (0x23) for list traversal
+  - `RPLCONS` opcode (0x26) for cons cell manipulation
+  - Lisp-level functions implemented in the Lisp runtime
+
+**Why**: List construction is typically done via repeated `CONS` operations, which is more efficient for the VM's execution model. List concatenation is handled at the Lisp level rather than as a primitive VM operation.
+
+**Verification**: Confirmed by examining `maiko/inc/opcodes.h` - no `opc_LIST` or `opc_APPEND` enum values exist.
+
 ### Character Opcodes
 
 **Myth**: `CHARCODE` and `CHARN` opcodes exist for character operations.

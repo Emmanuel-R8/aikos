@@ -19,6 +19,7 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL).
 - **Test Files**: 11 test files
 
 **Key Features**:
+
 - Complete VM core with dispatch loop
 - Memory management (storage, GC, virtual memory)
 - Display subsystem (SDL3 backend)
@@ -40,6 +41,7 @@ Implementation of the Maiko emulator in Zig programming language.
 - **Test Files**: Test suite structure
 
 **Key Features**:
+
 - Complete framework structure
 - VM core framework (dispatch loop structure)
 - Memory management framework (GC, storage, virtual memory)
@@ -48,6 +50,7 @@ Implementation of the Maiko emulator in Zig programming language.
 - Comprehensive opcode enumeration
 
 **Critical Blockers**:
+
 - Sysout loading fails (wrong IFPAGE_KEYVAL: 0x12345678 vs 0x15e3)
 - Incomplete IFPAGE structure
 - FPtoVP table loading not implemented
@@ -57,10 +60,10 @@ Implementation of the Maiko emulator in Zig programming language.
 
 ## Implementation Status
 
-| Implementation | Language | Status | Opcodes | Tasks | Location |
-|----------------|----------|--------|---------|-------|----------|
-| Common Lisp | SBCL | ✅ Complete | 189/256 | 77/78 | `maiko/alternatives/lisp/` |
-| Zig | Zig 0.15.2+ | 🔄 Phase 1 Complete | ~50/256 | 22/22 Phase 1 | `maiko/alternatives/zig/` |
+| Implementation | Language    | Status             | Opcodes | Tasks         | Location                   |
+| -------------- | ----------- | ------------------ | ------- | ------------- | -------------------------- |
+| Common Lisp    | SBCL        | ✅ Complete         | 189/256 | 77/78         | `maiko/alternatives/lisp/` |
+| Zig            | Zig 0.15.2+ | 🔄 Phase 1 Complete | ~50/256 | 22/22 Phase 1 | `maiko/alternatives/zig/`  |
 
 ## Related Documentation
 

@@ -96,15 +96,34 @@ specs/005-zig-completion/
 maiko/alternatives/zig/
 ├── build.zig            # Build configuration (SDL2 already enabled)
 ├── src/
-│   ├── main.zig         # Entry point (needs VM activation)
+│   ├── main.zig         # Entry point (VM activation complete ✅)
 │   ├── data/
-│   │   └── sysout.zig   # Sysout loading (needs IFPAGE fix, FPtoVP, page loading)
+│   │   └── sysout.zig   # Sysout loading (IFPAGE fix, FPtoVP, page loading complete ✅)
 │   ├── vm/
-│   │   ├── dispatch.zig # Dispatch loop (needs activation)
-│   │   └── opcodes.zig  # Opcode handlers (needs essential opcodes)
+│   │   ├── dispatch.zig  # Main dispatch loop (166 lines - split from 1150) ✅
+│   │   ├── dispatch/     # Dispatch modules (split for maintainability) ✅
+│   │   │   ├── instruction.zig  # Instruction struct, Opcode enum, decoding (533 lines)
+│   │   │   └── execution.zig   # Execution functions, opcode switch (475 lines)
+│   │   ├── opcodes.zig  # Opcode handler re-exports (199 lines - split from 2820) ✅
+│   │   ├── opcodes/     # Opcode modules (split for maintainability) ✅
+│   │   │   ├── arithmetic.zig      # Integer and general arithmetic (263 lines)
+│   │   │   ├── bitwise.zig          # Bitwise operations (132 lines)
+│   │   │   ├── stack_ops.zig        # Stack manipulation (68 lines)
+│   │   │   ├── function_calls.zig   # Function calls and returns (91 lines)
+│   │   │   ├── binding.zig          # Binding operations (68 lines)
+│   │   │   ├── control_flow.zig     # Jump operations (105 lines)
+│   │   │   ├── data_ops.zig          # CAR, CDR, CONS, RPLACA, RPLACD (277 lines)
+│   │   │   ├── array_ops.zig         # Array operations (189 lines)
+│   │   │   ├── comparison.zig       # Comparison operations (234 lines)
+│   │   │   ├── type_checking.zig    # Type checking (145 lines)
+│   │   │   ├── variable_access.zig   # Variable access (340 lines)
+│   │   │   ├── floating_point.zig    # Floating point operations (80 lines)
+│   │   │   └── misc.zig              # Miscellaneous operations (938 lines)
+│   │   ├── stack.zig     # Stack management (complete ✅)
+│   │   └── function.zig  # Function call management (complete ✅)
 │   ├── memory/
 │   │   ├── gc.zig       # GC operations (needs hash table operations)
-│   │   └── virtual.zig  # Virtual memory (needs FPtoVP integration)
+│   │   └── virtual.zig   # Virtual memory (FPtoVP integration complete ✅)
 │   ├── display/
 │   │   ├── sdl_backend.zig # SDL backend (needs rendering implementation)
 │   │   └── graphics.zig    # BitBLT operations (needs implementation)
@@ -119,7 +138,11 @@ maiko/alternatives/zig/
     └── zig-implementation.md # Needs creation/update with completion status
 ```
 
-**Structure Decision**: This is a completion project modifying existing Zig implementation. No new directory structure needed. Modifications will be made to existing files in `maiko/alternatives/zig/src/`. Knowledge base updates will be made to `.ai_assistant_db/` with new insights and corrections.
+**Structure Decision**: This is a completion project modifying existing Zig implementation. Code organization improvements completed:
+- **opcodes.zig split** (2025-01-27): Split 2,820-line monolithic file into 13 modular files in `vm/opcodes/` directory, each under 500 lines for better maintainability
+- **dispatch.zig split** (2025-01-27): Split 1,150-line file into 3 modules in `vm/dispatch/` directory for better separation of concerns
+- All handlers remain accessible via re-export files maintaining backward compatibility
+- Knowledge base updates will be made to `.ai_assistant_db/` with new insights and corrections
 
 ## Complexity Tracking
 
@@ -175,4 +198,8 @@ No violations - all constitution principles satisfied.
 - ✅ `.ai_assistant_db/implementations/zig-implementation.md` - Zig implementation status
 - ✅ `.ai_assistant_db/implementations/README.md` - Updated with Zig entry
 
-**Next Steps**: Proceed to Phase 2 (tasks creation) or begin implementation following quickstart guide.
+**Code Organization**:
+- ✅ `opcodes.zig` split into 13 modular files (2025-01-27)
+- ✅ `dispatch.zig` split into 3 modular files (2025-01-27)
+
+**Next Steps**: Continue with Phase 3 essential opcodes verification and testing, then proceed to Phase 4 (GC operations) and Phase 5 (SDL2 integration).
