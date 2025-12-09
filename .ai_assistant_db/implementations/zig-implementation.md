@@ -47,8 +47,10 @@ The Zig implementation provides a complete framework for the Maiko emulator in Z
   - ✅ Address translation: LispPTR values are DLword offsets (multiply by 2 for bytes)
   - ✅ Frame addressing: currentfxp is DLword StackOffset from Stackspace (STK_OFFSET * 2 = 0x20000)
   - ✅ Frame reading: Frame structure reading implemented with byte-swapping
-  - ⚠️ PC initialization: Frame fnheader is 0 in saved sysout, pcoffset=115 but points to zeros
-  - ⚠️ Entry point detection: Need to find correct entry point when frame is uninitialized
+  - ✅ Frame field offsets: Corrected pc field offset (10 bytes, not 12)
+  - ⚠️ PC initialization: Frame is completely uninitialized (all zeros) in saved sysout
+  - ⚠️ Entry point detection: C code expects CURRENTFX->nextblock to point to STK_FSB_WORD, but frame is uninitialized
+  - ⚠️ Frame initialization: May need to initialize frame or find entry point from alternative source
   - ⚠️ Opcode handlers need completion (many stubs exist)
 
 - 🔄 **Essential Opcodes** (P1 - Critical Blocker)
