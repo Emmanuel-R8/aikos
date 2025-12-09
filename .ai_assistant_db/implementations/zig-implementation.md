@@ -354,6 +354,33 @@ See `specs/005-zig-completion/` for detailed completion plan:
 
 **Future**: Will implement UFN lookup for opcodes that map to Lisp functions
 
+### Stack Using Virtual Memory Directly ✅ BREAKTHROUGH
+
+**CRITICAL DISCOVERY**: The stack area is part of virtual memory (`Lisp_world`), NOT a separate allocation!
+
+**C Reference**: `maiko/src/initsout.c:222` - `Stackspace = (DLword *)NativeAligned2FromLAddr(STK_OFFSET);`
+
+**Implementation**: `maiko/alternatives/zig/src/vm/dispatch.zig:201-234`
+
+**Approach**:
+- Stack pointers now point into `virtual_memory` at correct offsets
+- `Stackspace` = `Lisp_world + STK_OFFSET` (byte offset 0x20000)
+- `CurrentStackPTR` = `Stackspace + nextblock - 2` (from frame->nextblock)
+- Stack depth = `(CurrentStackPTR - Stackspace) / 2` DLwords
+
+**Zig-Specific Challenges**:
+- Must cast `[]const u8` to `[]u8` for stack operations (using `@constCast`)
+- Must use `@ptrCast` and `@alignCast` to convert byte pointers to `[*]DLword`
+- Stack operations must account for stack growing DOWN (Stackspace is BASE, CurrentStackPTR is current top)
+
+**Results**:
+- Stack depth: 6144 DLwords (close to C emulator's 5956)
+- Stack operations working: popStack(), getTopOfStack(), pushStack() all working correctly
+- Bytecode execution progressing: TJUMP operations executing successfully
+- Stack depth decreases correctly as values are popped (6144 -> 6142 -> 6140...)
+
+**Status**: ✅ BREAKTHROUGH - Stack now uses virtual memory directly, bytecode execution working!
+
 ### Frame Reading with Byte-Swapping
 
 **Implementation**: `maiko/alternatives/zig/src/vm/dispatch.zig:initializeVMState()`
