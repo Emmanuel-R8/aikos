@@ -29,7 +29,8 @@ pub const VM = struct {
     stack_end: [*]DLword,
     // Memory management (optional - can be null)
     storage: ?*@import("../memory/storage.zig").Storage,
-    virtual_memory: ?*const @import("../memory/virtual.zig").VirtualMemory,
+    virtual_memory: ?[]const u8, // Virtual memory as byte slice (from sysout)
+    fptovp: ?[]const u16, // FPtoVP table for address translation
     // Execution state
     pc: LispPTR, // Current program counter (managed by dispatch loop)
     return_pc: ?LispPTR, // PC to return to after function call
@@ -46,6 +47,7 @@ pub const VM = struct {
             .stack_end = stack_mem.ptr,
             .storage = null,
             .virtual_memory = null,
+            .fptovp = null,
             .pc = 0,
             .return_pc = null,
         };

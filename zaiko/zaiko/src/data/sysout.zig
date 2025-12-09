@@ -72,12 +72,12 @@ pub fn loadSysout(allocator: std.mem.Allocator, filename: []const u8) errors.Mem
         std.debug.print("Failed to read complete IFPAGE: read {} bytes, expected {}\n", .{ bytes_read, @sizeOf(IFPAGE) });
         return error.SysoutLoadFailed;
     }
-    
+
     // Byte-swap all DLword fields (sysout is big-endian, we're little-endian)
     // C: word_swap_page((unsigned short *)&ifpage, (3 + sizeof(IFPAGE)) / 4)
     // We need to swap all DLword (u16) fields in the IFPAGE struct
     swapIFPAGEBytes(&ifpage);
-    
+
     std.debug.print("IFPAGE read: key=0x{x}, lversion={}, minbversion={}, process_size={}\n", .{ ifpage.key, ifpage.lversion, ifpage.minbversion, ifpage.process_size });
 
     // Validate sysout
@@ -228,7 +228,7 @@ pub fn loadFPtoVPTable(
     } else {
         // For non-BIGVM, read as u16 (little-endian)
         for (0..num_file_pages) |i| {
-            entries[i] = std.mem.readInt(u16, table_buffer[i * 2..][0..2], .little);
+            entries[i] = std.mem.readInt(u16, table_buffer[i * 2 ..][0..2], .little);
         }
     }
 

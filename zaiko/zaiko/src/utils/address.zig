@@ -75,3 +75,33 @@ pub fn lispAddressFromNative(native: [*]DLword, fptovp: []LispPTR) LispPTR {
     const native_addr = @intFromPtr(native);
     return @as(LispPTR, @intCast(native_addr));
 }
+
+/// Translate LispPTR to offset in virtual_memory slice
+/// This is used when we have a flat virtual_memory array and need to find
+/// where a LispPTR address maps to.
+/// The FPtoVP table maps file pages to virtual pages, and virtual_memory
+/// is organized by virtual page addresses.
+/// Per rewrite-spec/memory/address-translation.md
+pub fn translateLispPTRToOffset(ptr: LispPTR, fptovp: []const u16, virtual_memory_len: usize) ?usize {
+    _ = fptovp; // TODO: Verify page is actually loaded by checking FPtoVP reverse mapping
+
+    // Extract virtual page number and offset
+    const virtual_page_num = layout.getPageNumber(ptr);
+    const page_offset = layout.getPageOffset(ptr);
+
+    // Check if virtual page number is reasonable
+    // Virtual pages are 64KB (0x10000), so max virtual page number is limited by address space
+    // For now, check if the calculated offset would be within virtual_memory
+    const calculated_offset = virtual_page_num * layout.PAGE_SIZE + page_offset;
+
+    if (calculated_offset >= virtual_memory_len) {
+        return null; // Address out of bounds
+    }
+
+    // Check if the page is actually loaded by looking up in FPtoVP
+    // FPtoVP maps file pages to virtual pages, so we need to find which file page
+    // maps to this virtual page (reverse lookup)
+    // For now, if the calculated offset is within bounds, use it
+    // TODO: Verify page is actually loaded by checking FPtoVP reverse mapping
+    return @as(usize, @intCast(calculated_offset));
+}
