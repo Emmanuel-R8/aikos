@@ -41,7 +41,10 @@ The Zig implementation provides a complete framework for the Maiko emulator in Z
   - ✅ VM dispatch loop activated in main.zig
   - ✅ VM state initialization from IFPAGE implemented
   - ✅ Program counter initialization from frame.pcoffset implemented
-  - ✅ Stack initialization with NIL (TopOfStack = 0) implemented
+  - ✅ Stack initialization: Stack now uses virtual memory directly (Stackspace = Lisp_world + STK_OFFSET)
+  - ✅ CurrentStackPTR initialization: Initialized from frame->nextblock (next68k - 2)
+  - ✅ Stack depth calculation: (CurrentStackPTR - Stackspace) / 2 DLwords
+  - ✅ Stack operations fixed: popStack(), getTopOfStack(), pushStack() corrected for stack growing DOWN
   - ✅ Unknown opcode handling (log and continue) implemented
   - ✅ Frame structure reading with byte-swapping implemented
   - ✅ Address translation: LispPTR values are DLword offsets (multiply by 2 for bytes)

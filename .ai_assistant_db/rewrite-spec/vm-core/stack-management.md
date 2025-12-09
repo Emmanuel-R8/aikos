@@ -77,20 +77,46 @@ struct FrameEx:
 
 ## Stack Initialization
 
-### Initial Stack State
+### Stack Area Location
 
-**CRITICAL**: Before entering the dispatch loop, the stack must be initialized with at least one value (NIL = 0). This ensures that conditional jump opcodes (FJUMP/TJUMP) have a value to pop from the stack.
+**CRITICAL**: The stack area is part of virtual memory (`Lisp_world`), NOT a separate allocation!
+
+- `Stackspace = NativeAligned2FromLAddr(STK_OFFSET) = Lisp_world + STK_OFFSET`
+- `STK_OFFSET = 0x00010000` (DLword offset from Lisp_world base)
+- Stackspace byte offset = `STK_OFFSET * 2 = 0x20000` bytes
+- The stack area already contains data from the sysout file (thousands of DLwords)
+- Stack operations must use the virtual memory's stack area directly
+
+**C Reference**: `maiko/src/initsout.c:222` - `Stackspace = (DLword *)NativeAligned2FromLAddr(STK_OFFSET);`
+
+### CurrentStackPTR Initialization
+
+**CRITICAL**: `CurrentStackPTR` is initialized from the frame's `nextblock` field, not from a separate stack pointer.
 
 ```pseudocode
-function InitializeStack():
-    // C: start_lisp() -> TopOfStack = 0;
-    PushStack(0)  // Push NIL onto stack
-    // Stack is now ready for execution
+function InitializeStackPointer(frame, Stackspace):
+    // C: start_lisp() -> next68k = NativeAligned2FromStackOffset(CURRENTFX->nextblock)
+    // C: CurrentStackPTR = next68k - 2
+    next68k = Stackspace + frame.nextblock  // nextblock is DLword offset from Stackspace
+    CurrentStackPTR = next68k - 2  // Move back 2 DLwords (stack grows down)
+    
+    // Stack depth = (CurrentStackPTR - Stackspace) / 2 (in DLwords)
+    stack_depth = (CurrentStackPTR - Stackspace) / 2
+    // Typically thousands of DLwords (e.g., 5956 DLwords in starter.sysout)
 ```
 
-**Rationale**: The first opcodes executed may be conditional jumps that pop from the stack. Without an initial value, these opcodes would cause stack underflow errors.
+**C Reference**: `maiko/src/main.c:795-801` - `next68k = NativeAligned2FromStackOffset(CURRENTFX->nextblock); CurrentStackPTR = next68k - 2;`
 
-**C Reference**: `maiko/src/main.c:794` - `TopOfStack = 0;` before entering dispatch loop
+### Initial Stack State
+
+**CRITICAL**: The stack area from the sysout already contains data. `TopOfStack` is just a cached variable, not the actual stack pointer.
+
+- The stack area has pre-existing data (typically thousands of DLwords)
+- `TopOfStack = 0` in `start_lisp()` is just resetting a cached variable
+- The actual stack pointer (`CurrentStackPTR`) points to existing stack data
+- Stack depth is calculated as `(CurrentStackPTR - Stackspace) / 2` DLwords
+
+**C Reference**: `maiko/src/main.c:790` - `TopOfStack = 0;` (cached variable, not stack pointer initialization)
 
 ## Stack Operations
 
@@ -98,10 +124,12 @@ function InitializeStack():
 
 **CRITICAL**: Stack stores LispPTR values as 32-bit (2 DLwords). The stack pointer is a `DLword*` array, but values are stored as full LispPTR (4 bytes).
 
+**CRITICAL**: Stack grows DOWN. `Stackspace` is the BASE (lowest address), `CurrentStackPTR` is the current top (higher address when stack has data). Pushing moves `CurrentStackPTR` DOWN (toward lower addresses).
+
 ```pseudocode
 function PushStack(value: LispPTR):
     // Stack grows down, move pointer down by 4 bytes (2 DLwords)
-    CurrentStackPTR = CurrentStackPTR - 2  // Move down 2 DLwords
+    CurrentStackPTR = CurrentStackPTR - 2  // Move DOWN 2 DLwords
 
     // Store LispPTR as 2 DLwords (low word first, then high word)
     CurrentStackPTR[0] = value & 0xFFFF        // Low 16 bits
@@ -109,30 +137,47 @@ function PushStack(value: LispPTR):
 
     TopOfStack = value
 
-    // Check stack overflow
+    // Check stack overflow (CurrentStackPTR must not go below EndSTKP)
     if CurrentStackPTR < EndSTKP:
         HandleStackOverflow()
 ```
 
-**C Implementation Reference**: `maiko/inc/lispemul.h:PushStack(x)` increments `CurrentStackPTR` by 2 DLwords and stores LispPTR value.
+**C Implementation Reference**: `maiko/inc/lispemul.h:PushStack(x)` decrements `CurrentStackPTR` by 2 DLwords and stores LispPTR value.
+
+**Stack Layout**:
+- `Stackspace` (BASE): Lowest address, where stack starts
+- `CurrentStackPTR`: Current top, higher address when stack has data
+- Stack depth = `(CurrentStackPTR - Stackspace) / 2` DLwords
+- Stack grows DOWN: pushing moves `CurrentStackPTR` DOWN (toward lower addresses)
 
 ### Pop Stack
 
 **CRITICAL**: Stack stores LispPTR values as 32-bit (2 DLwords). Reading requires reconstructing the 32-bit value from 2 DLwords.
 
+**CRITICAL**: Stack grows DOWN. Popping moves `CurrentStackPTR` UP (toward higher addresses). Stack is empty when `CurrentStackPTR <= Stackspace`.
+
 ```pseudocode
 function PopStack():
+    // Check for stack underflow: CurrentStackPTR must be > Stackspace (stack has data)
+    if CurrentStackPTR <= Stackspace:
+        return StackUnderflow
+    
     // Read LispPTR as 2 DLwords (low word first, then high word)
     low_word = CurrentStackPTR[0]   // Low 16 bits
     high_word = CurrentStackPTR[1]  // High 16 bits
     value = (high_word << 16) | low_word  // Reconstruct 32-bit value
 
-    CurrentStackPTR = CurrentStackPTR + 2  // Move up 2 DLwords
+    CurrentStackPTR = CurrentStackPTR + 2  // Move UP 2 DLwords (stack grows down)
     TopOfStack = GetTopOfStack()  // Update cached top
     return value
 ```
 
-**C Implementation Reference**: `maiko/inc/tos1defs.h:POP_TOS_1` decrements `CSTKPTRL` (LispPTR*) and reads LispPTR value.
+**C Implementation Reference**: `maiko/inc/tos1defs.h:POP_TOS_1` increments `CSTKPTRL` (LispPTR*) and reads LispPTR value.
+
+**Stack Underflow Check**:
+- Stack is empty when `CurrentStackPTR <= Stackspace`
+- Stack has data when `CurrentStackPTR > Stackspace`
+- Stack depth = `(CurrentStackPTR - Stackspace) / 2` DLwords
 
 ### Stack Frame Allocation
 
