@@ -90,7 +90,7 @@ pub fn initializeFrame(
         std.debug.print("DEBUG: Frame is already initialized (fnheader=0x{x}, nextblock=0x{x})\n", .{ fnheader_addr, nextblock });
         return;
     }
-
+    
     std.debug.print("DEBUG: Frame needs initialization (fnheader=0x{x}, nextblock=0x{x})\n", .{ fnheader_addr, nextblock });
 
     std.debug.print("DEBUG: Frame is uninitialized, initializing...\n", .{});
