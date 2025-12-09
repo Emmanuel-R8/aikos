@@ -105,10 +105,14 @@ Translates to 2-byte aligned native address:
 
 ```pseudocode
 function NativeAligned2FromLAddr(lisp_address):
-    // Direct translation (Lisp_world is base)
+    // CRITICAL: lisp_address is a DLword offset from Lisp_world, not byte offset!
+    // Per maiko/inc/lspglob.h: "Pointers in Cell or any object means DLword offset from Lisp_world"
+    // Lisp_world is DLword*, so pointer arithmetic: Lisp_world + lisp_address = lisp_address DLwords = lisp_address * 2 bytes
     native_ptr = Lisp_world + lisp_address
     return native_ptr  // Already 2-byte aligned
 ```
+
+**C Reference**: `maiko/inc/adr68k.h:44-47` - `return (Lisp_world + LAddr);`
 
 ### NativeAligned4FromLAddr
 
@@ -120,10 +124,14 @@ function NativeAligned4FromLAddr(lisp_address):
     if lisp_address & 1:
         Error("Misaligned pointer")
 
-    // Direct translation
-    native_ptr = Lisp_world + lisp_address
+    // CRITICAL: lisp_address is a DLword offset from Lisp_world, not byte offset!
+    // Per maiko/inc/lspglob.h: "Pointers in Cell or any object means DLword offset from Lisp_world"
+    // Lisp_world is DLword*, so pointer arithmetic: Lisp_world + lisp_address = lisp_address DLwords = lisp_address * 2 bytes
+    native_ptr = (void *)(Lisp_world + lisp_address)
     return native_ptr  // Already 4-byte aligned if input aligned
 ```
+
+**C Reference**: `maiko/inc/adr68k.h:49-55` - `return (void *)(Lisp_world + LAddr);`
 
 ### NativeAligned4FromLPage
 

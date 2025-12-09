@@ -15,7 +15,11 @@ struct FunctionHeader:
     stkmin: DLword         // Minimum stack space required
     na: short             // Number of arguments (negative if spread)
     pv: short             // Parameter variable count
-    startpc: DLword       // Code start offset (from stkmin)
+    startpc: DLword       // Code start offset in BYTES from function header start
+                          // CRITICAL: Despite being a DLword type, startpc is a BYTE offset!
+                          // C: PC = (ByteCode *)FuncObj + FuncObj->startpc;
+                          // The comment in maiko/inc/stack.h saying "DLword offset from stkmin" is INCORRECT.
+                          // Per maiko/src/intcall.c:106, maiko/src/bbtsub.c:1730, maiko/src/loopsops.c:428
     nil4: 1 bit           // Reserved
     byteswapped: 1 bit    // Code byte-swapped flag
     argtype: 2 bits       // Argument type
@@ -53,8 +57,11 @@ struct FunctionHeader:
 
 **startpc**: Code start offset
 
-- Offset from stkmin to function bytecode
-- Used to locate function code
+- **CRITICAL**: This is a BYTE offset from the function header, not a DLword offset!
+- C code: `PC = (ByteCode *)FuncObj + FuncObj->startpc;` adds `startpc` BYTES to `FuncObj`
+- The comment in `maiko/inc/stack.h:63` saying "DLword offset from stkmin" is INCORRECT
+- Per actual C implementation: `maiko/src/bbtsub.c:1730`, `maiko/src/loopsops.c:428`, `maiko/src/ufn.c:194`
+- Used to locate function bytecode start
 
 **byteswapped**: Code byte-swap flag
 

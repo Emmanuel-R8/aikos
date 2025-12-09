@@ -8,6 +8,18 @@ Complete specification of stack frame structure, stack operations, and frame man
 
 The VM uses a stack-based execution model where each function call creates a stack frame (FX - Frame eXtended). The stack manages function activation, local variables, parameters, and return addresses.
 
+## Stack Frame Addressing
+
+**CRITICAL**: Frame pointers (`currentfxp`, `stackbase`, `endofstack`) in IFPAGE are `DLword` StackOffsets, NOT LispPTR values!
+
+- `currentfxp`: DLword offset from Stackspace base
+- `stackbase`: DLword offset from Stackspace base
+- `endofstack`: DLword offset from Stackspace base
+
+C: `NativeAligned2FromStackOffset(DLword StackOffset) = Stackspace + StackOffset`
+- Since `Stackspace` is `DLword*`, pointer arithmetic adds `StackOffset` DLwords = `StackOffset * 2` bytes
+- Per `maiko/inc/adr68k.h:72-75` and `maiko/src/main.c:797`
+
 ## Stack Frame Structure
 
 ### Frame Layout

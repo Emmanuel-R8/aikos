@@ -124,9 +124,14 @@ function InitializePCFromSysout(ifpage, virtual_memory):
     // CRITICAL: Function header fields are also big-endian
     fnheader = ReadFunctionHeader(virtual_memory, fnheader_addr)
 
-    // Calculate PC: function header address + startpc offset
+    // Calculate PC: function header offset + startpc (byte offset)
     // C: PC = (ByteCode *)FuncObj + FuncObj->startpc;
-    PC = fnheader_addr + fnheader.startpc
+    // CRITICAL: startpc is a BYTE offset from FuncObj, not a DLword offset!
+    // The comment in maiko/inc/stack.h saying "DLword offset from stkmin" is INCORRECT.
+    // The actual C code uses it as a byte offset: (ByteCode *)FuncObj + FuncObj->startpc
+    // Per maiko/src/intcall.c:106, maiko/src/bbtsub.c:1730, maiko/src/loopsops.c:428
+    fnheader_offset = TranslateLispPTRToOffset(fnheader_addr)  // Convert LispPTR (DLword offset) to byte offset
+    PC = fnheader_offset + fnheader.startpc  // Add byte offset directly
 
     // Alternative: Use pcoffset from frame if fnheader unavailable
     // This is a fallback when proper address translation isn't available
