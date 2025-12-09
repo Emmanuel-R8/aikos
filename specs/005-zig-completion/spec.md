@@ -41,7 +41,7 @@ A developer wants to load an existing sysout file (created by C emulator) and ha
 
 **Why this priority**: Without sysout loading, the emulator cannot run any Lisp code. This is the absolute minimum for functionality.
 
-**Independent Test**: A developer can run `maiko-zig medley/loadups/starter.sysout` and the emulator successfully loads the sysout, initializes VM state, and enters the dispatch loop (even if it doesn't execute code yet).
+**Independent Test**: A developer can run `maiko-zig medley/internal/loadups/starter.sysout` and the emulator successfully loads the sysout, initializes VM state, and enters the dispatch loop (even if it doesn't execute code yet).
 
 **Acceptance Scenarios**:
 
@@ -75,7 +75,7 @@ A developer wants the Zig emulator to execute enough opcodes to successfully sta
 
 **Why this priority**: Medley requires a specific set of opcodes to initialize. Completing these enables actual Medley execution.
 
-**Independent Test**: A developer can run `maiko-zig medley/loadups/lisp.sysout` and Medley starts successfully, displaying the Interlisp prompt.
+**Independent Test**: A developer can run `maiko-zig medley/internal/loadups/lisp.sysout` and Medley starts successfully, displaying the Interlisp prompt.
 
 **Acceptance Scenarios**:
 
@@ -153,7 +153,7 @@ A developer wants the Zig emulator to display graphics and handle input via SDL2
 
 - **IFPAGE**: Interface page structure containing VM state, must match C implementation exactly
 - **FPtoVP Table**: File page to virtual page mapping table, required for sysout loading
-- **Memory Pages**: 256-byte pages containing Lisp data, mapped via FPtoVP
+- **Memory Pages**: 512-byte pages (256 DLwords) containing Lisp data, mapped via FPtoVP
 - **VM State**: Stack pointers, frame pointers, registers initialized from IFPAGE
 - **Opcode Handlers**: Functions implementing bytecode instruction semantics
 - **GC Hash Tables**: Reference counting tables (HTmain, HTcoll) for memory management

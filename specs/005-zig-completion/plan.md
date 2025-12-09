@@ -23,7 +23,7 @@ Complete the Zig emulator implementation to achieve functional parity with the C
 **Project Type**: VM emulator (single executable)
 **Performance Goals**:
 - Sysout loading completes in < 5 seconds for typical sysout files
-- Bytecode execution performance comparable to C emulator (optimization deferred to later phase)
+- Bytecode execution performance within 20% of C emulator execution time for equivalent workloads (optimization deferred to later phase)
 - Display rendering at interactive frame rates (30+ fps)
 
 **Constraints**:

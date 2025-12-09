@@ -23,7 +23,7 @@
 
 **Goal**: Successfully load existing sysout files and initialize VM state, enabling the emulator to enter the dispatch loop.
 
-**Independent Test**: Run `maiko-zig medley/loadups/starter.sysout` and the emulator successfully loads the sysout, initializes VM state, and enters the dispatch loop (even if it doesn't execute code yet).
+**Independent Test**: Run `maiko-zig medley/internal/loadups/starter.sysout` and the emulator successfully loads the sysout, initializes VM state, and enters the dispatch loop (even if it doesn't execute code yet).
 
 ### Implementation for User Story 1
 
@@ -83,7 +83,7 @@
 
 **Goal**: Execute enough opcodes to successfully start Medley Interlisp and reach the Lisp prompt.
 
-**Independent Test**: Run `maiko-zig medley/loadups/lisp.sysout` and Medley starts successfully, displaying the Interlisp prompt.
+**Independent Test**: Run `maiko-zig medley/internal/loadups/lisp.sysout` and Medley starts successfully, displaying the Interlisp prompt.
 
 ### Implementation for User Story 3
 
@@ -100,20 +100,18 @@
 - [X] T045 [US3] Implement JUMP opcode variants (JUMP0-JUMP15) in maiko/alternatives/zig/src/vm/opcodes/control_flow.zig
 - [X] T046 [US3] Implement FJUMP opcode variants (FJUMP0-FJUMP15) in maiko/alternatives/zig/src/vm/opcodes/control_flow.zig
 - [X] T047 [US3] Implement TJUMP opcode variants (TJUMP0-TJUMP15) in maiko/alternatives/zig/src/vm/opcodes/control_flow.zig
-- [ ] T048 [US3] Implement LIST opcode handler for list creation in maiko/alternatives/zig/src/vm/opcodes/data_ops.zig
-  - NOTE: LIST opcode not found in C opcodes.h - lists are created via CONS. May need to verify if this is needed or if CONS is sufficient.
-- [ ] T049 [US3] Implement APPEND opcode handler for list concatenation in maiko/alternatives/zig/src/vm/opcodes/data_ops.zig
-  - NOTE: APPEND opcode not found in C opcodes.h - list concatenation may be done via other mechanisms. May need to verify if this is needed.
+- [C] T048 [US3] ~~Implement LIST opcode handler for list creation~~ **CANCELLED**: LIST opcode does not exist in C implementation (maiko/inc/opcodes.h). Lists are created using CONS opcode, which is already implemented.
+- [C] T049 [US3] ~~Implement APPEND opcode handler for list concatenation~~ **CANCELLED**: APPEND opcode does not exist in C implementation (maiko/inc/opcodes.h). List concatenation is handled via other mechanisms (RESTLIST, RPLCONS, or Lisp-level functions).
 - [X] T050 [US3] Implement RPLACA opcode handler for replacing CAR in maiko/alternatives/zig/src/vm/opcodes/data_ops.zig
 - [X] T051 [US3] Implement RPLACD opcode handler for replacing CDR in maiko/alternatives/zig/src/vm/opcodes/data_ops.zig
 - [X] T052 [US3] Implement UNWIND opcode handler for stack unwinding in maiko/alternatives/zig/src/vm/opcodes/type_checking.zig
-- [ ] T053 [US3] Add test case for cons cell operations (CAR, CDR, CONS) in maiko/alternatives/zig/tests/cons.zig
-- [ ] T054 [US3] Add test case for variable access operations in maiko/alternatives/zig/tests/opcodes.zig
-- [ ] T055 [US3] Add test case for jump opcode variants in maiko/alternatives/zig/tests/opcodes.zig
-- [ ] T056 [US3] Add test case for list operations in maiko/alternatives/zig/tests/opcodes.zig
-- [ ] T057 [US3] Test Medley startup with lisp.sysout and verify initialization completes in maiko/alternatives/zig/tests/integration.zig
-- [ ] T058 [US3] Verify basic Lisp expression evaluation produces correct results in maiko/alternatives/zig/tests/integration.zig
-- [ ] T059 [US3] Verify error handling works correctly during Medley execution in maiko/alternatives/zig/tests/integration.zig
+- [X] T053 [US3] Add test case for cons cell operations (CAR, CDR, CONS) in maiko/alternatives/zig/tests/cons.zig
+- [X] T054 [US3] Add test case for variable access operations in maiko/alternatives/zig/tests/variable_access.zig
+- [X] T055 [US3] Add test case for jump opcode variants in maiko/alternatives/zig/tests/jump_variants.zig
+- [X] T056 [US3] Add test case for list operations in maiko/alternatives/zig/tests/rplaca_rplacd.zig
+- [X] T057 [US3] Test Medley startup with lisp.sysout and verify initialization completes in maiko/alternatives/zig/tests/integration.zig
+- [X] T058 [US3] Verify basic Lisp expression evaluation produces correct results in maiko/alternatives/zig/tests/integration.zig
+- [X] T059 [US3] Verify error handling works correctly during Medley execution in maiko/alternatives/zig/tests/integration.zig
 
 **Checkpoint**: At this point, User Stories 1, 2, AND 3 should all work - Medley starts successfully and reaches Lisp prompt.
 
@@ -127,21 +125,23 @@
 
 ### Implementation for User Story 4
 
-- [ ] T060 [US4] Implement ADDREF operation to increment reference count in maiko/alternatives/zig/src/memory/gc.zig
-- [ ] T061 [US4] Implement ADDREF hash table insertion into HTmain in maiko/alternatives/zig/src/memory/gc.zig
-- [ ] T062 [US4] Implement ADDREF overflow handling into HTcoll when HTmain bucket is full in maiko/alternatives/zig/src/memory/gc.zig
-- [ ] T063 [US4] Implement DELREF operation to decrement reference count in maiko/alternatives/zig/src/memory/gc.zig
-- [ ] T064 [US4] Implement DELREF hash table removal when count reaches zero in maiko/alternatives/zig/src/memory/gc.zig
-- [ ] T065 [US4] Implement reclamation logic to mark objects for reclamation when count is zero in maiko/alternatives/zig/src/memory/gc.zig
-- [ ] T066 [US4] Implement free list management for reclaimed memory in maiko/alternatives/zig/src/memory/gc.zig
-- [ ] T067 [US4] Add hash function for object address to compute hash bucket in maiko/alternatives/zig/src/memory/gc.zig
-- [ ] T068 [US4] Implement HTmain hash table using std.HashMap in maiko/alternatives/zig/src/memory/gc.zig
-- [ ] T069 [US4] Implement HTcoll hash table using std.HashMap for overflow entries in maiko/alternatives/zig/src/memory/gc.zig
-- [ ] T070 [US4] Add test case for ADDREF operation tracking reference counts correctly in maiko/alternatives/zig/tests/gc.zig
-- [ ] T071 [US4] Add test case for DELREF operation removing references correctly in maiko/alternatives/zig/tests/gc.zig
-- [ ] T072 [US4] Add test case for reclamation when count reaches zero in maiko/alternatives/zig/tests/gc.zig
-- [ ] T073 [US4] Add test case for referenced objects not being reclaimed in maiko/alternatives/zig/tests/gc.zig
-- [ ] T074 [US4] Add integration test for extended Medley session without memory leaks in maiko/alternatives/zig/tests/integration.zig
+- [X] T060 [US4] Implement ADDREF operation to increment reference count in maiko/alternatives/zig/src/memory/gc.zig
+- [X] T061 [US4] Implement ADDREF hash table insertion into HTmain in maiko/alternatives/zig/src/memory/gc.zig
+- [X] T062 [US4] Implement ADDREF overflow handling into HTcoll when HTmain bucket is full in maiko/alternatives/zig/src/memory/gc.zig
+- [X] T063 [US4] Implement DELREF operation to decrement reference count in maiko/alternatives/zig/src/memory/gc.zig
+- [X] T064 [US4] Implement DELREF hash table removal when count reaches zero in maiko/alternatives/zig/src/memory/gc.zig
+- [X] T065 [US4] Implement reclamation logic to mark objects for reclamation when count is zero in maiko/alternatives/zig/src/memory/gc.zig
+- [X] T066 [US4] Implement free list management for reclaimed memory in maiko/alternatives/zig/src/memory/gc.zig
+- [X] T067 [US4] Add hash function for object address to compute hash bucket in maiko/alternatives/zig/src/memory/gc.zig
+- [X] T068 [US4] Implement HTmain hash table using std.HashMap in maiko/alternatives/zig/src/memory/gc.zig
+  - NOTE: Using array-based hash table (HTmain as []HashEntry) matching C implementation structure, not std.HashMap
+- [X] T069 [US4] Implement HTcoll hash table using std.HashMap for overflow entries in maiko/alternatives/zig/src/memory/gc.zig
+  - NOTE: Using array-based hash table (HTcoll as []LispPTR) matching C implementation structure, not std.HashMap
+- [X] T070 [US4] Add test case for ADDREF operation tracking reference counts correctly in maiko/alternatives/zig/tests/gc.zig
+- [X] T071 [US4] Add test case for DELREF operation removing references correctly in maiko/alternatives/zig/tests/gc.zig
+- [X] T072 [US4] Add test case for reclamation when count reaches zero in maiko/alternatives/zig/tests/gc.zig
+- [X] T073 [US4] Add test case for referenced objects not being reclaimed in maiko/alternatives/zig/tests/gc.zig
+- [X] T074 [US4] Add integration test for extended Medley session without memory leaks in maiko/alternatives/zig/tests/gc.zig
 
 **Checkpoint**: At this point, User Stories 1-4 should all work - memory management is complete and leak-free.
 
