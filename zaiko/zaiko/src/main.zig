@@ -326,6 +326,21 @@ pub fn main() !void {
 
     std.debug.print("Sysout loaded: version={}, keyval=0x{x}\n", .{ sysout_result.ifpage.lversion, sysout_result.ifpage.key });
 
+    // CRITICAL: Initialize system state before start_lisp()
+    // Equivalent to: build_lisp_map(), init_ifpage(), init_iopage(), init_miscstats(), init_storage()
+    // C: maiko/src/main.c:725-729
+    const init_module = @import("vm/init.zig");
+    const sysout_size = sysout_result.ifpage.process_size;
+    init_module.initializeSystem(
+        sysout_result.virtual_memory,
+        &sysout_result.ifpage,
+        sysout_size,
+    ) catch |err| {
+        std.debug.print("Failed to initialize system state: {}\n", .{err});
+        return;
+    };
+    std.debug.print("System state initialized\n", .{});
+
     // Initialize VM state from IFPAGE
     dispatch.initializeVMState(&vm, &sysout_result.ifpage, sysout_result.virtual_memory, sysout_result.fptovp.entries) catch |err| {
         std.debug.print("Failed to initialize VM state: {}\n", .{err});
