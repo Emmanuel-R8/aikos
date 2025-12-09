@@ -198,32 +198,121 @@ pub fn initializeVMState(
     const frame_pc = pc_be;
     std.debug.print("DEBUG: Read frame->pc={} (big-endian) from frame\n", .{frame_pc});
 
+    // CRITICAL: Initialize stack pointers to use virtual memory's stack area
+    // C: Stackspace = NativeAligned2FromLAddr(STK_OFFSET) = Lisp_world + STK_OFFSET
+    // C: CurrentStackPTR = next68k - 2, where next68k = Stackspace + nextblock
+    // The stack area is part of virtual memory and already has data!
+    // We need to point our stack pointers into virtual memory, not allocate separately
+    
+    // Read nextblock from frame to calculate CurrentStackPTR
+    const nextblock_be: types.DLword = (@as(types.DLword, virtual_memory[frame_offset + 8]) << 8) |
+        (@as(types.DLword, virtual_memory[frame_offset + 9]));
+    const nextblock = nextblock_be;
+    
+    // Calculate CurrentStackPTR: Stackspace + nextblock - 2 DLwords
+    // C: next68k = NativeAligned2FromStackOffset(CURRENTFX->nextblock) = Stackspace + nextblock
+    // C: CurrentStackPTR = next68k - 2
+    const next68k_byte_offset = stackspace_byte_offset + (@as(usize, @intCast(nextblock)) * 2);
+    const current_stack_ptr_byte_offset = next68k_byte_offset - 4; // -2 DLwords = -4 bytes
+    
+    // Point stack pointers into virtual memory
+    // CRITICAL: virtual_memory needs to be mutable for stack operations
+    // For now, we'll cast it (this is safe as long as we're careful)
+    const virtual_memory_mut: []u8 = @constCast(virtual_memory);
+    const stackspace_ptr: [*]DLword = @as([*]DLword, @ptrCast(@alignCast(virtual_memory_mut.ptr + stackspace_byte_offset)));
+    const current_stack_ptr: [*]DLword = @as([*]DLword, @ptrCast(@alignCast(virtual_memory_mut.ptr + current_stack_ptr_byte_offset)));
+    
+    // Update VM stack pointers to point into virtual memory
+    vm.stack_base = stackspace_ptr;
+    vm.stack_ptr = current_stack_ptr;
+    
+    const stack_depth = (@intFromPtr(current_stack_ptr) - @intFromPtr(stackspace_ptr)) / 2;
+    std.debug.print("DEBUG: Initialized stack pointers into virtual memory:\n", .{});
+    std.debug.print("  Stackspace offset: 0x{x}\n", .{stackspace_byte_offset});
+    std.debug.print("  nextblock: 0x{x} (DLword offset)\n", .{nextblock});
+    std.debug.print("  CurrentStackPTR offset: 0x{x}\n", .{current_stack_ptr_byte_offset});
+    std.debug.print("  Stack depth: {} DLwords\n", .{stack_depth});
+    
+    // C: TopOfStack = 0; (just a cached value, stack area has real data)
+    // We don't need to push NIL - the stack already has data from the sysout!
+
     if (fnheader_addr == 0) {
-        // Frame fnheader is 0 - frame may be uninitialized
-        // C: FastRetCALL uses: PC = (ByteCode *)FuncObj + CURRENTFX->pc
-        // But if fnheader is 0, we can't get FuncObj, so we can't use that formula
+        // Frame fnheader is 0 - simulate FastRetCALL exactly as C code does
+        // C: FastRetCALL does:
+        //   IVar = NativeAligned2FromStackOffset(GETWORD((DLword *)CURRENTFX - 1));
+        //   FuncObj = (struct fnhead *)NativeAligned4FromLAddr(FX_FNHEADER);
+        //   PC = (ByteCode *)FuncObj + CURRENTFX->pc;
         //
-        // However, CURRENTFX->pc might still be valid even if fnheader is 0
-        // For now, if frame->pc is non-zero, it might be a direct offset we can use
-        // This is a workaround until we understand the correct initialization
-        if (frame_pc > 0 and frame_pc < virtual_memory.len) {
-            vm.pc = @as(LispPTR, @intCast(frame_pc));
-            std.debug.print("WARNING: fnheader=0, using frame->pc={} (0x{x}) as PC\n", .{ frame_pc, frame_pc });
-            return;
-        } else {
-            std.debug.print("WARNING: Frame at offset 0x{x} has fnheader=0 and frame->pc={}\n", .{ frame_offset, frame_pc });
-            std.debug.print("  Frame appears uninitialized - using default PC=0x100\n", .{});
+        // If FX_FNHEADER=0, then FuncObj = NativeAligned4FromLAddr(0) = Lisp_world base (offset 0)
+        // PC = FuncObj + CURRENTFX->pc = 0 + CURRENTFX->pc = CURRENTFX->pc
+        //
+        // So let's simulate this exactly and check if the calculated PC has valid code
+
+        // Get IVar from frame (CURRENTFX - 1)
+        const bf_offset = frame_offset - 2; // CURRENTFX - 1 DLword = -2 bytes
+        if (bf_offset + 2 > virtual_memory.len) {
+            std.debug.print("WARNING: BF offset out of bounds\n", .{});
             vm.pc = 0x100;
             return;
         }
+        const bf_word_be: types.DLword = (@as(types.DLword, virtual_memory[bf_offset]) << 8) |
+            (@as(types.DLword, virtual_memory[bf_offset + 1]));
+        const bf_word = bf_word_be;
+        std.debug.print("DEBUG: BF word (CURRENTFX - 1) = 0x{x}\n", .{bf_word});
+
+        // FuncObj = NativeAligned4FromLAddr(0) = Lisp_world base (offset 0)
+        const funcobj_offset: usize = 0; // fnheader=0 means Lisp_world base
+
+        // PC = FuncObj + CURRENTFX->pc = 0 + frame_pc
+        const calculated_pc = funcobj_offset + @as(usize, @intCast(frame_pc));
+        std.debug.print("DEBUG: Simulating FastRetCALL with fnheader=0:\n", .{});
+        std.debug.print("  FuncObj = NativeAligned4FromLAddr(0) = offset 0x{x}\n", .{funcobj_offset});
+        std.debug.print("  PC = FuncObj + CURRENTFX->pc = 0x{x} + {} = 0x{x}\n", .{ funcobj_offset, frame_pc, calculated_pc });
+
+        // Check if calculated PC has valid code (not all zeros AND first byte is valid opcode)
+        if (calculated_pc < virtual_memory.len and calculated_pc + 4 <= virtual_memory.len) {
+            const first_bytes = virtual_memory[calculated_pc .. calculated_pc + 4];
+            const all_zeros = first_bytes[0] == 0 and first_bytes[1] == 0 and first_bytes[2] == 0 and first_bytes[3] == 0;
+            const first_opcode = first_bytes[0];
+            const is_valid_opcode = first_opcode != 0; // Opcode 0x00 is opc_unused_0 (invalid)
+
+            std.debug.print("  PC location 0x{x}: bytes = 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2}\n", .{ calculated_pc, first_bytes[0], first_bytes[1], first_bytes[2], first_bytes[3] });
+
+            if (!all_zeros and is_valid_opcode) {
+                vm.pc = @as(LispPTR, @intCast(calculated_pc));
+                std.debug.print("  Using calculated PC=0x{x} (has valid opcode 0x{x:0>2})\n", .{ calculated_pc, first_opcode });
+                return;
+            } else {
+                if (all_zeros) {
+                    std.debug.print("  WARNING: Calculated PC=0x{x} points to zeros (invalid)\n", .{calculated_pc});
+                } else {
+                    std.debug.print("  WARNING: Calculated PC=0x{x} has invalid opcode 0x{x:0>2} (opc_unused_0)\n", .{ calculated_pc, first_opcode });
+                }
+            }
+        }
+
+        // If FastRetCALL simulation gives invalid PC, we need to find entry point another way
+        std.debug.print("WARNING: FastRetCALL simulation with fnheader=0 gives invalid PC\n", .{});
+        std.debug.print("  Need to find correct entry point - searching for valid code...\n", .{});
+
+        // Try to find first non-zero code location as fallback
+        var search_offset: usize = 0x1000; // Start searching from 4KB offset
+        while (search_offset < virtual_memory.len and search_offset < 0x100000) { // Search up to 1MB
+            if (virtual_memory[search_offset] != 0 or virtual_memory[search_offset + 1] != 0) {
+                vm.pc = @as(LispPTR, @intCast(search_offset));
+                std.debug.print("  Found non-zero code at offset 0x{x}, using as PC\n", .{search_offset});
+                return;
+            }
+            search_offset += 0x100; // Search in 256-byte increments
+        }
+
+        // Last resort: use default
+        vm.pc = 0x100;
+        std.debug.print("  WARNING: Could not find valid code, using default PC=0x100\n", .{});
+        return;
     }
 
-    // CRITICAL: Initialize stack with NIL (TopOfStack = 0) BEFORE setting PC
-    // C: start_lisp() -> TopOfStack = 0;
-    // This ensures the stack has at least one value (NIL) for conditional jumps
-    const stack_module = @import("stack.zig");
-    try stack_module.pushStack(vm, 0); // Push NIL
-    std.debug.print("DEBUG: Initialized stack with NIL (TopOfStack=0)\n", .{});
+    // Stack already initialized above (line 204)
 
     // Translate fnheader_addr (LispPTR) to virtual_memory offset using FPtoVP
     // C: NativeAligned4FromLispPTR(fnheader_addr) -> translates using FPtoVP
