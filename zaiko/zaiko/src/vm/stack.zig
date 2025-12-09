@@ -251,9 +251,12 @@ pub fn getTopOfStack(vm: *const VM) LispPTR {
     const stack_base_addr = @intFromPtr(vm.stack_base);
     const stack_ptr_addr = @intFromPtr(vm.stack_ptr);
 
+    // Check if stack is empty (stack_ptr must be below stack_base by at least 2 DLwords)
     if (stack_ptr_addr + @sizeOf(LispPTR) > stack_base_addr) {
-        return 0; // Stack empty
+        return 0; // Stack empty - return NIL
     }
+
+    std.debug.print("DEBUG: getTopOfStack: stack_ptr=0x{x}, stack_base=0x{x}, diff={}\n", .{ stack_ptr_addr, stack_base_addr, stack_base_addr - stack_ptr_addr });
 
     // Read LispPTR as 2 DLwords (low word first, then high word)
     const low_word = vm.stack_ptr[0];
@@ -272,4 +275,19 @@ pub fn setTopOfStack(vm: *VM, value: LispPTR) void {
         vm.stack_ptr[0] = @as(DLword, @truncate(value)); // Low 16 bits
         vm.stack_ptr[1] = @as(DLword, @truncate(value >> 16)); // High 16 bits
     }
+}
+
+/// Get stack depth (number of LispPTR values on stack)
+/// Returns 0 if stack is empty
+pub fn getStackDepth(vm: *const VM) usize {
+    const stack_base_addr = @intFromPtr(vm.stack_base);
+    const stack_ptr_addr = @intFromPtr(vm.stack_ptr);
+
+    // Stack grows down, so depth = (stack_base - stack_ptr) / sizeof(LispPTR)
+    if (stack_ptr_addr >= stack_base_addr) {
+        return 0; // Stack is empty
+    }
+
+    const diff = stack_base_addr - stack_ptr_addr;
+    return @as(usize, @intCast(diff / @sizeOf(LispPTR)));
 }

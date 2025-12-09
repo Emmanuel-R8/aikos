@@ -34,14 +34,31 @@ fn handleFJUMPWithOffset(vm: *VM, offset: i8) errors.VMError!?i64 {
 /// C: TJUMPMACRO(x): if (TOPOFSTACK == 0) { POP; nextop1; } else { CHECK_INTERRUPT; POP; PCMACL += (x); nextop0; }
 fn handleTJUMPWithOffset(vm: *VM, offset: i8) errors.VMError!?i64 {
     const stack_module = @import("../stack.zig");
+    
+    // Check stack depth before popping
+    const stack_depth = stack_module.getStackDepth(vm);
+    std.debug.print("DEBUG: TJUMP: stack_depth={}, offset={}\n", .{ stack_depth, offset });
+    
+    if (stack_depth == 0) {
+        std.debug.print("ERROR: TJUMP: Stack is empty, cannot pop!\n", .{});
+        return error.StackUnderflow;
+    }
+    
     const tos = stack_module.getTopOfStack(vm);
+    std.debug.print("DEBUG: TJUMP: TOS=0x{x}, offset={}\n", .{ tos, offset });
     _ = try stack_module.popStack(vm); // Always pop (C: POP in both branches)
+    
+    const new_stack_depth = stack_module.getStackDepth(vm);
+    std.debug.print("DEBUG: TJUMP: After pop, stack_depth={}\n", .{new_stack_depth});
+    
     if (tos != 0) {
         // Not NIL - jump
+        std.debug.print("DEBUG: TJUMP: TOS is non-NIL, jumping by {}\n", .{offset});
         try opcodes.handleTJUMP(vm, offset);
         return @as(i64, offset);
     }
     // NIL - continue
+    std.debug.print("DEBUG: TJUMP: TOS is NIL, continuing\n", .{});
     return null;
 }
 
@@ -467,7 +484,9 @@ pub fn executeOpcodeWithOperands(vm: *VM, opcode: Opcode, instruction: Instructi
 
         else => {
             // Unknown opcode - could be UFN or unimplemented
-            // For now, return error
+            // Log the opcode for debugging
+            const opcode_byte = @intFromEnum(opcode);
+            std.debug.print("ERROR: Unimplemented opcode 0x{x:0>2} in execution switch\n", .{opcode_byte});
             return error.InvalidOpcode;
         },
     }
