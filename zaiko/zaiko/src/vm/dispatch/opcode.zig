@@ -90,15 +90,6 @@ pub const Opcode = enum(u8) {
     TJUMPX = 0xB3,
     NFJUMPX = 0xB4,
     NTJUMPX = 0xB5,
-    AREF1 = 0xB6,
-    ASET1 = 0xB7,
-    PVARSETPOP0 = 0xB8,
-    PVARSETPOP1 = 0xB9,
-    PVARSETPOP2 = 0xBA,
-    PVARSETPOP3 = 0xBB,
-    PVARSETPOP4 = 0xBC,
-    PVARSETPOP5 = 0xBD,
-    PVARSETPOP6 = 0xBE,
 
     // Variable access
     IVAR0 = 0x40,
@@ -191,7 +182,6 @@ pub const Opcode = enum(u8) {
     CMLMEMBER = 0x1D,
     FINDKEY = 0x1E,
     CREATECELL = 0x1F,
-    WRTPTRTAG = 0x36, // 54 - calls FINDKEY with byte operand
     BIN = 0x20,
     BOUT = 0x21,
     RESTLIST = 0x23,

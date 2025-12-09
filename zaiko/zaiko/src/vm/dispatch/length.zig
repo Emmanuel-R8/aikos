@@ -22,7 +22,7 @@ pub fn getInstructionLength(opcode: Opcode) u32 {
         .BIN, .BOUT => 1, // I/O operations
         .EVAL, .ENVCALL => 1, // Evaluation operations
         .BIND, .GCREF, .RPLPTR_N => 2, // Opcode + 1-byte operand
-        .FINDKEY, .RESTLIST, .WRTPTRTAG => 2, // Opcode + 1-byte operand
+        .FINDKEY, .RESTLIST => 2, // Opcode + 1-byte operand
         .MISCN => 3, // Opcode + 2-byte operands
         .DTEST, .GVAR_ => 3, // Opcode + 2-byte atom index (BIGATOMS)
         .IPLUS2, .IDIFFERENCE, .ITIMES2, .IQUO, .IREM => 1,

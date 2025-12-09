@@ -231,70 +231,32 @@ pub fn handleQUOTIENT(vm: *VM) errors.VMError!void {
 
 /// IPLUS_N: Integer plus N
 /// Per rewrite documentation instruction-set/opcodes.md
-/// C: N_OP_iplusn in maiko/src/arithops.c
-/// Adds constant N to TOS: return(tos + n)
-/// Stack: [tos] -> [tos + n]
-pub fn handleIPLUS_N(vm: *VM, n: u8) errors.VMError!void {
+pub fn handleIPLUS_N(vm: *VM, count: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
-    const types_module = @import("../../utils/types.zig");
-    const errors_module = @import("../../utils/errors.zig");
-
-    const tos = stack_module.getTopOfStack(vm);
-    
-    // Extract integer from TOS
-    // C: N_IGETNUMBER(tos, arg1, do_ufn);
-    const arg1 = types_module.extractInteger(tos) catch {
-        return errors_module.VMError.InvalidNumberType;
-    };
-    
-    // Perform addition with overflow checking
-    // C: result = arg1 + n; if ((result < 0) && (arg1 >= 0)) { ERROR_EXIT(tos); }
-    const n_signed = @as(i32, @intCast(n));
-    const result_int = arg1 + n_signed;
-    
-    // Check for overflow
-    if ((result_int < 0) and (arg1 >= 0)) {
-        return errors_module.VMError.InvalidNumberType; // Overflow
+    // TODO: Proper implementation - add count values
+    var sum: LispPTR = 0;
+    var i: u8 = 0;
+    while (i < count) : (i += 1) {
+        const value = try stack_module.popStack(vm);
+        sum += value;
     }
-    
-    // Encode result using N_ARITH_SWITCH
-    const result = try types_module.encodeIntegerResult(result_int);
-    
-    // Set TOS to result
-    stack_module.setTopOfStack(vm, result);
+    try stack_module.pushStack(vm, sum);
 }
 
 /// IDIFFERENCE_N: Integer difference N
 /// Per rewrite documentation instruction-set/opcodes.md
-/// C: N_OP_idifferencen in maiko/src/arithops.c
-/// Subtracts constant N from TOS: return(tos - n)
-/// Stack: [tos] -> [tos - n]
-pub fn handleIDIFFERENCE_N(vm: *VM, n: u8) errors.VMError!void {
+pub fn handleIDIFFERENCE_N(vm: *VM, count: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
-    const types_module = @import("../../utils/types.zig");
-    const errors_module = @import("../../utils/errors.zig");
-
-    const tos = stack_module.getTopOfStack(vm);
-    
-    // Extract integer from TOS
-    // C: N_IGETNUMBER(tos, arg1, do_ufn);
-    const arg1 = types_module.extractInteger(tos) catch {
-        return errors_module.VMError.InvalidNumberType;
-    };
-    
-    // Perform subtraction with overflow checking
-    // C: result = arg1 - n; if ((result >= 0) && (arg1 < 0)) { ERROR_EXIT(tos); }
-    const n_signed = @as(i32, @intCast(n));
-    const result_int = arg1 - n_signed;
-    
-    // Check for overflow
-    if ((result_int >= 0) and (arg1 < 0)) {
-        return errors_module.VMError.InvalidNumberType; // Overflow
+    // TODO: Proper implementation
+    if (count == 0) {
+        try stack_module.pushStack(vm, 0);
+        return;
     }
-    
-    // Encode result using N_ARITH_SWITCH
-    const result = try types_module.encodeIntegerResult(result_int);
-    
-    // Set TOS to result
-    stack_module.setTopOfStack(vm, result);
+    var result = try stack_module.popStack(vm);
+    var i: u8 = 1;
+    while (i < count) : (i += 1) {
+        const value = try stack_module.popStack(vm);
+        result -= value;
+    }
+    try stack_module.pushStack(vm, result);
 }

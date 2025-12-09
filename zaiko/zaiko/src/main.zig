@@ -327,7 +327,7 @@ pub fn main() !void {
     std.debug.print("Sysout loaded: version={}, keyval=0x{x}\n", .{ sysout_result.ifpage.lversion, sysout_result.ifpage.key });
 
     // Initialize VM state from IFPAGE
-    dispatch.initializeVMState(&vm, &sysout_result.ifpage, sysout_result.virtual_memory) catch |err| {
+    dispatch.initializeVMState(&vm, &sysout_result.ifpage, sysout_result.virtual_memory, sysout_result.fptovp.entries) catch |err| {
         std.debug.print("Failed to initialize VM state: {}\n", .{err});
         return;
     };
@@ -345,11 +345,9 @@ pub fn main() !void {
     std.debug.print("VM initialized, entering dispatch loop\n", .{});
 
     // Enter dispatch loop
-    // Note: For now, we'll use a placeholder code segment
-    // Full implementation will extract bytecode from virtual_memory using program counter
-    // The dispatch loop will read from virtual_memory directly based on PC
-    const test_code: []const types.ByteCode = &[_]types.ByteCode{ 0x68, 0x69, 0x6A }; // NIL, T, CONST_0
-    dispatch.dispatch(&vm, test_code) catch |err| {
+    // Dispatch loop now reads bytecode from virtual_memory using PC
+    // PC is initialized from current frame (if available) or starts at 0
+    dispatch.dispatch(&vm) catch |err| {
         std.debug.print("Dispatch loop error: {}\n", .{err});
         return;
     };
