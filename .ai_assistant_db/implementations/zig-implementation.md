@@ -52,6 +52,7 @@ The Zig implementation provides a complete framework for the Maiko emulator in Z
   - ✅ Frame repair: Implemented initializeFrame() to repair uninitialized frames (sets nextblock and free stack block)
   - ⚠️ PC initialization: Frame fnheader is still 0 after initialization - need to find entry point function
   - ⚠️ Entry point detection: Frame nextblock is initialized, but fnheader=0 prevents FastRetCALL from working
+  - **CRITICAL BLOCKER**: The initial frame in `starter.sysout` has `fnheader=0` and `frame->pc=115` (0x73), both pointing to zero-filled memory. The C emulator's `FastRetCALL` macro expects a valid `fnheader` to locate the function object and calculate PC. Without a valid entry point, the emulator cannot start execution. Investigation needed: (1) Check if sysout files are supposed to have initialized frames, (2) Find alternative entry point mechanism (symbol table, constant, or special initialization function), (3) Verify frame reading logic matches C implementation exactly.
   - ⚠️ Opcode handlers need completion (many stubs exist)
 
 - 🔄 **Essential Opcodes** (P1 - Critical Blocker)

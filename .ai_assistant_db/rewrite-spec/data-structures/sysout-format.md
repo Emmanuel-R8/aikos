@@ -94,14 +94,23 @@ struct FPtoVP:
 
 ### Table Location
 
-- **Offset**: `(ifpage.fptovpstart - 1) * BYTESPER_PAGE + offset_adjust`
-  - Non-BIGVM: `offset_adjust = 2`
-  - BIGVM: `offset_adjust = 4`
-- **Size**: `num_file_pages` entries (where `num_file_pages = sysout_size_halfpages / 2`)
-  - `sysout_size_halfpages = (file_size / BYTESPER_PAGE) * 2`
+**CRITICAL**: Exact byte offset calculation for FPtoVP table:
+
+- **Base Offset**: `(ifpage.fptovpstart - 1) * BYTESPER_PAGE`
+  - `fptovpstart` is a page number (1-based), so subtract 1 to get 0-based page number
+  - Multiply by `BYTESPER_PAGE` (512) to get byte offset
+- **Offset Adjustment**:
+  - Non-BIGVM: `offset_adjust = 2` bytes (skip first DLword)
+  - BIGVM: `offset_adjust = 4` bytes (skip first LispPTR)
+- **Final Offset**: `(ifpage.fptovpstart - 1) * BYTESPER_PAGE + offset_adjust`
+- **Size Calculation**:
+  - `num_file_pages = (file_size / BYTESPER_PAGE)`
+  - Table size: `num_file_pages * entry_size` bytes
+    - Non-BIGVM: `entry_size = 2` (u16), total = `num_file_pages * 2` bytes
+    - BIGVM: `entry_size = 4` (u32), total = `num_file_pages * 4` bytes
 - **Format**: Depends on BIGVM
-  - Non-BIGVM: 16-bit entries (u16), read `num_file_pages * 2` bytes
-  - BIGVM: 32-bit entries (u32), read `num_file_pages * 4` bytes
+  - Non-BIGVM: 16-bit entries (u16), stored as big-endian in sysout, must byte-swap when reading on little-endian machines
+  - BIGVM: 32-bit entries (u32), stored as big-endian in sysout, must byte-swap when reading on little-endian machines
 
 ### Table Usage
 
@@ -157,6 +166,44 @@ function LoadSysoutFile(filename, process_size):
             LoadPage(file, file_page, virtual_page)
 
     // Initialize VM state from IFPAGE
+```
+
+### Page Loading with Byte Swapping
+
+**CRITICAL**: Page data is stored in big-endian format in sysout files. When loading on little-endian machines, byte swapping is required for multi-byte values.
+
+```pseudocode
+function LoadPage(file, file_page_number, virtual_page_number):
+    // Calculate file offset: file_page_number * BYTESPER_PAGE
+    file_offset = file_page_number * 512  // BYTESPER_PAGE = 512
+    
+    // Seek to file page
+    Seek(file, file_offset)
+    
+    // Read page data (512 bytes)
+    page_buffer = Read(file, 512)
+    
+    // CRITICAL: Page data is stored as-is (no byte swapping needed for raw bytes)
+    // Byte swapping is only needed when interpreting multi-byte values:
+    // - DLword (2 bytes): Swap bytes when reading as integer
+    // - LispPTR (4 bytes): Swap bytes when reading as integer
+    // - But raw page data can be copied directly to virtual memory
+    
+    // Calculate virtual address: virtual_page_number * BYTESPER_PAGE
+    virtual_address = virtual_page_number * 512
+    
+    // Copy page data directly to virtual memory
+    // Note: Byte swapping happens when reading structured data (IFPAGE, frames, etc.)
+    // not when copying raw page data
+    WriteMemory(virtual_address, page_buffer, 512)
+```
+
+**Byte Swapping Details**:
+- **IFPAGE**: All DLword fields must be byte-swapped after reading
+- **FPtoVP Table**: Each entry (u16 or u32) must be byte-swapped after reading
+- **Frame Structures**: DLword and LispPTR fields must be byte-swapped when reading
+- **Function Headers**: DLword fields must be byte-swapped when reading
+- **Raw Page Data**: Can be copied directly; byte swapping happens when interpreting structured data
     InitializeVMState(ifpage)
 
     return virtual_memory
