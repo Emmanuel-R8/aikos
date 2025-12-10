@@ -101,7 +101,7 @@ pub fn SDL_MapColorName(format: *SDL_PixelFormat, name: [*c]const u8) u32 {
     // C implementation: sdl_MapColorName approximates X11 color parsing
     // For now, use simple color name mapping
     const name_slice = std.mem.span(name);
-    
+
     // Common color names (matching C implementation logic)
     if (std.mem.eql(u8, name_slice, "black")) {
         return c.SDL_MapRGB(format, 0, 0, 0);
@@ -114,7 +114,7 @@ pub fn SDL_MapColorName(format: *SDL_PixelFormat, name: [*c]const u8) u32 {
     } else if (std.mem.eql(u8, name_slice, "blue")) {
         return c.SDL_MapRGB(format, 0, 0, 255);
     }
-    
+
     // Default to black if name not recognized
     return c.SDL_MapRGB(format, 0, 0, 0);
 }
@@ -126,6 +126,19 @@ pub fn SDL_UpdateTexture(
     pitch: c_int,
 ) c_int {
     return c.SDL_UpdateTexture(texture, rect, pixels, pitch);
+}
+
+pub fn SDL_LockTexture(
+    texture: *SDL_Texture,
+    rect: ?*const SDL_Rect,
+    pixels: *?*anyopaque,
+    pitch: *c_int,
+) c_int {
+    return c.SDL_LockTexture(texture, rect, pixels, pitch);
+}
+
+pub fn SDL_UnlockTexture(texture: *SDL_Texture) void {
+    c.SDL_UnlockTexture(texture);
 }
 
 pub fn SDL_RenderCopy(
