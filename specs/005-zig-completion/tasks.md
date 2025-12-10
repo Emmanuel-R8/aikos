@@ -155,10 +155,10 @@
 
 ### Implementation for User Story 5
 
-- [ ] T075 [US5] Implement SDL2 initialization (SDL_Init, window creation) in maiko/alternatives/zig/src/display/sdl_backend.zig
-- [ ] T076 [US5] Create SDL_Window with specified dimensions and title in maiko/alternatives/zig/src/display/sdl_backend.zig
-- [ ] T077 [US5] Create SDL_Renderer for window in maiko/alternatives/zig/src/display/sdl_backend.zig
-- [ ] T078 [US5] Create SDL_Texture for display buffer rendering in maiko/alternatives/zig/src/display/sdl_backend.zig
+- [X] T075 [US5] Implement SDL2 initialization (SDL_Init, window creation) in maiko/alternatives/zig/src/display/sdl_backend.zig
+- [X] T076 [US5] Create SDL_Window with specified dimensions and title in maiko/alternatives/zig/src/display/sdl_backend.zig
+- [X] T077 [US5] Create SDL_Renderer for window in maiko/alternatives/zig/src/display/sdl_backend.zig
+- [X] T078 [US5] Create SDL_Texture for display buffer rendering in maiko/alternatives/zig/src/display/sdl_backend.zig
 - [ ] T079 [US5] Implement BitBLT operation copying display buffer to texture in maiko/alternatives/zig/src/display/graphics.zig
 - [ ] T080 [US5] Implement texture rendering to screen in maiko/alternatives/zig/src/display/sdl_backend.zig
 - [ ] T081 [US5] Implement BitBLT COPY mode operation in maiko/alternatives/zig/src/display/graphics.zig
