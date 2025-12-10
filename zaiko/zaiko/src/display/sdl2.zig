@@ -29,93 +29,6 @@ pub const SDL_MOUSEMOTION = c.SDL_MOUSEMOTION;
 pub const SDL_MOUSEBUTTONDOWN = c.SDL_MOUSEBUTTONDOWN;
 pub const SDL_MOUSEBUTTONUP = c.SDL_MOUSEBUTTONUP;
 
-// SDL keycodes
-pub const SDLK_5 = c.SDLK_5;
-pub const SDLK_4 = c.SDLK_4;
-pub const SDLK_6 = c.SDLK_6;
-pub const SDLK_e = c.SDLK_e;
-pub const SDLK_7 = c.SDLK_7;
-pub const SDLK_d = c.SDLK_d;
-pub const SDLK_u = c.SDLK_u;
-pub const SDLK_v = c.SDLK_v;
-pub const SDLK_RIGHTPAREN = c.SDLK_RIGHTPAREN;
-pub const SDLK_0 = c.SDLK_0;
-pub const SDLK_k = c.SDLK_k;
-pub const SDLK_MINUS = c.SDLK_MINUS;
-pub const SDLK_p = c.SDLK_p;
-pub const SDLK_SLASH = c.SDLK_SLASH;
-pub const SDLK_KP_PERIOD = c.SDLK_KP_PERIOD;
-pub const SDLK_SCROLLLOCK = c.SDLK_SCROLLLOCK;
-pub const SDLK_BACKSPACE = c.SDLK_BACKSPACE;
-pub const SDLK_3 = c.SDLK_3;
-pub const SDLK_2 = c.SDLK_2;
-pub const SDLK_w = c.SDLK_w;
-pub const SDLK_q = c.SDLK_q;
-pub const SDLK_s = c.SDLK_s;
-pub const SDLK_a = c.SDLK_a;
-pub const SDLK_LEFTPAREN = c.SDLK_LEFTPAREN;
-pub const SDLK_9 = c.SDLK_9;
-pub const SDLK_i = c.SDLK_i;
-pub const SDLK_x = c.SDLK_x;
-pub const SDLK_o = c.SDLK_o;
-pub const SDLK_l = c.SDLK_l;
-pub const SDLK_COMMA = c.SDLK_COMMA;
-pub const SDLK_QUOTE = c.SDLK_QUOTE;
-pub const SDLK_RIGHTBRACKET = c.SDLK_RIGHTBRACKET;
-pub const SDLK_LALT = c.SDLK_LALT;
-pub const SDLK_1 = c.SDLK_1;
-pub const SDLK_ESCAPE = c.SDLK_ESCAPE;
-pub const SDLK_TAB = c.SDLK_TAB;
-pub const SDLK_f = c.SDLK_f;
-pub const SDLK_LCTRL = c.SDLK_LCTRL;
-pub const SDLK_c = c.SDLK_c;
-pub const SDLK_j = c.SDLK_j;
-pub const SDLK_b = c.SDLK_b;
-pub const SDLK_z = c.SDLK_z;
-pub const SDLK_LSHIFT = c.SDLK_LSHIFT;
-pub const SDLK_PERIOD = c.SDLK_PERIOD;
-pub const SDLK_SEMICOLON = c.SDLK_SEMICOLON;
-pub const SDLK_COLON = c.SDLK_COLON;
-pub const SDLK_RETURN = c.SDLK_RETURN;
-pub const SDLK_BACKQUOTE = c.SDLK_BACKQUOTE;
-pub const SDLK_RCTRL = c.SDLK_RCTRL;
-pub const SDLK_r = c.SDLK_r;
-pub const SDLK_t = c.SDLK_t;
-pub const SDLK_g = c.SDLK_g;
-pub const SDLK_y = c.SDLK_y;
-pub const SDLK_h = c.SDLK_h;
-pub const SDLK_8 = c.SDLK_8;
-pub const SDLK_n = c.SDLK_n;
-pub const SDLK_m = c.SDLK_m;
-pub const SDLK_CAPSLOCK = c.SDLK_CAPSLOCK;
-pub const SDLK_SPACE = c.SDLK_SPACE;
-pub const SDLK_LEFTBRACKET = c.SDLK_LEFTBRACKET;
-pub const SDLK_EQUALS = c.SDLK_EQUALS;
-pub const SDLK_RSHIFT = c.SDLK_RSHIFT;
-pub const SDLK_F11 = c.SDLK_F11;
-pub const SDLK_PAUSE = c.SDLK_PAUSE;
-pub const SDLK_HOME = c.SDLK_HOME;
-pub const SDLK_PAGEUP = c.SDLK_PAGEUP;
-pub const SDLK_KP_EQUALS = c.SDLK_KP_EQUALS;
-pub const SDLK_KP_DIVIDE = c.SDLK_KP_DIVIDE;
-pub const SDLK_F7 = c.SDLK_F7;
-pub const SDLK_F4 = c.SDLK_F4;
-pub const SDLK_F5 = c.SDLK_F5;
-pub const SDLK_KP_2 = c.SDLK_KP_2;
-pub const SDLK_KP_3 = c.SDLK_KP_3;
-pub const SDLK_KP_ENTER = c.SDLK_KP_ENTER;
-
-// SDL mouse buttons
-pub const SDL_BUTTON_LEFT = c.SDL_BUTTON_LEFT;
-pub const SDL_BUTTON_MIDDLE = c.SDL_BUTTON_MIDDLE;
-pub const SDL_BUTTON_RIGHT = c.SDL_BUTTON_RIGHT;
-
-// SDL key modifiers
-pub const KMOD_SHIFT = c.KMOD_SHIFT;
-pub const KMOD_CTRL = c.KMOD_CTRL;
-pub const KMOD_ALT = c.KMOD_ALT;
-pub const KMOD_GUI = c.KMOD_GUI;
-
 pub fn SDL_Init(flags: u32) c_int {
     return c.SDL_Init(flags);
 }
@@ -188,7 +101,7 @@ pub fn SDL_MapColorName(format: *SDL_PixelFormat, name: [*c]const u8) u32 {
     // C implementation: sdl_MapColorName approximates X11 color parsing
     // For now, use simple color name mapping
     const name_slice = std.mem.span(name);
-
+    
     // Common color names (matching C implementation logic)
     if (std.mem.eql(u8, name_slice, "black")) {
         return c.SDL_MapRGB(format, 0, 0, 0);
@@ -201,7 +114,7 @@ pub fn SDL_MapColorName(format: *SDL_PixelFormat, name: [*c]const u8) u32 {
     } else if (std.mem.eql(u8, name_slice, "blue")) {
         return c.SDL_MapRGB(format, 0, 0, 255);
     }
-
+    
     // Default to black if name not recognized
     return c.SDL_MapRGB(format, 0, 0, 0);
 }
@@ -213,19 +126,6 @@ pub fn SDL_UpdateTexture(
     pitch: c_int,
 ) c_int {
     return c.SDL_UpdateTexture(texture, rect, pixels, pitch);
-}
-
-pub fn SDL_LockTexture(
-    texture: *SDL_Texture,
-    rect: ?*const c.SDL_Rect,
-    pixels: *?*anyopaque,
-    pitch: *c_int,
-) c_int {
-    return c.SDL_LockTexture(texture, rect, pixels, pitch);
-}
-
-pub fn SDL_UnlockTexture(texture: *SDL_Texture) void {
-    c.SDL_UnlockTexture(texture);
 }
 
 pub fn SDL_RenderCopy(
