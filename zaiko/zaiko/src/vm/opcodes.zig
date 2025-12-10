@@ -83,7 +83,9 @@ pub const handleGETAEL1 = array_ops.handleGETAEL1;
 pub const handleGETAEL2 = array_ops.handleGETAEL2;
 pub const handleSETAEL1 = array_ops.handleSETAEL1;
 pub const handleSETAEL2 = array_ops.handleSETAEL2;
+pub const handleAREF1 = array_ops.handleAREF1;
 pub const handleAREF2 = array_ops.handleAREF2;
+pub const handleASET1 = array_ops.handleASET1;
 pub const handleASET2 = array_ops.handleASET2;
 
 // Comparison
@@ -111,6 +113,7 @@ pub const handleGVAR = variable_access.handleGVAR;
 pub const handleACONST = variable_access.handleACONST;
 pub const handleSTKSCAN = variable_access.handleSTKSCAN;
 pub const handlePVAR_SET = variable_access.handlePVAR_SET;
+pub const handlePVARSETPOP = variable_access.handlePVARSETPOP;
 pub const handleARG0 = variable_access.handleARG0;
 pub const handleIVARX_ = variable_access.handleIVARX_;
 pub const handleFVARX_ = variable_access.handleFVARX_;

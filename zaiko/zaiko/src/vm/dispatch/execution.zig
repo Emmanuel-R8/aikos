@@ -34,23 +34,23 @@ fn handleFJUMPWithOffset(vm: *VM, offset: i8) errors.VMError!?i64 {
 /// C: TJUMPMACRO(x): if (TOPOFSTACK == 0) { POP; nextop1; } else { CHECK_INTERRUPT; POP; PCMACL += (x); nextop0; }
 fn handleTJUMPWithOffset(vm: *VM, offset: i8) errors.VMError!?i64 {
     const stack_module = @import("../stack.zig");
-    
+
     // Check stack depth before popping
     const stack_depth = stack_module.getStackDepth(vm);
     std.debug.print("DEBUG: TJUMP: stack_depth={}, offset={}\n", .{ stack_depth, offset });
-    
+
     if (stack_depth == 0) {
         std.debug.print("ERROR: TJUMP: Stack is empty, cannot pop!\n", .{});
         return error.StackUnderflow;
     }
-    
+
     const tos = stack_module.getTopOfStack(vm);
     std.debug.print("DEBUG: TJUMP: TOS=0x{x}, offset={}\n", .{ tos, offset });
     _ = try stack_module.popStack(vm); // Always pop (C: POP in both branches)
-    
+
     const new_stack_depth = stack_module.getStackDepth(vm);
     std.debug.print("DEBUG: TJUMP: After pop, stack_depth={}\n", .{new_stack_depth});
-    
+
     if (tos != 0) {
         // Not NIL - jump
         std.debug.print("DEBUG: TJUMP: TOS is non-NIL, jumping by {}\n", .{offset});
@@ -393,8 +393,17 @@ pub fn executeOpcodeWithOperands(vm: *VM, opcode: Opcode, instruction: Instructi
         // .GETAEL2 => try opcodes.handleGETAEL2(vm, instruction.getWordOperand(0)), // Commented out - conflicts with JUMP1
         // .SETAEL1 => try opcodes.handleSETAEL1(vm, instruction.getByteOperand(0)), // Commented out - conflicts with JUMP2
         // .SETAEL2 => try opcodes.handleSETAEL2(vm, instruction.getWordOperand(0)), // Commented out - conflicts with JUMP3
+        .AREF1 => try opcodes.handleAREF1(vm),
         .AREF2 => try opcodes.handleAREF2(vm),
+        .ASET1 => try opcodes.handleASET1(vm),
         .ASET2 => try opcodes.handleASET2(vm),
+        .PVARSETPOP0 => try opcodes.handlePVARSETPOP(vm, 0),
+        .PVARSETPOP1 => try opcodes.handlePVARSETPOP(vm, 1),
+        .PVARSETPOP2 => try opcodes.handlePVARSETPOP(vm, 2),
+        .PVARSETPOP3 => try opcodes.handlePVARSETPOP(vm, 3),
+        .PVARSETPOP4 => try opcodes.handlePVARSETPOP(vm, 4),
+        .PVARSETPOP5 => try opcodes.handlePVARSETPOP(vm, 5),
+        .PVARSETPOP6 => try opcodes.handlePVARSETPOP(vm, 6),
 
         // Comparison
         .EQ => try opcodes.handleEQ(vm),
