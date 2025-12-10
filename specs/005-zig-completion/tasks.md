@@ -171,7 +171,7 @@
 - [X] T088 [US5] Implement mouse event handling (SDL_MOUSEMOTION, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP) in maiko/alternatives/zig/src/display/events.zig
 - [X] T089 [US5] Implement mouse coordinate translation from SDL coordinates to Lisp coordinates in maiko/alternatives/zig/src/display/events.zig
 - [X] T090 [US5] Deliver mouse events to Lisp event queue in maiko/alternatives/zig/src/io/mouse.zig
-- [ ] T091 [US5] Integrate SDL2 display initialization into main.zig startup sequence in maiko/alternatives/zig/src/main.zig
+- [X] T091 [US5] Integrate SDL2 display initialization into main.zig startup sequence in maiko/alternatives/zig/src/main.zig
 - [ ] T092 [US5] Add test case for SDL2 window creation and display in maiko/alternatives/zig/tests/display.zig
 - [ ] T093 [US5] Add test case for BitBLT rendering operations in maiko/alternatives/zig/tests/display.zig
 - [ ] T094 [US5] Add test case for keyboard event translation and delivery in maiko/alternatives/zig/tests/io.zig
