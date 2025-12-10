@@ -149,6 +149,32 @@ pub fn handleACONST(vm: *VM, atom_index: u16) errors.VMError!void {
     try stack_module.pushStack(vm, @as(LispPTR, atom_index));
 }
 
+/// PVARSETPOP0-PVARSETPOP6: Set parameter variable and pop value
+/// C: inlineC.h PVARSETPOPMACRO(x)
+/// Stack: [value] -> [] (value stored in PVar[x], then popped)
+pub fn handlePVARSETPOP(vm: *VM, index: u8) errors.VMError!void {
+    const stack_module = @import("../stack.zig");
+    const errors_module = @import("../../utils/errors.zig");
+    
+    // C: PVARSETPOPMACRO(x):
+    //   PVAR(x) = POP_TOS_1;
+    //   (value is popped, stored in PVar[x])
+    
+    // Pop value from stack
+    const value = try stack_module.popStack(vm);
+    
+    // Get current frame
+    const frame = vm.current_frame orelse {
+        return errors_module.VMError.InvalidAddress; // No current frame
+    };
+    
+    // Store value in PVar[index]
+    // PVar access: parameters stored right after frame header (FRAMESIZE offset)
+    stack_module.setPVar(frame, index, value);
+    
+    // Value is popped (not pushed back) - this is SETPOP, not SET
+}
+
 /// APPLYFN: Apply function
 /// Per rewrite documentation instruction-set/opcodes.md
 /// Applies a function to arguments on the stack
