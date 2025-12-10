@@ -159,11 +159,11 @@
 - [X] T076 [US5] Create SDL_Window with specified dimensions and title in maiko/alternatives/zig/src/display/sdl_backend.zig
 - [X] T077 [US5] Create SDL_Renderer for window in maiko/alternatives/zig/src/display/sdl_backend.zig
 - [X] T078 [US5] Create SDL_Texture for display buffer rendering in maiko/alternatives/zig/src/display/sdl_backend.zig
-- [ ] T079 [US5] Implement BitBLT operation copying display buffer to texture in maiko/alternatives/zig/src/display/graphics.zig
-- [ ] T080 [US5] Implement texture rendering to screen in maiko/alternatives/zig/src/display/sdl_backend.zig
-- [ ] T081 [US5] Implement BitBLT COPY mode operation in maiko/alternatives/zig/src/display/graphics.zig
-- [ ] T082 [US5] Implement BitBLT XOR mode operation in maiko/alternatives/zig/src/display/graphics.zig
-- [ ] T083 [US5] Connect BitBLT operations to SDL2 rendering pipeline in maiko/alternatives/zig/src/display/sdl_backend.zig
+- [X] T079 [US5] Implement BitBLT operation copying display buffer to texture in maiko/alternatives/zig/src/display/graphics.zig
+- [X] T080 [US5] Implement texture rendering to screen in maiko/alternatives/zig/src/display/sdl_backend.zig
+- [X] T081 [US5] Implement BitBLT COPY mode operation in maiko/alternatives/zig/src/display/graphics.zig
+- [X] T082 [US5] Implement BitBLT XOR mode operation in maiko/alternatives/zig/src/display/graphics.zig
+- [X] T083 [US5] Connect BitBLT operations to SDL2 rendering pipeline in maiko/alternatives/zig/src/display/sdl_backend.zig
 - [ ] T084 [US5] Implement SDL2 event polling loop in maiko/alternatives/zig/src/display/events.zig
 - [ ] T085 [US5] Implement keyboard event handling (SDL_KEYDOWN, SDL_KEYUP) in maiko/alternatives/zig/src/display/events.zig
 - [ ] T086 [US5] Implement keycode translation from SDL keycodes to Lisp keycodes in maiko/alternatives/zig/src/display/events.zig
