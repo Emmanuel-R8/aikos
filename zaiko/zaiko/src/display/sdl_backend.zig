@@ -13,13 +13,13 @@ pub const DisplayInterface = struct {
     renderer: ?*sdl2.SDL_Renderer,
     texture: ?*sdl2.SDL_Texture,
     pixel_format: ?*sdl2.SDL_PixelFormat,
-    
+
     // Display properties
     width: u32,
     height: u32,
     pixel_scale: u32, // Pixel scaling factor
     display_region: []DLword, // Display region buffer
-    
+
     // Color information
     foreground_color: u32,
     background_color: u32,
@@ -51,9 +51,11 @@ pub const DisplayInterface = struct {
         std.debug.print("requested width: {}, height: {}\n", .{ display_width, display_height });
 
         // T076: Create SDL_Window
-        const title_cstr = try allocator.dupeZ(u8, window_title);
+        const title_cstr = allocator.dupeZ(u8, window_title) catch {
+            return error.SDLInitFailed; // Map OutOfMemory to DisplayError
+        };
         defer allocator.free(title_cstr);
-        
+
         const window = sdl2.SDL_CreateWindow(
             title_cstr.ptr,
             sdl2.SDL_WINDOWPOS_UNDEFINED,
@@ -62,7 +64,7 @@ pub const DisplayInterface = struct {
             @as(c_int, @intCast(window_height)),
             0,
         );
-        
+
         if (window == null) {
             const error_msg = std.mem.span(sdl2.SDL_GetError());
             std.debug.print("Window could not be created. SDL_Error: {s}\n", .{error_msg});
@@ -73,12 +75,12 @@ pub const DisplayInterface = struct {
 
         // T077: Create SDL_Renderer
         std.debug.print("Creating renderer...\n", .{});
-        const renderer = sdl2.SDL_CreateRenderer(window, -1, sdl2.SDL_RENDERER_ACCELERATED);
-        
+        const renderer = sdl2.SDL_CreateRenderer(window.?, -1, sdl2.SDL_RENDERER_ACCELERATED);
+
         if (renderer == null) {
             const error_msg = std.mem.span(sdl2.SDL_GetError());
             std.debug.print("SDL Error: {s}\n", .{error_msg});
-            sdl2.SDL_DestroyWindow(window);
+            sdl2.SDL_DestroyWindow(window.?);
             sdl2.SDL_Quit();
             return error.SDLRendererCreationFailed;
         }
@@ -93,8 +95,8 @@ pub const DisplayInterface = struct {
         // Get pixel format from renderer
         const pixel_format = sdl2.SDL_AllocFormat(renderer_info.texture_formats[0]);
         if (pixel_format == null) {
-            sdl2.SDL_DestroyRenderer(renderer);
-            sdl2.SDL_DestroyWindow(window);
+            sdl2.SDL_DestroyRenderer(renderer.?);
+            sdl2.SDL_DestroyWindow(window.?);
             sdl2.SDL_Quit();
             return error.SDLPixelFormatFailed;
         }
@@ -108,12 +110,12 @@ pub const DisplayInterface = struct {
             @as(c_int, @intCast(display_width)),
             @as(c_int, @intCast(display_height)),
         );
-        
+
         if (texture == null) {
             const error_msg = std.mem.span(sdl2.SDL_GetError());
             std.debug.print("Texture could not be created. SDL_Error: {s}\n", .{error_msg});
-            sdl2.SDL_DestroyRenderer(renderer);
-            sdl2.SDL_DestroyWindow(window);
+            sdl2.SDL_DestroyRenderer(renderer.?);
+            sdl2.SDL_DestroyWindow(window.?);
             sdl2.SDL_Quit();
             return error.SDLTextureCreationFailed;
         }
@@ -145,10 +147,10 @@ pub const DisplayInterface = struct {
 
     pub fn deinit(self: *DisplayInterface, allocator: std.mem.Allocator) void {
         allocator.free(self.display_region);
-        
+
         // Destroy SDL2 objects
         if (self.texture) |tex| {
-            sdl2.SDL_DestroyTexture(tex);
+            sdl2.SDL_DestroyTexture(tex.?);
         }
         if (self.renderer) |ren| {
             sdl2.SDL_DestroyRenderer(ren);
@@ -160,7 +162,7 @@ pub const DisplayInterface = struct {
             // SDL_FreeFormat is not exposed, but format is managed by SDL
             _ = fmt;
         }
-        
+
         sdl2.SDL_Quit();
     }
 };
@@ -175,7 +177,9 @@ pub fn initDisplay(
     allocator: std.mem.Allocator,
 ) errors.DisplayError!*DisplayInterface {
     // Allocate DisplayInterface on heap (caller must free)
-    const display = try allocator.create(DisplayInterface);
+    const display = allocator.create(DisplayInterface) catch {
+        return error.SDLInitFailed; // Map OutOfMemory to DisplayError
+    };
     display.* = try DisplayInterface.init(allocator, window_title, width, height, pixel_scale);
     return display;
 }

@@ -6,6 +6,10 @@ const dispatch = @import("vm/dispatch.zig");
 const sysout = @import("data/sysout.zig");
 const storage = @import("memory/storage.zig");
 const gc_module = @import("memory/gc.zig");
+const sdl_backend = @import("display/sdl_backend.zig");
+const events = @import("display/events.zig");
+const keyboard = @import("io/keyboard.zig");
+const mouse = @import("io/mouse.zig");
 
 /// Command-line options structure
 const Options = struct {
@@ -326,6 +330,37 @@ pub fn main() !void {
 
     std.debug.print("Sysout loaded: version={}, keyval=0x{x}\n", .{ sysout_result.ifpage.lversion, sysout_result.ifpage.key });
 
+    // T091: Initialize SDL2 display (before VM initialization)
+    const screen_width = options.screen_width orelse 1024;
+    const screen_height = options.screen_height orelse 768;
+    const pixel_scale = options.pixel_scale orelse 1;
+    const window_title = options.window_title orelse "Medley Interlisp (Zig)";
+    
+    const display = sdl_backend.initDisplay(
+        window_title,
+        screen_width,
+        screen_height,
+        pixel_scale,
+        allocator,
+    ) catch |err| {
+        std.debug.print("Failed to initialize SDL2 display: {}\n", .{err});
+        return;
+    };
+    defer sdl_backend.destroyDisplay(display, allocator);
+    
+    std.debug.print("SDL2 display initialized: {}x{} (scale: {})\n", .{ screen_width, screen_height, pixel_scale });
+
+    // Initialize event queues
+    var key_queue = try keyboard.KeyEventQueue.init(allocator, 256);
+    defer key_queue.deinit(allocator);
+    
+    var mouse_state = mouse.MouseState{
+        .x = 0,
+        .y = 0,
+        .buttons = 0,
+    };
+    _ = &mouse_state; // Used in event polling
+
     // CRITICAL: Initialize system state before start_lisp()
     // Equivalent to: build_lisp_map(), init_ifpage(), init_iopage(), init_miscstats(), init_storage()
     // C: maiko/src/main.c:725-729
@@ -354,18 +389,27 @@ pub fn main() !void {
         sysout_result.ifpage.currentfxp,
     });
 
-    // TODO: Initialize SDL display with options (screen_width, screen_height, pixel_scale, colors, title)
     // TODO: Initialize timer with timer_interval if specified
 
     std.debug.print("VM initialized, entering dispatch loop\n", .{});
 
-    // Enter dispatch loop
-    // Dispatch loop now reads bytecode from virtual_memory using PC
-    // PC is initialized from current frame (if available) or starts at 0
-    dispatch.dispatch(&vm) catch |err| {
-        std.debug.print("Dispatch loop error: {}\n", .{err});
-        return;
-    };
+    // T091: Main loop with event polling and VM execution
+    var quit_requested = false;
+    while (!quit_requested) {
+        // Poll SDL2 events (T091: integrated event polling)
+        events.pollEvents(display, &key_queue, &mouse_state, allocator) catch |err| {
+            std.debug.print("Event polling error: {}\n", .{err});
+        }
+        
+        // Execute VM instructions
+        dispatch.dispatch(&vm) catch |err| {
+            std.debug.print("VM dispatch error: {}\n", .{err});
+            // Continue execution despite errors (for debugging)
+        };
+        
+        // Small delay to prevent CPU spinning
+        std.time.sleep(1000); // 1 microsecond
+    }
 
     std.debug.print("VM execution complete\n", .{});
 }

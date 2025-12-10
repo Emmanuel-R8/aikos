@@ -45,7 +45,6 @@ pub const KeyEventQueue = struct {
 
     pub fn deinit(self: *KeyEventQueue, allocator: std.mem.Allocator) void {
         allocator.free(self.events);
-        _ = self;
     }
 };
 
