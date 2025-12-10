@@ -164,13 +164,13 @@
 - [X] T081 [US5] Implement BitBLT COPY mode operation in maiko/alternatives/zig/src/display/graphics.zig
 - [X] T082 [US5] Implement BitBLT XOR mode operation in maiko/alternatives/zig/src/display/graphics.zig
 - [X] T083 [US5] Connect BitBLT operations to SDL2 rendering pipeline in maiko/alternatives/zig/src/display/sdl_backend.zig
-- [ ] T084 [US5] Implement SDL2 event polling loop in maiko/alternatives/zig/src/display/events.zig
-- [ ] T085 [US5] Implement keyboard event handling (SDL_KEYDOWN, SDL_KEYUP) in maiko/alternatives/zig/src/display/events.zig
-- [ ] T086 [US5] Implement keycode translation from SDL keycodes to Lisp keycodes in maiko/alternatives/zig/src/display/events.zig
-- [ ] T087 [US5] Deliver keyboard events to Lisp event queue in maiko/alternatives/zig/src/io/keyboard.zig
-- [ ] T088 [US5] Implement mouse event handling (SDL_MOUSEMOTION, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP) in maiko/alternatives/zig/src/display/events.zig
-- [ ] T089 [US5] Implement mouse coordinate translation from SDL coordinates to Lisp coordinates in maiko/alternatives/zig/src/display/events.zig
-- [ ] T090 [US5] Deliver mouse events to Lisp event queue in maiko/alternatives/zig/src/io/mouse.zig
+- [X] T084 [US5] Implement SDL2 event polling loop in maiko/alternatives/zig/src/display/events.zig
+- [X] T085 [US5] Implement keyboard event handling (SDL_KEYDOWN, SDL_KEYUP) in maiko/alternatives/zig/src/display/events.zig
+- [X] T086 [US5] Implement keycode translation from SDL keycodes to Lisp keycodes in maiko/alternatives/zig/src/display/events.zig
+- [X] T087 [US5] Deliver keyboard events to Lisp event queue in maiko/alternatives/zig/src/io/keyboard.zig
+- [X] T088 [US5] Implement mouse event handling (SDL_MOUSEMOTION, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP) in maiko/alternatives/zig/src/display/events.zig
+- [X] T089 [US5] Implement mouse coordinate translation from SDL coordinates to Lisp coordinates in maiko/alternatives/zig/src/display/events.zig
+- [X] T090 [US5] Deliver mouse events to Lisp event queue in maiko/alternatives/zig/src/io/mouse.zig
 - [ ] T091 [US5] Integrate SDL2 display initialization into main.zig startup sequence in maiko/alternatives/zig/src/main.zig
 - [ ] T092 [US5] Add test case for SDL2 window creation and display in maiko/alternatives/zig/tests/display.zig
 - [ ] T093 [US5] Add test case for BitBLT rendering operations in maiko/alternatives/zig/tests/display.zig
