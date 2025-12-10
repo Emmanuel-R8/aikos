@@ -1,14 +1,15 @@
 # AI Agent Guidelines for Interlisp Project
 
-**Date**: 2025-01-27
+**Date**: 2025-12-10 12:45
 **Purpose**: Guidelines and best practices for AI agents working on this project
 
 ## Project Overview
 
 This repository contains the **Interlisp** project, which includes:
 - **Maiko**: Virtual machine emulator for Medley Interlisp bytecode
-- **Zig Implementation**: Alternative implementation of Maiko in Zig (in progress)
 - **C Implementation**: Reference implementation in C (fully functional)
+- **Zig Implementation**: Alternative implementation of Maiko in Zig (in progress)
+- **Common Lisp Implementation**: Alternative implementation of Maiko in Common Lisp (targetting Sbcl) (in progress)
 
 ## Critical Documentation
 
@@ -18,6 +19,7 @@ This repository contains the **Interlisp** project, which includes:
    - All documentation improvements MUST be emulator-independent in `rewrite-spec/`
    - Language-specific details go in `implementations/`
    - **ALWAYS** update both before committing
+   - **ALWAYS** use the command `date`to date entries (when necessary )i as YYYY-mm-dd HH:MM
 
 2. **`.ai_assistant_db/README.md`** - Overview of documentation structure
 3. **`specs/005-zig-completion/plan.md`** - Implementation plan for Zig emulator
@@ -34,6 +36,7 @@ Interlisp/
 ├── maiko/                     # Maiko VM source code
 │   ├── src/                   # C implementation (reference)
 │   └── alternatives/zig/      # Zig implementation (in progress)
+│   └── alternatives/lisp/     # Common Lisp (sbcl) implementation (in progress - will be developed after Zig)
 ├── specs/                     # Feature specifications
 │   └── 005-zig-completion/   # Zig emulator completion spec
 └── medley/                    # Medley Interlisp system
@@ -242,4 +245,3 @@ medley/scripts/build/build-c-emulator.sh
 
 **Last Updated**: 2025-01-27
 **Status**: Zig emulator 87.0% complete, SDL2 integration implemented, minor fixes pending
-

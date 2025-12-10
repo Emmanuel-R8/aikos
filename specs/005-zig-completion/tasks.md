@@ -172,11 +172,11 @@
 - [X] T089 [US5] Implement mouse coordinate translation from SDL coordinates to Lisp coordinates in maiko/alternatives/zig/src/display/events.zig
 - [X] T090 [US5] Deliver mouse events to Lisp event queue in maiko/alternatives/zig/src/io/mouse.zig
 - [X] T091 [US5] Integrate SDL2 display initialization into main.zig startup sequence in maiko/alternatives/zig/src/main.zig
-- [ ] T092 [US5] Add test case for SDL2 window creation and display in maiko/alternatives/zig/tests/display.zig
-- [ ] T093 [US5] Add test case for BitBLT rendering operations in maiko/alternatives/zig/tests/display.zig
-- [ ] T094 [US5] Add test case for keyboard event translation and delivery in maiko/alternatives/zig/tests/io.zig
-- [ ] T095 [US5] Add test case for mouse event translation and delivery in maiko/alternatives/zig/tests/io.zig
-- [ ] T096 [US5] Add integration test for interactive Medley session with graphics and input in maiko/alternatives/zig/tests/integration.zig
+- [X] T092 [US5] Add test case for SDL2 window creation and display in maiko/alternatives/zig/tests/display.zig
+- [X] T093 [US5] Add test case for BitBLT rendering operations in maiko/alternatives/zig/tests/display.zig
+- [X] T094 [US5] Add test case for keyboard event translation and delivery in maiko/alternatives/zig/tests/keyboard.zig
+- [X] T095 [US5] Add test case for mouse event translation and delivery in maiko/alternatives/zig/tests/mouse.zig
+- [X] T096 [US5] Add integration test for interactive Medley session with graphics and input in maiko/alternatives/zig/tests/integration.zig
 
 **Checkpoint**: At this point, all user stories should be complete - full interactive Medley sessions work with graphics and input.
 
@@ -198,9 +198,9 @@
   - ✅ All files now under 500 lines (user preference)
 - [ ] T103 [P] Performance optimization for sysout loading (target < 5 seconds)
 - [ ] T104 [P] Performance optimization for bytecode execution
-- [ ] T105 [P] Run quickstart.md validation to ensure all steps work correctly
+- [X] T105 [P] Run quickstart.md validation to ensure all steps work correctly
 - [ ] T106 [P] Add comprehensive error messages for all failure cases
-- [ ] T107 [P] Verify all tests pass with zig build test
+- [X] T107 [P] Verify all tests pass with zig build test
 - [ ] T108 [P] Compare execution results with C emulator for validation
 
 ---

@@ -99,7 +99,7 @@ function InitializeStackPointer(frame, Stackspace):
     // C: CurrentStackPTR = next68k - 2
     next68k = Stackspace + frame.nextblock  // nextblock is DLword offset from Stackspace
     CurrentStackPTR = next68k - 2  // Move back 2 DLwords (stack grows down)
-    
+
     // Stack depth = (CurrentStackPTR - Stackspace) / 2 (in DLwords)
     stack_depth = (CurrentStackPTR - Stackspace) / 2
     // Typically thousands of DLwords (e.g., 5956 DLwords in starter.sysout)
@@ -116,6 +116,8 @@ function InitializeStackPointer(frame, Stackspace):
 - The actual stack pointer (`CurrentStackPTR`) points to existing stack data
 - Stack depth is calculated as `(CurrentStackPTR - Stackspace) / 2` DLwords
 
+**CRITICAL**: `TopOfStack` must be implemented as a cached value, NOT read from memory initially. Reading from stack memory initially would return garbage data (e.g., 0xaaaaaaaa patterns) from uninitialized sysout memory. The C code sets `TopOfStack = 0` as a cached variable, and updates it only when stack operations occur.
+
 **C Reference**: `maiko/src/main.c:790` - `TopOfStack = 0;` (cached variable, not stack pointer initialization)
 
 ## Stack Operations
@@ -126,16 +128,23 @@ function InitializeStackPointer(frame, Stackspace):
 
 **CRITICAL**: Stack grows DOWN. `Stackspace` is the BASE (lowest address), `CurrentStackPTR` is the current top (higher address when stack has data). Pushing moves `CurrentStackPTR` DOWN (toward lower addresses).
 
+**CRITICAL**: Stack memory from sysout stores DLwords in BIG-ENDIAN format. When writing to stack memory, values must be stored in big-endian format to maintain compatibility with sysout format.
+
 ```pseudocode
 function PushStack(value: LispPTR):
     // Stack grows down, move pointer down by 4 bytes (2 DLwords)
     CurrentStackPTR = CurrentStackPTR - 2  // Move DOWN 2 DLwords
 
-    // Store LispPTR as 2 DLwords (low word first, then high word)
-    CurrentStackPTR[0] = value & 0xFFFF        // Low 16 bits
-    CurrentStackPTR[1] = (value >> 16) & 0xFFFF  // High 16 bits
+    // Store LispPTR as 2 DLwords in BIG-ENDIAN format
+    // CRITICAL: Stack memory stores DLwords as [high_byte, low_byte]
+    low_word = value & 0xFFFF        // Low 16 bits
+    high_word = (value >> 16) & 0xFFFF  // High 16 bits
+    
+    // Write big-endian: [high_byte, low_byte] for each DLword
+    CurrentStackPTR[0] = (low_word >> 8) | ((low_word & 0xFF) << 8)   // Big-endian low word
+    CurrentStackPTR[1] = (high_word >> 8) | ((high_word & 0xFF) << 8)  // Big-endian high word
 
-    TopOfStack = value
+    TopOfStack = value  // Update cached value
 
     // Check stack overflow (CurrentStackPTR must not go below EndSTKP)
     if CurrentStackPTR < EndSTKP:
@@ -156,19 +165,34 @@ function PushStack(value: LispPTR):
 
 **CRITICAL**: Stack grows DOWN. Popping moves `CurrentStackPTR` UP (toward higher addresses). Stack is empty when `CurrentStackPTR <= Stackspace`.
 
+**CRITICAL**: Stack memory from sysout stores DLwords in BIG-ENDIAN format. When reading from stack memory, values must be byte-swapped from big-endian to native format.
+
 ```pseudocode
 function PopStack():
     // Check for stack underflow: CurrentStackPTR must be > Stackspace (stack has data)
     if CurrentStackPTR <= Stackspace:
         return StackUnderflow
+
+    // Read LispPTR as 2 DLwords in BIG-ENDIAN format
+    // CRITICAL: Stack memory stores DLwords as [high_byte, low_byte]
+    // Must byte-swap when reading on little-endian machines
+    low_word_be = CurrentStackPTR[0]   // Read as big-endian DLword
+    high_word_be = CurrentStackPTR[1]  // Read as big-endian DLword
     
-    // Read LispPTR as 2 DLwords (low word first, then high word)
-    low_word = CurrentStackPTR[0]   // Low 16 bits
-    high_word = CurrentStackPTR[1]  // High 16 bits
+    // Byte-swap from big-endian to native format
+    low_word = ((low_word_be & 0xFF) << 8) | ((low_word_be >> 8) & 0xFF)
+    high_word = ((high_word_be & 0xFF) << 8) | ((high_word_be >> 8) & 0xFF)
+    
     value = (high_word << 16) | low_word  // Reconstruct 32-bit value
 
     CurrentStackPTR = CurrentStackPTR + 2  // Move UP 2 DLwords (stack grows down)
-    TopOfStack = GetTopOfStack()  // Update cached top
+    
+    // Update cached TopOfStack value
+    if CurrentStackPTR <= Stackspace:
+        TopOfStack = 0  // Stack empty - TopOfStack = NIL
+    else:
+        TopOfStack = ReadTopOfStackFromMemory()  // Read new top (with byte-swapping)
+    
     return value
 ```
 

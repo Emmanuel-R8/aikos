@@ -98,16 +98,16 @@
 
 ### Implementation for User Story 3
 
-- [ ] T034 [US3] Add --auto-build argument parsing to medley/run-medley
-- [ ] T035 [US3] Integrate build_emulator_if_needed() function into medley/run-medley (call when --auto-build and emulator missing)
-- [ ] T036 [US3] Add error handling for build failures in medley/run-medley (display clear error, exit with code 3)
-- [ ] T037 [US3] Add --auto-build argument parsing to medley/scripts/medley/medley.command
-- [ ] T038 [US3] Integrate build_emulator_if_needed() into medley/scripts/medley/medley.command
-- [ ] T039 [US3] Add error handling for build failures in medley/scripts/medley/medley.command
-- [ ] T040 [US3] Add --auto-build argument parsing to medley/scripts/medley/medley_run.sh (if needed)
-- [ ] T041 [US3] Integrate build_emulator_if_needed() into medley/scripts/medley/medley_run.sh (if needed)
-- [ ] T042 [US3] Ensure build_emulator_if_needed() displays build progress to user
-- [ ] T043 [US3] Verify error message when emulator missing and --auto-build not specified (exit code 2, clear message)
+- [X] T034 [US3] Add --auto-build argument parsing to medley/run-medley
+- [X] T035 [US3] Integrate build_emulator_if_needed() function into medley/run-medley (call when --auto-build and emulator missing)
+- [X] T036 [US3] Add error handling for build failures in medley/run-medley (display clear error, exit with code 3)
+- [X] T037 [US3] Add --auto-build argument parsing to medley/scripts/medley/medley.command
+- [X] T038 [US3] Integrate build_emulator_if_needed() into medley/scripts/medley/medley.command
+- [X] T039 [US3] Add error handling for build failures in medley/scripts/medley/medley.command
+- [X] T040 [US3] Add --auto-build argument parsing to medley/scripts/medley/medley_run.sh (if needed)
+- [X] T041 [US3] Integrate build_emulator_if_needed() into medley/scripts/medley/medley_run.sh (if needed)
+- [X] T042 [US3] Ensure build_emulator_if_needed() displays build progress to user
+- [X] T043 [US3] Verify error message when emulator missing and --auto-build not specified (exit code 2, clear message)
 
 **Checkpoint**: All user stories should now be independently functional. Developers can use --auto-build to automatically build missing emulators before running Interlisp.
 
@@ -117,17 +117,17 @@
 
 **Purpose**: Improvements that affect multiple user stories and ensure production readiness
 
-- [ ] T044 [P] Update medley/BUILDING.md to document emulator selection features
-- [ ] T045 [P] Update medley/scripts/README.md (if exists) with emulator runner documentation
-- [ ] T046 [P] Add usage examples to quickstart.md validation
-- [ ] T047 Verify 100% backward compatibility with existing Medley run script functionality
-- [ ] T048 Verify all error messages are clear and actionable (per contracts/run-scripts-api.md)
-- [ ] T049 Verify exit codes match contract specifications (0=success, 1=general error, 2=not found, 3=build failed, 4=lock held, 5=validation failed)
+- [X] T044 [P] Update medley/BUILDING.md to document emulator selection features
+- [X] T045 [P] Update medley/scripts/README.md (if exists) with emulator runner documentation
+- [X] T046 [P] Add usage examples to quickstart.md validation
+- [X] T047 Verify 100% backward compatibility with existing Medley run script functionality
+- [X] T048 Verify all error messages are clear and actionable (per contracts/run-scripts-api.md)
+- [X] T049 Verify exit codes match contract specifications (0=success, 1=general error, 2=not found, 3=build failed, 4=lock held, 5=validation failed)
 - [ ] T050 Test emulator selection on all supported platforms (Linux, macOS, FreeBSD)
-- [ ] T051 Verify lock file cleanup on script exit (trap handlers work correctly)
-- [ ] T052 Verify stale lock detection works correctly (5 minute timeout, dead process detection)
-- [ ] T053 Verify platform-specific emulator availability handling (graceful error messages)
-- [ ] T054 Code cleanup and refactoring (ensure consistent error handling patterns)
+- [X] T051 Verify lock file cleanup on script exit (trap handlers work correctly)
+- [X] T052 Verify stale lock detection works correctly (5 minute timeout, dead process detection)
+- [X] T053 Verify platform-specific emulator availability handling (graceful error messages)
+- [X] T054 Code cleanup and refactoring (ensure consistent error handling patterns)
 - [ ] T055 Verify all three emulator types work correctly (C, Zig, Lisp)
 - [ ] T056 Run quickstart.md validation scenarios
 

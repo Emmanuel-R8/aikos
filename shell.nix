@@ -7,7 +7,7 @@
 #
 # Note: If SDL3 or Zig are not available in your nixpkgs channel,
 # you may need to use nixpkgs-unstable:
-{  pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/nixos-unstable.tar.gz") {}}:
+{pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/nixos-unstable.tar.gz") {}}:
 # {pkgs ? import <nixpkgs> {}}:
 pkgs.mkShell {
   # Native build inputs (tools needed during build)
@@ -32,10 +32,12 @@ pkgs.mkShell {
     sbcl # Steel Bank Common Lisp (for Lisp emulator)
 
     # IDEs
-    code-cursor
+    bun # For amp
     cursor-cli
-    vscode    
-    
+    gemini-cli
+
+    code-cursor
+    vscode
   ];
 
   # Set up environment variables for pkg-config

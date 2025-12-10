@@ -120,23 +120,36 @@ function InitializePCFromSysout(ifpage, virtual_memory):
     // Get function header address from frame
     fnheader_addr = frame.fnheader
 
-    // Read function header
-    // CRITICAL: Function header fields are also big-endian
-    fnheader = ReadFunctionHeader(virtual_memory, fnheader_addr)
-
-    // Calculate PC: function header offset + startpc (byte offset)
-    // C: PC = (ByteCode *)FuncObj + FuncObj->startpc;
-    // CRITICAL: startpc is a BYTE offset from FuncObj, not a DLword offset!
-    // The comment in maiko/inc/stack.h saying "DLword offset from stkmin" is INCORRECT.
-    // The actual C code uses it as a byte offset: (ByteCode *)FuncObj + FuncObj->startpc
-    // Per maiko/src/intcall.c:106, maiko/src/bbtsub.c:1730, maiko/src/loopsops.c:428
-    fnheader_offset = TranslateLispPTRToOffset(fnheader_addr)  // Convert LispPTR (DLword offset) to byte offset
-    PC = fnheader_offset + fnheader.startpc  // Add byte offset directly
-
-    // Alternative: Use pcoffset from frame if fnheader unavailable
-    // This is a fallback when proper address translation isn't available
-    if PC is invalid:
-        PC = frame.pcoffset  // Use saved PC offset from frame
+    // CRITICAL: PC initialization uses FastRetCALL logic
+    // C: FastRetCALL macro calculates PC = FuncObj + CURRENTFX->pc
+    // Where FuncObj comes from FX_FNHEADER (translated fnheader_addr)
+    // And CURRENTFX->pc is the pc field from the frame (byte offset from FuncObj)
+    // This is DIFFERENT from using function header's startpc field!
+    
+    if fnheader_addr != 0:
+        // Read function header
+        // CRITICAL: Function header fields are also big-endian
+        fnheader = ReadFunctionHeader(virtual_memory, fnheader_addr)
+        
+        // Translate fnheader_addr (LispPTR) to byte offset
+        fnheader_offset = TranslateLispPTRToOffset(fnheader_addr)
+        FuncObj = virtual_memory + fnheader_offset
+        
+        // Get PC offset from frame (CURRENTFX->pc)
+        frame_pc = frame.pc  // Byte offset from FuncObj
+        
+        // Calculate PC: FuncObj + CURRENTFX->pc
+        PC = FuncObj + frame_pc
+        
+        // Validate PC points to valid bytecode
+        if ReadByte(PC) is invalid_opcode:
+            // Fallback: use function header startpc
+            PC = fnheader_offset + fnheader.startpc
+    else:
+        // Frame is uninitialized (fnheader=0)
+        // This can happen with sparse pages in sysout
+        // Use fallback entry point or initialize frame first
+        PC = FindEntryPoint()  // Fallback mechanism
 
     return PC
 ```
