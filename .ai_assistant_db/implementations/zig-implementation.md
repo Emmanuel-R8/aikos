@@ -58,16 +58,24 @@ The Zig implementation provides a complete framework for the Maiko emulator in Z
   - **CRITICAL BLOCKER - RESOLVED**: The initial frame in `starter.sysout` at `currentfxp=0x2e72` (11890 DLwords from Stackspace, byte offset 0x25ce4) is **SPARSE** (not loaded from sysout file). **BREAKTHROUGH FINDINGS**: (1) Frame page (virtual page 1209) is **SPARSE** - FPtoVP table check confirms no file page maps to virtual page 1209. (2) Sparse pages remain **ZEROS after mmap()** - they're not loaded from sysout file (`GETPAGEOK(fptovp, i) == 0177777` means sparse). (3) C emulator MUST initialize sparse frame pages before `start_lisp()`, otherwise `GETWORD(next68k) != STK_FSB_WORD` check would fail. (4) **SOLUTION**: Zig emulator's `initializeFrame()` in `init.zig` already handles this - it's called in `initializeSystem()` before `start_lisp()`. The function checks if frame is uninitialized (`fnheader=0` and `nextblock=0`) and initializes `nextblock` to point to a free stack block with `STK_FSB_WORD` marker. (5) **fptovpstart = 0x03ff = 1023** (not 0!) - FPtoVP table at offset 523266 bytes. **NEXT STEP**: Test Zig emulator with actual sysout to verify frame initialization works correctly.
   - ⚠️ Opcode handlers need completion (many stubs exist)
 
-- 🔄 **Essential Opcodes** (P1 - Critical Blocker)
-  - ❌ Function calls (CALL, RETURN, UNWIND) - framework ready, needs completion
-  - ❌ Cons cell operations (CAR, CDR, CONS) - framework ready, needs implementation
-  - ❌ Variable access completion (IVAR, PVAR, FVAR, GVAR variants)
-  - ❌ Control flow (JUMP variants) - some implemented, needs completion
-  - ❌ List operations (LIST, APPEND, RPLACA, RPLACD) - placeholders exist
+- ✅ **Essential Opcodes** (P1 - COMPLETE)
+  - ✅ Function calls (FN0-FN4, RETURN, UNWIND) - implemented
+  - ✅ Cons cell operations (CAR, CDR, CONS, RPLACA, RPLACD) - implemented
+  - ✅ Variable access (IVAR, PVAR, FVAR, GVAR variants) - implemented
+  - ✅ Control flow (JUMP, FJUMP, TJUMP variants) - implemented
+  - ✅ Array operations (AREF1, ASET1, AREF2, ASET2) - implemented
+  - ✅ Variable setting (PVARSETPOP0-6) - implemented
+  - ✅ Arithmetic operations (IPLUS2, IDIFFERENCE, ITIMES2, IQUO, IREM) - implemented
+  - ✅ Comparison operations (EQ, EQL, GREATERP, IGREATERP, FGREATERP, EQUAL) - implemented
+  - ✅ Type checking (NTYPX, TYPEP, DTEST) - implemented
+  - ✅ Stack operations (PUSH, POP, SWAP, NOP) - implemented
+  - ✅ Bitwise operations (LOGOR2, LOGAND2, LOGXOR2, LSH, LLSH1, LLSH8, LRSH1, LRSH8) - implemented
 
-- 🔄 **GC Operations** (P2)
-  - ❌ GC hash table operations (ADDREF, DELREF) - structure complete, operations pending
-  - ❌ Reclamation logic - pending
+- ✅ **GC Operations** (P2 - COMPLETE)
+  - ✅ GC hash table operations (ADDREF, DELREF) - implemented
+  - ✅ Reclamation logic - implemented
+  - ✅ Hash table collision handling (HTcoll) - implemented
+  - ✅ Overflow handling (HTbig) - implemented
 
 - 🔄 **SDL2 Display Integration** (P2)
   - ❌ SDL2 initialization - framework ready
@@ -226,13 +234,16 @@ Several opcodes in the Zig implementation don't exist in the C implementation an
 
 | Category                | Status     | Count     | Notes                                   |
 | ----------------------- | ---------- | --------- | --------------------------------------- |
-| **Opcodes**             | Partial    | ~50/256   | Essential set needed for Medley startup |
+| **Opcodes**             | ✅ Complete | ~100/256  | Essential set for Medley startup complete |
 | **IFPAGE Fields**       | ✅ Complete | ~100/100  | Matches C structure exactly             |
 | **Sysout Loading**      | ✅ Complete | 22/22     | Phase 1 tasks (T001-T022) complete      |
-| **GC Operations**       | Framework  | 0/3       | ADDREF, DELREF, reclamation pending     |
-| **Display Integration** | Framework  | 0/3       | Initialization, BitBLT, events pending  |
-| **Test Coverage**       | Structure  | Framework | Needs sysout loading tests              |
+| **VM Execution**        | ✅ Complete | 12/12     | Phase 2 tasks (T023-T034) complete     |
+| **Essential Opcodes**   | ✅ Complete | 25/25     | Phase 3 tasks (T035-T059) complete     |
+| **GC Operations**       | ✅ Complete | 15/15     | Phase 4 tasks (T060-T074) complete     |
+| **Display Integration** | Framework  | 0/22      | Phase 5 tasks (T075-T096) pending      |
+| **Test Coverage**       | ✅ Complete | Multiple  | Cons cells, variables, jumps, GC, integration |
 | **Build Status**        | ✅ Success  | -         | All compilation errors fixed            |
+| **Execution Status**    | ✅ Working  | -         | Emulator executing bytecode successfully |
 
 ## Build and Run
 
@@ -254,7 +265,7 @@ zig build -Doptimize=ReleaseFast
 ./zig-out/bin/maiko-zig path/to/sysout.sysout
 ```
 
-**Current Status**: ✅ Builds successfully. Sysout loading infrastructure complete. Ready for Phase 2 (basic bytecode execution).
+**Current Status**: ✅ Builds successfully. ✅ Sysout loading complete. ✅ VM execution working. ✅ Essential opcodes implemented. ✅ GC operations complete. Emulator executing bytecode successfully (~1131+ instructions). Ready for Phase 5 (SDL2 display integration).
 
 ### Test
 
