@@ -25,14 +25,16 @@ pub const MemoryError = error{
     SysoutLoadFailed,
     SysoutSaveFailed,
     StorageFull,
+    GCOverflow,
 };
 
 /// Display subsystem errors
 pub const DisplayError = error{
     SDLInitFailed,
-    WindowCreationFailed,
-    RendererCreationFailed,
-    TextureCreationFailed,
+    SDLWindowCreationFailed,
+    SDLRendererCreationFailed,
+    SDLTextureCreationFailed,
+    SDLPixelFormatFailed,
     InvalidRegion,
 };
 
