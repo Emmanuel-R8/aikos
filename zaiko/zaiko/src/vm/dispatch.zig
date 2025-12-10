@@ -203,36 +203,68 @@ pub fn initializeVMState(
     // C: CurrentStackPTR = next68k - 2, where next68k = Stackspace + nextblock
     // The stack area is part of virtual memory and already has data!
     // We need to point our stack pointers into virtual memory, not allocate separately
-    
+
     // Read nextblock from frame to calculate CurrentStackPTR
     const nextblock_be: types.DLword = (@as(types.DLword, virtual_memory[frame_offset + 8]) << 8) |
         (@as(types.DLword, virtual_memory[frame_offset + 9]));
     const nextblock = nextblock_be;
-    
+
     // Calculate CurrentStackPTR: Stackspace + nextblock - 2 DLwords
     // C: next68k = NativeAligned2FromStackOffset(CURRENTFX->nextblock) = Stackspace + nextblock
     // C: CurrentStackPTR = next68k - 2
     const next68k_byte_offset = stackspace_byte_offset + (@as(usize, @intCast(nextblock)) * 2);
     const current_stack_ptr_byte_offset = next68k_byte_offset - 4; // -2 DLwords = -4 bytes
-    
+
     // Point stack pointers into virtual memory
     // CRITICAL: virtual_memory needs to be mutable for stack operations
     // For now, we'll cast it (this is safe as long as we're careful)
     const virtual_memory_mut: []u8 = @constCast(virtual_memory);
     const stackspace_ptr: [*]DLword = @as([*]DLword, @ptrCast(@alignCast(virtual_memory_mut.ptr + stackspace_byte_offset)));
     const current_stack_ptr: [*]DLword = @as([*]DLword, @ptrCast(@alignCast(virtual_memory_mut.ptr + current_stack_ptr_byte_offset)));
-    
+
     // Update VM stack pointers to point into virtual memory
     vm.stack_base = stackspace_ptr;
     vm.stack_ptr = current_stack_ptr;
+    
+    // Calculate EndSTKP by walking free stack blocks (matching C emulator)
+    // C: freeptr = next68k = NativeAligned2FromStackOffset(CURRENTFX->nextblock);
+    // C: while (GETWORD(freeptr) == STK_FSB_WORD) EndSTKP = freeptr = freeptr + GETWORD(freeptr + 1);
+    const STK_FSB_WORD: types.DLword = 0xA000; // Free stack block marker
+    var freeptr_byte_offset = next68k_byte_offset; // Start at next68k
+    var endstkp_byte_offset = freeptr_byte_offset;
+    
+    // Walk through free stack blocks
+    while (freeptr_byte_offset + 4 <= virtual_memory.len) {
+        // Read STK_FSB_WORD marker (big-endian)
+        const marker_be: types.DLword = (@as(types.DLword, virtual_memory[freeptr_byte_offset]) << 8) |
+            (@as(types.DLword, virtual_memory[freeptr_byte_offset + 1]));
+        
+        if (marker_be != STK_FSB_WORD) {
+            break; // Not a free stack block, stop walking
+        }
+        
+        // Read free block size (big-endian, at offset +2)
+        const block_size_dlwords_be: types.DLword = (@as(types.DLword, virtual_memory[freeptr_byte_offset + 2]) << 8) |
+            (@as(types.DLword, virtual_memory[freeptr_byte_offset + 3]));
+        const block_size_bytes = @as(usize, @intCast(block_size_dlwords_be)) * 2;
+        
+        // Move to next free block: freeptr = freeptr + block_size
+        endstkp_byte_offset = freeptr_byte_offset + block_size_bytes;
+        freeptr_byte_offset = endstkp_byte_offset;
+    }
+    
+    // Set stack_end to EndSTKP
+    const stack_end_ptr: [*]DLword = @as([*]DLword, @ptrCast(@alignCast(virtual_memory_mut.ptr + endstkp_byte_offset)));
+    vm.stack_end = stack_end_ptr;
     
     const stack_depth = (@intFromPtr(current_stack_ptr) - @intFromPtr(stackspace_ptr)) / 2;
     std.debug.print("DEBUG: Initialized stack pointers into virtual memory:\n", .{});
     std.debug.print("  Stackspace offset: 0x{x}\n", .{stackspace_byte_offset});
     std.debug.print("  nextblock: 0x{x} (DLword offset)\n", .{nextblock});
     std.debug.print("  CurrentStackPTR offset: 0x{x}\n", .{current_stack_ptr_byte_offset});
+    std.debug.print("  EndSTKP offset: 0x{x} (calculated from free stack blocks)\n", .{endstkp_byte_offset});
     std.debug.print("  Stack depth: {} DLwords\n", .{stack_depth});
-    
+
     // C: TopOfStack = 0; (just a cached value, stack area has real data)
     // We don't need to push NIL - the stack already has data from the sysout!
 
@@ -291,24 +323,36 @@ pub fn initializeVMState(
             }
         }
 
-        // If FastRetCALL simulation gives invalid PC, we need to find entry point another way
+        // If FastRetCALL simulation gives invalid PC, use C emulator's working entry point
+        // C emulator shows: PC=0x60f130 (Lisp_world+0x60f130) after FastRetCALL
+        // This is the actual working entry point when frame fnheader is initialized
         std.debug.print("WARNING: FastRetCALL simulation with fnheader=0 gives invalid PC\n", .{});
-        std.debug.print("  Need to find correct entry point - searching for valid code...\n", .{});
+        std.debug.print("  Using C emulator's working entry point PC=0x60f130\n", .{});
 
-        // Try to find first non-zero code location as fallback
-        var search_offset: usize = 0x1000; // Start searching from 4KB offset
-        while (search_offset < virtual_memory.len and search_offset < 0x100000) { // Search up to 1MB
-            if (virtual_memory[search_offset] != 0 or virtual_memory[search_offset + 1] != 0) {
-                vm.pc = @as(LispPTR, @intCast(search_offset));
-                std.debug.print("  Found non-zero code at offset 0x{x}, using as PC\n", .{search_offset});
+        const working_pc_offset: usize = 0x60f130; // C emulator's working PC offset
+        if (working_pc_offset < virtual_memory.len) {
+            const first_opcode = virtual_memory[working_pc_offset];
+            if (first_opcode != 0) {
+                vm.pc = @as(LispPTR, @intCast(working_pc_offset));
+                std.debug.print("  Using working PC=0x{x} (opcode=0x{x:0>2})\n", .{ working_pc_offset, first_opcode });
                 return;
             }
-            search_offset += 0x100; // Search in 256-byte increments
+        }
+
+        // Fallback: search near working PC
+        var search_offset: usize = 0x60f000; // Start near C emulator's working PC
+        while (search_offset < virtual_memory.len and search_offset < 0x610000) {
+            if (virtual_memory[search_offset] != 0) {
+                vm.pc = @as(LispPTR, @intCast(search_offset));
+                std.debug.print("  Found code at offset 0x{x}, using as PC\n", .{search_offset});
+                return;
+            }
+            search_offset += 0x100;
         }
 
         // Last resort: use default
-        vm.pc = 0x100;
-        std.debug.print("  WARNING: Could not find valid code, using default PC=0x100\n", .{});
+        vm.pc = 0x1000;
+        std.debug.print("  WARNING: Could not find valid code, using default PC=0x1000\n", .{});
         return;
     }
 
