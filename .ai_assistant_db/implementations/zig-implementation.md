@@ -386,6 +386,35 @@ Several opcodes in the Zig implementation don't exist in the C implementation an
 
 **Status**: ✅ Implemented - FN0-FN4 opcodes now properly lookup functions from atom table (C code functions TODO)
 
+### Binding Operations Implementation ✅ IMPLEMENTED (2025-12-11)
+
+**CRITICAL**: Binding operations (BIND, UNBIND, DUNBIND) manipulate PVAR area to bind/unbind variables.
+
+**Implementation**: Completed binding operations in `vm/opcodes/binding.zig` matching C implementation.
+
+**Zig-Specific Details**:
+- BIND: Takes 2 byte operands (byte1: n1/n2 encoding, byte2: offset)
+  - Parses `n1 = byte1 >> 4`, `n2 = byte1 & 0xF`
+  - Calculates `ppvar = (LispPTR *)PVAR + 1 + offset`
+  - Pushes `n1` NIL values backwards from `ppvar`
+  - Stores TOS and `n2-1` values backwards from `ppvar` (if `n2 != 0`)
+  - Sets TOS to marker: `((~(n1 + n2)) << 16) | (offset << 1)`
+- UNBIND: Walks backwards through stack to find marker
+  - Extracts `num` and `offset` from marker
+  - Calculates `ppvar = (LispPTR *)((DLword *)PVAR + 2 + offset)`
+  - Restores `num` values to `0xFFFFFFFF` (unbound marker)
+- DUNBIND: Checks TOS first, then walks backwards if needed
+  - If TOS is negative (marker): uses it directly
+  - Otherwise: same as UNBIND
+
+**Pointer Arithmetic**:
+- Uses `@ptrFromInt(@intFromPtr(ptr) - offset)` for negative indexing (Zig doesn't support negative array indices)
+- All pointer calculations use explicit address arithmetic
+
+**Location**: `maiko/alternatives/zig/src/vm/opcodes/binding.zig`
+
+**Status**: ✅ Implemented - All binding operations complete
+
 ### Compilation Issues Fixed
 
 **Type Mismatches**:

@@ -35,9 +35,30 @@ Complete specification of all 256 bytecode opcodes (0x00-0xFF). Format: `Name (0
 
 ### Other Control
 - **UNWIND (0x07)** [3] Unwind stack to specified frame.
-- **BIND (0x11)** [2] Bind N variables (count in operand).
-- **UNBIND (0x12)** [1] Unbind variables in reverse order.
+- **BIND (0x11)** [2] Bind variables in PVAR area.
+  - **Operands**: byte1 (n1:4, n2:4), byte2 (offset)
+  - **Stack**: `[values..., TOS] -> [marker]`
+  - **Algorithm**: 
+    - Calculates `ppvar = (LispPTR *)PVAR + 1 + offset`
+    - Pushes `n1` NIL values backwards from `ppvar`
+    - If `n2 == 0`: pushes TOS onto stack
+    - Otherwise: stores TOS and `n2-1` more values backwards from `ppvar`
+    - Sets TOS to marker: `((~(n1 + n2)) << 16) | (offset << 1)`
+  - **Marker format**: High 16 bits = `~(n1 + n2)`, low 16 bits = `offset << 1`
+- **UNBIND (0x12)** [1] Unbind variables in reverse bind order.
+  - **Stack**: `[marker, ...] -> []`
+  - **Algorithm**:
+    - Walks backwards through stack until finding negative value (marker)
+    - Extracts `num = (~marker) >> 16` and `offset = GetLoWord(marker) >> 1`
+    - Calculates `ppvar = (LispPTR *)((DLword *)PVAR + 2 + offset)`
+    - Restores `num` values to `0xFFFFFFFF` (unbound marker) backwards from `ppvar`
+    - Pops marker from stack
 - **DUNBIND (0x13)** [1] Dynamic unbind.
+  - **Stack**: `[marker, ...]` or `[TOS] -> []`
+  - **Algorithm**: Similar to UNBIND, but checks TOS first
+    - If TOS is negative (marker): uses TOS as marker directly
+    - Otherwise: walks backwards to find marker (same as UNBIND)
+    - Restores variables and pops marker
 
 ## Memory Operations (0x40-0x7F)
 
