@@ -241,24 +241,39 @@ pub fn handleSTKSCAN(vm: *VM) errors.VMError!void {
     _ = atom_index;
     stack_module.setTopOfStack(vm, 0); // Return NIL for now
 }
-/// PVAR_SET: Set PVAR value
-/// Per rewrite documentation instruction-set/opcodes.md
-/// Sets parameter variable value
-pub fn handlePVAR_SET(vm: *VM, index: u8) errors.VMError!void {
+/// PVARX_: Set PVAR X (word offset)
+/// C: PVARX_(x) macro in maiko/inc/inlineC.h
+/// Sets parameter variable using DLword offset
+/// Stack: [value] -> []
+/// Operand: x (1B, DLword offset)
+pub fn handlePVAR_SET(vm: *VM, word_offset: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
+    const errors_module = @import("../../utils/errors.zig");
+    const types_module = @import("../../utils/types.zig");
 
-    // PVAR_SET requires:
-    // 1. Value on stack
-    // 2. Set PVAR at index
-
-    // TODO: Proper implementation needs:
-    // 1. Get value from stack
-    // 2. Set PVAR at index in current frame
-
-    // Placeholder: pop value but don't set variable
+    // C: PVARX_(x): *((LispPTR *)((DLword *)PVAR + (x))) = TOPOFSTACK;
     const value = try stack_module.popStack(vm);
-    _ = value;
-    _ = index;
+    
+    const frame = vm.current_frame orelse {
+        return errors_module.VMError.InvalidAddress;
+    };
+    
+    // PVAR area starts after frame header (FRAMESIZE bytes)
+    const frame_addr = @intFromPtr(frame);
+    const pvar_base_addr = frame_addr + @sizeOf(stack.FX);
+    
+    // Access PVAR at word_offset (DLword units)
+    const pvar_offset_bytes = @as(usize, word_offset) * @sizeOf(types_module.DLword);
+    const pvar_addr = pvar_base_addr + pvar_offset_bytes;
+    
+    // Write LispPTR (2 DLwords, big-endian)
+    const pvar_bytes: [*]u8 = @ptrFromInt(pvar_addr);
+    const low_word = @as(types_module.DLword, @truncate(value));
+    const high_word = @as(types_module.DLword, @truncate(value >> 16));
+    pvar_bytes[0] = @as(u8, @truncate(low_word >> 8));
+    pvar_bytes[1] = @as(u8, @truncate(low_word & 0xFF));
+    pvar_bytes[2] = @as(u8, @truncate(high_word >> 8));
+    pvar_bytes[3] = @as(u8, @truncate(high_word & 0xFF));
 }
 
 /// ARG0: Argument 0
@@ -277,21 +292,140 @@ pub fn handleARG0(vm: *VM) errors.VMError!void {
     try stack_module.pushStack(vm, 0); // Return NIL
 }
 
-/// IVARX_: Set IVAR X
-/// Per rewrite documentation instruction-set/opcodes.md
-/// Sets instance variable value
-pub fn handleIVARX_(vm: *VM, index: u8) errors.VMError!void {
+/// PVARX: Get PVAR X (word offset)
+/// C: PVARX(x) macro in maiko/inc/inlineC.h
+/// Gets parameter variable using DLword offset (not LispPTR offset)
+/// Stack: [] -> [value]
+/// Operand: x (1B, DLword offset)
+pub fn handlePVARX(vm: *VM, word_offset: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
+    const errors_module = @import("../../utils/errors.zig");
+    const types_module = @import("../../utils/types.zig");
 
-    // IVARX_ requires:
-    // 1. Value on stack
-    // 2. Set IVAR at index
+    // C: PVARX(x): PUSH(GetLongWord((DLword *)PVAR + (x)));
+    // x is a DLword offset, not a LispPTR offset
+    // GetLongWord reads 2 DLwords (4 bytes) as a LispPTR
+    
+    const frame = vm.current_frame orelse {
+        return errors_module.VMError.InvalidAddress;
+    };
+    
+    // PVAR area starts after frame header (FRAMESIZE bytes)
+    const frame_addr = @intFromPtr(frame);
+    const pvar_base_addr = frame_addr + @sizeOf(stack.FX);
+    
+    // Access PVAR at word_offset (DLword units)
+    // Each LispPTR is 2 DLwords, so offset in bytes = word_offset * 2
+    const pvar_offset_bytes = @as(usize, word_offset) * @sizeOf(types_module.DLword);
+    const pvar_addr = pvar_base_addr + pvar_offset_bytes;
+    
+    // Read LispPTR (2 DLwords, big-endian)
+    const pvar_bytes: [*]const u8 = @ptrFromInt(pvar_addr);
+    const low_word = (@as(types_module.DLword, pvar_bytes[0]) << 8) | @as(types_module.DLword, pvar_bytes[1]);
+    const high_word = (@as(types_module.DLword, pvar_bytes[2]) << 8) | @as(types_module.DLword, pvar_bytes[3]);
+    const value: types.LispPTR = (@as(types.LispPTR, high_word) << 16) | @as(types.LispPTR, low_word);
+    
+    try stack_module.pushStack(vm, value);
+}
 
-    // TODO: Proper implementation
-    // Placeholder: pop value
+/// IVARX: Get IVAR X (word offset)
+/// C: IVARX(x) macro in maiko/inc/inlineC.h
+/// Gets instance variable using DLword offset (not LispPTR offset)
+/// Stack: [] -> [value]
+/// Operand: x (1B, DLword offset)
+pub fn handleIVARX(vm: *VM, word_offset: u8) errors.VMError!void {
+    const stack_module = @import("../stack.zig");
+    const errors_module = @import("../../utils/errors.zig");
+    const types_module = @import("../../utils/types.zig");
+    const virtual_memory_module = @import("../../memory/virtual.zig");
+
+    // C: IVARX(x): PUSH(GetLongWord((DLword *)IVAR + (x)));
+    // IVAR is frame.nextblock (LispPTR address)
+    // x is a DLword offset, not a LispPTR offset
+    // GetLongWord reads 2 DLwords (4 bytes) as a LispPTR
+    
+    const frame = vm.current_frame orelse {
+        return errors_module.VMError.InvalidAddress;
+    };
+    
+    // IVAR area is at frame.nextblock (LispPTR address)
+    const ivar_base_lisp = frame.nextblock;
+    if (ivar_base_lisp == 0) {
+        try stack_module.pushStack(vm, 0); // No IVAR area - return NIL
+        return;
+    }
+    
+    // Translate IVAR base address to native pointer
+    if (vm.virtual_memory == null or vm.fptovp == null) {
+        try stack_module.pushStack(vm, 0);
+        return;
+    }
+    
+    const fptovp_table = vm.fptovp.?;
+    const ivar_base_native = virtual_memory_module.translateAddress(ivar_base_lisp, fptovp_table, 2) catch {
+        try stack_module.pushStack(vm, 0);
+        return;
+    };
+    
+    // Access IVAR at word_offset (DLword units)
+    const ivar_offset_bytes = @as(usize, word_offset) * @sizeOf(types_module.DLword);
+    const ivar_addr = @intFromPtr(ivar_base_native) + ivar_offset_bytes;
+    
+    // Read LispPTR (2 DLwords, big-endian from sysout)
+    const ivar_bytes: [*]const u8 = @ptrFromInt(ivar_addr);
+    const low_word = (@as(types_module.DLword, ivar_bytes[0]) << 8) | @as(types_module.DLword, ivar_bytes[1]);
+    const high_word = (@as(types_module.DLword, ivar_bytes[2]) << 8) | @as(types_module.DLword, ivar_bytes[3]);
+    const value: types.LispPTR = (@as(types.LispPTR, high_word) << 16) | @as(types.LispPTR, low_word);
+    
+    try stack_module.pushStack(vm, value);
+}
+
+/// IVARX_: Set IVAR X (word offset)
+/// C: IVARX_(x) macro in maiko/inc/inlineC.h
+/// Sets instance variable using DLword offset
+/// Stack: [value] -> []
+/// Operand: x (1B, DLword offset)
+pub fn handleIVARX_(vm: *VM, word_offset: u8) errors.VMError!void {
+    const stack_module = @import("../stack.zig");
+    const errors_module = @import("../../utils/errors.zig");
+    const types_module = @import("../../utils/types.zig");
+    const virtual_memory_module = @import("../../memory/virtual.zig");
+
+    // C: IVARX_(x): *((LispPTR *)((DLword *)IVAR + (x))) = TOPOFSTACK;
     const value = try stack_module.popStack(vm);
-    _ = value;
-    _ = index;
+    
+    const frame = vm.current_frame orelse {
+        return errors_module.VMError.InvalidAddress;
+    };
+    
+    // IVAR area is at frame.nextblock (LispPTR address)
+    const ivar_base_lisp = frame.nextblock;
+    if (ivar_base_lisp == 0) {
+        return; // No IVAR area - ignore
+    }
+    
+    // Translate IVAR base address to native pointer
+    if (vm.virtual_memory == null or vm.fptovp == null) {
+        return;
+    }
+    
+    const fptovp_table = vm.fptovp.?;
+    const ivar_base_native = virtual_memory_module.translateAddress(ivar_base_lisp, fptovp_table, 2) catch {
+        return;
+    };
+    
+    // Access IVAR at word_offset (DLword units)
+    const ivar_offset_bytes = @as(usize, word_offset) * @sizeOf(types_module.DLword);
+    const ivar_addr = @intFromPtr(ivar_base_native) + ivar_offset_bytes;
+    
+    // Write LispPTR (2 DLwords, big-endian from sysout)
+    const ivar_bytes: [*]u8 = @ptrFromInt(ivar_addr);
+    const low_word = @as(types_module.DLword, @truncate(value));
+    const high_word = @as(types_module.DLword, @truncate(value >> 16));
+    ivar_bytes[0] = @as(u8, @truncate(low_word >> 8));
+    ivar_bytes[1] = @as(u8, @truncate(low_word & 0xFF));
+    ivar_bytes[2] = @as(u8, @truncate(high_word >> 8));
+    ivar_bytes[3] = @as(u8, @truncate(high_word & 0xFF));
 }
 
 /// FVARX_: Set FVAR X
