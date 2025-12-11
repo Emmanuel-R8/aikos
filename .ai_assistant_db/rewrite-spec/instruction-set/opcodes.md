@@ -97,7 +97,13 @@ Complete specification of all 256 bytecode opcodes (0x00-0xFF). Format: `Name (0
 - **RPLACA (0x18)** [1] Pop new CAR, cons ptr. Modify CAR. Push cons ptr.
 - **RPLACD (0x19)** [1] Pop new CDR, cons ptr. Modify CDR (CDR coding). Push cons ptr.
 - **CREATECELL (0x1F)** [1] Pop type code. Allocate cell from DTD. Push address.
-- **RPLCONS (0x26)** [1] CONS + RPLACA combination.
+- **RPLPTR_N (0x24)** [2] Replace pointer at offset N.
+  - Stack: `[new_value, base] -> [base]`
+  - Operand: offset (1B)
+  - Replaces pointer at `base + offset` with new value
+  - Updates GC refs: DELREF old value, ADDREF new value (matches C FRPLPTR behavior)
+  - Returns base on stack
+  - C: `N_OP_rplptr` in `maiko/src/gvar2.c`
 
 ### Array Operations
 - **AREF1 (0xB6)** [1] Pop index, array. Push element.
@@ -129,9 +135,39 @@ Complete specification of all 256 bytecode opcodes (0x00-0xFF). Format: `Name (0
 **Note**: `FIXP` (0xA0), `SMALLP` (0xA1), and `LISTP` (0xA2) do not exist as separate opcodes. These values are used by `TJUMP0`-`TJUMP2`. Use `TYPEP` with appropriate type codes instead.
 
 ### List/Atom Operations
-- **ASSOC (0x16)** [1] Pop key, alist. Push (key, value) pair or NIL.
-- **FMEMB (0x1C)** [1] Pop item, list. Push T if member, else NIL.
-- **LISTGET (0x27)** [1] Pop index, list. Push Nth element.
+- **ASSOC (0x16)** [1] Association list lookup.
+  - Stack: `[key, alist] -> [pair or NIL]`
+  - Traverses association list (list of (key . value) pairs)
+  - Compares keys using EQ (pointer equality)
+  - Returns matching pair if found, NIL otherwise
+  - C: `N_OP_assoc` in `maiko/src/vars3.c`
+
+- **FMEMB (0x1C)** [1] Fast member test.
+  - Stack: `[item, list] -> [sublist or NIL]`
+  - Tests if item is in list using pointer equality (EQ)
+  - Returns list starting from item if found, NIL otherwise
+  - C: `N_OP_fmemb` in `maiko/src/lsthandl.c`
+
+- **RESTLIST (0x23)** [2] Rest of list.
+  - Stack: `[tail] -> [result_list]`
+  - Operand: count (1B)
+  - Builds list by consing elements (C implementation uses IVar array)
+  - Simplified: traverses list count times using CDR
+  - C: `N_OP_restlist` in `maiko/src/z2.c`
+
+- **RPLCONS (0x26)** [1] Replace cons CDR.
+  - Stack: `[new_cdr, list] -> [list]`
+  - Replaces CDR of cons cell with new value
+  - Updates GC refs: DELREF old CDR, ADDREF new CDR
+  - Returns list (unchanged pointer)
+  - C: `N_OP_rplcons` in `maiko/src/rplcons.c`
+
+- **LISTGET (0x27)** [1] Get element from list by index.
+  - Stack: `[index, list] -> [element]`
+  - Traverses list index times using CDR
+  - Returns CAR of current position
+  - Returns NIL if index out of bounds
+  - C: `N_OP_listget` in `maiko/src/lsthandl.c`
 
 ## Arithmetic (0xD0-0xFF)
 
@@ -141,6 +177,30 @@ Complete specification of all 256 bytecode opcodes (0x00-0xFF). Format: `Name (0
 - **ITIMES2 (0xDA)** [1] Pop 2, push product. Overflow check.
 - **IQUO (0xDB)** [1] Pop 2, push quotient. Division by zero error.
 - **IREM (0xDC)** [1] Pop 2, push remainder. Division by zero error.
+- **IPLUS_N (0xDD)** [2] Add constant N to TOS.
+  - Stack: `[tos] -> [tos + n]`
+  - Operand: n (1B, constant to add)
+  - Adds constant n to TOS value
+  - Overflow checking matches C implementation
+  - C: `N_OP_iplusn` in `maiko/src/arithops.c`
+- **IDIFFERENCE_N (0xDE)** [2] Subtract constant N from TOS.
+  - Stack: `[tos] -> [tos - n]`
+  - Operand: n (1B, constant to subtract)
+  - Subtracts constant n from TOS value
+  - Overflow checking matches C implementation
+  - C: `N_OP_idifferencen` in `maiko/src/arithops.c`
+- **BOXIPLUS (0xDF)** [1] Add number to FIXP box in place.
+  - Stack: `[number, fixp_box] -> [fixp_box]`
+  - Adds number to FIXP box value directly (modifies box in place)
+  - Returns box pointer (unchanged)
+  - Used to avoid allocating new storage
+  - C: `N_OP_boxiplus` in `maiko/src/arithops.c`
+- **BOXIDIFFERENCE (0xE0)** [1] Subtract number from FIXP box in place.
+  - Stack: `[number, fixp_box] -> [fixp_box]`
+  - Subtracts number from FIXP box value directly (modifies box in place)
+  - Returns box pointer (unchanged)
+  - Used to avoid allocating new storage
+  - C: `N_OP_boxidiff` in `maiko/src/arithops.c`
 
 ### General Arithmetic (Integer/Float)
 - **PLUS2 (0xD4)** [1] Pop 2, push sum. Tries integer, falls back to float.
@@ -373,14 +433,18 @@ Unused opcodes trigger UFN (Undefined Function Name) handling.
 
 ### Type Checking Opcodes
 
-**Myth**: Separate `FIXP`, `SMALLP`, and `LISTP` opcodes exist for type checking.
+**Note**: Type checking predicates exist and use `GetTypeNumber` to check types:
+- **LISTP**: Checks if `GetTypeNumber(value) == TYPE_LISTP` (type 5)
+  - Returns T if value is a list (cons cell), NIL otherwise
+  - C: `LISTP` macro in `maiko/inc/inlineC.h`
+- **FIXP**: Checks if `GetTypeNumber(value) == TYPE_FIXP` (type 2)
+  - Returns T if value is a FIXP (boxed integer), NIL otherwise
+  - Distinguishes FIXP (boxed) from SMALLP (directly encoded)
+- **SMALLP**: Checks if value has `S_POSITIVE` or `S_NEGATIVE` segment mask, or `GetTypeNumber(value) == TYPE_SMALLP` (type 1)
+  - Returns T if value is a SMALLP (small integer encoded directly), NIL otherwise
+  - Small integers are encoded with segment masks: `S_POSITIVE` (0xE0000) or `S_NEGATIVE` (0xF0000)
 
-**Reality**: These opcodes do not exist. Use the `TYPEP` opcode (0x05) with appropriate type codes:
-- **FIXP**: Use `TYPEP` with fixnum type code, or check if value is a fixnum directly
-- **SMALLP**: Use `TYPEP` with small integer type code
-- **LISTP**: Use `TYPEP` with list type code
-
-**Note**: The opcode values 0xA0-0xA2 are used by `TJUMP0`-`TJUMP2` respectively. The documentation previously listed `LISTP` (0xA2), `FIXP` (0xA0), and `SMALLP` (0xA1) as valid opcodes, but these conflict with the jump opcodes and do not exist in `maiko/inc/opcodes.h`.
+**Important**: These are type predicates that check the type of a value, not opcodes themselves. They are implemented as part of the type checking system.
 
 ### Stack Push Opcode
 
