@@ -474,6 +474,44 @@ Several opcodes in the Zig implementation don't exist in the C implementation an
 
 **Status**: ✅ Implemented - GC operations integrated into VM struct
 
+### FIXP Handling in Base Operations ✅ IMPLEMENTED (2025-12-11)
+
+**CRITICAL**: Base operations (GETBASEBYTE, PUTBASEBYTE) need to handle FIXP (boxed integer) objects as byte offsets.
+
+**Implementation**: Added FIXP handling to GETBASEBYTE and PUTBASEBYTE in `vm/opcodes/base_ops.zig`.
+
+**Zig-Specific Details**:
+- **FIXP Structure**: FIXP is a boxed integer - a pointer to memory containing an int32 value
+- **FIXP_VALUE Macro**: C: `FIXP_VALUE(dest) = *((int *)NativeAligned4FromLAddr(dest))`
+- **Implementation**: 
+  - Detects FIXP type using `type_check.getTypeNumber()`
+  - Translates FIXP pointer to native address using `translateAddress()`
+  - Reads int32 value from memory
+  - Converts to signed offset for use in base operations
+- **GETBASEBYTE**: Handles FIXP in byteoffset parameter
+- **PUTBASEBYTE**: Handles FIXP in byteoffset parameter
+
+**Location**: `maiko/alternatives/zig/src/vm/opcodes/base_ops.zig`
+
+**Status**: ✅ Implemented - FIXP handling complete for base byte operations
+
+### GC Integration in GVAR_ ✅ IMPLEMENTED (2025-12-11)
+
+**CRITICAL**: GVAR_ opcode needs to update GC refs when setting global variable values.
+
+**Implementation**: Updated `handleGVAR_` in `vm/opcodes/atom_ops.zig` to use GC from VM struct.
+
+**Zig-Specific Details**:
+- Reads old value before writing new value (for GC)
+- Calls `gc_module.deleteReference()` on old value
+- Calls `gc_module.addReference()` on new value
+- Matches C implementation: `FRPLPTR(((struct xpointer *)pslot)->addr, tos)`
+- GC errors are non-fatal (caught and ignored)
+
+**Location**: `maiko/alternatives/zig/src/vm/opcodes/atom_ops.zig`
+
+**Status**: ✅ Implemented - GC integration complete for GVAR_ opcode
+
 ### Compilation Issues Fixed
 
 **Type Mismatches**:
