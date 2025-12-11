@@ -446,6 +446,34 @@ Several opcodes in the Zig implementation don't exist in the C implementation an
 
 **Status**: ✅ Implemented - All comparison operations complete with proper atom and array handling
 
+### GC Operations Integration ✅ IMPLEMENTED (2025-12-11)
+
+**CRITICAL**: GC operations (GCREF) need access to GC instance from VM struct.
+
+**Implementation**: Integrated GC into VM struct and updated GCREF handler to use GC from VM.
+
+**Zig-Specific Details**:
+- **VM Struct**: Added optional `gc: ?*GC` field to VM struct
+  - GC is optional - can be null if GC is disabled
+  - Initialized to null in `VM.init()`
+- **GCREF Handler**: Updated to use GC from VM struct
+  - Gets GC from `vm.gc` (returns early if null - GC disabled)
+  - Calls `gc_module.addReference()`, `deleteReference()`, or `markStackReference()` based on alpha operand
+  - **ADDREF (alpha=0)**: Adds reference, TopOfStack unchanged
+  - **DELREF (alpha=1)**: Deletes reference, replaces TopOfStack with 0 if refcount reaches 0
+  - **STKREF (alpha=2)**: Marks as stack reference, TopOfStack unchanged
+- **Error Handling**: GC errors are non-fatal - caught and ignored to continue execution
+- **Refcount Tracking**: For DELREF, checks refcount before/after to detect when it reaches 0
+
+**C Behavior Matching**:
+- C: `GCLOOKUPV(TopOfStack, Get_code_BYTE(PC + 1), TopOfStack)`
+- If stk=0 and refcnt=0, TopOfStack left alone
+- Otherwise, replace TopOfStack with 0 (for DELREF when refcount reaches 0)
+
+**Location**: `maiko/alternatives/zig/src/vm/stack.zig`, `maiko/alternatives/zig/src/vm/opcodes/gc_ops.zig`
+
+**Status**: ✅ Implemented - GC operations integrated into VM struct
+
 ### Compilation Issues Fixed
 
 **Type Mismatches**:
