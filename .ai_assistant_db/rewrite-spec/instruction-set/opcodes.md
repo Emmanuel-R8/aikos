@@ -173,18 +173,86 @@ Complete specification of all 256 bytecode opcodes (0x00-0xFF). Format: `Name (0
 
 ## Base Address Operations (0xC2-0xCE)
 
-- **GETBASEBYTE (0xC2)** [1] Pop offset, base. Push byte at base+offset.
-- **PUTBASEBYTE (0xC7)** [1] Pop value, offset, base. Write byte. Push value.
-- **GETBASE_N (0xC8)** [2] Index (1B). Pop base. Push value at base[index].
-- **GETBASEPTR_N (0xC9)** [2] Index (1B). Pop base. Push pointer at base[index].
-- **PUTBASE_N (0xCD)** [2] Index (1B). Pop value, base. Write value. Push base.
-- **PUTBASEPTR_N (0xCE)** [2] Index (1B). Pop ptr, base. Write pointer. Push base.
+Base operations access memory at a base address plus an offset. All base addresses are masked with `POINTERMASK` (0xfffffff for BIGVM, 0xffffff for non-BIGVM) to extract the pointer portion.
+
+- **GETBASEBYTE (0xC2)** [1] Read byte from memory.
+  - Stack: `[byteoffset, base] -> [byte_value]`
+  - `byteoffset` must be small integer (S_POSITIVE/S_NEGATIVE) or FIXP object
+  - Reads byte at `(POINTERMASK & base) + byteoffset`
+  - Returns `S_POSITIVE | (0xFF & byte_value)`
+  - If `byteoffset` is not valid, triggers UFN lookup
+
+- **PUTBASEBYTE (0xC7)** [1] Write byte to memory.
+  - Stack: `[value, byteoffset, base] -> []`
+  - `value` must be `S_POSITIVE` and `< 256`
+  - `byteoffset` must be small integer (S_POSITIVE/S_NEGATIVE)
+  - Writes `0xFF & value` to `(POINTERMASK & base) + byteoffset`
+  - If validation fails, triggers UFN lookup
+
+- **GETBASE_N (0xC8)** [2] Read DLword from memory.
+  - Stack: `[base] -> [value]`
+  - Index: 1-byte operand
+  - Reads DLword (2 bytes, big-endian) from `(POINTERMASK & base) + index`
+  - Returns `S_POSITIVE | word_value`
+
+- **GETBASEPTR_N (0xC9)** [2] Read LispPTR from memory.
+  - Stack: `[base] -> [pointer]`
+  - Index: 1-byte operand
+  - Reads LispPTR (4 bytes, big-endian) from `(POINTERMASK & base) + index`
+  - Returns `POINTERMASK & pointer_value`
+
+- **PUTBASE_N (0xCD)** [2] Write DLword to memory.
+  - Stack: `[value, base] -> [base]`
+  - Index: 1-byte operand
+  - `value` must be `S_POSITIVE` (small integer)
+  - Writes `GetLoWord(value)` as DLword (2 bytes, big-endian) to `(POINTERMASK & base) + index`
+  - Pushes `base` back on stack
+  - If validation fails, triggers UFN lookup
+
+- **PUTBASEPTR_N (0xCE)** [2] Write LispPTR to memory.
+  - Stack: `[pointer, base] -> [base]`
+  - Index: 1-byte operand
+  - Writes `POINTERMASK & pointer` as LispPTR (4 bytes, big-endian) to `(POINTERMASK & base) + index`
+  - Pushes `base` back on stack
+
+- **GETBITS_N_FD (0xCA)** [3] Extract bit field from memory.
+  - Stack: `[base] -> [bit_field]`
+  - Operands: offset (1B), field descriptor (1B)
+  - Field descriptor format: `[shift:4][size:4]` (high 4 bits = shift position, low 4 bits = field size)
+  - Reads DLword from `(POINTERMASK & base) + offset`
+  - Extracts bit field: `(word >> (16 - shift - size - 1)) & mask`
+  - Returns `S_POSITIVE | bit_field`
+
+- **PUTBITS_N_FD (0xCB)** [3] Write bit field to memory.
+  - Stack: `[value, base] -> [base]`
+  - Operands: offset (1B), field descriptor (1B)
+  - `value` must be `S_POSITIVE` (small integer)
+  - Field descriptor format: `[shift:4][size:4]`
+  - Reads DLword from `(POINTERMASK & base) + offset`
+  - Updates bit field: `(word & ~mask) | (value << shift)`
+  - Writes updated DLword back
+  - Pushes `base` back on stack
+  - If validation fails, triggers UFN lookup
 
 ## Address Manipulation
 
-- **ADDBASE (0xD0)** [1] Same as PUSH.
-- **HILOC (0xD2)** [1] TOS = (TOS >> 16) & 0xFFFF (high 16 bits).
-- **LOLOC (0xD3)** [1] TOS = TOS & 0xFFFF (low 16 bits).
+- **ADDBASE (0xD0)** [1] Add two base addresses.
+  - Stack: `[b, a] -> [a + b]`
+  - Applies `POINTERMASK` to both operands before addition
+  - Returns `POINTERMASK & (a_ptr + b_ptr)`
+
+- **HILOC (0xD2)** [1] Extract high 16 bits.
+  - Stack: `[value] -> [high_word]`
+  - Returns `S_POSITIVE | GetHiWord(value)` where `GetHiWord(x) = (x >> 16) & 0xFFFF`
+
+- **LOLOC (0xD3)** [1] Extract low 16 bits.
+  - Stack: `[value] -> [low_word]`
+  - Returns `S_POSITIVE | GetLoWord(value)` where `GetLoWord(x) = x & 0xFFFF`
+
+- **BASE_LESSTHAN (0xCF)** [1] Compare base addresses.
+  - Stack: `[b, a] -> [a < b ? T : NIL]`
+  - Applies `POINTERMASK` to both operands before comparison
+  - Returns `S_POSITIVE | 1` (T) if `(POINTERMASK & a) < (POINTERMASK & b)`, else `0` (NIL)
 
 ## GC Operations
 
