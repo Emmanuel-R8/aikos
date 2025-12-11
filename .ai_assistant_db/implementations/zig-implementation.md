@@ -327,6 +327,65 @@ Several opcodes in the Zig implementation don't exist in the C implementation an
 
 **Status**: ✅ Implemented - Type checking integrated into CAR/CDR and type opcodes
 
+### Base Operations Implementation ✅ IMPLEMENTED (2025-12-11)
+
+**CRITICAL**: Base operations provide low-level memory access for array and structure operations.
+
+**Implementation**: Completed all base operations in `vm/opcodes/base_ops.zig` matching C implementation.
+
+**Zig-Specific Details**:
+- Added `POINTERMASK` constant (0xfffffff for BIGVM) to `utils/types.zig`
+- Added `getHiWord()` and `getLoWord()` helper functions matching C macros
+- HILOC/LOLOC: Extract high/low 16 bits and OR with S_POSITIVE
+- GETBASE_N/GETBASEPTR_N: Read DLword/LispPTR from base + offset (with address translation)
+- PUTBASE_N/PUTBASEPTR_N: Write DLword/LispPTR to base + offset (with address translation)
+- GETBASEBYTE/PUTBASEBYTE: Read/write bytes with small integer offset validation
+- GETBITS_N_FD/PUTBITS_N_FD: Bit field extraction/writing with field descriptor parsing
+- ADDBASE: Add two base addresses with POINTERMASK
+- BASE_LESSTHAN: Compare base addresses with POINTERMASK
+
+**Address Translation**:
+- All base operations use `translateAddress()` for LispPTR to native pointer conversion
+- Supports 1-byte (byte), 2-byte (DLword), and 4-byte (LispPTR) alignment
+- Handles big-endian byte swapping from sysout format
+
+**Validation**:
+- GETBASEBYTE/PUTBASEBYTE: Validates offset is small integer (S_POSITIVE/S_NEGATIVE) or FIXP
+- PUTBASE_N: Validates value is S_POSITIVE before writing
+- PUTBITS_N_FD: Validates value is S_POSITIVE before writing
+- Invalid values trigger UFN lookup (return early)
+
+**Location**: `maiko/alternatives/zig/src/vm/opcodes/base_ops.zig`
+
+**Status**: ✅ Implemented - All base operations complete (2 TODOs remain for FIXP handling in byte operations)
+
+### Function Lookup Implementation ✅ IMPLEMENTED (2025-12-11)
+
+**CRITICAL**: Function calls require DefCell lookup from atom table to get function definition.
+
+**Implementation**: Created `data/defcell.zig` module implementing DefCell structure and function lookup matching C `GetDEFCELL68k()` macro.
+
+**Zig-Specific Details**:
+- DefCell structure matches C definition (BIGVM format: 28-bit defpointer, non-BIGVM: 24-bit)
+- Fields: `ccodep` (C code flag), `fastp` (fast function), `argtype` (argument type), `defpointer` (function header pointer)
+- `readDefCell()`: Reads DefCell from atom's definition cell using atom table access
+- `getFunctionHeader()`: Extracts function header pointer with POINTERMASK
+- `isCCode()`: Checks if function is C code (ccodep flag)
+- Function header reading: Reads fnhead structure from memory with byte-swapping
+- C code functions: Currently return error (not yet supported)
+
+**Function Call Flow**:
+1. Get atom index from instruction operand
+2. Read DefCell from atom table using `readDefCell()`
+3. Check `ccodep` flag - if C code, handle separately (TODO)
+4. If Lisp function, get function header pointer from `defpointer`
+5. Read function header from memory using `readFunctionHeader()`
+6. Call function with `callFunction()` using function header
+
+**Location**: `maiko/alternatives/zig/src/data/defcell.zig`, `maiko/alternatives/zig/src/vm/opcodes/function_calls.zig`
+
+**Status**: ✅ Implemented - FN0-FN4 opcodes now properly lookup functions from atom table (C code functions TODO)
+
 ### Compilation Issues Fixed
 
 **Type Mismatches**:

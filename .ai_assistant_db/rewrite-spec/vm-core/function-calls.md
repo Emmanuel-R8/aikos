@@ -39,8 +39,18 @@ function ExecuteFN(arg_count, atom_index):
     // C: Get_AtomNo_PCMAC1 - reads DLword from PC+1
 
     // Lookup function definition from atom table
+    // C: defcell = GetDEFCELL68k(atom_index)
     defcell = GetDEFCELL(atom_index)
-    function_obj = GetFunctionFromDefCell(defcell)
+    
+    // Check if C code function (ccodep flag)
+    if defcell.ccodep != 0:
+        // C code function - handle via C function dispatch
+        HandleCCodeFunction(defcell)
+    else:
+        // Lisp function - get function header from defpointer
+        // C: LOCFNCELL = (struct fnhead *)NativeAligned4FromLAddr((defcell->defpointer & POINTERMASK))
+        fnheader_ptr = defcell.defpointer & POINTERMASK
+        function_obj = ReadFunctionHeader(fnheader_ptr)
 
     // Validate function object
     if not IsFunction(function_obj):
@@ -84,9 +94,26 @@ function SaveCurrentState():
 
 ```pseudocode
 function GetFunctionObject(atom_index):
+    // Read DefCell from atom's definition cell
+    // C: defcell = GetDEFCELL68k(atom_index)
     defcell = GetDEFCELL(atom_index)
-    function_obj = GetFunctionFromDefCell(defcell)
-    return function_obj
+    
+    // DefCell structure contains:
+    // - ccodep: 1 bit (C code flag: 1 = C function, 0 = Lisp function)
+    // - fastp: 1 bit (fast function flag)
+    // - argtype: 2 bits (argument type)
+    // - defpointer: 28 bits (BIGVM) or 24 bits (non-BIGVM) - pointer to function header
+    
+    // Check if C code function
+    if defcell.ccodep != 0:
+        // C code function - handle via C function dispatch
+        return HandleCCodeFunction(defcell)
+    else:
+        // Lisp function - get function header from defpointer
+        // C: LOCFNCELL = (struct fnhead *)NativeAligned4FromLAddr((defcell->defpointer & POINTERMASK))
+        fnheader_ptr = defcell.defpointer & POINTERMASK
+        function_obj = ReadFunctionHeader(fnheader_ptr)
+        return function_obj
 ```
 
 ### Step 3: Check Stack Space
