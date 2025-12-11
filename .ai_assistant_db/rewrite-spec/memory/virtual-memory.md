@@ -120,10 +120,41 @@ function AllocatePage(base_address):
 
 ### Atom Space
 
-- **Base**: ATOMS_OFFSET
-- **Purpose**: Symbol table
+- **Base**: ATOMS_OFFSET (0x2c0000 for BIGVM)
+- **Purpose**: Symbol table (atom storage)
 - **Growth**: Fixed size or grows
 - **Management**: Atom hash table
+
+#### Atom Table Access
+
+Atoms can be either **LITATOM** (old-style, small atoms) or **NEWATOM** (new-style, BIGATOMS). The format depends on build configuration:
+
+**For BIGATOMS (BIGVM)**:
+- LITATOM: Stored in AtomSpace at `ATOMS_OFFSET + (atom_index * 20)` bytes
+  - Each atom is 5 LispPTRs (20 bytes): PNAME, VALUE, DEFN, PLIST, and one reserved
+  - Value cell at offset: `ATOMS_OFFSET + (atom_index * 20) + 4` (NEWATOM_VALUE_PTROFF)
+  - Definition cell at offset: `ATOMS_OFFSET + (atom_index * 20) + 8` (NEWATOM_DEFN_PTROFF)
+- NEWATOM: Stored as pointer with SEGMASK bits set
+  - Value cell at: `atom_index + NEWATOM_VALUE_OFFSET` (8 bytes, NEWATOM_VALUE_OFFSET = 4 DLwords)
+  - Definition cell at: `atom_index + NEWATOM_DEFN_OFFSET` (16 bytes, NEWATOM_DEFN_OFFSET = 8 DLwords)
+
+**For non-BIGATOMS**:
+- LITATOM: Separate spaces (Valspace, Defspace, Pnamespace, Plistspace)
+  - Value cell: `Valspace + (atom_index << 1)` (2-byte offset)
+  - Definition cell: `Defspace + (atom_index * 4)` (LispPTR offset)
+
+**Atom Access Operations**:
+- `GVAR(atom_index)`: Read value from atom's value cell
+- `GVAR_(atom_index)`: Write value to atom's value cell (with GC ref counting)
+- `ACONST(atom_index)`: Push atom pointer (LITATOM index or NEWATOM pointer)
+- `GCONST(atom_index)`: Push global constant atom pointer
+
+**Implementation Notes**:
+- Use `GetVALCELL68k(atom_index)` to get value cell pointer
+- Use `GetDEFCELL68k(atom_index)` to get definition cell pointer
+- Check `(atom_index & SEGMASK) != 0` to detect NEWATOM vs LITATOM
+- For BIGVM BIGATOMS, use `AtomSpace` array access
+- For non-BIGVM, use separate space arrays
 
 ### Interface Page
 

@@ -66,7 +66,12 @@ Complete specification of all 256 bytecode opcodes (0x00-0xFF). Format: `Name (0
 
 ### Cons Operations
 - **CAR (0x01)** [1] TOS = CAR(TOS). Handles CDR_INDIRECT.
+  - **Validation**: Must check `Listp(TOS)` before accessing. If not a list, trigger UFN (undefined function name) lookup.
+  - **Special case**: CAR of T (ATOM_T = 1) returns T.
+  - **CDR_INDIRECT**: If `cdr_code == CDR_INDIRECT`, CAR value points to indirect cell containing actual CAR.
 - **CDR (0x02)** [1] TOS = CDR(TOS). Uses CDR coding.
+  - **Validation**: Must check `Listp(TOS)` before accessing. If not a list, trigger UFN lookup.
+  - **NIL handling**: CDR of NIL returns NIL (no validation needed for NIL).
 - **CONS (0x1A)** [1] Pop CDR, CAR. Push new cons cell. Allocates memory.
 - **RPLACA (0x18)** [1] Pop new CAR, cons ptr. Modify CAR. Push cons ptr.
 - **RPLACD (0x19)** [1] Pop new CDR, cons ptr. Modify CDR (CDR coding). Push cons ptr.
@@ -81,11 +86,24 @@ Complete specification of all 256 bytecode opcodes (0x00-0xFF). Format: `Name (0
 
 ### Type Operations
 - **NTYPX (0x04)** [1] TOS = type number of TOS.
+  - Returns type number (0-2047) from type table: `GetTypeNumber(TOS) = GetTypeEntry(TOS) & 0x7ff`
+  - Type entry read from: `MDStypetbl + (TOS >> 9)`
 - **TYPEP (0x05)** [2] Type code (1B). TOS = (GetType(TOS) == code) ? T : NIL.
-- **DTEST (0x06)** [3] Atom index (2B). TOS = (TOS == GetAtom(index)) ? T : NIL.
+  - Compares type number of TOS with operand type code.
+  - Uses `GetTypeNumber(TOS)` to get type number.
+- **DTEST (0x06)** [3] Atom index (2B). TOS = (TOS has type named by atom_index) ? T : NIL.
+  - **Implementation**: Walks DTD (Data Type Descriptor) chain starting from `GetDTD(GetTypeNumber(TOS))`.
+  - Compares `dtd->dtd_name` with `atom_index` (or `dtd->dtd_namelo + (dtd->dtd_namehi << 16)` for non-BIGVM).
+  - If no match found in chain (`dtd->dtd_supertype == 0`), triggers UFN lookup.
+  - Returns ATOM_T (1) if match found, NIL_PTR (0) otherwise.
 - **STRINGP (0xA3)** [1] TOS = IsString(TOS) ? T : NIL.
 - **ARRAYP (0xA4)** [1] TOS = IsArray(TOS) ? T : NIL.
 - **CHARACTERP (0xA5)** [1] TOS = IsCharacter(TOS) ? T : NIL.
+
+**Type Checking Functions**:
+- `Listp(address)`: Returns true if `GetTypeNumber(address) == TYPE_LISTP` (5)
+- `GetTypeNumber(address)`: Returns type number from type table (low 11 bits of type entry)
+- `GetTypeEntry(address)`: Returns full 16-bit type entry from `MDStypetbl + (address >> 9)`
 
 **Note**: `FIXP` (0xA0), `SMALLP` (0xA1), and `LISTP` (0xA2) do not exist as separate opcodes. These values are used by `TJUMP0`-`TJUMP2`. Use `TYPEP` with appropriate type codes instead.
 

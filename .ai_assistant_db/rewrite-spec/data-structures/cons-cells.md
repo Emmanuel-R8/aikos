@@ -8,6 +8,8 @@ Complete specification of cons cell format, CDR coding, and cons cell operations
 
 Cons cells are the fundamental building blocks of Lisp lists. They use CDR coding to efficiently represent list structure, especially for lists where CDR values are NIL or nearby cells.
 
+**CRITICAL**: Before accessing CAR or CDR, implementations MUST validate that the address points to a valid list (cons cell). This is done using `Listp()` type checking.
+
 ## Cons Cell Structure
 
 ### Basic Format
