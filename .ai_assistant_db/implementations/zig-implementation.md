@@ -30,7 +30,9 @@ The Zig implementation provides a complete framework for the Maiko emulator in Z
 - ✅ **Sysout Loading** (Phase 1 Complete - 2025-12-07)
   - ✅ IFPAGE_KEYVAL corrected (now uses 0x15e3)
   - ✅ IFPAGE structure complete (~100 fields matching C implementation)
-  - ✅ FPtoVP table loading implemented (BIGVM and non-BIGVM support)
+  - ✅ FPtoVP table loading implemented (BIGVM format only - **REQUIRED**)
+  - ✅ **BIGVM confirmed**: C emulator uses BIGVM mode (32-bit FPtoVP entries)
+  - ⚠️ **TODO**: Update Zig to correctly handle BIGVM format (32-bit entries, proper GETFPTOVP/GETPAGEOK macros)
   - ✅ Page loading algorithm implemented (sparse page handling)
   - ✅ Version compatibility checks (LVERSION, MINBVERSION)
   - ✅ VM state initialization from IFPAGE implemented

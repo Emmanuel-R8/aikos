@@ -29,7 +29,30 @@ struct LispPTR:
     offset: 8 bits         // Byte offset within page
 ```
 
-**Without BIGVM**:
+**BIGVM Configuration (REQUIRED)**
+
+**CRITICAL**: All implementations (Zig and Lisp) **MUST** support **BIGVM mode only**. The non-BIGVM code path is **NOT** supported and can be ignored.
+
+BIGVM is a build-time configuration that enables support for larger address spaces (up to 256MB). All implementations use:
+
+1. **FPtoVP Table Format**:
+   - **32-bit entries** (low 16 bits = virtual page, high 16 bits = page OK flag)
+   - Each entry is an `unsigned int` (32-bit cell)
+
+2. **Address Space Limits**:
+   - Up to 256MB (524,288 pages of 512 bytes each)
+
+3. **Memory Addressing**:
+   - Uses 32-bit cells for page mapping tables
+   - `fptovp` is declared as `unsigned int *`
+
+**Macro Definitions** (from `maiko/inc/lispemul.h:587-589`):
+```c
+#define GETFPTOVP(b, o) ((b)[o])           // Returns low 16 bits (virtual page)
+#define GETPAGEOK(b, o) ((b)[o] >> 16)     // Returns high 16 bits (page OK flag)
+```
+
+~~**Without BIGVM**~~ **← NOT SUPPORTED, IGNORE**:
 
 - Segment: 8 bits (high byte)
 - Page: 8 bits (middle byte)

@@ -10,15 +10,23 @@
 {pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/nixos-unstable.tar.gz") {}}:
 # {pkgs ? import <nixpkgs> {}}:
 pkgs.mkShell {
+  # Use stdenv to get proper C compilation environment
+  # This ensures standard C library headers (ctype.h, errno.h, etc.) are available
+  stdenv = pkgs.stdenv;
+
   # Native build inputs (tools needed during build)
   nativeBuildInputs = with pkgs; [
     pkg-config # For library detection and linking
     cmake # CMake build system (for C emulator)
     gnumake # Make build system (for C emulator)
+    # stdenv provides CC (C compiler) with proper includes
   ];
 
   # Build inputs (libraries and runtime dependencies)
   buildInputs = with pkgs; [
+    # C standard library headers (needed for ctype.h, errno.h, etc.)
+    glibc.dev # C standard library development headers
+
     # C compiler (both for compatibility)
     clang # Preferred C compiler
     gcc # Alternative C compiler (useful for compatibility testing)
@@ -40,8 +48,11 @@ pkgs.mkShell {
     vscode
   ];
 
-  # Set up environment variables for pkg-config
+  # Set up environment variables for pkg-config and C compilation
   shellHook = ''
+    # Ensure C standard library headers are available
+    export NIX_CFLAGS_COMPILE="-isystem ${pkgs.glibc.dev}/include $NIX_CFLAGS_COMPILE"
+
     echo "Maiko emulator development environment"
     echo "====================================="
     echo "C compiler: $(which clang || which gcc || echo 'Not found')"
@@ -56,6 +67,9 @@ pkgs.mkShell {
     echo "Build systems:"
     command -v cmake >/dev/null && echo "  ✓ CMake found" || echo "  ✗ CMake not found"
     command -v make >/dev/null && echo "  ✓ Make found" || echo "  ✗ Make not found"
+    echo ""
+    echo "C library headers:"
+    [ -f "${pkgs.glibc.dev}/include/ctype.h" ] && echo "  ✓ glibc headers found" || echo "  ✗ glibc headers not found"
     echo ""
     echo "Ready to build emulators!"
     echo "  C emulator:   ./medley/scripts/build/build-emulator.sh --emulator c"
