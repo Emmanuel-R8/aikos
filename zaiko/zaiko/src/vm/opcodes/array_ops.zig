@@ -6,6 +6,7 @@ const virtual_memory_module = @import("../../memory/virtual.zig");
 
 const VM = stack.VM;
 const LispPTR = types.LispPTR;
+const DLword = types.DLword;
 
 // ============================================================================
 // Array Access Opcodes
@@ -142,74 +143,120 @@ pub fn handleSETAEL2(vm: *VM, index: u16) errors.VMError!void {
     }
 }
 /// AREF1: Array reference 1-dimensional
-/// C: inlineC.h AREF1 macro
+/// C: N_OP_aref1 in maiko/src/arrayops.c, AREF1 macro in maiko/inc/inlineC.h
 /// Stack: [index, array_ptr] -> [element_value]
 pub fn handleAREF1(vm: *VM) errors.VMError!void {
     const stack_module = @import("../stack.zig");
-    const address_module = @import("../../utils/address.zig");
+    const type_check_module = @import("../../utils/type_check.zig");
+    const types_module = @import("../../utils/types.zig");
+    const array_module = @import("../../data/array.zig");
 
     // C: arrayarg = POP_TOS_1; (pop array pointer)
     const arrayarg = try stack_module.popStack(vm);
 
     // C: if (GetTypeNumber(arrayarg) != TYPE_ONED_ARRAY) goto aref_ufn;
-    // For now, skip type check (will implement later)
+    const type_num = type_check_module.getTypeNumber(vm, arrayarg);
+    if (type_num == null or type_num.? != 14) { // TYPE_ONED_ARRAY = 14
+        // Invalid type - trigger UFN (for now, push NIL)
+        try stack_module.pushStack(vm, 0);
+        return;
+    }
 
     // C: arrayblk = (OneDArray *)NativeAligned4FromLAddr(arrayarg);
-    // Translate array pointer to native address
-    if (vm.virtual_memory) |vmem| {
-        if (vm.fptovp) |fptovp_table| {
-            const array_offset = address_module.translateLispPTRToOffset(arrayarg, fptovp_table, vmem.len) orelse {
-                // Invalid address - could call UFN, but for now just push NIL
+    if (vm.virtual_memory == null or vm.fptovp == null) {
+        try stack_module.pushStack(vm, 0);
+        return;
+    }
+    
+    const fptovp_table = vm.fptovp.?;
+    const native_ptr = virtual_memory_module.translateAddress(arrayarg, fptovp_table, 4) catch {
+        try stack_module.pushStack(vm, 0);
+        return;
+    };
+    
+    const arrayblk: *array_module.OneDArray = @as(*array_module.OneDArray, @ptrCast(@alignCast(native_ptr)));
+
+    // C: if ((TOPOFSTACK & SEGMASK) != S_POSITIVE) goto aref_ufn;
+    const index_value = stack_module.getTopOfStack(vm);
+    if ((index_value & types_module.SEGMASK) != types_module.S_POSITIVE) {
+        try stack_module.pushStack(vm, 0);
+        return;
+    }
+
+    // C: index = TOPOFSTACK & 0xFFFF;
+    var index = @as(u16, @truncate(index_value));
+    
+    // C: if (index >= arrayblk->totalsize) goto aref_ufn;
+    if (index >= arrayblk.totalsize) {
+        try stack_module.pushStack(vm, 0);
+        return;
+    }
+    
+    // C: index += arrayblk->offset;
+    index = @as(u16, @intCast(@as(u32, index) + arrayblk.offset));
+    
+    // C: baseL = arrayblk->base;
+    const baseL = arrayblk.base;
+    
+    // C: switch (arrayblk->typenumber) { ... }
+    // Dispatch on type number
+    const element_value = switch (arrayblk.typenumber) {
+        array_module.TYPE_POINTER => blk: {
+            // Pointer: 32 bits
+            // C: TOPOFSTACK = *(NativeAligned4FromLAddr(baseL) + index);
+            const base_native = virtual_memory_module.translateAddress(@as(LispPTR, baseL), fptovp_table, 4) catch {
                 try stack_module.pushStack(vm, 0);
                 return;
             };
-
-            // C: if ((TOPOFSTACK & SEGMASK) != S_POSITIVE) goto aref_ufn;
-            const index_value = stack_module.getTopOfStack(vm);
-            const S_POSITIVE: types.LispPTR = 0x00000000; // Positive segment mask
-            const SEGMASK: types.LispPTR = 0xFFFF0000;
-
-            if ((index_value & SEGMASK) != S_POSITIVE) {
-                // Invalid index - could call UFN, but for now just push NIL
+            const element_ptr: *LispPTR = @as(*LispPTR, @ptrCast(@alignCast(base_native + (@as(usize, index) * 4))));
+            break :blk element_ptr.*;
+        },
+        array_module.TYPE_SIGNED_16 => blk: {
+            // Signed: 16 bits
+            // C: TOPOFSTACK = (GETWORD(((DLword *)NativeAligned2FromLAddr(baseL)) + index)) & 0xFFFF;
+            const base_native = virtual_memory_module.translateAddress(@as(LispPTR, baseL), fptovp_table, 2) catch {
                 try stack_module.pushStack(vm, 0);
                 return;
-            }
-
-            // C: index = TOPOFSTACK & 0xFFFF;
-            const index = @as(u16, @truncate(index_value));
-
-            // Read array header (OneDArray structure)
-            // For now, simplified implementation - just read element at index
-            // TODO: Properly implement OneDArray structure access
-            const element_offset = array_offset + (@as(usize, index) * 4); // Assume 32-bit elements
-
-            if (element_offset + 4 > vmem.len) {
+            };
+            const word_ptr: *DLword = @as(*DLword, @ptrCast(@alignCast(base_native + (@as(usize, index) * 2))));
+            const word_value = word_ptr.*;
+            // C: if (TOPOFSTACK & 0x8000) TOPOFSTACK |= S_NEGATIVE; else TOPOFSTACK |= S_POSITIVE;
+            break :blk if ((word_value & 0x8000) != 0)
+                types_module.S_NEGATIVE | word_value
+            else
+                types_module.S_POSITIVE | word_value;
+        },
+        array_module.TYPE_CHARACTER => blk: {
+            // Character: 8 bits
+            // C: TOPOFSTACK = S_CHARACTER | ((GETBYTE(((char *)NativeAligned2FromLAddr(baseL)) + index)) & 0xFF);
+            const base_native = virtual_memory_module.translateAddress(@as(LispPTR, baseL), fptovp_table, 2) catch {
                 try stack_module.pushStack(vm, 0);
                 return;
-            }
-
-            // Read element (32-bit, big-endian)
-            const element_be: types.LispPTR = (@as(types.LispPTR, vmem[element_offset]) << 24) |
-                (@as(types.LispPTR, vmem[element_offset + 1]) << 16) |
-                (@as(types.LispPTR, vmem[element_offset + 2]) << 8) |
-                (@as(types.LispPTR, vmem[element_offset + 3]));
-
-            // C: TOPOFSTACK = element_value; (replace index with element)
-            stack_module.setTopOfStack(vm, element_be);
-        } else {
+            };
+            const byte_ptr: *u8 = @as(*u8, @ptrCast(base_native + index));
+            const S_CHARACTER: LispPTR = 0x70000;
+            break :blk S_CHARACTER | byte_ptr.*;
+        },
+        else => {
+            // Other types not yet implemented - for now, return NIL
+            // TODO: Implement other array element types as needed
             try stack_module.pushStack(vm, 0);
-        }
-    } else {
-        try stack_module.pushStack(vm, 0);
-    }
+            return;
+        },
+    };
+    
+    // C: TOPOFSTACK = element_value; (replace index with element)
+    stack_module.setTopOfStack(vm, element_value);
 }
 
 /// ASET1: Array set 1-dimensional
-/// C: inlineC.h ASET1 macro (similar to AREF1 but sets value)
+/// C: N_OP_aset1 in maiko/src/arrayops.c, ASET1 macro in maiko/inc/inlineC.h
 /// Stack: [value, index, array_ptr] -> [array_ptr]
 pub fn handleASET1(vm: *VM) errors.VMError!void {
     const stack_module = @import("../stack.zig");
-    const address_module = @import("../../utils/address.zig");
+    const type_check_module = @import("../../utils/type_check.zig");
+    const types_module = @import("../../utils/types.zig");
+    const array_module = @import("../../data/array.zig");
 
     // C: Pop value, index, array_ptr from stack
     const value = try stack_module.popStack(vm);
@@ -217,53 +264,90 @@ pub fn handleASET1(vm: *VM) errors.VMError!void {
     const arrayarg = try stack_module.popStack(vm);
 
     // C: if (GetTypeNumber(arrayarg) != TYPE_ONED_ARRAY) goto aset_ufn;
-    // For now, skip type check (will implement later)
+    const type_num = type_check_module.getTypeNumber(vm, arrayarg);
+    if (type_num == null or type_num.? != 14) { // TYPE_ONED_ARRAY = 14
+        try stack_module.pushStack(vm, arrayarg);
+        return;
+    }
 
     // C: arrayblk = (OneDArray *)NativeAligned4FromLAddr(arrayarg);
-    // Translate array pointer to native address
-    if (vm.virtual_memory) |vmem| {
-        if (vm.fptovp) |fptovp_table| {
-            const array_offset = address_module.translateLispPTRToOffset(arrayarg, fptovp_table, vmem.len) orelse {
-                // Invalid address - push array_ptr back and return
+    if (vm.virtual_memory == null or vm.fptovp == null) {
+        try stack_module.pushStack(vm, arrayarg);
+        return;
+    }
+    
+    const fptovp_table = vm.fptovp.?;
+    const native_ptr = virtual_memory_module.translateAddress(arrayarg, fptovp_table, 4) catch {
+        try stack_module.pushStack(vm, arrayarg);
+        return;
+    };
+    
+    const arrayblk: *array_module.OneDArray = @as(*array_module.OneDArray, @ptrCast(@alignCast(native_ptr)));
+
+    // C: if ((index_value & SEGMASK) != S_POSITIVE) goto aset_ufn;
+    if ((index_value & types_module.SEGMASK) != types_module.S_POSITIVE) {
+        try stack_module.pushStack(vm, arrayarg);
+        return;
+    }
+
+    // C: index = index_value & 0xFFFF;
+    var index = @as(u16, @truncate(index_value));
+    
+    // C: if (index >= arrayblk->totalsize) goto aset_ufn;
+    if (index >= arrayblk.totalsize) {
+        try stack_module.pushStack(vm, arrayarg);
+        return;
+    }
+    
+    // C: index += arrayblk->offset;
+    index = @as(u16, @intCast(@as(u32, index) + arrayblk.offset));
+    
+    // C: base = arrayblk->base;
+    const base = arrayblk.base;
+    
+    // C: aset_switch(arrayblk->typenumber, inx);
+    // Dispatch on type number
+    switch (arrayblk.typenumber) {
+        array_module.TYPE_POINTER => {
+            // Pointer: 32 bits
+            // C: *(NativeAligned4FromLAddr(base) + index) = value;
+            const base_native = virtual_memory_module.translateAddress(@as(LispPTR, base), fptovp_table, 4) catch {
                 try stack_module.pushStack(vm, arrayarg);
                 return;
             };
-
-            // C: if ((index_value & SEGMASK) != S_POSITIVE) goto aset_ufn;
-            const S_POSITIVE: types.LispPTR = 0x00000000;
-            const SEGMASK: types.LispPTR = 0xFFFF0000;
-
-            if ((index_value & SEGMASK) != S_POSITIVE) {
+            const element_ptr: *LispPTR = @as(*LispPTR, @ptrCast(@alignCast(base_native + (@as(usize, index) * 4))));
+            element_ptr.* = value;
+        },
+        array_module.TYPE_SIGNED_16 => {
+            // Signed: 16 bits
+            // C: GETWORD(((DLword *)NativeAligned2FromLAddr(base)) + index) = GetLoWord(value);
+            const base_native = virtual_memory_module.translateAddress(@as(LispPTR, base), fptovp_table, 2) catch {
                 try stack_module.pushStack(vm, arrayarg);
                 return;
-            }
-
-            // C: index = index_value & 0xFFFF;
-            const index = @as(u16, @truncate(index_value));
-
-            // Write element at index (32-bit, big-endian)
-            const element_offset = array_offset + (@as(usize, index) * 4); // Assume 32-bit elements
-
-            if (element_offset + 4 > vmem.len) {
+            };
+            const word_ptr: *DLword = @as(*DLword, @ptrCast(@alignCast(base_native + (@as(usize, index) * 2))));
+            word_ptr.* = types_module.getLoWord(value);
+        },
+        array_module.TYPE_CHARACTER => {
+            // Character: 8 bits
+            // C: GETBYTE(((char *)NativeAligned2FromLAddr(base)) + index) = value & 0xFF;
+            const base_native = virtual_memory_module.translateAddress(@as(LispPTR, base), fptovp_table, 2) catch {
                 try stack_module.pushStack(vm, arrayarg);
                 return;
-            }
-
-            // Write element (32-bit, big-endian)
-            const vmem_mut: []u8 = @constCast(vmem);
-            vmem_mut[element_offset] = @as(u8, @truncate(value >> 24));
-            vmem_mut[element_offset + 1] = @as(u8, @truncate(value >> 16));
-            vmem_mut[element_offset + 2] = @as(u8, @truncate(value >> 8));
-            vmem_mut[element_offset + 3] = @as(u8, @truncate(value));
-
-            // C: Push array_ptr back
+            };
+            const byte_ptr: *u8 = @as(*u8, @ptrCast(base_native + index));
+            byte_ptr.* = @as(u8, @truncate(value & 0xFF));
+        },
+        else => {
+            // Other types not yet implemented - push array_ptr back and return
+            // TODO: Implement other array element types as needed
             try stack_module.pushStack(vm, arrayarg);
-        } else {
-            try stack_module.pushStack(vm, arrayarg);
-        }
-    } else {
-        try stack_module.pushStack(vm, arrayarg);
+            return;
+        },
     }
+    
+    // C: Push array_ptr back
+    try stack_module.pushStack(vm, arrayarg);
 }
 
 /// AREF2: Array reference 2
