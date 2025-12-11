@@ -13,14 +13,33 @@ const BYTESPER_PAGE = types.BYTESPER_PAGE;
 /// CRITICAL: Must be 0x15e3 to match C implementation (maiko/inc/ifpage.h:15)
 pub const SYSOUT_KEYVAL: u16 = IFPAGE_KEYVAL;
 
-/// FPtoVP table structure
+/// FPtoVP table structure (BIGVM format - REQUIRED)
+/// All implementations MUST use BIGVM format (32-bit entries)
 pub const FPtoVPTable = struct {
-    entries: []u16, // Array of virtual page numbers (or 0xFFFF for sparse pages)
+    // Store as u32 array (BIGVM format)
+    // Each entry: low 16 bits = virtual page, high 16 bits = page OK flag
+    entries: []u32, // Array of 32-bit entries (BIGVM format)
     allocator: std.mem.Allocator,
-    is_bigvm: bool,
 
     pub fn deinit(self: *FPtoVPTable) void {
         self.allocator.free(self.entries);
+    }
+
+    /// GETFPTOVP: Returns low 16 bits (virtual page number)
+    /// C: #define GETFPTOVP(b, o) ((b)[o])
+    pub fn getFPtoVP(self: *const FPtoVPTable, file_page: usize) u16 {
+        return @as(u16, @truncate(self.entries[file_page]));
+    }
+
+    /// GETPAGEOK: Returns high 16 bits (page OK flag)
+    /// C: #define GETPAGEOK(b, o) ((b)[o] >> 16)
+    pub fn getPageOK(self: *const FPtoVPTable, file_page: usize) u16 {
+        return @as(u16, @truncate(self.entries[file_page] >> 16));
+    }
+
+    /// Check if page is sparse (0xFFFF in page OK flag means sparse)
+    pub fn isSparse(self: *const FPtoVPTable, file_page: usize) bool {
+        return self.getPageOK(file_page) == 0xFFFF;
     }
 };
 
@@ -79,6 +98,10 @@ pub fn loadSysout(allocator: std.mem.Allocator, filename: []const u8) errors.Mem
     swapIFPAGEBytes(&ifpage);
 
     std.debug.print("IFPAGE read: key=0x{x}, lversion={}, minbversion={}, process_size={}\n", .{ ifpage.key, ifpage.lversion, ifpage.minbversion, ifpage.process_size });
+    std.debug.print("DEBUG: IFPAGE fields after byte-swap:\n", .{});
+    std.debug.print("  currentfxp=0x{x} (DLword offset from Stackspace)\n", .{ifpage.currentfxp});
+    std.debug.print("  stackbase=0x{x}, endofstack=0x{x}\n", .{ ifpage.stackbase, ifpage.endofstack });
+    std.debug.print("  fptovpstart={} (file page number)\n", .{ifpage.fptovpstart});
 
     // Validate sysout
     if (!validateSysout(&ifpage)) {
@@ -98,10 +121,28 @@ pub fn loadSysout(allocator: std.mem.Allocator, filename: []const u8) errors.Mem
 
     // Load FPtoVP table
     var file_mut = file;
+    std.debug.print("DEBUG: Loading FPtoVP table...\n", .{});
     const fptovp = try loadFPtoVPTable(allocator, &file_mut, &ifpage, file_size);
+    std.debug.print("DEBUG: FPtoVP table loaded: {} entries (BIGVM format)\n", .{fptovp.entries.len});
+    if (fptovp.entries.len > 0) {
+        std.debug.print("  First 10 entries (GETFPTOVP/GETPAGEOK): ", .{});
+        const print_count = @min(10, fptovp.entries.len);
+        for (0..print_count) |i| {
+            const vpage = fptovp.getFPtoVP(i);
+            const pageok = fptovp.getPageOK(i);
+            if (fptovp.isSparse(i)) {
+                std.debug.print("SPARSE ", .{});
+            } else {
+                std.debug.print("{}/{} ", .{ vpage, pageok });
+            }
+        }
+        std.debug.print("\n", .{});
+    }
 
     // Load memory pages
+    std.debug.print("DEBUG: Loading memory pages...\n", .{});
     try loadMemoryPages(allocator, &file_mut, &fptovp, virtual_memory);
+    std.debug.print("DEBUG: Memory pages loaded into virtual memory ({} bytes)\n", .{virtual_memory.len});
 
     return SysoutLoadResult{
         .ifpage = ifpage,
@@ -169,7 +210,7 @@ pub fn validateSysout(ifpage: *const IFPAGE) bool {
 
 /// Load FPtoVP (File Page to Virtual Page) table
 /// Per contracts/sysout-loading-api.md
-/// Supports both BIGVM (32-bit entries) and non-BIGVM (16-bit entries) formats
+/// CRITICAL: All implementations MUST use BIGVM format (32-bit entries)
 pub fn loadFPtoVPTable(
     allocator: std.mem.Allocator,
     file: *std.fs.File,
@@ -182,24 +223,27 @@ pub fn loadFPtoVPTable(
     // Number of file pages (sysout_size / 2)
     const num_file_pages = sysout_size_halfpages / 2;
 
-    // Calculate FPtoVP table offset
-    // For non-BIGVM: (fptovpstart - 1) * BYTESPER_PAGE + 2
-    // For BIGVM: (fptovpstart - 1) * BYTESPER_PAGE + 4
-    // We'll use non-BIGVM format for now (most common)
-    const is_bigvm = false; // TODO: Detect BIGVM from build config
-    const offset_adjust = if (is_bigvm) 4 else 2;
+    // Calculate FPtoVP table offset (BIGVM format)
+    // BIGVM: (fptovpstart - 1) * BYTESPER_PAGE + 4
+    // C code: maiko/src/ldsout.c:287-290 (BIGVM path)
+    const offset_adjust: u64 = 4; // BIGVM format
     const fptovp_offset = (@as(u64, ifpage.fptovpstart) - 1) * BYTESPER_PAGE + offset_adjust;
+
+    std.debug.print("DEBUG FPtoVP: ifpage.fptovpstart = {} (0x{x})\n", .{ ifpage.fptovpstart, ifpage.fptovpstart });
+    std.debug.print("DEBUG FPtoVP: Calculated offset = {} (0x{x})\n", .{ fptovp_offset, fptovp_offset });
 
     // Seek to FPtoVP table location
     file.seekTo(fptovp_offset) catch {
         return error.SysoutLoadFailed;
     };
 
-    // Allocate and read FPtoVP table
-    // For non-BIGVM: read sysout_size bytes (num_file_pages * 2 bytes, each entry is 16-bit)
-    // For BIGVM: read sysout_size * 2 bytes (num_file_pages * 4 bytes, each entry is 32-bit)
-    const entry_size = if (is_bigvm) 4 else 2;
+    // Allocate and read FPtoVP table (BIGVM format: 32-bit entries)
+    // BIGVM: read sysout_size * 2 bytes (num_file_pages * 4 bytes, each entry is 32-bit)
+    // C code: read(sysout, fptovp, sysout_size * 2)
+    const entry_size: usize = 4; // BIGVM: 32-bit entries
     const table_size = num_file_pages * entry_size;
+    std.debug.print("DEBUG FPtoVP: Reading {} bytes (BIGVM format, {} entries * 4 bytes)\n", .{ table_size, num_file_pages });
+    
     const table_buffer = allocator.alloc(u8, table_size) catch {
         return error.AllocationFailed;
     };
@@ -214,30 +258,41 @@ pub fn loadFPtoVPTable(
         return error.SysoutLoadFailed;
     }
 
-    // Convert buffer to u16 array (for non-BIGVM)
-    const entries = allocator.alloc(u16, num_file_pages) catch {
+    // Convert buffer to u32 array (BIGVM format)
+    // Sysout stores entries as big-endian u32, need to byte-swap
+    const entries = allocator.alloc(u32, num_file_pages) catch {
         allocator.free(table_buffer);
         return error.AllocationFailed;
     };
     errdefer allocator.free(entries);
 
-    if (is_bigvm) {
-        // For BIGVM, read as u32 and convert
-        // TODO: Implement BIGVM support
-        @panic("BIGVM format not yet implemented");
-    } else {
-        // For non-BIGVM, read as u16 (little-endian)
-        for (0..num_file_pages) |i| {
-            entries[i] = std.mem.readInt(u16, table_buffer[i * 2 ..][0..2], .little);
+    // Read as big-endian u32 and convert to native (little-endian)
+    // C code: #ifdef BYTESWAP word_swap_page((unsigned short *)fptovp, (sysout_size / 2) + 1); #endif
+    // This swaps u16 words, but since we have u32, we need to swap u32 words
+    for (0..num_file_pages) |i| {
+        const entry_bytes = table_buffer[i * 4..][0..4];
+        // Read as big-endian u32
+        const entry_be = std.mem.readInt(u32, entry_bytes, .big);
+        // Store as native (little-endian) - Zig will handle the byte order
+        entries[i] = entry_be;
+    }
+    
+    allocator.free(table_buffer);
+
+    // Debug: Check for virtual page 302 (frame page)
+    const frame_vpage: u16 = 302;
+    std.debug.print("DEBUG loadFPtoVPTable: Checking file pages that should map to virtual page {d} (frame)\n", .{frame_vpage});
+    for (0..num_file_pages) |file_page| {
+        const vpage = @as(u16, @truncate(entries[file_page])); // GETFPTOVP: low 16 bits
+        if (vpage == frame_vpage) {
+            const pageok = @as(u16, @truncate(entries[file_page] >> 16)); // GETPAGEOK: high 16 bits
+            std.debug.print("  FPtoVP[{d}] = {d} (0x{x}), GETPAGEOK = 0x{x}\n", .{ file_page, vpage, vpage, pageok });
         }
     }
-
-    allocator.free(table_buffer);
 
     return FPtoVPTable{
         .entries = entries,
         .allocator = allocator,
-        .is_bigvm = is_bigvm,
     };
 }
 
@@ -256,13 +311,31 @@ pub fn loadMemoryPages(
     const num_file_pages = fptovp.entries.len;
     var page_buffer: [BYTESPER_PAGE]u8 = undefined;
 
+    // DEBUG: Search for file pages that map to virtual page 302 (frame location)
+    const frame_vpage: u16 = 302;
+    var found_frame_pages: [10]usize = undefined;
+    var found_count: usize = 0;
     for (0..num_file_pages) |file_page| {
-        const virtual_page = fptovp.entries[file_page];
+        // Use GETFPTOVP to get virtual page number (low 16 bits)
+        const virtual_page = fptovp.getFPtoVP(file_page);
+        if (virtual_page == frame_vpage and found_count < found_frame_pages.len) {
+            found_frame_pages[found_count] = file_page;
+            found_count += 1;
+        }
+    }
+    std.debug.print("DEBUG loadMemoryPages: Found {d} file pages mapping to virtual page {d} (frame):\n", .{ found_count, frame_vpage });
+    for (0..found_count) |i| {
+        std.debug.print("  File page {d} -> virtual page {d}\n", .{ found_frame_pages[i], frame_vpage });
+    }
 
-        // Skip sparse pages (marked with 0xFFFF)
-        if (virtual_page == 0xFFFF) {
+    for (0..num_file_pages) |file_page| {
+        // Skip sparse pages (GETPAGEOK returns 0xFFFF for sparse pages)
+        if (fptovp.isSparse(file_page)) {
             continue;
         }
+
+        // Use GETFPTOVP to get virtual page number (low 16 bits)
+        const virtual_page = fptovp.getFPtoVP(file_page);
 
         // Calculate file offset for this page
         const file_offset = @as(u64, file_page) * BYTESPER_PAGE;

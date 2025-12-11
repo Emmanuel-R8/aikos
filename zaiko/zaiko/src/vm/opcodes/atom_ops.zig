@@ -8,35 +8,23 @@ const LispPTR = types.LispPTR;
 /// GVAR_: Set global variable
 /// Per rewrite documentation instruction-set/opcodes.md
 /// Sets global variable value
-/// C: N_OP_gvar_ in maiko/src/gvar2.c
 pub fn handleGVAR_(vm: *VM, atom_index: u16) errors.VMError!void {
     const stack_module = @import("../stack.zig");
-    const atom_module = @import("../../data/atom.zig");
 
-    // GVAR_: Pop value from stack, update GC refs, write to atom's value cell
+    // GVAR_ requires:
+    // 1. Value on stack
+    // 2. Atom index
+    // 3. Set global variable value
+
+    // TODO: Proper implementation needs:
+    // 1. Get value from stack
+    // 2. Look up atom in atom table
+    // 3. Set DEFCELL value
+
+    // Placeholder: pop value but don't set variable
     const value = try stack_module.popStack(vm);
-    const atom_index_lisp: types.LispPTR = @as(types.LispPTR, atom_index);
-
-    // Get old value before writing new value (for GC)
-    const old_value = atom_module.readAtomValue(vm, atom_index_lisp) catch 0; // Default to 0 if read fails
-
-    // Update GC refs: DELREF old value, ADDREF new value
-    // C: FRPLPTR(((struct xpointer *)pslot)->addr, tos);
-    // This does: DELREF(old_value), ADDREF(new_value), then set value
-    if (vm.gc) |gc| {
-        const gc_module = @import("../../memory/gc.zig");
-        // DELREF old value
-        gc_module.deleteReference(gc, old_value) catch {
-            // GC errors are non-fatal
-        };
-        // ADDREF new value
-        gc_module.addReference(gc, value) catch {
-            // GC errors are non-fatal
-        };
-    }
-
-    // Write value to atom's value cell
-    try atom_module.writeAtomValue(vm, atom_index_lisp, value);
+    _ = value;
+    _ = atom_index;
 }
 
 /// ATOMCELL_N: Atom cell N
@@ -51,13 +39,19 @@ pub fn handleATOMCELL_N(vm: *VM, index: u8) errors.VMError!void {
 /// GCONST: Global constant
 /// Per rewrite documentation instruction-set/opcodes.md
 /// Pushes global constant atom by atom index
-/// Similar to ACONST but for global constants
 pub fn handleGCONST(vm: *VM, atom_index: u16) errors.VMError!void {
     const stack_module = @import("../stack.zig");
-    const atom_module = @import("../../data/atom.zig");
 
-    // GCONST: Push atom object (same as ACONST)
-    const atom_index_lisp: types.LispPTR = @as(types.LispPTR, atom_index);
-    const atom_ptr = atom_module.getAtomPointer(atom_index_lisp);
-    try stack_module.pushStack(vm, atom_ptr);
+    // GCONST requires:
+    // 1. Atom table lookup (from atom_index)
+    // 2. Get global constant atom object
+    // 3. Push atom on stack
+
+    // TODO: Proper implementation needs:
+    // 1. Atom table access (needs atom table structure)
+    // 2. Global constant atom object creation/retrieval
+    // For now, push atom_index as placeholder (will be properly implemented with atom tables)
+
+    // Placeholder: push atom_index as atom pointer (will be properly implemented)
+    try stack_module.pushStack(vm, @as(LispPTR, atom_index));
 }

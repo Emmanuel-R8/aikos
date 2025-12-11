@@ -308,7 +308,15 @@ pub fn main() !void {
         std.debug.print("Memory size: {} MB\n", .{size});
     }
 
-    // Initialize VM
+    // Load sysout file FIRST (before initializing VM, so we know memory requirements)
+    var sysout_result = sysout.loadSysout(allocator, sysout_path) catch |err| {
+        std.debug.print("Failed to load sysout file '{s}': {}\n", .{ sysout_path, err });
+        std.debug.print("Please ensure the sysout file exists and is a valid Medley sysout file.\n", .{});
+        return;
+    };
+    defer sysout_result.deinit();
+
+    // Initialize VM (after sysout is loaded, so we can use sysout memory size)
     const stack_size = 1024 * 1024; // 1MB stack
     var vm = try stack.VM.init(allocator, stack_size);
     defer vm.deinit();
@@ -321,13 +329,6 @@ pub fn main() !void {
     var gc = try gc_module.GC.init(allocator, 1024);
     defer gc.deinit();
 
-    // Load sysout file
-    var sysout_result = sysout.loadSysout(allocator, sysout_path) catch |err| {
-        std.debug.print("Failed to load sysout file: {}\n", .{err});
-        return;
-    };
-    defer sysout_result.deinit();
-
     std.debug.print("Sysout loaded: version={}, keyval=0x{x}\n", .{ sysout_result.ifpage.lversion, sysout_result.ifpage.key });
 
     // T091: Initialize SDL2 display (before VM initialization)
@@ -335,7 +336,7 @@ pub fn main() !void {
     const screen_height = options.screen_height orelse 768;
     const pixel_scale = options.pixel_scale orelse 1;
     const window_title = options.window_title orelse "Medley Interlisp (Zig)";
-    
+
     const display = sdl_backend.initDisplay(
         window_title,
         screen_width,
@@ -347,13 +348,13 @@ pub fn main() !void {
         return;
     };
     defer sdl_backend.destroyDisplay(display, allocator);
-    
+
     std.debug.print("SDL2 display initialized: {}x{} (scale: {})\n", .{ screen_width, screen_height, pixel_scale });
 
     // Initialize event queues
     var key_queue = try keyboard.KeyEventQueue.init(allocator, 256);
     defer key_queue.deinit(allocator);
-    
+
     var mouse_state = mouse.MouseState{
         .x = 0,
         .y = 0,
@@ -377,7 +378,7 @@ pub fn main() !void {
     std.debug.print("System state initialized\n", .{});
 
     // Initialize VM state from IFPAGE
-    dispatch.initializeVMState(&vm, &sysout_result.ifpage, sysout_result.virtual_memory, sysout_result.fptovp.entries) catch |err| {
+    dispatch.initializeVMState(&vm, &sysout_result.ifpage, sysout_result.virtual_memory, &sysout_result.fptovp) catch |err| {
         std.debug.print("Failed to initialize VM state: {}\n", .{err});
         return;
     };
@@ -397,18 +398,24 @@ pub fn main() !void {
     var quit_requested = false;
     while (!quit_requested) {
         // Poll SDL2 events (T091: integrated event polling)
-        events.pollEvents(display, &key_queue, &mouse_state, allocator) catch |err| {
+        const should_quit = events.pollEvents(display, &key_queue, &mouse_state, allocator) catch |err| blk: {
             std.debug.print("Event polling error: {}\n", .{err});
+            // Continue execution despite errors
+            break :blk false;
+        };
+        if (should_quit) {
+            quit_requested = true;
+            break;
         }
-        
+
         // Execute VM instructions
         dispatch.dispatch(&vm) catch |err| {
             std.debug.print("VM dispatch error: {}\n", .{err});
             // Continue execution despite errors (for debugging)
         };
-        
+
         // Small delay to prevent CPU spinning
-        std.time.sleep(1000); // 1 microsecond
+        std.Thread.sleep(1000); // 1 microsecond
     }
 
     std.debug.print("VM execution complete\n", .{});

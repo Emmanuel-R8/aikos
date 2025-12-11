@@ -1,6 +1,5 @@
 const errors = @import("../../utils/errors.zig");
 const stack = @import("../stack.zig");
-const types = @import("../../utils/types.zig");
 
 const VM = stack.VM;
 
@@ -25,80 +24,26 @@ pub fn handleSLRETURN(vm: *VM) errors.VMError!void {
 
 /// RPLPTR_N: Replace pointer N
 /// Per rewrite documentation instruction-set/opcodes.md
-/// C: N_OP_rplptr in maiko/src/gvar2.c
-/// Replaces pointer at offset N with new value, updating GC refs
-/// Stack: [new_value, base] -> [base]
+/// Replaces pointer at offset N
 pub fn handleRPLPTR_N(vm: *VM, offset: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
-    const errors_module = @import("../../utils/errors.zig");
-    const gc_module = @import("../../memory/gc.zig");
 
-    const new_value = try stack_module.popStack(vm);
-    const base = try stack_module.popStack(vm);
+    // RPLPTR_N requires:
+    // 1. Pointer value on stack
+    // 2. Target address on stack
+    // 3. Replace pointer at offset
 
-    // C: RPLPTR(n) - replaces pointer at base + offset
-    // Calculate target address: base + offset (in LispPTR units, so offset * 4 bytes)
-    // C: pslot = (struct xpointer *)NativeAligned4FromLAddr(tos_m_1 + alpha);
-    // alpha is a word offset, so multiply by 4 for bytes
-    const base_ptr = types.POINTERMASK & base;
-    const target_addr = base_ptr + (@as(types.LispPTR, offset) * 4);
+    // TODO: Proper implementation needs:
+    // 1. Pop new pointer value
+    // 2. Pop target address
+    // 3. Replace pointer at target + offset
 
-    // Get virtual memory access
-    if (vm.virtual_memory == null or vm.fptovp == null) {
-        return errors_module.VMError.MemoryAccessFailed;
-    }
-    
-    const fptovp_table = vm.fptovp.?;
-    
-    // Calculate byte offset in virtual memory
-    const page_num = (target_addr >> 9) & 0x7FFF; // Page number (15 bits)
-    const page_offset_dlwords = target_addr & 0x1FF; // Page offset (9 bits, in DLwords)
-    const page_offset_bytes = page_offset_dlwords * 2; // Convert DLwords to bytes
-    
-    // Get virtual page from FPtoVP table
-    if (page_num >= fptovp_table.entries.len) {
-        return errors_module.VMError.InvalidAddress;
-    }
-    
-    const virtual_page = fptovp_table.getFPtoVP(page_num);
-    if (virtual_page == 0) {
-        return errors_module.VMError.InvalidAddress;
-    }
-    
-    // Calculate byte offset in virtual memory: virtual_page * 512 + page_offset_bytes
-    const BYTESPER_PAGE: usize = 512;
-    const target_byte_offset = (@as(usize, virtual_page) * BYTESPER_PAGE) + page_offset_bytes;
-    
-    const virtual_memory = vm.virtual_memory.?;
-    if (target_byte_offset + 4 > virtual_memory.len) {
-        return errors_module.VMError.InvalidAddress;
-    }
-    
-    // Read old value for GC (big-endian from sysout)
-    const target_bytes = virtual_memory[target_byte_offset..target_byte_offset+4];
-    const old_low_word = (@as(types.DLword, target_bytes[0]) << 8) | @as(types.DLword, target_bytes[1]);
-    const old_high_word = (@as(types.DLword, target_bytes[2]) << 8) | @as(types.DLword, target_bytes[3]);
-    const old_value: types.LispPTR = (@as(types.LispPTR, old_high_word) << 16) | @as(types.LispPTR, old_low_word);
-    
-    // Update GC refs: DELREF old value, ADDREF new value
-    // C: FRPLPTR(old, new) - does GCLOOKUP(new, ADDREF), GCLOOKUP(old, DELREF), then (old) = (new)
-    if (vm.gc) |gc| {
-        gc_module.deleteReference(gc, old_value) catch {};
-        gc_module.addReference(gc, new_value) catch {};
-    }
-    
-    // Write new value (big-endian to sysout format)
-    const virtual_memory_mut: []u8 = @constCast(virtual_memory);
-    const target_bytes_mut = virtual_memory_mut[target_byte_offset..target_byte_offset+4];
-    const new_low_word = @as(types.DLword, @truncate(new_value));
-    const new_high_word = @as(types.DLword, @truncate(new_value >> 16));
-    target_bytes_mut[0] = @as(u8, @truncate(new_low_word >> 8));
-    target_bytes_mut[1] = @as(u8, @truncate(new_low_word & 0xFF));
-    target_bytes_mut[2] = @as(u8, @truncate(new_high_word >> 8));
-    target_bytes_mut[3] = @as(u8, @truncate(new_high_word & 0xFF));
-    
-    // Push base back on stack
-    try stack_module.pushStack(vm, base);
+    // Placeholder: pop values but don't modify memory
+    const new_ptr = try stack_module.popStack(vm);
+    const target = try stack_module.popStack(vm);
+    _ = new_ptr;
+    _ = target;
+    _ = offset;
 }
 
 /// EVAL: Evaluate expression

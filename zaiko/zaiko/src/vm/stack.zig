@@ -30,10 +30,15 @@ pub const VM = struct {
     // Memory management (optional - can be null)
     storage: ?*@import("../memory/storage.zig").Storage,
     virtual_memory: ?[]const u8, // Virtual memory as byte slice (from sysout)
-    fptovp: ?[]const u16, // FPtoVP table for address translation
+    fptovp: ?*const @import("../data/sysout.zig").FPtoVPTable, // FPtoVP table for address translation (BIGVM format)
     // Execution state
     pc: LispPTR, // Current program counter (managed by dispatch loop)
     return_pc: ?LispPTR, // PC to return to after function call
+    // Cached stack top (matches C TopOfStack)
+    // CRITICAL: C code uses TopOfStack as a cached value, initialized to 0
+    // This avoids reading garbage from stack memory initially
+    // DEBUG: Added cached TopOfStack to match C implementation
+    top_of_stack: LispPTR, // Cached top of stack value (initially 0 = NIL)
 
     pub fn init(allocator: std.mem.Allocator, stack_size: usize) !VM {
         const stack_mem = try allocator.alloc(DLword, stack_size);
@@ -50,6 +55,7 @@ pub const VM = struct {
             .fptovp = null,
             .pc = 0,
             .return_pc = null,
+            .top_of_stack = 0, // C: TopOfStack = 0; (initially empty stack)
         };
     }
 
@@ -231,12 +237,23 @@ pub fn pushStack(vm: *VM, value: LispPTR) errors.VMError!void {
         // return error.StackOverflow;
     }
 
-    // Store LispPTR as 2 DLwords (low word first, then high word)
+    // Store LispPTR as 2 DLwords (big-endian format for sysout compatibility)
     // C implementation: CurrentStackPTR -= 2; *((LispPTR *)(void *)(CurrentStackPTR)) = x;
     // Stack grows DOWN, so move DOWN by 2 DLwords first, then store
     vm.stack_ptr -= 2; // Move DOWN by 2 DLwords (stack grows down)
-    vm.stack_ptr[0] = @as(DLword, @truncate(value)); // Low 16 bits
-    vm.stack_ptr[1] = @as(DLword, @truncate(value >> 16)); // High 16 bits
+    
+    // Write big-endian format: [high_byte, low_byte] for each DLword
+    const stack_ptr_bytes: [*]u8 = @ptrCast(vm.stack_ptr);
+    const low_word = @as(DLword, @truncate(value));
+    const high_word = @as(DLword, @truncate(value >> 16));
+    
+    stack_ptr_bytes[0] = @as(u8, @truncate(low_word >> 8));
+    stack_ptr_bytes[1] = @as(u8, @truncate(low_word & 0xFF));
+    stack_ptr_bytes[2] = @as(u8, @truncate(high_word >> 8));
+    stack_ptr_bytes[3] = @as(u8, @truncate(high_word & 0xFF));
+    
+    // Update cached TopOfStack value
+    vm.top_of_stack = value;
 }
 
 /// Pop value from stack
@@ -254,48 +271,66 @@ pub fn popStack(vm: *VM) errors.VMError!LispPTR {
         return error.StackUnderflow;
     }
 
-    // Read LispPTR as 2 DLwords (low word first, then high word)
+    // Read LispPTR as 2 DLwords (with byte swapping for big-endian sysout format)
     // C implementation: POP_TOS_1 = *(--CSTKPTRL) where CSTKPTRL is LispPTR*
     // Stack grows DOWN, so we read from current position, then move DOWN
-    const low_word = vm.stack_ptr[0];
-    const high_word = vm.stack_ptr[1];
-    const value: LispPTR = (@as(LispPTR, high_word) << 16) | @as(LispPTR, low_word);
+    // CRITICAL: Stack memory stores DLwords in BIG-ENDIAN format
+    const stack_ptr_bytes: [*]const u8 = @ptrCast(vm.stack_ptr);
+    const low_word_be = (@as(DLword, stack_ptr_bytes[0]) << 8) | @as(DLword, stack_ptr_bytes[1]);
+    const high_word_be = (@as(DLword, stack_ptr_bytes[2]) << 8) | @as(DLword, stack_ptr_bytes[3]);
+    const value: LispPTR = (@as(LispPTR, high_word_be) << 16) | @as(LispPTR, low_word_be);
+    
     vm.stack_ptr -= 2; // Move DOWN by 2 DLwords (stack grows down)
+    
+    // Update cached TopOfStack value
+    // After popping, read new top of stack (or set to 0 if empty)
+    if (@intFromPtr(vm.stack_ptr) <= @intFromPtr(vm.stack_base)) {
+        vm.top_of_stack = 0; // Stack empty - TopOfStack = NIL
+    } else {
+        // Read new top of stack (with byte swapping)
+        const new_stack_ptr_bytes: [*]const u8 = @ptrCast(vm.stack_ptr);
+        const new_low_word_be = (@as(DLword, new_stack_ptr_bytes[0]) << 8) | @as(DLword, new_stack_ptr_bytes[1]);
+        const new_high_word_be = (@as(DLword, new_stack_ptr_bytes[2]) << 8) | @as(DLword, new_stack_ptr_bytes[3]);
+        vm.top_of_stack = (@as(LispPTR, new_high_word_be) << 16) | @as(LispPTR, new_low_word_be);
+    }
 
     return value;
 }
 
 /// Get top of stack
 /// Matches C implementation: TopOfStack reads LispPTR (32-bit = 2 DLwords)
-/// C: Stackspace is BASE (lowest address), CurrentStackPTR is current top (higher address when stack has data)
+/// C: TopOfStack is a cached value, not read from memory every time
+/// C: TopOfStack = 0 initially (empty stack)
+/// DEBUG: Using cached TopOfStack value to match C implementation
 pub fn getTopOfStack(vm: *const VM) LispPTR {
-    const stack_base_addr = @intFromPtr(vm.stack_base);
-    const stack_ptr_addr = @intFromPtr(vm.stack_ptr);
-
-    // Check if stack is empty: stack_ptr must be > stack_base (stack has data)
-    // If stack_ptr <= stack_base, stack is empty
-    if (stack_ptr_addr <= stack_base_addr) {
-        return 0; // Stack empty - return NIL
-    }
-
-    std.debug.print("DEBUG: getTopOfStack: stack_ptr=0x{x}, stack_base=0x{x}, diff={}\n", .{ stack_ptr_addr, stack_base_addr, stack_ptr_addr - stack_base_addr });
-
-    // Read LispPTR as 2 DLwords (low word first, then high word)
-    const low_word = vm.stack_ptr[0];
-    const high_word = vm.stack_ptr[1];
-    return (@as(LispPTR, high_word) << 16) | @as(LispPTR, low_word);
+    // C: TopOfStack is a cached value, initialized to 0
+    // Return cached value directly (matches C behavior)
+    return vm.top_of_stack;
 }
 
 /// Set top of stack
 /// Matches C implementation: TopOfStack = value stores LispPTR (32-bit = 2 DLwords)
+/// C: Updates cached TopOfStack value
+/// DEBUG: Using cached TopOfStack to match C implementation
 pub fn setTopOfStack(vm: *VM, value: LispPTR) void {
+    // C: TopOfStack = value; (updates cached value)
+    vm.top_of_stack = value;
+    
+    // Also write to memory if stack_ptr is valid
     const stack_base_addr = @intFromPtr(vm.stack_base);
     const stack_ptr_addr = @intFromPtr(vm.stack_ptr);
 
-    if (stack_ptr_addr + @sizeOf(LispPTR) <= stack_base_addr) {
-        // Write LispPTR as 2 DLwords (low word first, then high word)
-        vm.stack_ptr[0] = @as(DLword, @truncate(value)); // Low 16 bits
-        vm.stack_ptr[1] = @as(DLword, @truncate(value >> 16)); // High 16 bits
+    if (stack_ptr_addr > stack_base_addr) {
+        // Write LispPTR as 2 DLwords (big-endian format for sysout compatibility)
+        const stack_ptr_bytes: [*]u8 = @ptrCast(vm.stack_ptr);
+        const low_word = @as(DLword, @truncate(value));
+        const high_word = @as(DLword, @truncate(value >> 16));
+        
+        // Write big-endian: [high_byte, low_byte]
+        stack_ptr_bytes[0] = @as(u8, @truncate(low_word >> 8));
+        stack_ptr_bytes[1] = @as(u8, @truncate(low_word & 0xFF));
+        stack_ptr_bytes[2] = @as(u8, @truncate(high_word >> 8));
+        stack_ptr_bytes[3] = @as(u8, @truncate(high_word & 0xFF));
     }
 }
 

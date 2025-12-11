@@ -75,7 +75,8 @@ pub const DisplayInterface = struct {
 
         // T077: Create SDL_Renderer
         std.debug.print("Creating renderer...\n", .{});
-        const renderer = sdl2.SDL_CreateRenderer(window.?, -1, sdl2.SDL_RENDERER_ACCELERATED);
+        const window_ptr = window orelse return error.SDLWindowCreationFailed;
+        const renderer = sdl2.SDL_CreateRenderer(window_ptr, -1, sdl2.SDL_RENDERER_ACCELERATED);
 
         if (renderer == null) {
             const error_msg = std.mem.span(sdl2.SDL_GetError());
@@ -85,12 +86,13 @@ pub const DisplayInterface = struct {
             return error.SDLRendererCreationFailed;
         }
 
+        const renderer_ptr = renderer.?;
         var renderer_info: sdl2.SDL_RendererInfo = undefined;
-        _ = sdl2.SDL_GetRendererInfo(renderer, &renderer_info);
-        _ = sdl2.SDL_SetRenderDrawColor(renderer, 127, 127, 127, 255);
-        _ = sdl2.SDL_RenderClear(renderer);
-        sdl2.SDL_RenderPresent(renderer);
-        _ = sdl2.SDL_RenderSetScale(renderer, 1.0, 1.0);
+        _ = sdl2.SDL_GetRendererInfo(renderer_ptr, &renderer_info);
+        _ = sdl2.SDL_SetRenderDrawColor(renderer_ptr, 127, 127, 127, 255);
+        _ = sdl2.SDL_RenderClear(renderer_ptr);
+        sdl2.SDL_RenderPresent(renderer_ptr);
+        _ = sdl2.SDL_RenderSetScale(renderer_ptr, 1.0, 1.0);
 
         // Get pixel format from renderer
         const pixel_format = sdl2.SDL_AllocFormat(renderer_info.texture_formats[0]);
@@ -104,7 +106,7 @@ pub const DisplayInterface = struct {
         // T078: Create SDL_Texture
         std.debug.print("Creating texture...\n", .{});
         const texture = sdl2.SDL_CreateTexture(
-            renderer,
+            renderer_ptr,
             pixel_format.?.format,
             sdl2.SDL_TEXTUREACCESS_STREAMING,
             @as(c_int, @intCast(display_width)),
@@ -114,7 +116,7 @@ pub const DisplayInterface = struct {
         if (texture == null) {
             const error_msg = std.mem.span(sdl2.SDL_GetError());
             std.debug.print("Texture could not be created. SDL_Error: {s}\n", .{error_msg});
-            sdl2.SDL_DestroyRenderer(renderer.?);
+            sdl2.SDL_DestroyRenderer(renderer_ptr);
             sdl2.SDL_DestroyWindow(window.?);
             sdl2.SDL_Quit();
             return error.SDLTextureCreationFailed;
@@ -127,7 +129,9 @@ pub const DisplayInterface = struct {
 
         // Allocate display region buffer
         const buffer_size = display_width * display_height;
-        const display_buffer = try allocator.alloc(DLword, buffer_size);
+        const display_buffer = allocator.alloc(DLword, buffer_size) catch {
+            return error.SDLInitFailed; // Map OutOfMemory to DisplayError
+        };
         @memset(display_buffer, 0);
 
         return DisplayInterface{
@@ -150,7 +154,7 @@ pub const DisplayInterface = struct {
 
         // Destroy SDL2 objects
         if (self.texture) |tex| {
-            sdl2.SDL_DestroyTexture(tex.?);
+            sdl2.SDL_DestroyTexture(tex);
         }
         if (self.renderer) |ren| {
             sdl2.SDL_DestroyRenderer(ren);

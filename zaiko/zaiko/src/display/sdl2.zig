@@ -217,7 +217,7 @@ pub fn SDL_UpdateTexture(
 
 pub fn SDL_LockTexture(
     texture: *SDL_Texture,
-    rect: ?*const SDL_Rect,
+    rect: ?*const c.SDL_Rect,
     pixels: *?*anyopaque,
     pitch: *c_int,
 ) c_int {

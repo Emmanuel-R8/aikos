@@ -48,16 +48,17 @@ pub const VirtualMemory = struct {
 /// Translate LispPTR to native pointer using FPtoVP mapping
 /// Per rewrite documentation memory/address-translation.md
 /// alignment: alignment requirement in bytes (1, 2, 4, 8, etc.)
-/// fptovp: FPtoVP table as u16 array (non-BIGVM) or u32 array (BIGVM)
-pub fn translateAddress(lisp_addr: LispPTR, fptovp: []const u16, alignment: u8) errors.MemoryError![*]u8 {
+/// fptovp_table: FPtoVP table (BIGVM format - 32-bit entries)
+pub fn translateAddress(lisp_addr: LispPTR, fptovp_table: *const @import("../data/sysout.zig").FPtoVPTable, alignment: u8) errors.MemoryError![*]u8 {
     const page_num = layout.getPageNumber(lisp_addr);
     const page_offset = layout.getPageOffset(lisp_addr);
 
-    if (page_num >= fptovp.len) {
+    if (page_num >= fptovp_table.entries.len) {
         return error.InvalidAddress;
     }
 
-    const virtual_page = fptovp[page_num];
+    // Use GETFPTOVP to get virtual page number (low 16 bits of 32-bit entry)
+    const virtual_page = fptovp_table.getFPtoVP(page_num);
     if (virtual_page == 0) {
         return error.PageMappingFailed;
     }
