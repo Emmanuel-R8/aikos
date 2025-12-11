@@ -99,21 +99,31 @@ pub fn handleFFTSTEP(vm: *VM) errors.VMError!void {
 
 /// STORE_N: Store N
 /// Per rewrite documentation instruction-set/opcodes.md
+/// Pops N values from stack (discards them)
+/// Stack: [v1, v2, ..., vN, ...] -> [...]
 pub fn handleSTORE_N(vm: *VM, count: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
-    // TODO: Proper implementation
+    const errors_module = @import("../../utils/errors.zig");
+    
+    // Pop count values from stack
     var i: u8 = 0;
     while (i < count) : (i += 1) {
-        _ = try stack_module.popStack(vm);
+        _ = stack_module.popStack(vm) catch |err| {
+            return switch (err) {
+                errors_module.VMError.StackUnderflow => err,
+                else => errors_module.VMError.StackUnderflow,
+            };
+        };
     }
 }
 
 /// COPY_N: Copy N
 /// Per rewrite documentation instruction-set/opcodes.md
+/// Copies top stack value N times
+/// Stack: [value] -> [value, value, ..., value] (N copies)
 pub fn handleCOPY_N(vm: *VM, count: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
-    // TODO: Proper implementation
-    // Placeholder: duplicate top value count times
+    // Get top value and duplicate it count times
     const value = stack_module.getTopOfStack(vm);
     var i: u8 = 0;
     while (i < count) : (i += 1) {

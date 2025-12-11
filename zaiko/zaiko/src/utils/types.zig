@@ -20,6 +20,18 @@ pub fn loloc(ptr: LispPTR) u16 {
     return @as(u16, @truncate(ptr));
 }
 
+/// Get high word from LispPTR (matches C GetHiWord)
+/// C: GetHiWord(x) = ((DLword)((x) >> 16))
+pub fn getHiWord(value: LispPTR) DLword {
+    return @as(DLword, @truncate(value >> 16));
+}
+
+/// Get low word from LispPTR (matches C GetLoWord)
+/// C: GetLoWord(x) = ((DLword)(x))
+pub fn getLoWord(value: LispPTR) DLword {
+    return @as(DLword, @truncate(value));
+}
+
 /// Interface Page structure (matches C IFPAGE)
 /// This is the non-BIGVM, non-BYTESWAP version (most common case)
 /// See maiko/inc/ifpage.h for complete structure definition
@@ -135,6 +147,11 @@ pub const S_POSITIVE: u32 = 0xE0000;
 
 /// Small negative integer segment (matches C S_NEGATIVE)
 pub const S_NEGATIVE: u32 = 0xF0000;
+
+/// Pointer mask for extracting pointer from LispPTR (matches C POINTERMASK)
+/// BIGVM: 0xfffffff (28 bits), non-BIGVM: 0xffffff (24 bits)
+/// Using BIGVM value as default (assumes BIGVM build)
+pub const POINTERMASK: u32 = 0xfffffff;
 
 /// Type numbers (matches C lsptypes.h)
 pub const TYPE_SMALLP: u8 = 1;

@@ -3,6 +3,7 @@ const stack = @import("../stack.zig");
 const types = @import("../../utils/types.zig");
 const cons = @import("../../data/cons.zig");
 const virtual_memory_module = @import("../../memory/virtual.zig");
+const array_module = @import("../../data/array.zig");
 
 const VM = stack.VM;
 const LispPTR = types.LispPTR;
@@ -208,8 +209,35 @@ fn equalRecursive(vm: *VM, a: LispPTR, b: LispPTR) errors.VMError!bool {
         }
     }
 
-    // For other types (atoms, arrays, etc.), use pointer comparison for now
-    // TODO: Implement proper comparison for atoms and arrays
+    // Check for atoms - atoms are interned, so pointer comparison is correct
+    const type_check_module = @import("../../utils/type_check.zig");
+    const a_type = type_check_module.getTypeNumber(vm, a);
+    const b_type = type_check_module.getTypeNumber(vm, b);
+    
+    // If both are atoms (NEWATOM or LITATOM), use pointer comparison
+    // Atoms are interned, so same name = same atom = same pointer
+    if (a_type) |a_t| {
+        if (b_type) |b_t| {
+            // Both are NEWATOM or LITATOM - pointer comparison is correct
+            if ((a_t == type_check_module.TYPE_NEWATOM or a_t == 4) and // TYPE_LITATOM = 4
+                (b_t == type_check_module.TYPE_NEWATOM or b_t == 4)) {
+                return a == b; // Atoms are interned, so pointer comparison is correct
+            }
+            
+            // Both are arrays - compare element-by-element for EQUAL
+            const TYPE_ONED_ARRAY: u16 = 14;
+            const TYPE_TWOD_ARRAY: u16 = 15;
+            const TYPE_GENERAL_ARRAY: u16 = 16;
+            
+            if ((a_t == TYPE_ONED_ARRAY or a_t == TYPE_TWOD_ARRAY or a_t == TYPE_GENERAL_ARRAY) and
+                (b_t == TYPE_ONED_ARRAY or b_t == TYPE_TWOD_ARRAY or b_t == TYPE_GENERAL_ARRAY)) {
+                // Arrays of same type - compare element-by-element
+                return compareArrays(vm, a, b, a_t) catch false;
+            }
+        }
+    }
+    
+    // For other types, use pointer comparison
     return a == b;
 }
 
@@ -229,4 +257,42 @@ pub fn handleEQUAL(vm: *VM) errors.VMError!void {
     // Push result: T (1) if equal, NIL (0) if not
     const result: LispPTR = if (is_equal) 1 else 0;
     try stack_module.pushStack(vm, result);
+}
+
+/// Compare two arrays element-by-element
+/// Used by EQUAL for recursive array comparison
+fn compareArrays(vm: *VM, a: LispPTR, b: LispPTR, array_type: u16) errors.VMError!bool {
+    _ = array_type; // For now, handle all array types similarly
+    
+    if (vm.virtual_memory == null or vm.fptovp == null) {
+        return false; // Can't access arrays without virtual memory
+    }
+    
+    const fptovp_table = vm.fptovp.?;
+    
+    // Get array headers
+    const a_native = virtual_memory_module.translateAddress(a, fptovp_table, 4) catch return false;
+    const b_native = virtual_memory_module.translateAddress(b, fptovp_table, 4) catch return false;
+    
+    const a_header: *array_module.ArrayHeader = @as(*array_module.ArrayHeader, @ptrCast(@alignCast(a_native)));
+    const b_header: *array_module.ArrayHeader = @as(*array_module.ArrayHeader, @ptrCast(@alignCast(b_native)));
+    
+    // Compare array sizes
+    if (a_header.length != b_header.length) {
+        return false; // Different sizes = not equal
+    }
+    
+    // Compare elements recursively
+    var i: u32 = 0;
+    while (i < a_header.length) : (i += 1) {
+        const a_element = array_module.getArrayElement(a_header, i);
+        const b_element = array_module.getArrayElement(b_header, i);
+        
+        // Recursively compare elements using equalRecursive
+        if (!try equalRecursive(vm, a_element, b_element)) {
+            return false; // Elements differ
+        }
+    }
+    
+    return true; // All elements equal
 }

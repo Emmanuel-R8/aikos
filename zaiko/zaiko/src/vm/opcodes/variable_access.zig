@@ -109,44 +109,29 @@ pub fn handleFVAR(vm: *VM, index: u8) errors.VMError!void {
 /// GVAR: Global variable access
 /// Per rewrite documentation instruction-set/opcodes.md
 /// Accesses global variable via atom index
+/// C: GVAR macro in maiko/inc/inlineC.h
 pub fn handleGVAR(vm: *VM, atom_index: u16) errors.VMError!void {
     const stack_module = @import("../stack.zig");
+    const atom_module = @import("../../data/atom.zig");
 
-    // GVAR access requires:
-    // 1. Atom table lookup (from atom_index)
-    // 2. Get DEFCELL from atom
-    // 3. Get global variable value from DEFCELL
-    // 4. Push value on stack
-
-    // TODO: Proper implementation needs:
-    // 1. Atom table access (needs atom table structure)
-    // 2. DEFCELL lookup
-    // 3. Global variable value extraction
-    // For now, return NIL (will be properly implemented with atom tables)
-
-    // Placeholder: push NIL for now
-    try stack_module.pushStack(vm, 0);
-    _ = atom_index; // Use atom_index when atom tables are implemented
+    // GVAR: Read value from atom's value cell and push on stack
+    const atom_index_lisp: types.LispPTR = @as(types.LispPTR, atom_index);
+    const value = try atom_module.readAtomValue(vm, atom_index_lisp);
+    try stack_module.pushStack(vm, value);
 }
 
 /// ACONST: Atom constant
 /// Per rewrite documentation instruction-set/opcodes.md
 /// Pushes atom constant by atom index
+/// C: ACONST macro in maiko/inc/inlineC.h
 pub fn handleACONST(vm: *VM, atom_index: u16) errors.VMError!void {
     const stack_module = @import("../stack.zig");
+    const atom_module = @import("../../data/atom.zig");
 
-    // ACONST requires:
-    // 1. Atom table lookup (from atom_index)
-    // 2. Get atom object
-    // 3. Push atom on stack
-
-    // TODO: Proper implementation needs:
-    // 1. Atom table access (needs atom table structure)
-    // 2. Atom object creation/retrieval
-    // For now, push atom_index as placeholder (will be properly implemented with atom tables)
-
-    // Placeholder: push atom_index as atom pointer (will be properly implemented)
-    try stack_module.pushStack(vm, @as(LispPTR, atom_index));
+    // ACONST: Push atom object (atom_index as LispPTR)
+    const atom_index_lisp: types.LispPTR = @as(types.LispPTR, atom_index);
+    const atom_ptr = atom_module.getAtomPointer(atom_index_lisp);
+    try stack_module.pushStack(vm, atom_ptr);
 }
 
 /// PVARSETPOP0-PVARSETPOP6: Set parameter variable and pop value

@@ -192,7 +192,15 @@ pub fn initializeVMState(
     const frame_offset = stackspace_byte_offset + (@as(usize, @intCast(currentfxp_stack_offset)) * 2);
     std.debug.print("DEBUG: Reading frame at offset 0x{x}\n", .{frame_offset});
     if (frame_offset + 14 > virtual_memory.len) {
-        std.debug.print("WARNING: Frame offset + 14 exceeds virtual memory\n", .{});
+        std.debug.print("ERROR: Frame offset exceeds virtual memory bounds\n", .{});
+        std.debug.print("  Frame offset: 0x{x} ({} bytes)\n", .{ frame_offset, frame_offset });
+        std.debug.print("  Virtual memory size: {} bytes (0x{x})\n", .{ virtual_memory.len, virtual_memory.len });
+        std.debug.print("  Required: {} bytes (frame_offset + 14)\n", .{frame_offset + 14});
+        std.debug.print("  IFPAGE currentfxp: 0x{x} (DLword offset from Stackspace)\n", .{ifpage.currentfxp});
+        std.debug.print("  Possible causes:\n", .{});
+        std.debug.print("    - Invalid currentfxp value in IFPAGE\n", .{});
+        std.debug.print("    - Virtual memory allocation too small\n", .{});
+        std.debug.print("    - Stack area not properly initialized\n", .{});
         vm.pc = 0;
         return;
     }
@@ -259,6 +267,14 @@ pub fn initializeVMState(
     // Update VM stack pointers to point into virtual memory
     vm.stack_base = stackspace_ptr;
     vm.stack_ptr = current_stack_ptr;
+    
+    // CRITICAL: Initialize current_frame pointer to point to frame in virtual memory
+    // The frame is at frame_offset in virtual memory
+    // FX is a packed struct, so it can be at any byte offset
+    // Use @ptrFromInt to create pointer without alignment requirement
+    const frame_ptr: *stack.FX = @ptrFromInt(@intFromPtr(virtual_memory_mut.ptr) + frame_offset);
+    vm.current_frame = frame_ptr;
+    std.debug.print("DEBUG: Initialized current_frame at offset 0x{x}\n", .{frame_offset});
     
     // C: TopOfStack = 0; (initially empty stack)
     // CRITICAL: C code sets TopOfStack = 0 regardless of stack memory contents

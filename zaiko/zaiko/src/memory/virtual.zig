@@ -54,12 +54,28 @@ pub fn translateAddress(lisp_addr: LispPTR, fptovp_table: *const @import("../dat
     const page_offset = layout.getPageOffset(lisp_addr);
 
     if (page_num >= fptovp_table.entries.len) {
+        std.debug.print("ERROR: Invalid page number in address translation\n", .{});
+        std.debug.print("  LispPTR: 0x{x}\n", .{lisp_addr});
+        std.debug.print("  Page number: {} (extracted from LispPTR)\n", .{page_num});
+        std.debug.print("  FPtoVP table size: {} entries\n", .{fptovp_table.entries.len});
+        std.debug.print("  Possible causes:\n", .{});
+        std.debug.print("    - Invalid LispPTR value (page number out of range)\n", .{});
+        std.debug.print("    - FPtoVP table not properly loaded\n", .{});
         return error.InvalidAddress;
     }
 
     // Use GETFPTOVP to get virtual page number (low 16 bits of 32-bit entry)
     const virtual_page = fptovp_table.getFPtoVP(page_num);
     if (virtual_page == 0) {
+        std.debug.print("ERROR: Page mapping failed (virtual page is 0 or sparse)\n", .{});
+        std.debug.print("  LispPTR: 0x{x}\n", .{lisp_addr});
+        std.debug.print("  File page: {}\n", .{page_num});
+        std.debug.print("  Virtual page: {} (from GETFPTOVP)\n", .{virtual_page});
+        std.debug.print("  Page OK flag: {} (from GETPAGEOK)\n", .{fptovp_table.getPageOK(page_num)});
+        std.debug.print("  Possible causes:\n", .{});
+        std.debug.print("    - Page is sparse (not loaded from sysout)\n", .{});
+        std.debug.print("    - Invalid FPtoVP table entry\n", .{});
+        std.debug.print("    - Address points to unmapped memory region\n", .{});
         return error.PageMappingFailed;
     }
 

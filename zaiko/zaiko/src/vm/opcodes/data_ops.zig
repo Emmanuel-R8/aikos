@@ -30,8 +30,20 @@ pub fn handleCAR(vm: *VM) errors.VMError!void {
         return;
     }
 
-    // TODO: Check if list_ptr == ATOM_T (1) - CAR of T is T
-    // TODO: Check Listp(list_ptr) - if not a list, goto op_ufn (UFN lookup)
+    // Check special cases: ATOM_T and NIL
+    const type_check_module = @import("../../utils/type_check.zig");
+    if (type_check_module.isT(list_ptr)) {
+        // CAR of T is T (C: special case)
+        stack_module.setTopOfStack(vm, type_check_module.ATOM_T);
+        return;
+    }
+    
+    // Check if it's a list (Listp check)
+    if (!type_check_module.isList(vm, list_ptr)) {
+        // Not a list - should trigger UFN lookup
+        // For now, leave value unchanged (C: goto op_ufn)
+        return;
+    }
 
     // Get cons cell from memory using address translation
     if (vm.virtual_memory) |_| {
@@ -87,7 +99,13 @@ pub fn handleCDR(vm: *VM) errors.VMError!void {
         return;
     }
 
-    // TODO: Check Listp(list_ptr) - if not a list, goto op_ufn (UFN lookup)
+    // Check if it's a list (Listp check)
+    const type_check_module = @import("../../utils/type_check.zig");
+    if (!type_check_module.isList(vm, list_ptr)) {
+        // Not a list - should trigger UFN lookup
+        // For now, leave value unchanged (C: goto op_ufn)
+        return;
+    }
 
     // Get cons cell from memory using address translation
     if (vm.virtual_memory) |_| {
