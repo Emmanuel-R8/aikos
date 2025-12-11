@@ -512,6 +512,43 @@ Several opcodes in the Zig implementation don't exist in the C implementation an
 
 **Status**: ✅ Implemented - GC integration complete for GVAR_ opcode
 
+### List Operations Implementation ✅ IMPLEMENTED (2025-12-11)
+
+**CRITICAL**: List operations (ASSOC, FMEMB, RESTLIST, RPLCONS, LISTGET) are frequently used for list manipulation.
+
+**Implementation**: Completed list operations in `vm/opcodes/list_ops.zig` matching C implementation.
+
+**Zig-Specific Details**:
+- **ASSOC**: Association list lookup
+  - Traverses association list (list of (key . value) pairs)
+  - Compares keys using EQ (pointer equality)
+  - Returns matching pair if found, NIL otherwise
+  - Uses helper functions `getCAR()` and `getCDR()` for list traversal
+- **FMEMB**: Fast member test
+  - Tests if item is in list
+  - Returns list starting from item if found, NIL otherwise
+  - Uses pointer equality (EQ) for comparison
+- **RESTLIST**: Rest of list
+  - Simplified implementation: traverses list count times using CDR
+  - C implementation uses IVar array (more complex, TODO for full implementation)
+- **RPLCONS**: Replace cons CDR
+  - Replaces CDR of cons cell with new value
+  - Updates GC refs: DELREF old CDR, ADDREF new CDR
+  - Returns list (unchanged pointer)
+- **LISTGET**: Get element from list by index
+  - Traverses list index times using CDR
+  - Returns CAR of current position
+  - Returns NIL if index out of bounds
+
+**Helper Functions**:
+- `getCAR()`: Gets CAR of list with error handling
+- `getCDR()`: Gets CDR of list with error handling
+- Both use `translateAddress()` for memory access
+
+**Location**: `maiko/alternatives/zig/src/vm/opcodes/list_ops.zig`
+
+**Status**: ✅ Implemented - All list operations complete (RESTLIST simplified, full IVar version TODO)
+
 ### Compilation Issues Fixed
 
 **Type Mismatches**:
