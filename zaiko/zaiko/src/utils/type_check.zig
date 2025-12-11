@@ -9,9 +9,10 @@ const DLword = types.DLword;
 const VM = stack.VM;
 
 // Type numbers from maiko/inc/lsptypes.h
+pub const TYPE_SMALLP: u16 = 1; // Small integer (encoded directly in LispPTR)
+pub const TYPE_FIXP: u16 = 2; // Boxed integer (pointer to memory)
 pub const TYPE_LISTP: u16 = 5;
 pub const TYPE_NEWATOM: u16 = 21;
-pub const TYPE_FIXP: u16 = 1;
 
 // Special values
 pub const ATOM_T: LispPTR = 1; // T atom
