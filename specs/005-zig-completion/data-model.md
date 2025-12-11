@@ -44,8 +44,9 @@ This document defines the data structures and entities needed to complete the Zi
 **Purpose**: Maps file page numbers to virtual page numbers for sparse page loading.
 
 **Structure**:
-- **BIGVM**: Array of `u32` entries
-- **Non-BIGVM**: Array of `u16` (DLword) entries
+- **BIGVM**: Array of `u32` entries (REQUIRED - all implementations use this)
+  - Each entry: Low 16 bits = virtual page number, High 16 bits = page OK flag
+  - GETFPTOVP returns low 16 bits, GETPAGEOK returns high 16 bits
 
 **Entry Values**:
 - `0xFFFF` (0177777): Page not present in file (sparse page marker)
@@ -53,8 +54,7 @@ This document defines the data structures and entities needed to complete the Zi
 
 **Location**:
 - Offset: `(ifpage.fptovpstart - 1) * BYTESPER_PAGE + offset`
-  - BIGVM: `+ 4` bytes
-  - Non-BIGVM: `+ 2` bytes
+  - BIGVM: `+ 4` bytes (REQUIRED)
 
 **Size**: `sysout_size * 2` entries (sysout_size in half-pages)
 

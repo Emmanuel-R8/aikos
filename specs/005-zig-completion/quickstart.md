@@ -24,7 +24,7 @@ This guide provides a quick start for completing the Zig emulator implementation
 **Tasks**:
 1. Fix IFPAGE_KEYVAL: Change from `0x12345678` to `0x15e3` in `src/data/sysout.zig`
 2. Implement complete IFPAGE structure: Match C `ifpage.h` exactly with all ~100 fields
-3. Implement FPtoVP table loading: Read table at correct offset, handle BIGVM/non-BIGVM formats
+3. Implement FPtoVP table loading: Read table at correct offset (BIGVM format - 32-bit entries, REQUIRED)
 4. Implement page loading algorithm: Iterate through file pages, map via FPtoVP, load into virtual memory
 5. Add byte swapping support: Handle BYTESWAP for cross-platform compatibility
 

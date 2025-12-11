@@ -51,7 +51,7 @@ Determine the exact implementation details needed to complete the Zig emulator, 
 - **Table Size**: `sysout_size * 2` entries (sysout_size in half-pages)
 - **Usage**: Iterate through file pages, check FPtoVP entry, if not 0177777, load page data
 
-**Decision**: Implement FPtoVP table loading matching C algorithm exactly. Support both BIGVM and non-BIGVM formats. Handle sparse pages (0177777 marker) correctly.
+**Decision**: Implement FPtoVP table loading matching C algorithm exactly. **REQUIRED: Use BIGVM format only** (32-bit entries). Non-BIGVM format is NOT supported. Handle sparse pages (0xFFFF in GETPAGEOK) correctly.
 
 **Rationale**: FPtoVP table is essential for mapping sysout file pages to virtual memory addresses. Incorrect loading breaks memory mapping.
 
