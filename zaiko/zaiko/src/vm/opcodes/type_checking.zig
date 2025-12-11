@@ -129,37 +129,93 @@ fn getValueType(value: LispPTR, vm: *VM) u8 {
     return 2; // Generic pointer type
 }
 
-/// FIXP: Fixnum predicate
+/// FIXP: Fixnum predicate (boxed integer)
 /// Per rewrite documentation instruction-set/opcodes.md
+/// C: GetTypeNumber(value) == TYPE_FIXP
+/// Checks if value is a FIXP (boxed integer), not a SMALLP (small integer)
+/// Stack: [value] -> [T or NIL]
 pub fn handleFIXP(vm: *VM) errors.VMError!void {
     const stack_module = @import("../stack.zig");
+    const type_check_module = @import("../../utils/type_check.zig");
 
     const value = stack_module.getTopOfStack(vm);
-    // Fixnum check: low bit should be 0 (even address)
-    const result: LispPTR = if ((value & 1) == 0) 1 else 0;
+    
+    // C: GetTypeNumber(value) == TYPE_FIXP
+    // FIXP is a boxed integer (pointer to memory), TYPE_FIXP = 2
+    // SMALLP is a small integer encoded directly, TYPE_SMALLP = 1
+    const type_num = type_check_module.getTypeNumber(vm, value);
+    const result: LispPTR = if (type_num) |tn| blk: {
+        const val = if (tn == type_check_module.TYPE_FIXP)
+            type_check_module.ATOM_T // Return T if it's a FIXP
+        else
+            type_check_module.NIL_PTR; // Return NIL if not a FIXP
+        break :blk val;
+    } else type_check_module.NIL_PTR; // Can't determine type - return NIL
+    
     stack_module.setTopOfStack(vm, result);
 }
 
 /// SMALLP: Small integer predicate
 /// Per rewrite documentation instruction-set/opcodes.md
+/// C: GetTypeNumber(value) == TYPE_SMALLP
+/// Checks if value is a SMALLP (small integer encoded directly in LispPTR)
+/// Small integers have S_POSITIVE or S_NEGATIVE segment mask
+/// Stack: [value] -> [T or NIL]
 pub fn handleSMALLP(vm: *VM) errors.VMError!void {
     const stack_module = @import("../stack.zig");
+    const type_check_module = @import("../../utils/type_check.zig");
+    const types_module = @import("../../utils/types.zig");
 
     const value = stack_module.getTopOfStack(vm);
-    // Small integer check: value fits in small integer range
-    // Small integers are typically in range -32768 to 32767
-    const value_signed = @as(i32, @bitCast(@as(u32, value)));
-    const result: LispPTR = if (value_signed >= -32768 and value_signed <= 32767) 1 else 0;
+    
+    // C: GetTypeNumber(value) == TYPE_SMALLP
+    // SMALLP is a small integer encoded directly, TYPE_SMALLP = 1
+    // Check segment mask: S_POSITIVE (0xE0000) or S_NEGATIVE (0xF0000)
+    const segment = value & types_module.SEGMASK;
+    const is_smallp = (segment == types_module.S_POSITIVE) or (segment == types_module.S_NEGATIVE);
+    
+    // Also check via type number for consistency
+    const type_num = type_check_module.getTypeNumber(vm, value);
+    const result: LispPTR = if (is_smallp or (type_num != null and type_num.? == type_check_module.TYPE_SMALLP))
+        type_check_module.ATOM_T // Return T if it's a SMALLP
+    else
+        type_check_module.NIL_PTR; // Return NIL if not a SMALLP
+    
     stack_module.setTopOfStack(vm, result);
 }
 
 /// LISTP: List predicate
 /// Per rewrite documentation instruction-set/opcodes.md
+/// C: LISTP macro in maiko/inc/inlineC.h
+/// Checks if TOS is a list (cons cell) using GetTypeNumber
+/// Stack: [value] -> [T or NIL]
+/// C: if ((DLword)GetTypeNumber(TOPOFSTACK) != TYPE_LISTP) TOPOFSTACK = NIL_PTR;
 pub fn handleLISTP(vm: *VM) errors.VMError!void {
     const stack_module = @import("../stack.zig");
+    const type_check_module = @import("../../utils/type_check.zig");
 
     const value = stack_module.getTopOfStack(vm);
-    // LISTP: NIL or cons cell (even address, not a fixnum)
-    const result: LispPTR = if (value == 0 or ((value & 1) == 0 and (value & 0x3) != 0)) 1 else 0;
-    stack_module.setTopOfStack(vm, result);
+    
+    // C: if ((DLword)GetTypeNumber(TOPOFSTACK) != TYPE_LISTP) TOPOFSTACK = NIL_PTR;
+    // Otherwise, TOPOFSTACK remains unchanged (which would be the value itself, but C uses isList helper)
+    // Actually, C LISTP macro sets TOS to NIL_PTR if not a list, otherwise leaves it unchanged
+    // But we should return T or NIL for a predicate
+    const type_num = type_check_module.getTypeNumber(vm, value);
+    if (type_num) |tn| {
+        if (tn == type_check_module.TYPE_LISTP) {
+            // It's a list - leave value unchanged (C behavior) or return T
+            // For predicate, return T
+            stack_module.setTopOfStack(vm, type_check_module.ATOM_T);
+        } else {
+            // Not a list - set to NIL
+            stack_module.setTopOfStack(vm, type_check_module.NIL_PTR);
+        }
+    } else {
+        // Can't determine type - use isList helper as fallback
+        if (type_check_module.isList(vm, value)) {
+            stack_module.setTopOfStack(vm, type_check_module.ATOM_T);
+        } else {
+            stack_module.setTopOfStack(vm, type_check_module.NIL_PTR);
+        }
+    }
 }
