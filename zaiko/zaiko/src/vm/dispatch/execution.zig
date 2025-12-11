@@ -127,7 +127,8 @@ pub fn executeOpcodeWithOperands(vm: *VM, opcode: Opcode, instruction: Instructi
             return null;
         },
         .BIND => {
-            try opcodes.handleBIND(vm, instruction.getByteOperand(0));
+            // BIND takes 2 byte operands: byte1 (n1:4, n2:4), byte2 (offset)
+            try opcodes.handleBIND(vm, instruction.getByteOperand(0), instruction.getByteOperand(1));
             return null;
         },
         .UNBIND => {

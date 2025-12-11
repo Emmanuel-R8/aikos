@@ -281,7 +281,12 @@ fn markForReclamation(gc: *GC, ptr: LispPTR, hash_index: usize) errors.MemoryErr
     _ = hash_index;
 
     // Add to reclamation list (free list)
-    try gc.reclamation_list.append(ptr);
+    gc.reclamation_list.append(gc.allocator, ptr) catch |err| {
+        // Convert allocator error to memory error
+        return switch (err) {
+            error.OutOfMemory => errors.MemoryError.AllocationFailed,
+        };
+    };
 }
 
 /// Get reference count for pointer (for testing/debugging)

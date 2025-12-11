@@ -31,6 +31,7 @@ pub const VM = struct {
     storage: ?*@import("../memory/storage.zig").Storage,
     virtual_memory: ?[]const u8, // Virtual memory as byte slice (from sysout)
     fptovp: ?*const @import("../data/sysout.zig").FPtoVPTable, // FPtoVP table for address translation (BIGVM format)
+    gc: ?*@import("../memory/gc.zig").GC, // Garbage collector (optional)
     // Execution state
     pc: LispPTR, // Current program counter (managed by dispatch loop)
     return_pc: ?LispPTR, // PC to return to after function call
@@ -53,6 +54,7 @@ pub const VM = struct {
             .storage = null,
             .virtual_memory = null,
             .fptovp = null,
+            .gc = null, // GC is optional - can be set later
             .pc = 0,
             .return_pc = null,
             .top_of_stack = 0, // C: TopOfStack = 0; (initially empty stack)
@@ -97,6 +99,16 @@ pub fn allocateStackFrame(vm: *VM, size: usize) errors.VMError!*FX {
     // For now, we check frame_size + STK_SAFE
     const required_space = (frame_size_words + STK_SAFE) * @sizeOf(DLword);
     if (stack_ptr_addr - required_space < stack_end_addr) {
+        std.debug.print("ERROR: Stack overflow detected during frame allocation\n", .{});
+        std.debug.print("  Requested frame size: {} bytes ({} words + {} IVars)\n", .{ frame_size_bytes, @sizeOf(FX), size });
+        std.debug.print("  Required space: {} bytes (frame + STK_SAFE={})\n", .{ required_space, STK_SAFE });
+        std.debug.print("  Current stack pointer: 0x{x}\n", .{stack_ptr_addr});
+        std.debug.print("  Stack end: 0x{x}\n", .{stack_end_addr});
+        std.debug.print("  Available space: {} bytes\n", .{stack_ptr_addr - stack_end_addr});
+        std.debug.print("  Possible causes:\n", .{});
+        std.debug.print("    - Deep recursion (too many nested function calls)\n", .{});
+        std.debug.print("    - Stack size too small for program requirements\n", .{});
+        std.debug.print("    - Infinite recursion or unbounded loop\n", .{});
         return error.StackOverflow;
     }
 
@@ -268,6 +280,14 @@ pub fn popStack(vm: *VM) errors.VMError!LispPTR {
     // Check for stack underflow: stack_ptr must be > stack_base (stack has data)
     // If stack_ptr <= stack_base, stack is empty
     if (stack_ptr_addr <= stack_base_addr) {
+        std.debug.print("ERROR: Stack underflow detected during pop operation\n", .{});
+        std.debug.print("  Current stack pointer: 0x{x}\n", .{@intFromPtr(vm.stack_ptr)});
+        std.debug.print("  Stack base: 0x{x}\n", .{@intFromPtr(vm.stack_base)});
+        std.debug.print("  Stack top cached value: 0x{x}\n", .{vm.top_of_stack});
+        std.debug.print("  Possible causes:\n", .{});
+        std.debug.print("    - More POP operations than PUSH operations\n", .{});
+        std.debug.print("    - Stack pointer corrupted\n", .{});
+        std.debug.print("    - Invalid bytecode sequence\n", .{});
         return error.StackUnderflow;
     }
 

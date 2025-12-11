@@ -49,20 +49,30 @@ pub fn handleTYPEP(vm: *VM, type_code: u8) errors.VMError!void {
 pub fn handleDTEST(vm: *VM, atom_index: u16) errors.VMError!void {
     const stack_module = @import("../stack.zig");
 
-    // DTEST requires:
-    // 1. Atom table lookup (from atom_index)
-    // 2. Get atom object
-    // 3. Compare with TOS value
-
-    // TODO: Proper implementation needs:
-    // 1. Atom table access (needs atom table structure)
-    // 2. Atom object retrieval
-    // 3. Value comparison
-
+    // DTEST: Check if TOS value has type named by atom_index
+    // C: DTEST macro in maiko/inc/inlineC.h
+    // Walks DTD chain to find matching type name
+    
     const value = stack_module.getTopOfStack(vm);
-
-    // For now, placeholder: compare with atom_index (will be properly implemented)
-    const result: LispPTR = if (value == @as(LispPTR, atom_index)) 1 else 0;
+    const type_check_module = @import("../../utils/type_check.zig");
+    
+    // Get type number of TOS value
+    const type_num = type_check_module.getTypeNumber(vm, value) orelse {
+        // Can't determine type - return NIL
+        stack_module.setTopOfStack(vm, type_check_module.NIL_PTR);
+        return;
+    };
+    
+    // TODO: Walk DTD chain to check if atom_index matches type name
+    // For now, simplified: check if type_num matches atom_index (basic check)
+    // Full implementation needs:
+    // 1. Get DTD from type_num: GetDTD(type_num)
+    // 2. Walk DTD chain: dtd->dtd_supertype
+    // 3. Compare dtd->dtd_name with atom_index
+    // 4. Return ATOM_T if match found, NIL_PTR otherwise
+    
+    // Placeholder: basic type number comparison
+    const result: LispPTR = if (type_num == atom_index) type_check_module.ATOM_T else type_check_module.NIL_PTR;
     stack_module.setTopOfStack(vm, result);
 }
 
@@ -103,8 +113,12 @@ fn getValueType(value: LispPTR, vm: *VM) u8 {
 
     // If we have virtual memory, we could check the type tag
     // For now, return a generic pointer type (2)
-    // TODO: When virtual memory is available, check actual type tags
-    _ = vm; // Will be used when type tag lookup is implemented
+    // Use type_check module for type tag lookup
+    const type_check_module = @import("../../utils/type_check.zig");
+    const type_num = type_check_module.getTypeNumber(vm, value);
+    if (type_num) |tn| {
+        return @as(u8, @intCast(tn));
+    }
 
     // Basic heuristics:
     // - Very small even values might be special constants

@@ -1,7 +1,9 @@
 const errors = @import("../../utils/errors.zig");
 const stack = @import("../stack.zig");
+const types = @import("../../utils/types.zig");
 
 const VM = stack.VM;
+const LispPTR = types.LispPTR;
 
 /// SLRETURN: Stack-relative return
 /// Per rewrite documentation instruction-set/opcodes.md
@@ -24,26 +26,53 @@ pub fn handleSLRETURN(vm: *VM) errors.VMError!void {
 
 /// RPLPTR_N: Replace pointer N
 /// Per rewrite documentation instruction-set/opcodes.md
-/// Replaces pointer at offset N
+/// C: N_OP_rplptr in maiko/src/gvar2.c
+/// Replaces pointer at offset N with new value, updating GC refs
+/// Stack: [new_value, base] -> [base]
 pub fn handleRPLPTR_N(vm: *VM, offset: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
+    const errors_module = @import("../../utils/errors.zig");
+    const virtual_memory_module = @import("../../memory/virtual.zig");
+    const gc_module = @import("../../memory/gc.zig");
 
-    // RPLPTR_N requires:
-    // 1. Pointer value on stack
-    // 2. Target address on stack
-    // 3. Replace pointer at offset
+    const new_value = try stack_module.popStack(vm);
+    const base = try stack_module.popStack(vm);
 
-    // TODO: Proper implementation needs:
-    // 1. Pop new pointer value
-    // 2. Pop target address
-    // 3. Replace pointer at target + offset
+    // C: RPLPTR(n) - replaces pointer at base + offset
+    // Calculate target address: base + offset (in LispPTR units, so offset * 4 bytes)
+    // C: pslot = (struct xpointer *)NativeAligned4FromLAddr(tos_m_1 + alpha);
+    // alpha is a word offset, so multiply by 4 for bytes
+    const base_ptr = types.POINTERMASK & base;
+    const target_addr = base_ptr + (@as(LispPTR, offset) * 4);
 
-    // Placeholder: pop values but don't modify memory
-    const new_ptr = try stack_module.popStack(vm);
-    const target = try stack_module.popStack(vm);
-    _ = new_ptr;
-    _ = target;
-    _ = offset;
+    // Get virtual memory access
+    if (vm.virtual_memory == null or vm.fptovp == null) {
+        return errors_module.VMError.MemoryAccessFailed;
+    }
+    
+    const fptovp_table = vm.fptovp.?;
+    
+    // Translate address to native pointer
+    const native_ptr = virtual_memory_module.translateAddress(target_addr, fptovp_table, 4) catch {
+        return errors_module.VMError.InvalidAddress;
+    };
+    
+    // Read old value for GC
+    const old_value_ptr: *LispPTR = @as(*LispPTR, @ptrCast(@alignCast(native_ptr)));
+    const old_value = old_value_ptr.*;
+    
+    // Update GC refs: DELREF old value, ADDREF new value
+    // C: FRPLPTR(old, new) - does GCLOOKUP(new, ADDREF), GCLOOKUP(old, DELREF), then (old) = (new)
+    if (vm.gc) |gc| {
+        gc_module.deleteReference(gc, old_value) catch {};
+        gc_module.addReference(gc, new_value) catch {};
+    }
+    
+    // Write new value (big-endian from sysout format)
+    old_value_ptr.* = new_value;
+    
+    // Push base back on stack
+    try stack_module.pushStack(vm, base);
 }
 
 /// EVAL: Evaluate expression

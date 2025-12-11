@@ -62,20 +62,31 @@ pub const SysoutLoadResult = struct {
 pub fn loadSysout(allocator: std.mem.Allocator, filename: []const u8) errors.MemoryError!SysoutLoadResult {
     std.debug.print("Opening sysout file: {s}\n", .{filename});
     const file = std.fs.cwd().openFile(filename, .{}) catch |err| {
-        std.debug.print("Failed to open file: {}\n", .{err});
+        std.debug.print("ERROR: Failed to open sysout file '{s}': {}\n", .{ filename, err });
+        std.debug.print("  Possible causes:\n", .{});
+        std.debug.print("    - File does not exist at path: {s}\n", .{filename});
+        std.debug.print("    - Insufficient permissions to read file\n", .{});
+        std.debug.print("    - Path is incorrect (check relative/absolute path)\n", .{});
         return error.SysoutLoadFailed;
     };
     defer file.close();
 
     const file_size = file.getEndPos() catch |err| {
-        std.debug.print("Failed to get file size: {}\n", .{err});
+        std.debug.print("ERROR: Failed to get sysout file size for '{s}': {}\n", .{ filename, err });
+        std.debug.print("  Possible causes:\n", .{});
+        std.debug.print("    - File is not a regular file (may be a directory or special file)\n", .{});
+        std.debug.print("    - File system error occurred\n", .{});
         return error.SysoutLoadFailed;
     };
     std.debug.print("Sysout file size: {} bytes\n", .{file_size});
 
     // Seek to IFPAGE address (512 bytes from start)
     file.seekTo(IFPAGE_ADDRESS) catch |err| {
-        std.debug.print("Failed to seek to IFPAGE address ({}): {}\n", .{ IFPAGE_ADDRESS, err });
+        std.debug.print("ERROR: Failed to seek to IFPAGE address ({} bytes) in sysout file '{s}': {}\n", .{ IFPAGE_ADDRESS, filename, err });
+        std.debug.print("  File size: {} bytes\n", .{file_size});
+        std.debug.print("  Possible causes:\n", .{});
+        std.debug.print("    - File is too small (must be at least {} bytes for IFPAGE)\n", .{IFPAGE_ADDRESS});
+        std.debug.print("    - File is not a valid sysout file\n", .{});
         return error.SysoutLoadFailed;
     };
 
@@ -84,11 +95,20 @@ pub fn loadSysout(allocator: std.mem.Allocator, filename: []const u8) errors.Mem
     // Need to byte-swap all DLword fields after reading
     var ifpage: IFPAGE = undefined;
     const bytes_read = file.read(std.mem.asBytes(&ifpage)) catch |err| {
-        std.debug.print("Failed to read IFPAGE: {}\n", .{err});
+        std.debug.print("ERROR: Failed to read IFPAGE structure from sysout file '{s}': {}\n", .{ filename, err });
+        std.debug.print("  Expected size: {} bytes\n", .{@sizeOf(IFPAGE)});
+        std.debug.print("  Possible causes:\n", .{});
+        std.debug.print("    - File read error (disk I/O failure)\n", .{});
+        std.debug.print("    - File was truncated or corrupted\n", .{});
         return error.SysoutLoadFailed;
     };
     if (bytes_read != @sizeOf(IFPAGE)) {
-        std.debug.print("Failed to read complete IFPAGE: read {} bytes, expected {}\n", .{ bytes_read, @sizeOf(IFPAGE) });
+        std.debug.print("ERROR: Incomplete IFPAGE read from sysout file '{s}'\n", .{filename});
+        std.debug.print("  Read: {} bytes\n", .{bytes_read});
+        std.debug.print("  Expected: {} bytes\n", .{@sizeOf(IFPAGE)});
+        std.debug.print("  Possible causes:\n", .{});
+        std.debug.print("    - File is truncated or corrupted\n", .{});
+        std.debug.print("    - File is not a valid sysout file\n", .{});
         return error.SysoutLoadFailed;
     }
 
@@ -105,7 +125,14 @@ pub fn loadSysout(allocator: std.mem.Allocator, filename: []const u8) errors.Mem
 
     // Validate sysout
     if (!validateSysout(&ifpage)) {
-        std.debug.print("Sysout validation failed\n", .{});
+        std.debug.print("ERROR: Sysout validation failed for file '{s}'\n", .{filename});
+        std.debug.print("  IFPAGE key: 0x{x} (expected: 0x{x})\n", .{ ifpage.key, IFPAGE_KEYVAL });
+        std.debug.print("  IFPAGE lversion: {} (minimum: {})\n", .{ ifpage.lversion, LVERSION });
+        std.debug.print("  IFPAGE minbversion: {} (maximum: {})\n", .{ ifpage.minbversion, MINBVERSION });
+        std.debug.print("  Possible causes:\n", .{});
+        std.debug.print("    - File is not a valid sysout file (wrong key)\n", .{});
+        std.debug.print("    - Sysout version is incompatible (lversion too old or minbversion too new)\n", .{});
+        std.debug.print("    - File is corrupted or from a different system\n", .{});
         return error.SysoutLoadFailed;
     }
     std.debug.print("Sysout validation passed\n", .{});
@@ -116,6 +143,13 @@ pub fn loadSysout(allocator: std.mem.Allocator, filename: []const u8) errors.Mem
     const process_size_mb = if (ifpage.process_size == 0) DEFAULT_MAX_SYSOUTSIZE else ifpage.process_size;
     const virtual_memory_size = @as(u64, process_size_mb) * 1024 * 1024;
     const virtual_memory = allocator.alloc(u8, virtual_memory_size) catch {
+        std.debug.print("ERROR: Failed to allocate virtual memory for sysout file '{s}'\n", .{filename});
+        std.debug.print("  Requested size: {} bytes ({} MB)\n", .{ virtual_memory_size, virtual_memory_size / (1024 * 1024) });
+        std.debug.print("  IFPAGE process_size: {} MB\n", .{process_size_mb});
+        std.debug.print("  Possible causes:\n", .{});
+        std.debug.print("    - Insufficient system memory\n", .{});
+        std.debug.print("    - Memory allocation limit exceeded\n", .{});
+        std.debug.print("    - Allocator failure\n", .{});
         return error.AllocationFailed;
     };
 
@@ -234,6 +268,14 @@ pub fn loadFPtoVPTable(
 
     // Seek to FPtoVP table location
     file.seekTo(fptovp_offset) catch {
+        std.debug.print("ERROR: Failed to seek to FPtoVP table offset {} (0x{x}) in sysout file\n", .{ fptovp_offset, fptovp_offset });
+        std.debug.print("  IFPAGE fptovpstart: {} (file page number)\n", .{ifpage.fptovpstart});
+        std.debug.print("  Calculated offset: {} bytes\n", .{fptovp_offset});
+        std.debug.print("  File size: {} bytes\n", .{file_size});
+        std.debug.print("  Possible causes:\n", .{});
+        std.debug.print("    - FPtoVP table offset exceeds file size\n", .{});
+        std.debug.print("    - File is truncated or corrupted\n", .{});
+        std.debug.print("    - IFPAGE fptovpstart value is invalid\n", .{});
         return error.SysoutLoadFailed;
     };
 
@@ -249,11 +291,24 @@ pub fn loadFPtoVPTable(
     };
     errdefer allocator.free(table_buffer);
 
-    const bytes_read = file.read(table_buffer) catch {
+    const bytes_read = file.read(table_buffer) catch |err| {
+        std.debug.print("ERROR: Failed to read FPtoVP table from sysout file: {}\n", .{err});
+        std.debug.print("  Expected size: {} bytes ({} entries * 4 bytes, BIGVM format)\n", .{ table_size, num_file_pages });
+        std.debug.print("  File offset: {} bytes\n", .{fptovp_offset});
+        std.debug.print("  Possible causes:\n", .{});
+        std.debug.print("    - File read error (disk I/O failure)\n", .{});
+        std.debug.print("    - File is truncated or corrupted\n", .{});
+        std.debug.print("    - FPtoVP table extends beyond file end\n", .{});
         allocator.free(table_buffer);
         return error.SysoutLoadFailed;
     };
     if (bytes_read != table_size) {
+        std.debug.print("ERROR: Incomplete FPtoVP table read from sysout file\n", .{});
+        std.debug.print("  Read: {} bytes\n", .{bytes_read});
+        std.debug.print("  Expected: {} bytes ({} entries * 4 bytes, BIGVM format)\n", .{ table_size, num_file_pages });
+        std.debug.print("  Possible causes:\n", .{});
+        std.debug.print("    - File is truncated or corrupted\n", .{});
+        std.debug.print("    - FPtoVP table size calculation is incorrect\n", .{});
         allocator.free(table_buffer);
         return error.SysoutLoadFailed;
     }
@@ -261,6 +316,11 @@ pub fn loadFPtoVPTable(
     // Convert buffer to u32 array (BIGVM format)
     // Sysout stores entries as big-endian u32, need to byte-swap
     const entries = allocator.alloc(u32, num_file_pages) catch {
+        std.debug.print("ERROR: Failed to allocate memory for FPtoVP table entries\n", .{});
+        std.debug.print("  Requested: {} entries * {} bytes = {} bytes\n", .{ num_file_pages, @sizeOf(u32), num_file_pages * @sizeOf(u32) });
+        std.debug.print("  Possible causes:\n", .{});
+        std.debug.print("    - Insufficient system memory\n", .{});
+        std.debug.print("    - Memory allocation limit exceeded\n", .{});
         allocator.free(table_buffer);
         return error.AllocationFailed;
     };
@@ -341,21 +401,52 @@ pub fn loadMemoryPages(
         const file_offset = @as(u64, file_page) * BYTESPER_PAGE;
 
         // Seek to file page
-        file.seekTo(file_offset) catch {
+        file.seekTo(file_offset) catch |err| {
+            std.debug.print("ERROR: Failed to seek to file page {} offset {} (0x{x}): {}\n", .{ file_page, file_offset, file_offset, err });
+            std.debug.print("  Virtual page: {}\n", .{virtual_page});
+            std.debug.print("  Possible causes:\n", .{});
+            std.debug.print("    - File offset exceeds file size\n", .{});
+            std.debug.print("    - File is truncated or corrupted\n", .{});
             return error.SysoutLoadFailed;
         };
 
         // Read page data
-        const bytes_read = file.read(&page_buffer) catch {
+        const bytes_read = file.read(&page_buffer) catch |err| {
+            std.debug.print("ERROR: Failed to read page data from sysout file: {}\n", .{err});
+            std.debug.print("  File page: {}\n", .{file_page});
+            std.debug.print("  File offset: {} (0x{x})\n", .{ file_offset, file_offset });
+            std.debug.print("  Virtual page: {}\n", .{virtual_page});
+            std.debug.print("  Possible causes:\n", .{});
+            std.debug.print("    - File read error (disk I/O failure)\n", .{});
+            std.debug.print("    - File is truncated or corrupted\n", .{});
             return error.SysoutLoadFailed;
         };
         if (bytes_read != BYTESPER_PAGE) {
+            std.debug.print("ERROR: Incomplete page read from sysout file\n", .{});
+            std.debug.print("  File page: {}\n", .{file_page});
+            std.debug.print("  Read: {} bytes\n", .{bytes_read});
+            std.debug.print("  Expected: {} bytes (BYTESPER_PAGE)\n", .{BYTESPER_PAGE});
+            std.debug.print("  Virtual page: {}\n", .{virtual_page});
+            std.debug.print("  Possible causes:\n", .{});
+            std.debug.print("    - File is truncated or corrupted\n", .{});
+            std.debug.print("    - Page extends beyond file end\n", .{});
             return error.SysoutLoadFailed;
         }
 
         // Calculate virtual address
         const virtual_address = @as(u64, virtual_page) * BYTESPER_PAGE;
         if (virtual_address + BYTESPER_PAGE > virtual_memory.len) {
+            std.debug.print("ERROR: Virtual address exceeds virtual memory bounds during page loading\n", .{});
+            std.debug.print("  File page: {}\n", .{file_page});
+            std.debug.print("  Virtual page: {}\n", .{virtual_page});
+            std.debug.print("  Virtual address: 0x{x} ({} bytes)\n", .{ virtual_address, virtual_address });
+            std.debug.print("  Required size: {} bytes (BYTESPER_PAGE)\n", .{BYTESPER_PAGE});
+            std.debug.print("  Virtual memory size: {} bytes (0x{x})\n", .{ virtual_memory.len, virtual_memory.len });
+            std.debug.print("  End address would be: 0x{x}\n", .{virtual_address + BYTESPER_PAGE});
+            std.debug.print("  Possible causes:\n", .{});
+            std.debug.print("    - FPtoVP table contains invalid virtual page numbers\n", .{});
+            std.debug.print("    - Virtual memory allocation too small\n", .{});
+            std.debug.print("    - Sysout file contains pages beyond virtual memory capacity\n", .{});
             return error.SysoutLoadFailed;
         }
 

@@ -396,7 +396,17 @@ pub fn main() !void {
 
     // T091: Main loop with event polling and VM execution
     var quit_requested = false;
+    var instruction_count: u64 = 0;
+    const max_instructions: u64 = 1000000; // Safety limit to prevent infinite loops
+    
     while (!quit_requested) {
+        // Safety check: prevent infinite loops
+        instruction_count += 1;
+        if (instruction_count > max_instructions) {
+            std.debug.print("WARNING: Reached maximum instruction count ({}), stopping execution\n", .{max_instructions});
+            break;
+        }
+
         // Poll SDL2 events (T091: integrated event polling)
         const should_quit = events.pollEvents(display, &key_queue, &mouse_state, allocator) catch |err| blk: {
             std.debug.print("Event polling error: {}\n", .{err});
@@ -410,13 +420,35 @@ pub fn main() !void {
 
         // Execute VM instructions
         dispatch.dispatch(&vm) catch |err| {
-            std.debug.print("VM dispatch error: {}\n", .{err});
-            // Continue execution despite errors (for debugging)
+            // Critical errors that should stop execution
+            switch (err) {
+                errors.VMError.StackOverflow,
+                errors.VMError.StackUnderflow,
+                errors.VMError.InvalidAddress,
+                errors.VMError.MemoryAccessFailed,
+                errors.VMError.InvalidStackPointer,
+                errors.VMError.InvalidFramePointer => {
+                    std.debug.print("CRITICAL VM ERROR: {}\n", .{err});
+                    std.debug.print("Stopping execution due to critical error\n", .{});
+                    std.debug.print("Executed {} instructions before error\n", .{instruction_count});
+                    quit_requested = true;
+                    break;
+                },
+                errors.VMError.InvalidOpcode => {
+                    // InvalidOpcode is handled in dispatch loop, but log it
+                    std.debug.print("VM dispatch error: {}\n", .{err});
+                    // Continue execution to see what happens
+                },
+                else => {
+                    std.debug.print("VM dispatch error: {}\n", .{err});
+                    // For other errors, continue execution (for debugging)
+                },
+            }
         };
 
         // Small delay to prevent CPU spinning
         std.Thread.sleep(1000); // 1 microsecond
     }
 
-    std.debug.print("VM execution complete\n", .{});
+    std.debug.print("VM execution complete (executed {} instructions)\n", .{instruction_count});
 }

@@ -1,7 +1,6 @@
 // Definition cell structure (matches C DefCell)
 // Based on maiko/inc/cell.h
 
-const std = @import("std");
 const types = @import("../utils/types.zig");
 const errors = @import("../utils/errors.zig");
 const stack = @import("../vm/stack.zig");
@@ -39,42 +38,22 @@ pub fn readDefCell(vm: *VM, atom_index: LispPTR) errors.VMError!DefCell {
     };
     
     // Get definition cell offset
-    std.debug.print("DEBUG readDefCell: Calling getDEFCELL with atom_index=0x{x}\n", .{atom_index});
-    const defcell_offset = atom_module.getDEFCELL(vm, atom_index) catch |err| {
-        std.debug.print("ERROR readDefCell: getDEFCELL failed with error: {}\n", .{err});
-        return err;
-    };
-    
-    std.debug.print("DEBUG readDefCell: defcell_offset=0x{x} ({d}), virtual_memory.len={d} (0x{x})\n", 
-        .{ defcell_offset, defcell_offset, virtual_memory.len, virtual_memory.len });
-    std.debug.print("  defcell_offset / 2: {d} (0x{x})\n", .{ defcell_offset / 2, defcell_offset / 2 });
-    std.debug.print("  defcell_offset * 2: {d} (0x{x})\n", .{ defcell_offset * 2, defcell_offset * 2 });
+    const defcell_offset = try atom_module.getDEFCELL(vm, atom_index);
     
     if (defcell_offset + @sizeOf(DefCell) > virtual_memory.len) {
-        std.debug.print("ERROR readDefCell: defcell_offset (0x{x}) + DefCell size ({}) exceeds virtual_memory.len (0x{x})\n", 
-            .{ defcell_offset, @sizeOf(DefCell), virtual_memory.len });
         return errors.VMError.InvalidAddress;
     }
     
-    std.debug.print("DEBUG readDefCell: Reading DefCell from offset 0x{x}\n", .{defcell_offset});
-    // Read DefCell from virtual_memory (already byte-swapped to native little-endian)
-    // CRITICAL: Check bounds before slicing to avoid panic
-    if (defcell_offset + @sizeOf(DefCell) > virtual_memory.len) {
-        std.debug.print("ERROR readDefCell: Bounds check failed! defcell_offset=0x{x}, DefCell size={}, virtual_memory.len={}\n", 
-            .{ defcell_offset, @sizeOf(DefCell), virtual_memory.len });
-        return errors.VMError.InvalidAddress;
-    }
+    // Read DefCell (big-endian from sysout)
     const defcell_bytes = virtual_memory[defcell_offset..][0..@sizeOf(DefCell)];
-    std.debug.print("DEBUG readDefCell: Successfully read DefCell bytes\n", .{});
-    std.debug.print("  First 4 bytes: 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2}\n", 
-        .{ defcell_bytes[0], defcell_bytes[1], defcell_bytes[2], defcell_bytes[3] });
     
     // For BIGVM, DefCell is 4 LispPTRs (16 bytes)
     // Structure layout: [ccodep:1, fastp:1, argtype:2, defpointer:28] in first LispPTR
-    // C code: defcell_word = *(int *)fn_defcell; (reads as native little-endian int)
-    // Read first LispPTR as little-endian (native byte order, already swapped)
-    const first_ptr: LispPTR = std.mem.readInt(LispPTR, defcell_bytes[0..4], .little);
-    std.debug.print("  first_ptr (little-endian): 0x{x:0>8}\n", .{first_ptr});
+    // Read first LispPTR to get defpointer
+    const first_ptr: LispPTR = (@as(LispPTR, defcell_bytes[0]) << 24) |
+                                (@as(LispPTR, defcell_bytes[1]) << 16) |
+                                (@as(LispPTR, defcell_bytes[2]) << 8) |
+                                (@as(LispPTR, defcell_bytes[3]));
     
     // Extract fields from first LispPTR
     const ccodep = @as(u1, @truncate(first_ptr >> 31));
