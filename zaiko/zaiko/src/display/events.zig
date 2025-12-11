@@ -30,7 +30,12 @@ pub const Event = union(EventType) {
 
 /// SDL keycode to Lisp keycode mapping
 /// Per maiko/src/sdl.c:keymap[]
-const KEYMAP: []const struct { lisp_keycode: u16, sdl_keycode: u32 } = &[_]struct { lisp_keycode: u16, sdl_keycode: u32 }{
+const KeyMapEntry = struct {
+    lisp_keycode: u16,
+    sdl_keycode: i32,
+};
+
+const KEYMAP: []const KeyMapEntry = &[_]KeyMapEntry{
     .{ .lisp_keycode = 0, .sdl_keycode = sdl2.SDLK_5 },
     .{ .lisp_keycode = 1, .sdl_keycode = sdl2.SDLK_4 },
     .{ .lisp_keycode = 2, .sdl_keycode = sdl2.SDLK_6 },
@@ -111,7 +116,7 @@ const KEYCODE_OFFSET: u16 = 0;
 
 /// Map SDL keycode to Lisp keycode (T086)
 /// Per maiko/src/sdl.c:map_key()
-fn mapKey(sdl_keycode: u32) ?u16 {
+fn mapKey(sdl_keycode: i32) ?u16 {
     for (KEYMAP) |entry| {
         if (entry.sdl_keycode == sdl_keycode) {
             return entry.lisp_keycode;
@@ -137,19 +142,19 @@ pub fn pollEvents(
     key_queue: *keyboard.KeyEventQueue,
     mouse_state: *mouse.MouseState,
     allocator: std.mem.Allocator,
-) errors.DisplayError!void {
+) errors.DisplayError!bool {
     _ = allocator;
-    
+
     var sdl_event: sdl2.SDL_Event = undefined;
-    
+
     // T084: Poll events in loop
     while (sdl2.SDL_PollEvent(&sdl_event) != 0) {
         switch (sdl_event.type) {
             sdl2.SDL_QUIT => {
-                // Quit event - handled by caller
-                return;
+                // Quit event - return true to signal quit
+                return true;
             },
-            
+
             // T085: Handle keyboard events
             sdl2.SDL_KEYDOWN => {
                 const key_event = sdl_event.key;
@@ -165,7 +170,7 @@ pub fn pollEvents(
                         keyboard.enqueueKeyEvent(key_queue, up_event) catch {};
                     }
                 }
-                
+
                 // T086: Translate keycode and T087: Deliver to queue
                 if (mapKey(key_event.keysym.sym)) |lisp_keycode| {
                     const kb_event = keyboard.KeyboardEvent{
@@ -180,7 +185,7 @@ pub fn pollEvents(
                     std.debug.print("No mapping for key {}\n", .{key_event.keysym.sym});
                 }
             },
-            
+
             sdl2.SDL_KEYUP => {
                 const key_event = sdl_event.key;
                 // T086: Translate keycode and T087: Deliver to queue
@@ -194,52 +199,54 @@ pub fn pollEvents(
                     keyboard.enqueueKeyEvent(key_queue, kb_event) catch {};
                 }
             },
-            
+
             // T088: Handle mouse events
             sdl2.SDL_MOUSEMOTION => {
                 const motion_event = sdl_event.motion;
                 // T089: Translate coordinates (divide by pixel_scale)
-                const x = @as(i32, @intCast(motion_event.x)) / @as(i32, @intCast(display.pixel_scale));
-                const y = @as(i32, @intCast(motion_event.y)) / @as(i32, @intCast(display.pixel_scale));
-                
+                const x = @divTrunc(@as(i32, @intCast(motion_event.x)), @as(i32, @intCast(display.pixel_scale)));
+                const y = @divTrunc(@as(i32, @intCast(motion_event.y)), @as(i32, @intCast(display.pixel_scale)));
+
                 // T090: Update mouse state
                 mouse.updateMousePosition(mouse_state, x, y);
             },
-            
+
             sdl2.SDL_MOUSEBUTTONDOWN => {
                 const button_event = sdl_event.button;
                 // T089: Translate coordinates
-                const x = @as(i32, @intCast(button_event.x)) / @as(i32, @intCast(display.pixel_scale));
-                const y = @as(i32, @intCast(button_event.y)) / @as(i32, @intCast(display.pixel_scale));
-                
+                const x = @divTrunc(@as(i32, @intCast(button_event.x)), @as(i32, @intCast(display.pixel_scale)));
+                const y = @divTrunc(@as(i32, @intCast(button_event.y)), @as(i32, @intCast(display.pixel_scale)));
+
                 // T090: Create mouse event
-                const button_num: u8 = switch (button_event.button) {
-                    sdl2.SDL_BUTTON_LEFT => 1,
-                    sdl2.SDL_BUTTON_MIDDLE => 2,
-                    sdl2.SDL_BUTTON_RIGHT => 3,
-                    else => 0,
+                // TODO: Use button_num for event delivery to Lisp
+                _ = switch (button_event.button) {
+                    sdl2.SDL_BUTTON_LEFT => @as(u8, 1),
+                    sdl2.SDL_BUTTON_MIDDLE => @as(u8, 2),
+                    sdl2.SDL_BUTTON_RIGHT => @as(u8, 3),
+                    else => @as(u8, 0),
                 };
-                
+
                 mouse.updateMousePosition(mouse_state, x, y);
                 // Note: Button state is tracked in mouse_state, but event delivery to Lisp
                 // would happen via a separate mechanism (similar to kb_trans)
             },
-            
+
             sdl2.SDL_MOUSEBUTTONUP => {
                 const button_event = sdl_event.button;
                 // T089: Translate coordinates
-                const x = @as(i32, @intCast(button_event.x)) / @as(i32, @intCast(display.pixel_scale));
-                const y = @as(i32, @intCast(button_event.y)) / @as(i32, @intCast(display.pixel_scale));
-                
+                const x = @divTrunc(@as(i32, @intCast(button_event.x)), @as(i32, @intCast(display.pixel_scale)));
+                const y = @divTrunc(@as(i32, @intCast(button_event.y)), @as(i32, @intCast(display.pixel_scale)));
+
                 mouse.updateMousePosition(mouse_state, x, y);
                 // Note: Button release handling similar to button down
             },
-            
+
             else => {
                 // Other events (window events, etc.) - ignore for now
             },
         }
     }
+    return false;
 }
 
 /// Process mouse event (legacy interface)

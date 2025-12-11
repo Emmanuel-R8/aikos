@@ -155,24 +155,41 @@ pub fn handleACONST(vm: *VM, atom_index: u16) errors.VMError!void {
 pub fn handlePVARSETPOP(vm: *VM, index: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
     const errors_module = @import("../../utils/errors.zig");
-    
+
     // C: PVARSETPOPMACRO(x):
-    //   PVAR(x) = POP_TOS_1;
-    //   (value is popped, stored in PVar[x])
-    
-    // Pop value from stack
-    const value = try stack_module.popStack(vm);
-    
+    //   PVAR[x] = TOPOFSTACK;  // Use cached TopOfStack value
+    //   POP;                   // Then pop (updates TopOfStack)
+    //   nextop1;
+
+    // CRITICAL: Use TopOfStack cached value first (even if it's 0)
+    const value = stack_module.getTopOfStack(vm);
+
     // Get current frame
     const frame = vm.current_frame orelse {
         return errors_module.VMError.InvalidAddress; // No current frame
     };
-    
+
     // Store value in PVar[index]
     // PVar access: parameters stored right after frame header (FRAMESIZE offset)
     stack_module.setPVar(frame, index, value);
+
+    // Now pop (updates TopOfStack cached value)
+    // CRITICAL: C code does POP unconditionally, but POP checks for underflow
+    // If stack is empty (stack_ptr <= stack_base), TopOfStack should already be 0
+    // We need to simulate POP: move stack_ptr UP and update TopOfStack
+    const stack_base_addr = @intFromPtr(vm.stack_base);
+    const stack_ptr_addr = @intFromPtr(vm.stack_ptr);
     
-    // Value is popped (not pushed back) - this is SETPOP, not SET
+    if (stack_ptr_addr > stack_base_addr) {
+        // Stack has data - pop normally (this updates TopOfStack)
+        _ = try stack_module.popStack(vm);
+    } else {
+        // Stack is empty - TopOfStack should already be 0
+        // C: POP on empty stack would underflow, but TopOfStack is already 0
+        // Just ensure TopOfStack is 0 (it should be already)
+        vm.top_of_stack = 0;
+        // Don't call popStack as it would return StackUnderflow error
+    }
 }
 
 /// APPLYFN: Apply function

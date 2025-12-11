@@ -77,31 +77,23 @@ pub fn lispAddressFromNative(native: [*]DLword, fptovp: []LispPTR) LispPTR {
 }
 
 /// Translate LispPTR to offset in virtual_memory slice
-/// This is used when we have a flat virtual_memory array and need to find
-/// where a LispPTR address maps to.
-/// The FPtoVP table maps file pages to virtual pages, and virtual_memory
-/// is organized by virtual page addresses.
-/// Per rewrite-spec/memory/address-translation.md
-pub fn translateLispPTRToOffset(ptr: LispPTR, fptovp: []const u16, virtual_memory_len: usize) ?usize {
-    _ = fptovp; // TODO: Verify page is actually loaded by checking FPtoVP reverse mapping
+/// C: NativeAligned4FromLAddr(LAddr) = (void *)(Lisp_world + LAddr)
+/// CRITICAL: LispPTR is a DLword offset from Lisp_world, not a byte offset!
+/// Per maiko/inc/lspglob.h: "Pointers in Cell or any object means DLword offset from Lisp_world"
+/// Since Lisp_world is DLword*, pointer arithmetic: Lisp_world + LAddr = LAddr DLwords = LAddr * 2 bytes
+/// Per maiko/inc/adr68k.h and maiko/inc/lspglob.h
+/// NOTE: fptovp_table parameter is for compatibility but not actually used (direct offset calculation)
+pub fn translateLispPTRToOffset(ptr: LispPTR, fptovp_table: *const @import("../data/sysout.zig").FPtoVPTable, virtual_memory_len: usize) ?usize {
+    _ = fptovp_table; // FPtoVP is used during page loading, but address translation is direct offset
 
-    // Extract virtual page number and offset
-    const virtual_page_num = layout.getPageNumber(ptr);
-    const page_offset = layout.getPageOffset(ptr);
+    // C: NativeAligned4FromLAddr(LAddr) = (void *)(Lisp_world + LAddr)
+    // Lisp_world is DLword*, so Lisp_world + LAddr adds LAddr DLwords = LAddr * 2 bytes
+    // Per maiko/inc/lspglob.h: "Pointers in Cell or any object means DLword offset from Lisp_world"
+    const byte_offset = @as(usize, @intCast(ptr)) * 2; // Convert DLword offset to byte offset
 
-    // Check if virtual page number is reasonable
-    // Virtual pages are 64KB (0x10000), so max virtual page number is limited by address space
-    // For now, check if the calculated offset would be within virtual_memory
-    const calculated_offset = virtual_page_num * layout.PAGE_SIZE + page_offset;
-
-    if (calculated_offset >= virtual_memory_len) {
+    if (byte_offset >= virtual_memory_len) {
         return null; // Address out of bounds
     }
 
-    // Check if the page is actually loaded by looking up in FPtoVP
-    // FPtoVP maps file pages to virtual pages, so we need to find which file page
-    // maps to this virtual page (reverse lookup)
-    // For now, if the calculated offset is within bounds, use it
-    // TODO: Verify page is actually loaded by checking FPtoVP reverse mapping
-    return @as(usize, @intCast(calculated_offset));
+    return byte_offset;
 }

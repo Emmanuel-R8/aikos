@@ -2,6 +2,20 @@ const std = @import("std");
 const types = @import("../utils/types.zig");
 const errors = @import("../utils/errors.zig");
 const stack = @import("stack.zig");
+const sysout = @import("../data/sysout.zig");
+
+/// Helper function to read DLword from virtual memory (big-endian format)
+/// CRITICAL: Virtual memory from sysout file stores DLwords in BIG-ENDIAN format
+/// This function reads a DLword and converts it to native (little-endian) format
+/// DEBUG: Added by AI assistant to handle byte swapping correctly
+fn readDLwordBE(virtual_memory: []const u8, offset: usize) types.DLword {
+    if (offset + 2 > virtual_memory.len) {
+        return 0; // Out of bounds
+    }
+    // Read big-endian: [high_byte, low_byte] -> convert to little-endian
+    return (@as(types.DLword, virtual_memory[offset]) << 8) |
+        (@as(types.DLword, virtual_memory[offset + 1]));
+}
 
 // Import from split modules
 const instruction = @import("dispatch/instruction.zig");
@@ -25,12 +39,25 @@ pub const executeOpcodeWithOperands = execution.executeOpcodeWithOperands;
 /// Main dispatch loop
 /// Per contracts/vm-core-interface.zig and execution-model.md
 /// Reads bytecode from virtual_memory using PC from current frame
+/// DEBUG: Added extensive debug output to trace execution flow
 pub fn dispatch(vm: *VM) errors.VMError!void {
     const interrupt_module = @import("interrupt.zig");
 
     // PC should already be initialized from initializeVMState()
     // Don't reset it here - use the value that was set during initialization
     std.debug.print("DEBUG: Dispatch loop starting with PC=0x{x}\n", .{vm.pc});
+    
+    // DEBUG: Print first few bytes at PC to verify we're reading code
+    if (vm.virtual_memory) |vmem| {
+        if (vm.pc < vmem.len and vm.pc + 16 <= vmem.len) {
+            const code_bytes = vmem[vm.pc..][0..16];
+            std.debug.print("DEBUG: First 16 bytes at PC: ", .{});
+            for (code_bytes) |b| {
+                std.debug.print("0x{x:0>2} ", .{b});
+            }
+            std.debug.print("\n", .{});
+        }
+    }
 
     // Main dispatch loop - continue until error or explicit stop
     while (true) {
@@ -136,12 +163,12 @@ pub fn initializeVMState(
     vm: *VM,
     ifpage: *const IFPAGE,
     virtual_memory: []const u8,
-    fptovp: []const u16,
+    fptovp_table: *const sysout.FPtoVPTable,
 ) errors.VMError!void {
 
     // Store virtual memory and FPtoVP table in VM
     vm.virtual_memory = virtual_memory;
-    vm.fptovp = fptovp;
+    vm.fptovp = fptovp_table;
 
     // CRITICAL: Read current frame and initialize PC from function entry point
     // C: start_lisp() -> FastRetCALL -> reads CURRENTFX->fnheader -> gets startpc
@@ -176,10 +203,17 @@ pub fn initializeVMState(
     // For BIGVM: fnheader is full 32-bit LispPTR
     // C: FX_FNHEADER = (CURRENTFX->hi2fnheader << 16) | CURRENTFX->lofnheader (non-BIGVM)
     // lofnheader is at bytes 4-5, hi2fnheader is at byte 6
-    const lofnheader_be: types.DLword = (@as(types.DLword, virtual_memory[frame_offset + 4]) << 8) |
-        (@as(types.DLword, virtual_memory[frame_offset + 5]));
+    // CRITICAL: Virtual memory stores DLwords in BIG-ENDIAN format (from sysout file)
+    // Use helper function to read with byte swapping
+    const lofnheader_be = readDLwordBE(virtual_memory, frame_offset + 4);
     const hi2fnheader: u8 = virtual_memory[frame_offset + 6];
     const fnheader_be = (@as(LispPTR, hi2fnheader) << 16) | lofnheader_be;
+    
+    std.debug.print("DEBUG: Reading frame fields (big-endian from sysout):\n", .{});
+    std.debug.print("  Frame offset: 0x{x}\n", .{frame_offset});
+    std.debug.print("  lofnheader bytes: 0x{x:0>2} 0x{x:0>2} -> 0x{x:0>4}\n", .{ virtual_memory[frame_offset + 4], virtual_memory[frame_offset + 5], lofnheader_be });
+    std.debug.print("  hi2fnheader byte: 0x{x:0>2}\n", .{hi2fnheader});
+    std.debug.print("  FX_FNHEADER (24-bit): 0x{x:0>6}\n", .{fnheader_be & 0xFFFFFF});
 
     // For non-BIGVM, mask to 24 bits (0xFFFFFF)
     // C: hi2fnheader is 8 bits, lofnheader is 16 bits = 24 bits total
@@ -193,10 +227,11 @@ pub fn initializeVMState(
     // Frame layout: flags+usecount (2), alink (2), fnheader (4), nextblock (2), pc (2)
     // So pc is at offset 10 bytes from frame start
     // Per maiko/inc/stack.h:81-100 (frameex1 structure)
-    const pc_be: types.DLword = (@as(types.DLword, virtual_memory[frame_offset + 10]) << 8) |
-        (@as(types.DLword, virtual_memory[frame_offset + 11]));
-    const frame_pc = pc_be;
-    std.debug.print("DEBUG: Read frame->pc={} (big-endian) from frame\n", .{frame_pc});
+    // CRITICAL: CURRENTFX->pc is a BYTE offset from FuncObj, not a DLword offset!
+    // C: PC = (ByteCode *)FuncObj + CURRENTFX->pc;
+    const frame_pc = readDLwordBE(virtual_memory, frame_offset + 10);
+    std.debug.print("  pc bytes: 0x{x:0>2} 0x{x:0>2} -> {} (0x{x:0>4})\n", .{ virtual_memory[frame_offset + 10], virtual_memory[frame_offset + 11], frame_pc, frame_pc });
+    std.debug.print("DEBUG: CURRENTFX->pc={} (byte offset from FuncObj)\n", .{frame_pc});
 
     // CRITICAL: Initialize stack pointers to use virtual memory's stack area
     // C: Stackspace = NativeAligned2FromLAddr(STK_OFFSET) = Lisp_world + STK_OFFSET
@@ -205,9 +240,8 @@ pub fn initializeVMState(
     // We need to point our stack pointers into virtual memory, not allocate separately
 
     // Read nextblock from frame to calculate CurrentStackPTR
-    const nextblock_be: types.DLword = (@as(types.DLword, virtual_memory[frame_offset + 8]) << 8) |
-        (@as(types.DLword, virtual_memory[frame_offset + 9]));
-    const nextblock = nextblock_be;
+    const nextblock = readDLwordBE(virtual_memory, frame_offset + 8);
+    std.debug.print("  nextblock bytes: 0x{x:0>2} 0x{x:0>2} -> 0x{x:0>4} (DLword offset)\n", .{ virtual_memory[frame_offset + 8], virtual_memory[frame_offset + 9], nextblock });
 
     // Calculate CurrentStackPTR: Stackspace + nextblock - 2 DLwords
     // C: next68k = NativeAligned2FromStackOffset(CURRENTFX->nextblock) = Stackspace + nextblock
@@ -226,37 +260,41 @@ pub fn initializeVMState(
     vm.stack_base = stackspace_ptr;
     vm.stack_ptr = current_stack_ptr;
     
+    // C: TopOfStack = 0; (initially empty stack)
+    // CRITICAL: C code sets TopOfStack = 0 regardless of stack memory contents
+    // The stack area may have data from sysout, but TopOfStack cached value starts at 0
+    // TopOfStack will be updated when values are pushed/popped
+    vm.top_of_stack = 0;
+
     // Calculate EndSTKP by walking free stack blocks (matching C emulator)
     // C: freeptr = next68k = NativeAligned2FromStackOffset(CURRENTFX->nextblock);
     // C: while (GETWORD(freeptr) == STK_FSB_WORD) EndSTKP = freeptr = freeptr + GETWORD(freeptr + 1);
     const STK_FSB_WORD: types.DLword = 0xA000; // Free stack block marker
     var freeptr_byte_offset = next68k_byte_offset; // Start at next68k
     var endstkp_byte_offset = freeptr_byte_offset;
-    
+
     // Walk through free stack blocks
     while (freeptr_byte_offset + 4 <= virtual_memory.len) {
-        // Read STK_FSB_WORD marker (big-endian)
-        const marker_be: types.DLword = (@as(types.DLword, virtual_memory[freeptr_byte_offset]) << 8) |
-            (@as(types.DLword, virtual_memory[freeptr_byte_offset + 1]));
-        
+        // Read STK_FSB_WORD marker (big-endian from virtual memory)
+        const marker_be = readDLwordBE(virtual_memory, freeptr_byte_offset);
+
         if (marker_be != STK_FSB_WORD) {
             break; // Not a free stack block, stop walking
         }
-        
+
         // Read free block size (big-endian, at offset +2)
-        const block_size_dlwords_be: types.DLword = (@as(types.DLword, virtual_memory[freeptr_byte_offset + 2]) << 8) |
-            (@as(types.DLword, virtual_memory[freeptr_byte_offset + 3]));
+        const block_size_dlwords_be = readDLwordBE(virtual_memory, freeptr_byte_offset + 2);
         const block_size_bytes = @as(usize, @intCast(block_size_dlwords_be)) * 2;
-        
+
         // Move to next free block: freeptr = freeptr + block_size
         endstkp_byte_offset = freeptr_byte_offset + block_size_bytes;
         freeptr_byte_offset = endstkp_byte_offset;
     }
-    
+
     // Set stack_end to EndSTKP
     const stack_end_ptr: [*]DLword = @as([*]DLword, @ptrCast(@alignCast(virtual_memory_mut.ptr + endstkp_byte_offset)));
     vm.stack_end = stack_end_ptr;
-    
+
     const stack_depth = (@intFromPtr(current_stack_ptr) - @intFromPtr(stackspace_ptr)) / 2;
     std.debug.print("DEBUG: Initialized stack pointers into virtual memory:\n", .{});
     std.debug.print("  Stackspace offset: 0x{x}\n", .{stackspace_byte_offset});
@@ -266,7 +304,13 @@ pub fn initializeVMState(
     std.debug.print("  Stack depth: {} DLwords\n", .{stack_depth});
 
     // C: TopOfStack = 0; (just a cached value, stack area has real data)
-    // We don't need to push NIL - the stack already has data from the sysout!
+    // CRITICAL: The stack area has data from sysout, but TopOfStack should be 0 (NIL) initially
+    // This means the stack is conceptually empty even though the area has data
+    // We need to ensure getTopOfStack() returns 0 initially
+    // The stack_ptr points to CurrentStackPTR, which is where the next push would go
+    // But TopOfStack is a cached value that starts at 0
+    // For now, we'll rely on getTopOfStack() to read from stack_ptr, but we should
+    // verify that the location stack_ptr points to contains 0 (NIL) or handle it correctly
 
     if (fnheader_addr == 0) {
         // Frame fnheader is 0 - simulate FastRetCALL exactly as C code does
@@ -287,9 +331,7 @@ pub fn initializeVMState(
             vm.pc = 0x100;
             return;
         }
-        const bf_word_be: types.DLword = (@as(types.DLword, virtual_memory[bf_offset]) << 8) |
-            (@as(types.DLword, virtual_memory[bf_offset + 1]));
-        const bf_word = bf_word_be;
+        const bf_word = readDLwordBE(virtual_memory, bf_offset);
         std.debug.print("DEBUG: BF word (CURRENTFX - 1) = 0x{x}\n", .{bf_word});
 
         // FuncObj = NativeAligned4FromLAddr(0) = Lisp_world base (offset 0)
@@ -358,54 +400,68 @@ pub fn initializeVMState(
 
     // Stack already initialized above (line 204)
 
+    // CRITICAL: FastRetCALL uses CURRENTFX->pc directly, NOT the function header's startpc!
+    // C: FastRetCALL macro (maiko/inc/retmacro.h:37-45):
+    //   FuncObj = (struct fnhead *)NativeAligned4FromLAddr(FX_FNHEADER);
+    //   PC = (ByteCode *)FuncObj + CURRENTFX->pc;
+    //
+    // So PC = FuncObj + CURRENTFX->pc, where:
+    //   - FuncObj is the function header address (from FX_FNHEADER)
+    //   - CURRENTFX->pc is the frame's pc field (already read as frame_pc)
+    //
+    // NOTE: This is different from function calls which use FuncObj->startpc!
+    // FastRetCALL is for returns, which use the saved PC in the frame.
+
     // Translate fnheader_addr (LispPTR) to virtual_memory offset using FPtoVP
-    // C: NativeAligned4FromLispPTR(fnheader_addr) -> translates using FPtoVP
+    // C: NativeAligned4FromLAddr(FX_FNHEADER) -> translates LispPTR to native address
     const address_module = @import("../utils/address.zig");
-    const fnheader_offset_opt = address_module.translateLispPTRToOffset(fnheader_addr, fptovp, virtual_memory.len);
+    // translateLispPTRToOffset doesn't actually use fptovp_table (it's direct offset calculation)
+    const funcobj_offset_opt = address_module.translateLispPTRToOffset(fnheader_addr, fptovp_table, virtual_memory.len);
 
-    if (fnheader_offset_opt) |fnheader_offset| {
-        std.debug.print("DEBUG: Translated fnheader_addr=0x{x} to offset=0x{x}\n", .{ fnheader_addr, fnheader_offset });
+    if (funcobj_offset_opt) |funcobj_offset| {
+        std.debug.print("DEBUG: FastRetCALL simulation:\n", .{});
+        std.debug.print("  FX_FNHEADER=0x{x}\n", .{fnheader_addr});
+        std.debug.print("  FuncObj offset=0x{x} (translated from FX_FNHEADER)\n", .{funcobj_offset});
+        std.debug.print("  CURRENTFX->pc={} (byte offset from FuncObj)\n", .{frame_pc});
 
-        // Read function header fields directly from memory
-        // FunctionHeader: stkmin (2), na (2), pv (2), startpc (2), framename (4), ntsize (2), nlocals (2), fvaroffset (2)
-        // startpc is at offset 6 bytes
-        if (fnheader_offset + 8 > virtual_memory.len) {
-            std.debug.print("WARNING: Function header offset exceeds virtual memory\n", .{});
-            vm.pc = if (frame_pc > 0 and frame_pc < virtual_memory.len) @as(LispPTR, @intCast(frame_pc)) else 0x100;
-            return;
-        }
+        // Calculate PC exactly as FastRetCALL does: PC = FuncObj + CURRENTFX->pc
+        const calculated_pc = funcobj_offset + @as(usize, @intCast(frame_pc));
 
-        // Read startpc field (offset 6 bytes from function header start)
-        // DLword is 2 bytes, stored BIG-ENDIAN in sysout
-        // Byte-swap: read as big-endian and convert to little-endian
-        const startpc_be: types.DLword = (@as(types.DLword, virtual_memory[fnheader_offset + 6]) << 8) |
-            (@as(types.DLword, virtual_memory[fnheader_offset + 7]));
-        const startpc = startpc_be;
-
-        std.debug.print("DEBUG: Read startpc={} (big-endian) from function header\n", .{startpc});
-
-        // Calculate actual PC: fnheader offset + startpc (byte offset)
-        // C: PC = (ByteCode *)FuncObj + FuncObj->startpc;
-        // CRITICAL: startpc is a BYTE offset from FuncObj, not a DLword offset!
-        // The comment in maiko/inc/stack.h saying "DLword offset from stkmin" is INCORRECT.
-        // The actual C code uses it as a byte offset: (ByteCode *)FuncObj + FuncObj->startpc
-        // Per maiko/src/intcall.c:106, maiko/src/bbtsub.c:1730, maiko/src/loopsops.c:428
-        const code_start_offset = fnheader_offset + @as(usize, @intCast(startpc));
+        std.debug.print("  PC = FuncObj + CURRENTFX->pc = 0x{x} + {} = 0x{x}\n", .{ funcobj_offset, frame_pc, calculated_pc });
 
         // Validate PC is within virtual memory bounds
-        if (code_start_offset >= virtual_memory.len) {
-            std.debug.print("WARNING: PC offset (0x{x}) is beyond virtual memory (len=0x{x}), trying frame->pc\n", .{ code_start_offset, virtual_memory.len });
+        if (calculated_pc >= virtual_memory.len) {
+            std.debug.print("WARNING: Calculated PC (0x{x}) is beyond virtual memory (len=0x{x})\n", .{ calculated_pc, virtual_memory.len });
             vm.pc = if (frame_pc > 0 and frame_pc < virtual_memory.len) @as(LispPTR, @intCast(frame_pc)) else 0x100;
             return;
         }
 
-        vm.pc = @as(LispPTR, @intCast(code_start_offset));
-        std.debug.print("Initialized PC from frame: currentfxp_stack_offset={}, fnheader=0x{x}, startpc={}, PC=0x{x}\n", .{
-            currentfxp_stack_offset,
-            fnheader_addr,
-            startpc,
-            vm.pc,
-        });
+        // Verify PC points to valid code (not all zeros)
+        if (calculated_pc + 4 <= virtual_memory.len) {
+            const first_bytes = virtual_memory[calculated_pc .. calculated_pc + 4];
+            const all_zeros = first_bytes[0] == 0 and first_bytes[1] == 0 and first_bytes[2] == 0 and first_bytes[3] == 0;
+            const first_opcode = first_bytes[0];
+
+            std.debug.print("  PC location 0x{x}: bytes = 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2}\n", .{ calculated_pc, first_bytes[0], first_bytes[1], first_bytes[2], first_bytes[3] });
+
+            if (all_zeros) {
+                std.debug.print("WARNING: Calculated PC=0x{x} points to zeros (invalid code)\n", .{calculated_pc});
+                // Try fallback: use frame_pc directly as byte offset from start
+                if (frame_pc < virtual_memory.len) {
+                    vm.pc = @as(LispPTR, @intCast(frame_pc));
+                    std.debug.print("  Fallback: Using frame->pc={} as direct byte offset\n", .{frame_pc});
+                    return;
+                }
+            } else {
+                vm.pc = @as(LispPTR, @intCast(calculated_pc));
+                std.debug.print("  Using calculated PC=0x{x} (opcode=0x{x:0>2})\n", .{ calculated_pc, first_opcode });
+                return;
+            }
+        }
+
+        // If validation failed, use calculated PC anyway (might still work)
+        vm.pc = @as(LispPTR, @intCast(calculated_pc));
+        std.debug.print("  Using calculated PC=0x{x} (validation incomplete)\n", .{calculated_pc});
         return;
     } else {
         // Address translation failed - try using frame->pc or default

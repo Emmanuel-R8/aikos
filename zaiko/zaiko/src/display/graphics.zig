@@ -64,7 +64,7 @@ pub fn copyDisplayToTexture(
         return error.InvalidRegion;
     }
     defer sdl2.SDL_UnlockTexture(display.texture);
-    
+
     if (dst == null) {
         return error.InvalidRegion;
     }
@@ -131,7 +131,7 @@ pub fn bitbltCopy(
     _ = source_y;
     _ = dest_x;
     _ = dest_y;
-    
+
     // For now, COPY mode just copies the entire region
     // TODO: Implement proper source/dest coordinate handling
     try copyDisplayToTexture(display, source_x, source_y, width, height);
@@ -155,7 +155,7 @@ pub fn bitbltXOR(
     _ = source_y;
     _ = dest_x;
     _ = dest_y;
-    
+
     try copyDisplayToTexture(display, source_x, source_y, width, height);
     try renderTextureToScreen(display);
 }
