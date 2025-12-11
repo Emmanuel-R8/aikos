@@ -176,24 +176,33 @@ pub fn loadMemoryPages(
 **Definition**:
 ```zig
 pub const FPtoVPTable = struct {
-    entries: []u16, // or []u32 for BIGVM
-    is_bigvm: bool,
+    entries: []u32, // BIGVM format - 32-bit entries (REQUIRED)
+    allocator: std.mem.Allocator,
+    
+    pub fn getFPtoVP(self: *const FPtoVPTable, file_page: usize) u16;
+    pub fn getPageOK(self: *const FPtoVPTable, file_page: usize) u16;
+    pub fn isSparse(self: *const FPtoVPTable, file_page: usize) bool;
 };
 ```
 
 **Purpose**: Maps file page numbers to virtual page numbers
 
-**Fields**:
-- `entries`: Array of mapping entries
-- `is_bigvm`: Whether using BIGVM format (32-bit entries)
+**CRITICAL**: All implementations MUST use BIGVM format (32-bit entries). Non-BIGVM format is NOT supported.
 
-**Entry Values**:
-- `0xFFFF`: Page not present (sparse page marker)
-- Other values: Virtual page number
+**Fields**:
+- `entries`: Array of 32-bit mapping entries (BIGVM format)
+- `allocator`: Memory allocator for table management
+
+**Entry Structure** (BIGVM format):
+- Each entry is a 32-bit `u32` value
+- Low 16 bits: Virtual page number (accessed via `getFPtoVP()`)
+- High 16 bits: Page OK flag (accessed via `getPageOK()`)
+- `getPageOK() == 0xFFFF`: Page not present (sparse page marker)
 
 **Constraints**:
-- Entry size depends on BIGVM flag (16-bit or 32-bit)
-- Table size matches `nactivepages` from IFPAGE
+- Entry size: 32 bits (4 bytes) per entry
+- Table size: `nactivepages * 4` bytes (BIGVM format)
+- Table reading: `sysout_size * 2` bytes from sysout file
 
 ---
 

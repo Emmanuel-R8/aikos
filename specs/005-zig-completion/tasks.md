@@ -31,9 +31,9 @@
 - [X] T002 [US1] Implement complete IFPAGE structure matching C ifpage.h exactly (~100 fields) in maiko/alternatives/zig/src/utils/types.zig
 - [X] T003 [US1] Update IFPAGE struct definition in maiko/alternatives/zig/src/data/sysout.zig to use complete structure from types.zig
 - [X] T004 [US1] Implement FPtoVP table loading function loadFPtoVPTable in maiko/alternatives/zig/src/data/sysout.zig
-- [X] T005 [US1] Add FPtoVPTable data structure with entries array and is_bigvm flag in maiko/alternatives/zig/src/data/sysout.zig
-- [X] T006 [US1] Implement FPtoVP offset calculation (ifpage.fptovpstart - 1) * BYTESPER_PAGE + offset in maiko/alternatives/zig/src/data/sysout.zig
-- [X] T007 [US1] Implement FPtoVP entry reading with BIGVM and non-BIGVM format support in maiko/alternatives/zig/src/data/sysout.zig
+- [X] T005 [US1] Add FPtoVPTable data structure with entries array (BIGVM format - u32 entries) in maiko/alternatives/zig/src/data/sysout.zig
+- [X] T006 [US1] Implement FPtoVP offset calculation (ifpage.fptovpstart - 1) * BYTESPER_PAGE + 4 (BIGVM offset) in maiko/alternatives/zig/src/data/sysout.zig
+- [X] T007 [US1] Implement FPtoVP entry reading with BIGVM format support (32-bit entries, REQUIRED) in maiko/alternatives/zig/src/data/sysout.zig
 - [X] T008 [US1] Implement page loading algorithm loadMemoryPages in maiko/alternatives/zig/src/data/sysout.zig
 - [X] T009 [US1] Add virtual memory allocation using Zig allocator in maiko/alternatives/zig/src/data/sysout.zig
 - [X] T010 [US1] Implement page iteration loop checking FPtoVP entries for sparse pages (0xFFFF marker) in maiko/alternatives/zig/src/data/sysout.zig
