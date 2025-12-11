@@ -156,11 +156,36 @@ Complete specification of all 256 bytecode opcodes (0x00-0xFF). Format: `Name (0
 
 ### Comparisons
 - **EQ (0xF0, also 0x3A)** [1] Pop 2, push (arg1 == arg2) ? T : NIL. Pointer equality.
-- **EQL (0x3B)** [1] Pop 2, push equality (similar to EQ).
+  - **Stack**: `[a, b] -> [result]`
+  - **Algorithm**: Returns T (1) if `a == b`, NIL (0) otherwise
+  - **Note**: Atoms are interned, so pointer comparison is correct for atoms
+- **EQL (0x3B)** [1] Pop 2, push equality (deep comparison).
+  - **Stack**: `[a, b] -> [result]`
+  - **Algorithm**: Recursively compares structures
+    - Pointer equality check first (fast path)
+    - Fixnums: Compare values directly
+    - Cons cells: Recursively compare CAR and CDR
+    - Atoms: Pointer comparison (atoms are interned)
+    - Arrays: Pointer comparison (EQL uses EQ for arrays)
 - **EQUAL (0xF4)** [1] Pop 2, push deep equality (recursive).
+  - **Stack**: `[a, b] -> [result]`
+  - **Algorithm**: Recursive comparison
+    - Pointer equality check first
+    - Fixnums: Compare values
+    - Cons cells: Recursively compare CAR and CDR
+    - Atoms: Pointer comparison (atoms are interned)
+    - Arrays: Element-by-element comparison (recursive)
+      - Compares array lengths first
+      - Recursively compares each element using EQUAL
 - **LESSP (0x92)** [1] Pop 2, push (arg1 < arg2) ? T : NIL.
+  - **Stack**: `[a, b] -> [result]`
+  - **Algorithm**: Compares as signed integers, returns T if `a < b`
 - **GREATERP (0xF3)** [1] Pop 2, push (arg1 > arg2) ? T : NIL. Integer/float.
+  - **Stack**: `[a, b] -> [result]`
+  - **Algorithm**: Compares as signed integers, returns T if `a > b`
 - **IGREATERP (0xF1)** [1] Pop 2, push (arg1 > arg2) ? T : NIL. Integer only.
+  - **Stack**: `[a, b] -> [result]`
+  - **Algorithm**: Same as GREATERP (integer comparison)
 - **FGREATERP (0xF2)** [1] Pop 2, push (arg1 > arg2) ? T : NIL. Float only.
 - **LEQ (0x3E)** [1] Pop 2, push (arg1 <= arg2) ? T : NIL.
 - **GEQ (0x3F)** [1] Pop 2, push (arg1 >= arg2) ? T : NIL.
