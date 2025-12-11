@@ -1,7 +1,9 @@
+const std = @import("std");
 const errors = @import("../../utils/errors.zig");
 const stack = @import("../stack.zig");
 const types = @import("../../utils/types.zig");
 const function_header_module = @import("../../data/function_header.zig");
+const virtual_memory_module = @import("../../memory/virtual.zig");
 
 const VM = stack.VM;
 const LispPTR = types.LispPTR;
@@ -22,7 +24,37 @@ pub fn handleIVAR(vm: *VM, index: u8) errors.VMError!void {
     };
 
     // IVar access: variables stored at nextblock offset
-    const ivar_value = stack_module.getIVar(frame, index);
+    // CRITICAL: frame.nextblock is a DLword offset from Stackspace, not a LispPTR
+    // C: IVAR = NativeAligned2FromStackOffset(CURRENTFX->nextblock) = Stackspace + nextblock
+    // Stackspace is DLword*, so Stackspace + nextblock adds nextblock DLwords = nextblock * 2 bytes
+    const nextblock = stack_module.getNextblock(frame);
+    if (nextblock == 0) {
+        try stack_module.pushStack(vm, 0); // No IVar area - return NIL
+        return;
+    }
+    
+    // Calculate IVAR base address: Stackspace + nextblock (in bytes)
+    // Stackspace is at STK_OFFSET * 2 = 0x20000 bytes
+    const STK_OFFSET: u32 = 0x00010000; // DLword offset from Lisp_world
+    const stackspace_byte_offset = STK_OFFSET * 2; // Convert DLword offset to byte offset
+    const ivar_base_byte_offset = stackspace_byte_offset + (@as(usize, @intCast(nextblock)) * 2); // nextblock is in DLwords
+    
+    // Access IVar at index (each IVar is LispPTR = 4 bytes)
+    const ivar_offset_bytes = @as(usize, index) * @sizeOf(types.LispPTR);
+    const ivar_addr = ivar_base_byte_offset + ivar_offset_bytes;
+    
+    // Read from virtual memory (big-endian from sysout)
+    if (vm.virtual_memory == null or ivar_addr + 4 > vm.virtual_memory.?.len) {
+        try stack_module.pushStack(vm, 0);
+        return;
+    }
+    
+    const virtual_memory = vm.virtual_memory.?;
+    const ivar_bytes = virtual_memory[ivar_addr..ivar_addr+4];
+    const low_word = (@as(types.DLword, ivar_bytes[0]) << 8) | @as(types.DLword, ivar_bytes[1]);
+    const high_word = (@as(types.DLword, ivar_bytes[2]) << 8) | @as(types.DLword, ivar_bytes[3]);
+    const ivar_value: types.LispPTR = (@as(types.LispPTR, high_word) << 16) | @as(types.LispPTR, low_word);
+    
     try stack_module.pushStack(vm, ivar_value);
 }
 
@@ -58,22 +90,67 @@ pub fn handleFVAR(vm: *VM, index: u8) errors.VMError!void {
     };
 
     // Get function header from frame
-    const fnheader_ptr = frame.fnheader;
+    const fnheader_ptr = stack_module.getFnHeader(frame);
+    std.debug.print("DEBUG FVAR: frame.fnheader=0x{x}\n", .{fnheader_ptr});
     if (fnheader_ptr == 0) {
         return errors_module.VMError.InvalidAddress; // No function header
     }
 
-    // Translate function header address to native pointer
-    // For now, assume direct mapping (will need proper address translation later)
-    const fnheader: *function_header_module.FunctionHeader = @as(*function_header_module.FunctionHeader, @ptrFromInt(@as(usize, fnheader_ptr)));
-
+    // Translate function header address to byte offset in virtual memory
+    if (vm.virtual_memory == null or vm.fptovp == null) {
+        return errors_module.VMError.InvalidAddress;
+    }
+    
+    const fptovp_table = vm.fptovp.?;
+    const virtual_memory = vm.virtual_memory.?;
+    std.debug.print("DEBUG FVAR: Translating fnheader_ptr=0x{x}\n", .{fnheader_ptr});
+    
+    // Get page number and offset from LispPTR
+    // LispPTR format: [page_num:15 bits][offset_in_page:9 bits][unused:8 bits]
+    const page_num = (fnheader_ptr >> 9) & 0x7FFF; // Page number (15 bits)
+    const page_offset_dlwords = fnheader_ptr & 0x1FF; // Page offset (9 bits, in DLwords)
+    const page_offset_bytes = page_offset_dlwords * 2; // Convert DLwords to bytes
+    
+    // Get virtual page from FPtoVP table
+    if (page_num >= fptovp_table.entries.len) {
+        std.debug.print("DEBUG FVAR: Invalid page number {}\n", .{page_num});
+        return errors_module.VMError.InvalidAddress;
+    }
+    
+    const virtual_page = fptovp_table.getFPtoVP(page_num);
+    if (virtual_page == 0) {
+        std.debug.print("DEBUG FVAR: Page {} is sparse\n", .{page_num});
+        return errors_module.VMError.InvalidAddress;
+    }
+    
+    // Calculate byte offset in virtual memory: virtual_page * 512 + page_offset_bytes
+    const BYTESPER_PAGE: usize = 512;
+    const fnheader_byte_offset = (@as(usize, virtual_page) * BYTESPER_PAGE) + page_offset_bytes;
+    
+    if (fnheader_byte_offset + 8 > virtual_memory.len) {
+        std.debug.print("DEBUG FVAR: Function header offset exceeds virtual memory bounds\n", .{});
+        return errors_module.VMError.InvalidAddress;
+    }
+    
+    // Read function header fields manually (big-endian from sysout)
+    // Function header layout: stkmin (2), na (2), pv (2), startpc (2), framename (4), ...
+    // Per maiko/inc/stack.h:58-66
+    if (fnheader_byte_offset + 6 > virtual_memory.len) {
+        std.debug.print("DEBUG FVAR: Function header offset exceeds virtual memory bounds\n", .{});
+        return errors_module.VMError.InvalidAddress;
+    }
+    
+    const fnheader_bytes = virtual_memory[fnheader_byte_offset..];
+    // Read pv field (bytes 4-5, big-endian)
+    const pv_be = (@as(types_module.DLword, fnheader_bytes[4]) << 8) | @as(types_module.DLword, fnheader_bytes[5]);
+    
     // Free variables are stored in PVar area after regular parameters
     // PVars are stored as LispPTR (4 bytes each)
     // Free variables are stored as 2 DLwords (2 bytes each) = 4 bytes total
     // Free variable offset calculation:
     //   PVar area size = (pv + 1) * sizeof(LispPTR) = (pv + 1) * 4 bytes
     //   Free variable i starts at: PVar area size + (i * 4 bytes)
-    const pvar_count = fnheader.pv + 1; // PVar count includes return value slot
+    const pvar_count = pv_be + 1; // PVar count includes return value slot
     const pvar_area_size = @as(usize, pvar_count) * @sizeOf(LispPTR);
     const fvar_offset_bytes = pvar_area_size + (@as(usize, index) * 4); // Each FVAR is 4 bytes (2 DLwords)
 
@@ -337,7 +414,6 @@ pub fn handleIVARX(vm: *VM, word_offset: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
     const errors_module = @import("../../utils/errors.zig");
     const types_module = @import("../../utils/types.zig");
-    const virtual_memory_module = @import("../../memory/virtual.zig");
 
     // C: IVARX(x): PUSH(GetLongWord((DLword *)IVAR + (x)));
     // IVAR is frame.nextblock (LispPTR address)
@@ -348,31 +424,30 @@ pub fn handleIVARX(vm: *VM, word_offset: u8) errors.VMError!void {
         return errors_module.VMError.InvalidAddress;
     };
     
-    // IVAR area is at frame.nextblock (LispPTR address)
-    const ivar_base_lisp = frame.nextblock;
-    if (ivar_base_lisp == 0) {
-        try stack_module.pushStack(vm, 0); // No IVAR area - return NIL
-        return;
-    }
-    
-    // Translate IVAR base address to native pointer
-    if (vm.virtual_memory == null or vm.fptovp == null) {
+    // IVAR area is at frame.nextblock (DLword offset from Stackspace)
+    const nextblock = stack_module.getNextblock(frame);
+    if (nextblock == 0) {
         try stack_module.pushStack(vm, 0);
         return;
     }
     
-    const fptovp_table = vm.fptovp.?;
-    const ivar_base_native = virtual_memory_module.translateAddress(ivar_base_lisp, fptovp_table, 2) catch {
-        try stack_module.pushStack(vm, 0);
-        return;
-    };
+    // Calculate IVAR base address: Stackspace + nextblock (in bytes)
+    const STK_OFFSET: u32 = 0x00010000; // DLword offset from Lisp_world
+    const stackspace_byte_offset = STK_OFFSET * 2;
+    const ivar_base_byte_offset = stackspace_byte_offset + (@as(usize, @intCast(nextblock)) * 2);
     
     // Access IVAR at word_offset (DLword units)
     const ivar_offset_bytes = @as(usize, word_offset) * @sizeOf(types_module.DLword);
-    const ivar_addr = @intFromPtr(ivar_base_native) + ivar_offset_bytes;
+    const ivar_addr = ivar_base_byte_offset + ivar_offset_bytes;
     
-    // Read LispPTR (2 DLwords, big-endian from sysout)
-    const ivar_bytes: [*]const u8 = @ptrFromInt(ivar_addr);
+    // Read from virtual memory (big-endian from sysout)
+    if (vm.virtual_memory == null or ivar_addr + 4 > vm.virtual_memory.?.len) {
+        try stack_module.pushStack(vm, 0);
+        return;
+    }
+    
+    const virtual_memory = vm.virtual_memory.?;
+    const ivar_bytes = virtual_memory[ivar_addr..ivar_addr+4];
     const low_word = (@as(types_module.DLword, ivar_bytes[0]) << 8) | @as(types_module.DLword, ivar_bytes[1]);
     const high_word = (@as(types_module.DLword, ivar_bytes[2]) << 8) | @as(types_module.DLword, ivar_bytes[3]);
     const value: types.LispPTR = (@as(types.LispPTR, high_word) << 16) | @as(types.LispPTR, low_word);
@@ -389,7 +464,6 @@ pub fn handleIVARX_(vm: *VM, word_offset: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
     const errors_module = @import("../../utils/errors.zig");
     const types_module = @import("../../utils/types.zig");
-    const virtual_memory_module = @import("../../memory/virtual.zig");
 
     // C: IVARX_(x): *((LispPTR *)((DLword *)IVAR + (x))) = TOPOFSTACK;
     const value = try stack_module.popStack(vm);
@@ -398,28 +472,28 @@ pub fn handleIVARX_(vm: *VM, word_offset: u8) errors.VMError!void {
         return errors_module.VMError.InvalidAddress;
     };
     
-    // IVAR area is at frame.nextblock (LispPTR address)
-    const ivar_base_lisp = frame.nextblock;
-    if (ivar_base_lisp == 0) {
+    // IVAR area is at frame.nextblock (DLword offset from Stackspace)
+    const nextblock = stack_module.getNextblock(frame);
+    if (nextblock == 0) {
         return; // No IVAR area - ignore
     }
     
-    // Translate IVAR base address to native pointer
-    if (vm.virtual_memory == null or vm.fptovp == null) {
-        return;
-    }
-    
-    const fptovp_table = vm.fptovp.?;
-    const ivar_base_native = virtual_memory_module.translateAddress(ivar_base_lisp, fptovp_table, 2) catch {
-        return;
-    };
+    // Calculate IVAR base address: Stackspace + nextblock (in bytes)
+    const STK_OFFSET: u32 = 0x00010000; // DLword offset from Lisp_world
+    const stackspace_byte_offset = STK_OFFSET * 2;
+    const ivar_base_byte_offset = stackspace_byte_offset + (@as(usize, @intCast(nextblock)) * 2);
     
     // Access IVAR at word_offset (DLword units)
     const ivar_offset_bytes = @as(usize, word_offset) * @sizeOf(types_module.DLword);
-    const ivar_addr = @intFromPtr(ivar_base_native) + ivar_offset_bytes;
+    const ivar_addr = ivar_base_byte_offset + ivar_offset_bytes;
     
-    // Write LispPTR (2 DLwords, big-endian from sysout)
-    const ivar_bytes: [*]u8 = @ptrFromInt(ivar_addr);
+    // Write to virtual memory (big-endian from sysout)
+    if (vm.virtual_memory == null or ivar_addr + 4 > vm.virtual_memory.?.len) {
+        return;
+    }
+    
+    const virtual_memory_mut: []u8 = @constCast(vm.virtual_memory.?);
+    const ivar_bytes = virtual_memory_mut[ivar_addr..ivar_addr+4];
     const low_word = @as(types_module.DLword, @truncate(value));
     const high_word = @as(types_module.DLword, @truncate(value >> 16));
     ivar_bytes[0] = @as(u8, @truncate(low_word >> 8));
@@ -482,19 +556,33 @@ pub fn handleMYARGCOUNT(vm: *VM) errors.VMError!void {
     try stack_module.pushStack(vm, 0);
 }
 
-/// MYALINK: My argument link
-/// Per rewrite documentation instruction-set/opcodes.md
-/// Gets argument link for current function
+/// MYALINK: My activation link
+/// C: MYALINK macro in maiko/inc/inlineC.h
+/// Pushes activation link address (previous frame pointer)
+/// Stack: [] -> [alink_address]
 pub fn handleMYALINK(vm: *VM) errors.VMError!void {
     const stack_module = @import("../stack.zig");
+    const errors_module = @import("../../utils/errors.zig");
+    const types_module = @import("../../utils/types.zig");
 
-    // MYALINK requires:
-    // 1. Get argument link from current frame
-
-    // TODO: Proper implementation needs:
-    // 1. Access frame
-    // 2. Get argument link
-
-    // Placeholder: return NIL
-    try stack_module.pushStack(vm, 0); // Return NIL
+    // C: MYALINK: PUSH((((CURRENTFX->alink) & 0xfffe) - FRAMESIZE) | S_POSITIVE);
+    // FRAMESIZE = 10 DLwords = 20 bytes
+    const FRAMESIZE: u32 = 10; // DLwords
+    
+    const frame = vm.current_frame orelse {
+        return errors_module.VMError.InvalidAddress;
+    };
+    
+    // Get alink (activation link to previous frame)
+    const alink = stack_module.getAlink(frame);
+    
+    // C: (alink & 0xfffe) - FRAMESIZE
+    // Clear LSB and subtract FRAMESIZE (in DLwords, so multiply by 2 for bytes)
+    const alink_cleared = alink & 0xFFFFFFFE; // Clear LSB
+    const alink_addr = alink_cleared - (FRAMESIZE * 2); // FRAMESIZE in bytes
+    
+    // C: | S_POSITIVE
+    const result = types_module.S_POSITIVE | alink_addr;
+    
+    try stack_module.pushStack(vm, result);
 }

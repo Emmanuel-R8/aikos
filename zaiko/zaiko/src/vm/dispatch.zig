@@ -60,7 +60,19 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
     }
 
     // Main dispatch loop - continue until error or explicit stop
+    // Add instruction counter to prevent infinite loops
+    var instruction_count: u64 = 0;
+    const MAX_INSTRUCTIONS: u64 = 1000000; // Limit to prevent infinite loops
+    
     while (true) {
+        // Check instruction limit to prevent infinite loops
+        instruction_count += 1;
+        if (instruction_count > MAX_INSTRUCTIONS) {
+            std.debug.print("WARNING: Instruction limit reached ({}) - stopping execution to prevent infinite loop\n", .{MAX_INSTRUCTIONS});
+            std.debug.print("  Current PC: 0x{x}\n", .{vm.pc});
+            return error.InvalidOpcode; // Stop execution
+        }
+        
         // Check interrupts before execution
         if (interrupt_module.checkInterrupts(vm)) {
             // TODO: Handle interrupts
@@ -133,6 +145,9 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
         // Update program counter
         if (jump_offset) |offset| {
             // Jump instruction - update PC by offset
+            // C: JUMPMACRO(x): PCMACL += (x); nextop0;
+            // nextop0 means don't advance PC by instruction length
+            // So PC update is: PC = PC + offset (no additional advance)
             const new_pc = @as(i64, @intCast(vm.pc)) + offset;
             if (new_pc < 0) {
                 return error.InvalidOpcode; // Invalid jump target (negative)
@@ -143,6 +158,14 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
                 }
             }
             vm.pc = @as(LispPTR, @intCast(new_pc));
+            
+            // CRITICAL: If offset is 0 (JUMP0), we need to advance PC by instruction length
+            // C: JUMPMACRO(0) does PCMACL += 0, then nextop0 (don't advance by instruction length)
+            // But if offset is 0, PC doesn't change, causing infinite loop
+            // Solution: Advance PC by instruction length when offset is 0
+            if (offset == 0) {
+                vm.pc += inst.length;
+            }
         } else {
             // Normal instruction - advance by instruction length
             vm.pc += inst.length;
@@ -151,6 +174,11 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
         // Check interrupts after execution
         if (interrupt_module.checkInterrupts(vm)) {
             // TODO: Handle interrupts
+        }
+        
+        // Debug: Print progress every 10000 instructions
+        if (instruction_count % 10000 == 0) {
+            std.debug.print("DEBUG: Executed {} instructions, PC=0x{x}\n", .{ instruction_count, vm.pc });
         }
     }
 }
@@ -248,6 +276,8 @@ pub fn initializeVMState(
     // We need to point our stack pointers into virtual memory, not allocate separately
 
     // Read nextblock from frame to calculate CurrentStackPTR
+    // Frame layout: flags+usecount (2), alink (2), fnheader (4), nextblock (2), pc (2)
+    // So nextblock is at offset 8 bytes from frame start
     const nextblock = readDLwordBE(virtual_memory, frame_offset + 8);
     std.debug.print("  nextblock bytes: 0x{x:0>2} 0x{x:0>2} -> 0x{x:0>4} (DLword offset)\n", .{ virtual_memory[frame_offset + 8], virtual_memory[frame_offset + 9], nextblock });
 
@@ -271,8 +301,9 @@ pub fn initializeVMState(
     // CRITICAL: Initialize current_frame pointer to point to frame in virtual memory
     // The frame is at frame_offset in virtual memory
     // FX is a packed struct, so it can be at any byte offset
-    // Use @ptrFromInt to create pointer without alignment requirement
-    const frame_ptr: *stack.FX = @ptrFromInt(@intFromPtr(virtual_memory_mut.ptr) + frame_offset);
+    // Use @ptrFromInt with align(1) to create pointer without alignment requirement
+    const frame_addr = @intFromPtr(virtual_memory_mut.ptr) + frame_offset;
+    const frame_ptr: *align(1) stack.FX = @ptrFromInt(frame_addr);
     vm.current_frame = frame_ptr;
     std.debug.print("DEBUG: Initialized current_frame at offset 0x{x}\n", .{frame_offset});
     

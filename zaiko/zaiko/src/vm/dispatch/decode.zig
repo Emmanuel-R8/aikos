@@ -162,6 +162,8 @@ pub fn decodeOpcode(byte: ByteCode) ?Opcode {
         0x2E => Opcode.TYPECHECK,
         0x2F => Opcode.STKSCAN,
         0x30 => Opcode.BUSBLT,
+        0x31 => Opcode.MISC8,
+        0x32 => Opcode.UBFLOAT3,
         0x33 => Opcode.TYPEMASK_N,
         0x3A => Opcode.EQL,
         0x3B => Opcode.DRAWLINE,

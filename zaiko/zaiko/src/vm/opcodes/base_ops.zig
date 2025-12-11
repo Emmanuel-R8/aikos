@@ -251,8 +251,9 @@ pub fn handleGETBITS_N_FD(vm: *VM, arg1: u8, arg2: u8) errors.VMError!void {
     
     const base = stack_module.getTopOfStack(vm);
     const base_ptr = types.POINTERMASK & base;
+    const target_addr = base_ptr + @as(LispPTR, arg1);
     
-    // Translate address to native pointer
+    // Calculate byte offset in virtual memory
     const virtual_memory = vm.virtual_memory orelse {
         return errors_module.VMError.MemoryAccessFailed;
     };
@@ -260,17 +261,31 @@ pub fn handleGETBITS_N_FD(vm: *VM, arg1: u8, arg2: u8) errors.VMError!void {
         return errors_module.VMError.MemoryAccessFailed;
     };
     
-    const native_ptr = virtual_memory_module.translateAddress(base_ptr + @as(LispPTR, arg1), fptovp_table, 2) catch {
-        return errors_module.VMError.InvalidAddress;
-    };
+    // Calculate byte offset from LispPTR
+    const page_num = (target_addr >> 9) & 0x7FFF; // Page number (15 bits)
+    const page_offset_dlwords = target_addr & 0x1FF; // Page offset (9 bits, in DLwords)
+    const page_offset_bytes = page_offset_dlwords * 2; // Convert DLwords to bytes
     
-    // Read DLword (2 bytes, big-endian)
-    const byte_offset = @intFromPtr(native_ptr) - @intFromPtr(virtual_memory.ptr);
+    // Get virtual page from FPtoVP table
+    if (page_num >= fptovp_table.entries.len) {
+        return errors_module.VMError.InvalidAddress;
+    }
+    
+    const virtual_page = fptovp_table.getFPtoVP(page_num);
+    if (virtual_page == 0) {
+        return errors_module.VMError.InvalidAddress;
+    }
+    
+    // Calculate byte offset in virtual memory: virtual_page * 512 + page_offset_bytes
+    const BYTESPER_PAGE: usize = 512;
+    const byte_offset = (@as(usize, virtual_page) * BYTESPER_PAGE) + page_offset_bytes;
+    
     if (byte_offset + 2 > virtual_memory.len) {
         return errors_module.VMError.InvalidAddress;
     }
     
-    const word_bytes = virtual_memory[byte_offset..][0..2];
+    // Read DLword (2 bytes, big-endian)
+    const word_bytes = virtual_memory[byte_offset..byte_offset+2];
     const word_value: DLword = (@as(DLword, word_bytes[0]) << 8) | @as(DLword, word_bytes[1]);
     
     // Parse field descriptor: b = [shift:4][size:4]
