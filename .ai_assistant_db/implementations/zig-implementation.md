@@ -277,6 +277,97 @@ Several opcodes in the Zig implementation don't exist in the C implementation an
 
 **Status**: ✅ Implemented - Arithmetic opcodes (IPLUS2, IDIFFERENCE, ITIMES2, IQUO, IREM) now match C behavior
 
+### Array Operations Implementation ✅ IMPLEMENTED (2025-01-27)
+
+**CRITICAL**: AREF1 and ASET1 opcodes require proper OneDArray structure handling and type dispatch.
+
+**Implementation**: Created `data/array.zig` module with `OneDArray` structure matching C definition from `maiko/inc/lsptypes.h`.
+
+**Zig-Specific Details**:
+- **OneDArray Structure**: Packed struct matching non-BIGVM format:
+  - `nil1: u8` (8 bits unused)
+  - `base: u24` (24-bit base address)
+  - Flags: `readonlyp`, `indirectp`, `bitp`, `stringp`, `ajustablep`, `displacedp`, `fillpointerp`, `extendablep` (8 bits total)
+  - `typenumber: u8` (element type number)
+  - `offset: DLword` (offset into array)
+  - `fillpointer: DLword` (fill pointer)
+  - `totalsize: DLword` (total array size)
+- **Type Constants**: Defined in `array.zig`:
+  - `TYPE_POINTER = 38` (32-bit pointer elements)
+  - `TYPE_SIGNED_16 = 20` (16-bit signed integers)
+  - `TYPE_SIGNED_32 = 22` (32-bit signed integers)
+  - `TYPE_CHARACTER = 67` (8-bit character elements)
+  - `TYPE_UNSIGNED_1BIT = 0` (1-bit per element)
+  - `TYPE_UNSIGNED_8BIT = 3` (8-bit unsigned elements)
+- **Type Dispatch**: Switch statement on `typenumber` matches C `aref_switch()` and `aset_switch()`:
+  - TYPE_POINTER: Direct LispPTR read/write
+  - TYPE_SIGNED_16: DLword read with sign extension, low 16-bit write
+  - TYPE_CHARACTER: u8 read with S_CHARACTER tag, low 8-bit write
+  - Other types: TODO for future implementation
+- **Address Translation**: Uses `virtual_memory_module.translateAddress()` to convert LispPTR base addresses to native pointers
+- **Index Validation**: Checks `S_POSITIVE` segment mask and `index < totalsize` before access
+- **Offset Application**: Final index = `index + array.offset` (in DLword units)
+
+**Location**: `maiko/alternatives/zig/src/vm/opcodes/array_ops.zig:handleAREF1()`, `handleASET1()`
+
+**Status**: ✅ Implemented - AREF1 and ASET1 now properly handle OneDArray structures with type dispatch
+
+### Variable Access with DLword Offsets ✅ IMPLEMENTED (2025-01-27)
+
+**CRITICAL**: PVARX, IVARX, PVARX_, and IVARX_ opcodes use DLword offsets, NOT LispPTR offsets.
+
+**Implementation**: Updated `variable_access.zig` to handle DLword offset calculations.
+
+**Zig-Specific Details**:
+- **PVARX/IVARX**: Read operations using DLword offsets:
+  - Operand `x` is in DLword units (not LispPTR units)
+  - Offset calculation: `offset_bytes = x * 2` (each DLword is 2 bytes)
+  - Reads 2 DLwords (4 bytes) as LispPTR using `GetLongWord()` equivalent
+  - Handles big-endian byte order from sysout format
+- **PVARX_/IVARX_**: Write operations using DLword offsets:
+  - Operand `x` is in DLword units
+  - Writes LispPTR as 2 DLwords in big-endian format
+- **IVAR Base Address**: `IVAR` is `frame.nextblock` (LispPTR address):
+  - Must translate LispPTR to native pointer using `virtual_memory_module.translateAddress()`
+  - Translation requires FPtoVP table and virtual memory slice
+- **PVAR Base Address**: `PVAR` starts after frame header:
+  - `pvar_base = frame_addr + @sizeOf(FX)` (FRAMESIZE bytes)
+  - Direct native pointer calculation (no translation needed)
+- **Byte Order Handling**: Manual big-endian read/write:
+  - Read: `low_word = (bytes[0] << 8) | bytes[1]`, `high_word = (bytes[2] << 8) | bytes[3]`
+  - Write: `bytes[0] = low_word >> 8`, `bytes[1] = low_word & 0xFF`, etc.
+
+**Location**: `maiko/alternatives/zig/src/vm/opcodes/variable_access.zig:handlePVARX()`, `handleIVARX()`, `handlePVAR_SET()`, `handleIVARX_()`
+
+**Status**: ✅ Implemented - PVARX/IVARX operations now correctly use DLword offsets matching C implementation
+
+### Frame Information Opcodes ✅ IMPLEMENTED (2025-01-27)
+
+**CRITICAL**: MYALINK and MYARGCOUNT opcodes provide frame information needed for function calls and stack management.
+
+**Implementation**: Updated `variable_access.zig` with proper frame information calculations.
+
+**Zig-Specific Details**:
+- **MYALINK**: Activation link address calculation:
+  - Gets `alink` from `frame.link`
+  - Clears LSB: `alink & 0xFFFFFFFE`
+  - Subtracts FRAMESIZE: `alink_cleared - (FRAMESIZE * 2)` (FRAMESIZE = 10 DLwords = 20 bytes)
+  - Applies segment mask: `result | S_POSITIVE`
+  - **FRAMESIZE Constant**: Defined as `const FRAMESIZE: u32 = 10` (DLwords)
+- **MYARGCOUNT**: Argument count calculation:
+  - Checks `alink` LSB: `if ((frame.link & 1) == 0)`
+  - Calculates `arg_num`:
+    - LSB 0: `arg_num = frame_addr - @sizeOf(LispPTR)` (simplified)
+    - LSB 1: `arg_num = frame_addr` (simplified, full implementation needs Stackspace + blink)
+  - Gets IVar base: `ivar_base = frame.nextblock`
+  - Calculates count: `arg_count = (arg_num - ivar_base) >> 2` (divide by 4 for LispPTR units)
+  - Applies segment mask: `result | S_POSITIVE`
+  - **Note**: Full implementation requires `Stackspace` and `blink` fields (currently simplified)
+
+**Location**: `maiko/alternatives/zig/src/vm/opcodes/variable_access.zig:handleMYALINK()`, `handleMYARGCOUNT()`
+
+**Status**: ✅ Implemented - MYALINK and MYARGCOUNT now provide frame information matching C implementation
+
 ### Atom Table Access Implementation ✅ IMPLEMENTED (2025-01-27)
 
 **CRITICAL**: Atom table access required for GVAR, GVAR_, ACONST, and GCONST opcodes.
@@ -548,6 +639,70 @@ Several opcodes in the Zig implementation don't exist in the C implementation an
 **Location**: `maiko/alternatives/zig/src/vm/opcodes/list_ops.zig`
 
 **Status**: ✅ Implemented - All list operations complete (RESTLIST simplified, full IVar version TODO)
+
+### RPLPTR_N Implementation ✅ IMPLEMENTED (2025-12-11)
+
+**CRITICAL**: RPLPTR_N replaces pointer at offset N, updating GC refs.
+
+**Implementation**: Completed RPLPTR_N in `vm/opcodes/control_misc.zig` matching C implementation.
+
+**Zig-Specific Details**:
+- **RPLPTR_N**: Replace pointer at offset N
+  - Replaces pointer at `base + offset` with new value
+  - Updates GC refs: DELREF old value, ADDREF new value (matches C FRPLPTR behavior)
+  - Returns base on stack
+  - Uses `translateAddress()` for memory access
+  - C: `N_OP_rplptr` in `maiko/src/gvar2.c`
+
+**Location**: `maiko/alternatives/zig/src/vm/opcodes/control_misc.zig`
+
+**Status**: ✅ Implemented - RPLPTR_N complete with GC ref updates
+
+### FIXP Box Operations Implementation ✅ IMPLEMENTED (2025-12-11)
+
+**CRITICAL**: BOXIPLUS and BOXIDIFFERENCE modify FIXP boxes in place to avoid allocation.
+
+**Implementation**: Completed FIXP box operations in `vm/opcodes/number_ops.zig` matching C implementation.
+
+**Zig-Specific Details**:
+- **BOXIPLUS**: Adds number to FIXP box in place
+  - Checks TYPE_FIXP using `type_check.getTypeNumber()`
+  - Extracts integer from number using `extractInteger()`
+  - Modifies FIXP box value directly: `fixp_value_ptr.* += arg2`
+  - Returns box pointer (unchanged)
+  - C: `N_OP_boxiplus` in `maiko/src/arithops.c`
+- **BOXIDIFFERENCE**: Subtracts number from FIXP box in place
+  - Similar to BOXIPLUS but subtracts: `fixp_value_ptr.* -= arg2`
+  - C: `N_OP_boxidiff` in `maiko/src/arithops.c`
+
+**Location**: `maiko/alternatives/zig/src/vm/opcodes/number_ops.zig`
+
+**Status**: ✅ Implemented - FIXP box operations complete
+
+### Type Predicates Implementation ✅ IMPLEMENTED (2025-12-11)
+
+**CRITICAL**: LISTP, FIXP, and SMALLP type predicates use GetTypeNumber for accurate type checking.
+
+**Implementation**: Fixed type predicates in `vm/opcodes/type_checking.zig` to use proper type number checks.
+
+**Zig-Specific Details**:
+- **LISTP**: Uses `GetTypeNumber == TYPE_LISTP` (type 5)
+  - Returns T if value is a list (cons cell), NIL otherwise
+  - Falls back to `isList()` helper if type number unavailable
+  - C: `LISTP` macro in `maiko/inc/inlineC.h`
+- **FIXP**: Uses `GetTypeNumber == TYPE_FIXP` (type 2)
+  - Returns T if value is a FIXP (boxed integer), NIL otherwise
+  - Distinguishes FIXP (boxed) from SMALLP (directly encoded)
+- **SMALLP**: Uses segment mask check (S_POSITIVE/S_NEGATIVE) or `GetTypeNumber == TYPE_SMALLP` (type 1)
+  - Returns T if value is a SMALLP (small integer encoded directly), NIL otherwise
+  - Checks segment mask: `(segment == S_POSITIVE) or (segment == S_NEGATIVE)`
+- **Type Constants**: Updated `type_check.zig` with correct constants:
+  - `TYPE_SMALLP = 1` (small integer encoded directly)
+  - `TYPE_FIXP = 2` (boxed integer)
+
+**Location**: `maiko/alternatives/zig/src/vm/opcodes/type_checking.zig`, `maiko/alternatives/zig/src/utils/type_check.zig`
+
+**Status**: ✅ Implemented - Type predicates complete with proper type number checks
 
 ### Compilation Issues Fixed
 

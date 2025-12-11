@@ -64,16 +64,48 @@ Complete specification of all 256 bytecode opcodes (0x00-0xFF). Format: `Name (0
 
 ### Variable Access
 - **IVAR0-IVAR6 (0x40-0x46)** [1] Push local variable 0-6.
+  - Uses LispPTR offset (index * 4 bytes)
 - **IVARX (0x47)** [2] Push indexed local variable.
+  - **Stack**: `[] -> [value]`
+  - **Operand**: `x` (1B, DLword offset)
+  - **CRITICAL**: Uses DLword offset, NOT LispPTR offset
+  - **C**: `IVARX(x): PUSH(GetLongWord((DLword *)IVAR + (x)));`
+  - **Access**: Reads LispPTR from `(DLword *)IVAR + x` (x is in DLword units)
+  - **IVAR Base**: `IVAR` is `frame.nextblock` (LispPTR address, must be translated to native)
+  - **Element Size**: Reads 2 DLwords (4 bytes) as LispPTR using `GetLongWord()`
+  - **Byte Order**: Handles big-endian byte order from sysout format
 - **PVAR0-PVAR6 (0x48-0x4E)** [2] Push parameter 0-6.
+  - Uses LispPTR offset (index * 4 bytes)
 - **PVARX (0x4F)** [2] Push indexed parameter.
+  - **Stack**: `[] -> [value]`
+  - **Operand**: `x` (1B, DLword offset)
+  - **CRITICAL**: Uses DLword offset, NOT LispPTR offset
+  - **C**: `PVARX(x): PUSH(GetLongWord((DLword *)PVAR + (x)));`
+  - **Access**: Reads LispPTR from `(DLword *)PVAR + x` (x is in DLword units)
+  - **PVAR Base**: `PVAR` starts after frame header (FRAMESIZE bytes)
+  - **Element Size**: Reads 2 DLwords (4 bytes) as LispPTR using `GetLongWord()`
+  - **Byte Order**: Handles big-endian byte order from sysout format
 - **FVAR0-FVAR6 (0x50-0x56)** [1] Push free variable 0-6.
 - **FVARX (0x57)** [2] Push indexed free variable.
 - **PVAR_0-PVAR_6 (0x58-0x5E)** [1] Alternative PVAR access.
 - **PVARX_ (0x5F)** [2] Alternative indexed PVAR.
+  - **Stack**: `[value] -> []`
+  - **Operand**: `x` (1B, DLword offset)
+  - **CRITICAL**: Uses DLword offset, NOT LispPTR offset
+  - **C**: `PVARX_(x): *((LispPTR *)((DLword *)PVAR + (x))) = TOPOFSTACK;`
+  - **Access**: Writes LispPTR to `(DLword *)PVAR + x` (x is in DLword units)
+  - **Byte Order**: Writes in big-endian byte order for sysout format
 - **GVAR (0x60)** [3] Atom index (2B). Push global variable value.
 - **ARG0 (0x61)** [1] Push argument 0.
-- **IVARX_ (0x62), FVARX_ (0x63)** [2] Set variants.
+- **IVARX_ (0x62)** [2] Set indexed local variable.
+  - **Stack**: `[value] -> []`
+  - **Operand**: `x` (1B, DLword offset)
+  - **CRITICAL**: Uses DLword offset, NOT LispPTR offset
+  - **C**: `IVARX_(x): *((LispPTR *)((DLword *)IVAR + (x))) = TOPOFSTACK;`
+  - **Access**: Writes LispPTR to `(DLword *)IVAR + x` (x is in DLword units)
+  - **IVAR Base**: `IVAR` is `frame.nextblock` (LispPTR address, must be translated to native)
+  - **Byte Order**: Writes in big-endian byte order for sysout format
+- **FVARX_ (0x63)** [2] Set indexed free variable.
 
 ### Variable Setting
 - **PVARSETPOP0-PVARSETPOP6 (0xB8-0xBE)** [1] Set param N, pop value.
@@ -107,9 +139,45 @@ Complete specification of all 256 bytecode opcodes (0x00-0xFF). Format: `Name (0
 
 ### Array Operations
 - **AREF1 (0xB6)** [1] Pop index, array. Push element.
+  - **Stack**: `[index, array_ptr] -> [element_value]`
+  - **Type Check**: Must verify `GetTypeNumber(array_ptr) == TYPE_ONED_ARRAY` (14)
+  - **Structure**: Accesses `OneDArray` structure at `array_ptr`
+    - `base`: Base address (24 bits for non-BIGVM, 28 bits for BIGVM)
+    - `offset`: Offset into array (DLword units)
+    - `totalsize`: Total array size (DLword units)
+    - `typenumber`: Element type number (determines element size and encoding)
+  - **Index Validation**: 
+    - Index must be in `S_POSITIVE` segment (non-negative)
+    - Index must be `< totalsize`
+    - Final index = `index + offset`
+  - **Type Dispatch**: Element access depends on `typenumber`:
+    - `38` (TYPE_POINTER): 32-bit pointer elements (LispPTR)
+    - `20` (TYPE_SIGNED_16): 16-bit signed integers (DLword, sign-extended)
+    - `22` (TYPE_SIGNED_32): 32-bit signed integers (LispPTR, may be boxed as FIXP)
+    - `67` (TYPE_CHARACTER): 8-bit character elements (with S_CHARACTER tag)
+    - `0` (TYPE_UNSIGNED_1BIT): 1-bit per element (bit array)
+    - `3` (TYPE_UNSIGNED_8BIT): 8-bit unsigned elements
+    - Other types: See C implementation `aref_switch()` in `maiko/src/my.c`
+  - **C Reference**: `N_OP_aref1` in `maiko/src/arrayops.c`, `AREF1` macro in `maiko/inc/inlineC.h`
+
 - **AREF2 (0xEE)** [1] Pop index1, index0, array. Push element (2D).
+  - Uses `LispArray` structure (multi-dimensional)
+  - Calculates linear index: `(index0 * Dim1) + index1`
+
 - **ASET1 (0xB7)** [1] Pop value, index, array. Set element. Push array.
+  - **Stack**: `[value, index, array_ptr] -> [array_ptr]`
+  - **Type Check**: Must verify `GetTypeNumber(array_ptr) == TYPE_ONED_ARRAY` (14)
+  - **Read-only Check**: If `array.readonlyp == 1`, trigger error
+  - **Index Validation**: Same as AREF1
+  - **Type Dispatch**: Element write depends on `typenumber`:
+    - `38` (TYPE_POINTER): Write full LispPTR value
+    - `20` (TYPE_SIGNED_16): Write low 16 bits of value
+    - `67` (TYPE_CHARACTER): Write low 8 bits of value
+    - Other types: See C implementation `aset_switch()` in `maiko/src/my.c`
+  - **C Reference**: `N_OP_aset1` in `maiko/src/arrayops.c`, `ASET1` macro in `maiko/inc/inlineC.h`
+
 - **ASET2 (0xEF)** [1] Pop value, index1, index0, array. Set element. Push array.
+  - Uses `LispArray` structure (multi-dimensional)
 
 ### Type Operations
 - **NTYPX (0x04)** [1] TOS = type number of TOS.
@@ -370,7 +438,31 @@ Base operations access memory at a base address plus an offset. All base address
 - **SWAP (0xFD)** [1] Swap top two stack elements.
 - **NOP (0xFE)** [1] No operation.
 - **MAKENUMBER (0xF5)** [1] Convert TOS to proper number format.
+- **MYALINK (0x64)** [1] Push activation link address (previous frame pointer).
+  - **Stack**: `[] -> [alink_address]`
+  - **C**: `MYALINK: PUSH((((CURRENTFX->alink) & 0xfffe) - FRAMESIZE) | S_POSITIVE);`
+  - **Algorithm**:
+    1. Get `alink` from current frame (`frame.link`)
+    2. Clear LSB: `alink & 0xfffe` (or `alink & 0xFFFFFFFE` for full 32-bit)
+    3. Subtract FRAMESIZE: `(alink & 0xfffe) - FRAMESIZE` (FRAMESIZE = 10 DLwords = 20 bytes)
+    4. Apply segment mask: `result | S_POSITIVE`
+  - **Purpose**: Returns address of previous frame (activation link)
+  - **FRAMESIZE**: 10 DLwords = 20 bytes (size of frame header structure)
+  - **C Reference**: `MYALINK` macro in `maiko/inc/inlineC.h`
+
 - **MYARGCOUNT (0x65)** [1] Push argument count of current function.
+  - **Stack**: `[] -> [arg_count]`
+  - **C**: `MYARGCOUNT: PUSH((DLword)((arg_num - (UNSIGNED)IVar) >> 2) | S_POSITIVE);`
+  - **Algorithm**:
+    1. Check `alink` LSB: `if ((CURRENTFX->alink & 1) == 0)`
+    2. Calculate `arg_num`:
+       - If LSB is 0: `arg_num = (UNSIGNED)((LispPTR *)(CURRENTFX) - 1)`
+       - If LSB is 1: `arg_num = (UNSIGNED)(Stackspace + CURRENTFX->blink)`
+    3. Get IVar base: `IVar = frame.nextblock`
+    4. Calculate count: `arg_count = (arg_num - IVar) >> 2` (divide by 4 for LispPTR units)
+    5. Apply segment mask: `result | S_POSITIVE`
+  - **Purpose**: Returns number of arguments passed to current function
+  - **C Reference**: `MYARGCOUNT` macro in `maiko/inc/inlineC.h`
 - **STKSCAN (0x2F)** [1] Pop target. Push T if found in stack, else NIL.
 
 ## Unused Opcodes
