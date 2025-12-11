@@ -3,7 +3,6 @@ const stack = @import("../stack.zig");
 const types = @import("../../utils/types.zig");
 
 const VM = stack.VM;
-const LispPTR = types.LispPTR;
 
 /// SLRETURN: Stack-relative return
 /// Per rewrite documentation instruction-set/opcodes.md
@@ -32,7 +31,6 @@ pub fn handleSLRETURN(vm: *VM) errors.VMError!void {
 pub fn handleRPLPTR_N(vm: *VM, offset: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
     const errors_module = @import("../../utils/errors.zig");
-    const virtual_memory_module = @import("../../memory/virtual.zig");
     const gc_module = @import("../../memory/gc.zig");
 
     const new_value = try stack_module.popStack(vm);
@@ -43,7 +41,7 @@ pub fn handleRPLPTR_N(vm: *VM, offset: u8) errors.VMError!void {
     // C: pslot = (struct xpointer *)NativeAligned4FromLAddr(tos_m_1 + alpha);
     // alpha is a word offset, so multiply by 4 for bytes
     const base_ptr = types.POINTERMASK & base;
-    const target_addr = base_ptr + (@as(LispPTR, offset) * 4);
+    const target_addr = base_ptr + (@as(types.LispPTR, offset) * 4);
 
     // Get virtual memory access
     if (vm.virtual_memory == null or vm.fptovp == null) {
@@ -52,14 +50,35 @@ pub fn handleRPLPTR_N(vm: *VM, offset: u8) errors.VMError!void {
     
     const fptovp_table = vm.fptovp.?;
     
-    // Translate address to native pointer
-    const native_ptr = virtual_memory_module.translateAddress(target_addr, fptovp_table, 4) catch {
-        return errors_module.VMError.InvalidAddress;
-    };
+    // Calculate byte offset in virtual memory
+    const page_num = (target_addr >> 9) & 0x7FFF; // Page number (15 bits)
+    const page_offset_dlwords = target_addr & 0x1FF; // Page offset (9 bits, in DLwords)
+    const page_offset_bytes = page_offset_dlwords * 2; // Convert DLwords to bytes
     
-    // Read old value for GC
-    const old_value_ptr: *LispPTR = @as(*LispPTR, @ptrCast(@alignCast(native_ptr)));
-    const old_value = old_value_ptr.*;
+    // Get virtual page from FPtoVP table
+    if (page_num >= fptovp_table.entries.len) {
+        return errors_module.VMError.InvalidAddress;
+    }
+    
+    const virtual_page = fptovp_table.getFPtoVP(page_num);
+    if (virtual_page == 0) {
+        return errors_module.VMError.InvalidAddress;
+    }
+    
+    // Calculate byte offset in virtual memory: virtual_page * 512 + page_offset_bytes
+    const BYTESPER_PAGE: usize = 512;
+    const target_byte_offset = (@as(usize, virtual_page) * BYTESPER_PAGE) + page_offset_bytes;
+    
+    const virtual_memory = vm.virtual_memory.?;
+    if (target_byte_offset + 4 > virtual_memory.len) {
+        return errors_module.VMError.InvalidAddress;
+    }
+    
+    // Read old value for GC (big-endian from sysout)
+    const target_bytes = virtual_memory[target_byte_offset..target_byte_offset+4];
+    const old_low_word = (@as(types.DLword, target_bytes[0]) << 8) | @as(types.DLword, target_bytes[1]);
+    const old_high_word = (@as(types.DLword, target_bytes[2]) << 8) | @as(types.DLword, target_bytes[3]);
+    const old_value: types.LispPTR = (@as(types.LispPTR, old_high_word) << 16) | @as(types.LispPTR, old_low_word);
     
     // Update GC refs: DELREF old value, ADDREF new value
     // C: FRPLPTR(old, new) - does GCLOOKUP(new, ADDREF), GCLOOKUP(old, DELREF), then (old) = (new)
@@ -68,8 +87,15 @@ pub fn handleRPLPTR_N(vm: *VM, offset: u8) errors.VMError!void {
         gc_module.addReference(gc, new_value) catch {};
     }
     
-    // Write new value (big-endian from sysout format)
-    old_value_ptr.* = new_value;
+    // Write new value (big-endian to sysout format)
+    const virtual_memory_mut: []u8 = @constCast(virtual_memory);
+    const target_bytes_mut = virtual_memory_mut[target_byte_offset..target_byte_offset+4];
+    const new_low_word = @as(types.DLword, @truncate(new_value));
+    const new_high_word = @as(types.DLword, @truncate(new_value >> 16));
+    target_bytes_mut[0] = @as(u8, @truncate(new_low_word >> 8));
+    target_bytes_mut[1] = @as(u8, @truncate(new_low_word & 0xFF));
+    target_bytes_mut[2] = @as(u8, @truncate(new_high_word >> 8));
+    target_bytes_mut[3] = @as(u8, @truncate(new_high_word & 0xFF));
     
     // Push base back on stack
     try stack_module.pushStack(vm, base);

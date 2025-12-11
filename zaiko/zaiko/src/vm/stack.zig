@@ -10,20 +10,50 @@ const DLword = types.DLword;
 /// Added to stkmin when checking stack space
 pub const STK_SAFE: u16 = 32;
 
-/// Stack frame structure (matches C FX)
-/// Per data-model.md
+/// Stack frame structure (matches C frameex1)
+/// Per maiko/inc/stack.h:81-108
+/// Non-BIGVM version (most common)
 pub const FX = packed struct {
-    nextblock: LispPTR, // Next stack block pointer
-    link: LispPTR, // Activation link (previous frame)
-    fnheader: LispPTR, // Function header pointer
-    pcoffset: DLword, // PC offset
+    flags_usecount: DLword, // flags (3 bits) + fast (1) + nil2 (1) + incall (1) + validnametable (1) + nopush (1) + usecount (8 bits)
+    alink: DLword, // Activation link (Low addr)
+    lofnheader: DLword, // Function header pointer (Low addr, 16 bits)
+    hi1fnheader_hi2fnheader: u16, // hi1fnheader (8 bits) + hi2fnheader (8 bits)
+    nextblock: DLword, // Pointer to FreeStackBlock
+    pc: DLword, // Program counter (byte offset from FuncObj)
+    lonametable: DLword, // NameTable pointer (Low addr, 16 bits)
+    hi1nametable_hi2nametable: u16, // hi1nametable (8 bits) + hi2nametable (8 bits)
+    blink: DLword, // blink pointer (Low addr)
+    clink: DLword, // clink pointer (Low addr)
     // Local variables follow in memory after this struct
 };
+
+/// Helper function to get fnheader from FX structure (non-BIGVM)
+/// C: FX_FNHEADER = (CURRENTFX->hi2fnheader << 16) | CURRENTFX->lofnheader
+pub fn getFnHeader(frame: *align(1) FX) LispPTR {
+    const hi2fnheader = (frame.hi1fnheader_hi2fnheader >> 8) & 0xFF;
+    const lofnheader = frame.lofnheader;
+    return (@as(LispPTR, hi2fnheader) << 16) | @as(LispPTR, lofnheader);
+}
+
+/// Helper function to get alink from FX structure
+pub fn getAlink(frame: *align(1) FX) LispPTR {
+    return @as(LispPTR, frame.alink);
+}
+
+/// Helper function to get nextblock from FX structure
+pub fn getNextblock(frame: *align(1) FX) DLword {
+    return frame.nextblock;
+}
+
+/// Helper function to get pc from FX structure
+pub fn getPC(frame: *align(1) FX) DLword {
+    return frame.pc;
+}
 
 /// VM state structure
 pub const VM = struct {
     allocator: std.mem.Allocator,
-    current_frame: ?*FX,
+    current_frame: ?*align(1) FX, // align(1) allows unaligned frame pointers from virtual memory
     stack_base: [*]DLword,
     stack_ptr: [*]DLword,
     stack_end: [*]DLword,
@@ -124,15 +154,25 @@ pub fn allocateStackFrame(vm: *VM, size: usize) errors.VMError!*FX {
     // Create frame pointer
     const frame: *FX = @as(*FX, @ptrFromInt(aligned_addr));
     frame.* = FX{
+        .flags_usecount = 0,
+        .alink = 0,
+        .lofnheader = 0,
+        .hi1fnheader_hi2fnheader = 0,
         .nextblock = 0, // Will be set to point to IVar area
-        .link = if (vm.current_frame) |cf| @as(LispPTR, @truncate(@intFromPtr(cf))) else 0,
-        .fnheader = 0,
-        .pcoffset = 0,
+        .pc = 0,
+        .lonametable = 0,
+        .hi1nametable_hi2nametable = 0,
+        .blink = 0,
+        .clink = 0,
     };
 
     // Set nextblock to point to IVar area (after frame header)
+    // CRITICAL: nextblock is a DLword offset from Stackspace, not a native address
+    const STK_OFFSET: u32 = 0x00010000; // DLword offset from Lisp_world
+    const stackspace_byte_offset = STK_OFFSET * 2;
     const ivar_base_addr = aligned_addr + @sizeOf(FX);
-    frame.nextblock = @as(LispPTR, @intCast(ivar_base_addr));
+    const nextblock_dlword_offset = @as(DLword, @intCast((ivar_base_addr - stackspace_byte_offset) / 2));
+    frame.nextblock = nextblock_dlword_offset;
 
     vm.current_frame = frame;
     return frame;
@@ -140,7 +180,7 @@ pub fn allocateStackFrame(vm: *VM, size: usize) errors.VMError!*FX {
 
 /// Set parameter value in frame
 /// Helper function for setting up function call parameters
-pub fn setPVar(frame: *FX, index: usize, value: LispPTR) void {
+pub fn setPVar(frame: *align(1) FX, index: usize, value: LispPTR) void {
     const frame_addr = @intFromPtr(frame);
     const frame_size = @sizeOf(FX);
     const pvar_base_addr = frame_addr + frame_size;
@@ -151,37 +191,30 @@ pub fn setPVar(frame: *FX, index: usize, value: LispPTR) void {
 
 /// Get IVar value from frame
 /// Helper function for accessing local variables
-pub fn getIVar(frame: *FX, index: usize) LispPTR {
+pub fn getIVar(frame: *align(1) FX, index: usize) LispPTR {
     // IVars stored at nextblock offset
-    const ivar_base_addr = frame.nextblock;
-    if (ivar_base_addr == 0) {
-        return 0; // No IVar area allocated
-    }
-
-    // Access IVar at index (each IVar is LispPTR = 4 bytes)
-    const ivar_addr = ivar_base_addr + (@as(LispPTR, @intCast(index)) * @sizeOf(LispPTR));
-
-    // Convert to native pointer and read
-    const ivar_ptr: *LispPTR = @as(*LispPTR, @ptrFromInt(@as(usize, ivar_addr)));
-    return ivar_ptr.*;
+    // CRITICAL: nextblock is a DLword offset from Stackspace, not a LispPTR
+    // This function is deprecated - use handleIVAR in variable_access.zig instead
+    // Keeping for compatibility but should not be used
+    _ = frame;
+    _ = index;
+    return 0; // Deprecated - use handleIVAR instead
 }
 
 /// Set IVar value in frame
 /// Helper function for setting local variables
-pub fn setIVar(frame: *FX, index: usize, value: LispPTR) void {
-    const ivar_base_addr = frame.nextblock;
-    if (ivar_base_addr == 0) {
-        return; // No IVar area allocated
-    }
-
-    const ivar_addr = ivar_base_addr + (@as(LispPTR, @intCast(index)) * @sizeOf(LispPTR));
-    const ivar_ptr: *LispPTR = @as(*LispPTR, @ptrFromInt(@as(usize, ivar_addr)));
-    ivar_ptr.* = value;
+pub fn setIVar(frame: *align(1) FX, index: usize, value: LispPTR) void {
+    // CRITICAL: nextblock is a DLword offset from Stackspace, not a LispPTR
+    // This function is deprecated - use handleIVAR in variable_access.zig instead
+    _ = frame;
+    _ = index;
+    _ = value;
+    // Deprecated - use handleIVAR instead
 }
 
 /// Get PVar value from frame
 /// Helper function for accessing parameter variables
-pub fn getPVar(frame: *FX, index: u8) LispPTR {
+pub fn getPVar(frame: *align(1) FX, index: u8) LispPTR {
     // PVars stored right after frame header
     const frame_addr = @intFromPtr(frame);
     const frame_size = @sizeOf(FX);
@@ -213,8 +246,8 @@ pub fn extendStack(vm: *VM) errors.VMError!void {
 
 /// Get activation link
 /// Per contracts/vm-core-interface.zig
-pub fn getActivationLink(frame: *FX) LispPTR {
-    return frame.link;
+pub fn getActivationLink(frame: *align(1) FX) LispPTR {
+    return getAlink(frame);
 }
 
 /// Push value onto stack
