@@ -415,6 +415,37 @@ Several opcodes in the Zig implementation don't exist in the C implementation an
 
 **Status**: ✅ Implemented - All binding operations complete
 
+### Comparison Operations Implementation ✅ IMPLEMENTED (2025-12-11)
+
+**CRITICAL**: Comparison operations (EQ, EQL, EQUAL, GREATERP, LESSP, IGREATERP) need proper handling for atoms and arrays.
+
+**Implementation**: Enhanced comparison operations in `vm/opcodes/comparison.zig` with proper atom and array comparison.
+
+**Zig-Specific Details**:
+- **EQ**: Pointer equality (already correct) - atoms are interned, so pointer comparison is correct
+- **EQL**: Deep comparison for cons cells and numbers, pointer comparison for atoms/arrays
+- **EQUAL**: Recursive comparison with element-by-element array comparison
+  - Atoms: Type checking to ensure atoms use pointer comparison (atoms are interned)
+  - Arrays: Element-by-element comparison using `compareArrays()` helper
+    - Compares array lengths first
+    - Recursively compares each element using `equalRecursive()`
+- **GREATERP/LESSP/IGREATERP**: Signed integer comparison (works on any LispPTR)
+
+**Type Checking**:
+- Uses `type_check.getTypeNumber()` to detect atom types (NEWATOM, LITATOM)
+- Detects array types (TYPE_ONED_ARRAY, TYPE_TWOD_ARRAY, TYPE_GENERAL_ARRAY)
+- Falls back to pointer comparison for unknown types
+
+**Array Comparison**:
+- `compareArrays()`: Compares two arrays element-by-element
+- Validates array lengths match first
+- Recursively compares elements using `equalRecursive()` for deep equality
+- Handles all array types (1D, 2D, general)
+
+**Location**: `maiko/alternatives/zig/src/vm/opcodes/comparison.zig`
+
+**Status**: ✅ Implemented - All comparison operations complete with proper atom and array handling
+
 ### Compilation Issues Fixed
 
 **Type Mismatches**:
