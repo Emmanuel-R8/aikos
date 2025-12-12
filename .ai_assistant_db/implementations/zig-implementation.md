@@ -58,6 +58,15 @@ The Zig implementation provides a complete framework for the Maiko emulator in Z
   - ✅ Frame addressing: currentfxp is DLword StackOffset from Stackspace (STK_OFFSET * 2 = 0x20000)
   - ✅ Frame reading: Frame structure reading implemented with byte-swapping
   - ✅ Frame field offsets: Corrected fnheader (bytes 4-7), nextblock (bytes 8-9), pc (bytes 10-11)
+  - ✅ **Frame field layout fix** (2025-12-12): Fixed frame structure field reading - actual memory layout differs from C struct definition
+    - Fields are swapped: `lofnheader` is at bytes [6,7], `hi1fnheader_hi2fnheader` is at bytes [4,5]
+    - `hi2fnheader` is in the LOW byte (bits 0-7) of `hi1fnheader_hi2fnheader`, not high byte
+    - This matches actual memory contents in `starter.sysout` frame at offset `0x25ce4`
+    - Verified: Now correctly reads `FX_FNHEADER=0x307864` matching C emulator
+  - ✅ **Virtual memory initialization** (2025-12-12): Virtual memory is now zeroed after allocation to ensure sparse pages are initialized correctly
+  - ✅ **Page byte-swapping** (2025-12-12): Pages are now byte-swapped when loading from sysout file (matching C `word_swap_page`)
+    - Converts big-endian DLwords to little-endian native format
+    - Frame fields are now read as native little-endian (not using `readDLwordBE`)
   - ✅ System initialization: Implemented initializeSystem() equivalent to build_lisp_map(), init_storage(), etc.
   - ✅ Frame repair: Implemented initializeFrame() to repair uninitialized frames (sets nextblock and free stack block)
   - ✅ PC initialization: Implemented FastRetCALL logic (PC = FuncObj + CURRENTFX->pc)
@@ -66,6 +75,10 @@ The Zig implementation provides a complete framework for the Maiko emulator in Z
   - ⚠️ PC fallback: Frame fnheader=0x0 requires fallback PC (using hardcoded entry point for now)
   - **CRITICAL BLOCKER - RESOLVED**: The initial frame in `starter.sysout` at `currentfxp=0x2e72` (11890 DLwords from Stackspace, byte offset 0x25ce4) is **SPARSE** (not loaded from sysout file). **BREAKTHROUGH FINDINGS**: (1) Frame page (virtual page 1209) is **SPARSE** - FPtoVP table check confirms no file page maps to virtual page 1209. (2) Sparse pages remain **ZEROS after mmap()** - they're not loaded from sysout file (`GETPAGEOK(fptovp, i) == 0177777` means sparse). (3) C emulator MUST initialize sparse frame pages before `start_lisp()`, otherwise `GETWORD(next68k) != STK_FSB_WORD` check would fail. (4) **SOLUTION**: Zig emulator's `initializeFrame()` in `init.zig` already handles this - it's called in `initializeSystem()` before `start_lisp()`. The function checks if frame is uninitialized (`fnheader=0` and `nextblock=0`) and initializes `nextblock` to point to a free stack block with `STK_FSB_WORD` marker. (5) **fptovpstart = 0x03ff = 1023** (not 0!) - FPtoVP table at offset 523266 bytes. **NEXT STEP**: Test Zig emulator with actual sysout to verify frame initialization works correctly.
   - ⚠️ Opcode handlers need completion (many stubs exist)
+  - ✅ **Instruction limit/timeout added** (2025-12-11): Added 1M instruction limit to prevent infinite loops during development
+  - ✅ **JUMP0 fix** (2025-12-11): JUMP0 with offset 0 now advances PC by instruction length to prevent infinite loops
+  - ✅ **GETBITS_N_FD fix** (2025-12-11): Fixed integer overflow by using page-based address calculation instead of pointer arithmetic
+  - ✅ **MISC8/UBFLOAT3 decode** (2025-12-11): Added missing opcodes (0x31, 0x32) to decode switch
 
 - ✅ **Essential Opcodes** (P1 - COMPLETE)
   - ✅ Function calls (FN0-FN4, RETURN, UNWIND) - implemented
@@ -211,9 +224,16 @@ The page loading algorithm is now implemented.
 3. Seek to file page offset: `file_page * BYTESPER_PAGE`
 4. Read 512 bytes (BYTESPER_PAGE)
 5. Write to virtual address: `virtual_page * BYTESPER_PAGE`
-6. Handle byte swapping (stubbed for now)
+6. **CRITICAL**: Byte-swap page data (big-endian sysout -> little-endian native)
+   - Swap each DLword (2 bytes) in the page: `[high, low] -> [low, high]`
+   - C: `word_swap_page((DLword *)(lispworld_scratch + lispworld_offset), 128);`
+   - After byte-swapping, frame fields are in native little-endian format
 
-**Status**: ✅ Implemented with sparse page handling
+**Status**: ✅ Implemented with sparse page handling and byte-swapping
+
+**Virtual Memory Initialization**:
+- Virtual memory is zeroed after allocation to ensure sparse pages are initialized correctly
+- Sparse pages (not loaded from sysout) remain zeros, matching C emulator behavior
 
 ### Version Constants
 
@@ -884,6 +904,40 @@ See `specs/005-zig-completion/` for detailed completion plan:
 - Stack depth decreases correctly as values are popped (6144 -> 6142 -> 6140...)
 
 **Status**: ✅ BREAKTHROUGH - Stack now uses virtual memory directly, bytecode execution working!
+
+### Frame Structure Field Layout Fix ✅ FIXED (2025-12-12)
+
+**CRITICAL**: The actual memory layout of frame fields differs from the C struct definition in `maiko/inc/stack.h`. Implementations must verify actual byte offsets by examining memory contents.
+
+**Problem Discovered**:
+- Zig emulator was reading `FX_FNHEADER=0x780030` instead of expected `0x307864`
+- Frame fields appeared to be shifted by 2 bytes
+- Raw bytes at frame offset `0x25ce4` showed: `[4,5]=0x30 0x00`, `[6,7]=0x64 0x78`
+
+**Root Cause**:
+- Actual memory layout has fields swapped compared to struct definition:
+  - `lofnheader` is at bytes [6,7] (NOT [4,5] as struct suggests)
+  - `hi1fnheader_hi2fnheader` is at bytes [4,5] (NOT [6,7] as struct suggests)
+  - `hi2fnheader` is in the LOW byte (bits 0-7) of `hi1fnheader_hi2fnheader`, not high byte
+
+**Solution**:
+- Swapped field offsets: read `lofnheader` from [6,7] and `hi1fnheader_hi2fnheader` from [4,5]
+- Changed `hi2fnheader` extraction: read from low byte (`& 0xFF`) instead of high byte (`>> 8`)
+- Verified: Now correctly reads `FX_FNHEADER=0x307864` matching C emulator
+
+**Zig Implementation**:
+```zig
+// Read frame fields (native little-endian, pages byte-swapped on load)
+const hi1fnheader_hi2fnheader = std.mem.readInt(DLword, frame_bytes[4..6], .little);
+const lofnheader = std.mem.readInt(DLword, frame_bytes[6..8], .little);
+// hi2fnheader is in the LOW byte (bits 0-7) of hi1fnheader_hi2fnheader
+const hi2fnheader: u8 = @as(u8, @truncate(hi1fnheader_hi2fnheader & 0xFF));
+const fnheader_be = (@as(LispPTR, hi2fnheader) << 16) | lofnheader;
+```
+
+**Location**: `maiko/alternatives/zig/src/vm/dispatch.zig:initializeVMState()`
+
+**Status**: ✅ Fixed - Frame field reading now matches C emulator behavior
 
 ### Frame Reading with Byte-Swapping
 

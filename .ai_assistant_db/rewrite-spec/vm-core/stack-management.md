@@ -39,8 +39,13 @@ graph TD
 
 ### Frame Structure (FX)
 
+**CRITICAL**: The actual memory layout of frame fields may differ from the C struct definition due to compiler-specific bitfield packing and struct layout. Implementations MUST verify the actual byte offsets by examining memory contents, not just relying on struct definitions.
+
+**Non-BIGVM Frame Layout (actual memory bytes)**:
+
 ```pseudocode
 struct FrameEx:
+    // Offset 0-1: flags + usecount (packed into one DLword)
     flags: 3 bits          // Frame flags
     fast: 1 bit            // Fast call flag
     nil2: 1 bit            // Reserved
@@ -48,15 +53,50 @@ struct FrameEx:
     validnametable: 1 bit  // Name table valid flag
     nopush: 1 bit          // No push flag
     usecount: 8 bits       // Use count for GC
+    
+    // Offset 2-3: alink
     alink: DLword          // Activation link (previous frame)
-    fnheader: LispPTR      // Function header pointer
+    
+    // Offset 4-5: hi1fnheader_hi2fnheader (NOT lofnheader!)
+    // CRITICAL: Field positions are swapped compared to struct definition
+    hi1fnheader: 8 bits    // Function header pointer (Hi1 addr, low byte)
+    hi2fnheader: 8 bits    // Function header pointer (Hi2 addr, high byte)
+    
+    // Offset 6-7: lofnheader (NOT hi1fnheader_hi2fnheader!)
+    // CRITICAL: Field positions are swapped compared to struct definition
+    lofnheader: DLword     // Function header pointer (Low addr, 16 bits)
+    
+    // Offset 8-9: nextblock
     nextblock: DLword      // Next stack block offset
-    pc: DLword             // Program counter offset
+    
+    // Offset 10-11: pc
+    pc: DLword             // Program counter offset (byte offset from FuncObj)
+    
+    // Offset 12-15: nametable (non-BIGVM: lonametable + hi1nametable_hi2nametable)
     nametable: LispPTR     // Name table pointer
+    
+    // Offset 16-17: blink
     blink: DLword          // Binding link
+    
+    // Offset 18-19: clink
     clink: DLword          // Closure link
+    
     // ... local variables follow ...
 ```
+
+**FX_FNHEADER Calculation**:
+
+```pseudocode
+function CalculateFX_FNHEADER(frame):
+    // Read hi2fnheader from low byte of offset 4-5 (NOT high byte!)
+    hi2fnheader = (frame[4] & 0xFF)  // Low byte contains hi2fnheader
+    lofnheader = ReadDLword(frame, offset=6)  // lofnheader at offset 6-7
+    
+    // Combine: FX_FNHEADER = (hi2fnheader << 16) | lofnheader
+    return (hi2fnheader << 16) | lofnheader
+```
+
+**C Reference**: `maiko/inc/stack.h:81-110` defines the struct, but actual memory layout may differ. Verified against `starter.sysout` frame at offset `0x25ce4` (virtual page 302).
 
 ### Frame Markers
 

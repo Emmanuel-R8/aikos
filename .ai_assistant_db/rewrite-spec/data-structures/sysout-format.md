@@ -313,6 +313,11 @@ function LoadSysoutFile(filename, process_size):
 
     // Allocate virtual memory
     virtual_memory = AllocateMemory(process_size)
+    
+    // CRITICAL: Zero virtual memory to ensure sparse pages are initialized correctly
+    // C emulator initializes memory to zeros, so sparse/unmapped pages should be zero
+    // This ensures that pages not loaded from sysout file contain zeros, not garbage
+    ZeroMemory(virtual_memory, process_size)
 
     // Read FPtoVP table
     fptovp = ReadFPtoVP(file, ifpage.fptovpstart, ifpage.nactivepages)
@@ -328,7 +333,7 @@ function LoadSysoutFile(filename, process_size):
 
 ### Page Loading with Byte Swapping
 
-**CRITICAL**: Page data is stored in big-endian format in sysout files. When loading on little-endian machines, byte swapping is required for multi-byte values.
+**CRITICAL**: Page data is stored in big-endian format in sysout files. When loading on little-endian machines, pages must be byte-swapped after loading to convert DLwords from big-endian to little-endian format.
 
 ```pseudocode
 function LoadPage(file, file_page_number, virtual_page_number):
@@ -341,31 +346,32 @@ function LoadPage(file, file_page_number, virtual_page_number):
     // Read page data (512 bytes)
     page_buffer = Read(file, 512)
 
-    // CRITICAL: Page data is stored as-is (no byte swapping needed for raw bytes)
-    // Byte swapping is only needed when interpreting multi-byte values:
-    // - DLword (2 bytes): Swap bytes when reading as integer
-    // - LispPTR (4 bytes): Swap bytes when reading as integer
-    // - But raw page data can be copied directly to virtual memory
-
     // Calculate virtual address: virtual_page_number * BYTESPER_PAGE
     virtual_address = virtual_page_number * 512
 
-    // Copy page data directly to virtual memory
-    // Note: Byte swapping happens when reading structured data (IFPAGE, frames, etc.)
-    // not when copying raw page data
+    // Copy page data to virtual memory
     WriteMemory(virtual_address, page_buffer, 512)
+    
+    // CRITICAL: Byte-swap page data (big-endian sysout -> little-endian native)
+    // C: #ifdef BYTESWAP word_swap_page((DLword *)(lispworld_scratch + lispworld_offset), 128); #endif
+    // word_swap_page swaps u16 words, so we swap each DLword (2 bytes) in the page
+    // This converts: [high_byte, low_byte] -> [low_byte, high_byte] for each DLword
+    page_dlwords = GetDLwordArray(virtual_memory, virtual_address)
+    num_dlwords = 512 / 2  // 256 DLwords per page
+    for i = 0 to num_dlwords:
+        // Swap bytes in each DLword: [high, low] -> [low, high]
+        temp = page_dlwords[i] & 0xFF
+        page_dlwords[i] = ((page_dlwords[i] >> 8) & 0xFF) | (temp << 8)
 ```
 
 **Byte Swapping Details**:
 - **IFPAGE**: All DLword fields must be byte-swapped after reading
 - **FPtoVP Table**: Each entry (u16 or u32) must be byte-swapped after reading
-- **Frame Structures**: DLword and LispPTR fields must be byte-swapped when reading
-- **Function Headers**: DLword fields must be byte-swapped when reading
-- **Raw Page Data**: Can be copied directly; byte swapping happens when interpreting structured data
-    InitializeVMState(ifpage)
+- **Memory Pages**: All DLwords in each page must be byte-swapped after loading (C: `word_swap_page`)
+- **Frame Structures**: After page byte-swapping, frame fields are in native little-endian format
+- **Function Headers**: After page byte-swapping, function header fields are in native little-endian format
 
-    return virtual_memory
-```
+**C Reference**: `maiko/src/ldsout.c:676-678` - `word_swap_page((DLword *)(lispworld_scratch + lispworld_offset), 128);`
 
 ### Frame Structure Reading
 
