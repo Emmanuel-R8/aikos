@@ -373,6 +373,74 @@ function LoadPage(file, file_page_number, virtual_page_number):
 
 **C Reference**: `maiko/src/ldsout.c:676-678` - `word_swap_page((DLword *)(lispworld_scratch + lispworld_offset), 128);`
 
+## Byte-Endianness Best Practices
+
+### General Rules
+
+1. **Sysout Format**: Always store data in **big-endian format** (network byte order)
+2. **Host Adaptation**: Byte-swap when loading on little-endian machines
+3. **Memory Access**: Use specialized macros that handle byte order differences
+4. **Address Handling**: Never byte-swap address values (LispPTR) - they are opaque 32-bit offsets
+
+### Data vs Address Endianness
+
+**CRITICAL DISTINCTION**: The Maiko emulator handles **data values** and **address values** differently:
+
+#### Data Values (Subject to Byte-Swapping)
+
+- **Stored in**: Big-endian format in sysout files
+- **Byte-swapped**: When loaded on little-endian hosts
+- **Accessed via**: Specialized macros that handle byte order differences
+- **Examples**: DLword values, LispPTR values used as data, frame fields, function header fields
+
+#### Address Values (Never Byte-Swapped)
+
+- **Treated as**: Opaque 32-bit offsets into virtual memory
+- **No byte-swapping**: Applied to address calculations
+- **Converted via**: Pointer arithmetic (`Lisp_world + offset`)
+- **Examples**: LispPTR values used for address translation, frame pointers, function header pointers
+
+### Implementation Checklist
+
+When implementing sysout loading:
+
+- [ ] Read data from sysout file (big-endian format)
+- [ ] Check host byte order (little-endian vs big-endian)
+- [ ] Byte-swap data if host is little-endian (using `word_swap_page()` or equivalent)
+- [ ] Use native byte order for runtime operations
+- [ ] Never byte-swap address calculations (LispPTR values used as offsets)
+
+### Common Pitfalls
+
+1. **Mixed Byte Order**: Don't mix big-endian and little-endian data in the same structure
+2. **Address Confusion**: Don't byte-swap LispPTR values used for address calculations - they are offsets, not data
+3. **Inconsistent Swapping**: Apply byte-swapping consistently to all multi-byte fields in a page
+4. **Performance Impact**: Be aware that byte-swapping has performance overhead - do it once during loading, not during runtime
+5. **Structure Field Order**: Don't assume structure field order matches memory layout - verify actual byte offsets
+
+### Example: Value `0x01234567`
+
+#### As Data (Subject to Byte-Swapping)
+
+- **Sysout File**: `0x01 0x23 0x45 0x67` (big-endian)
+- **Little-Endian Host (After Byte-Swap)**: `0x67 0x45 0x23 0x01` (native little-endian)
+- **Big-Endian Host (No Swap)**: `0x01 0x23 0x45 0x67` (native big-endian)
+
+#### As Address (No Byte-Swapping)
+
+- **All Architectures**: `0x01234567` (treated as 32-bit offset)
+- **Translation**: `Lisp_world + 0x01234567` (pointer arithmetic)
+- **No byte order dependency**: Address calculations work the same on all architectures
+
+### Memory Access Macros
+
+The C implementation provides different macros for data access based on `BYTESWAP`:
+
+- **Non-BYTESWAP (Big-Endian Host)**: Direct memory access
+- **BYTESWAP (Little-Endian Host)**: Pointer adjustments via XOR operations to handle byte-swapped layout
+
+**C Reference**: `maiko/inc/lsptypes.h:370-376` (non-BYTESWAP), `maiko/inc/lsptypes.h:565-572` (BYTESWAP)
+
 ### Frame Structure Reading
 
 When reading frame structures (FX) from sysout files, multi-byte fields must be byte-swapped:
@@ -431,11 +499,11 @@ function ReadFrame(virtual_memory, frame_offset):
 
 ## Byte Swapping
 
-**CRITICAL**: Sysout files are stored in **big-endian byte order** (network byte order). When loading on a little-endian machine, byte swapping is required for all multi-byte values.
+**CRITICAL**: Sysout files are stored in **big-endian byte order**. When loading on a little-endian machine, byte swapping is required for all multi-byte values.
 
 ### Byte Order in Sysout Files
 
-- **File Format**: Big-endian (network byte order)
+- **File Format**: Big-endian
 - **DLword fields**: Stored as `[high_byte, low_byte]`
 - **LispPTR fields**: Stored as two big-endian DLwords `[h1, l1, h2, l2]`
 - **IFPAGE structure**: All fields stored in big-endian format
@@ -513,9 +581,11 @@ function LoadFPtoVPTable(file, ifpage):
 
 ### Memory Pages Byte Swapping
 
-Memory pages loaded from the sysout file may also need byte swapping, depending on their content type (code vs data). Code pages typically need byte swapping, while data pages may be handled differently.
+**CRITICAL**: All memory pages loaded from sysout files MUST be byte-swapped after loading when running on little-endian hosts. The C implementation uses `word_swap_page()` which swaps all DLwords in the page, converting from big-endian (sysout format) to little-endian (native format on x86_64).
 
-**C Reference**: `maiko/src/ldsout.c:327-328` - Byte swapping for memory pages
+**C Reference**: `maiko/src/ldsout.c:676-678` - `word_swap_page((DLword *)(lispworld_scratch + lispworld_offset), 128);`
+
+**Note**: This byte-swapping applies to ALL pages (both code and data pages). There is no distinction between code and data pages regarding byte-swapping - all pages are byte-swapped uniformly.
 
 ## Version Compatibility
 

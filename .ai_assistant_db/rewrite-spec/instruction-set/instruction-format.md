@@ -104,9 +104,12 @@ The program counter advances by the instruction length, positioning it at the ne
 
 ## Endianness
 
-- **Byte order**: Little-endian for multi-byte operands
-- **Word order**: 16-bit words in little-endian format
-- **Address encoding**: Platform-dependent but abstracted through LispPTR
+**CRITICAL**: Instruction operands in sysout files are stored in **big-endian byte order**. When loading on little-endian hosts, byte-swapping is required.
+
+- **Byte order in sysout files**: Big-endian for multi-byte operands
+- **Byte order in memory (after loading)**: Native host format (little-endian on x86_64, big-endian on big-endian hosts)
+- **Byte swapping**: Required when loading on little-endian hosts (handled by `word_swap_page()` during page loading)
+- **Address encoding**: LispPTR values are opaque 32-bit offsets, never byte-swapped (pointer arithmetic only)
 
 ## Special Cases
 
