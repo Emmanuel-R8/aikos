@@ -152,6 +152,9 @@ pub fn loadSysout(allocator: std.mem.Allocator, filename: []const u8) errors.Mem
         std.debug.print("    - Allocator failure\n", .{});
         return error.AllocationFailed;
     };
+    // CRITICAL: Zero virtual memory to ensure sparse pages are initialized correctly
+    // C emulator initializes memory to zeros, so sparse/unmapped pages should be zero
+    @memset(virtual_memory, 0);
 
     // Load FPtoVP table
     var file_mut = file;
@@ -452,5 +455,19 @@ pub fn loadMemoryPages(
 
         // Write page data to virtual memory
         @memcpy(virtual_memory[virtual_address..][0..BYTESPER_PAGE], &page_buffer);
+        
+        // CRITICAL: Byte-swap page data (big-endian sysout -> little-endian native)
+        // C: #ifdef BYTESWAP word_swap_page((DLword *)(lispworld_scratch + lispworld_offset), 128); #endif
+        // We always byte-swap because sysout files are big-endian and we're on little-endian host
+        // word_swap_page swaps u16 words, so we swap each DLword (2 bytes) in the page
+        const page_dlwords = @as([*]DLword, @ptrCast(@alignCast(virtual_memory.ptr + virtual_address)));
+        const num_dlwords = BYTESPER_PAGE / 2; // 512 bytes / 2 = 256 DLwords
+        for (0..num_dlwords) |i| {
+            // Swap bytes in each DLword: [high, low] -> [low, high]
+            const word_bytes = @as(*[2]u8, @ptrCast(&page_dlwords[i]));
+            const temp = word_bytes[0];
+            word_bytes[0] = word_bytes[1];
+            word_bytes[1] = temp;
+        }
     }
 }

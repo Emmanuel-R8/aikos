@@ -20,6 +20,7 @@ fn readDLwordBE(virtual_memory: []const u8, offset: usize) types.DLword {
 // Import from split modules
 const instruction = @import("dispatch/instruction.zig");
 const execution = @import("dispatch/execution.zig");
+const execution_trace = @import("execution_trace.zig");
 
 const ByteCode = types.ByteCode;
 const LispPTR = types.LispPTR;
@@ -59,6 +60,13 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
         }
     }
 
+    // Initialize execution tracer (matching C emulator format)
+    var tracer = execution_trace.ExecutionTrace.init(vm.allocator, "zig_emulator_execution_log.txt") catch |err| {
+        std.debug.print("WARNING: Failed to initialize execution tracer: {}\n", .{err});
+        // Continue without tracing
+    };
+    defer tracer.deinit();
+
     // Main dispatch loop - continue until error or explicit stop
     // Add instruction counter to prevent infinite loops
     var instruction_count: u64 = 0;
@@ -97,6 +105,14 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
                 if (vm.pc < vmem.len) vmem[@as(usize, @intCast(vm.pc))] else 0xFF
             else
                 0xFF;
+            
+            // Handle unused opcode 0x70 (opc_unused_112) gracefully - skip it
+            if (opcode_byte == 0x70) {
+                // C: opc_unused_112 - skip this byte and continue
+                vm.pc += 1;
+                continue;
+            }
+            
             std.debug.print("ERROR: Failed to decode instruction at PC=0x{x}, opcode=0x{x:0>2}\n", .{ vm.pc, opcode_byte });
 
             // Unknown opcode - log and continue to see what's needed
@@ -105,6 +121,11 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
         }
 
         const inst = inst_result.?;
+
+        // Log instruction BEFORE execution (matching C emulator format)
+        tracer.logInstruction(vm, inst) catch |err| {
+            std.debug.print("WARNING: Failed to log instruction: {}\n", .{err});
+        };
 
         // Execute opcode handler with instruction
         const jump_offset = execution.executeInstruction(vm, inst) catch |err| {
@@ -241,15 +262,51 @@ pub fn initializeVMState(
     // lofnheader is at bytes 4-5, hi2fnheader is at byte 6
     // CRITICAL: Virtual memory stores DLwords in BIG-ENDIAN format (from sysout file)
     // Use helper function to read with byte swapping
-    const lofnheader_be = readDLwordBE(virtual_memory, frame_offset + 4);
-    const hi2fnheader: u8 = virtual_memory[frame_offset + 6];
-    const fnheader_be = (@as(LispPTR, hi2fnheader) << 16) | lofnheader_be;
+    // Frame structure (non-BIGVM):
+    // Offset 4-5: lofnheader (2 bytes, DLword, big-endian: [high, low])
+    // Offset 6-7: hi1fnheader_hi2fnheader (2 bytes, DLword, big-endian: [hi2, hi1])
+    // C struct (after loading to native, little-endian):
+    //   - lofnheader: DLword at offset 4-5 (native: [low, high])
+    //   - hi1fnheader_hi2fnheader: DLword at offset 6-7 (native: [hi1, hi2])
+    //     hi1fnheader = bits 0-7 (low byte), hi2fnheader = bits 8-15 (high byte)
+    // When C reads CURRENTFX->hi2fnheader, it gets bits 8-15 of native DLword.
+    // Native DLword was loaded from sysout bytes [6,7] (big-endian).
+    // After byte-swap: native_DLword = (byte7 << 8) | byte6
+    // So hi2fnheader (bits 8-15) = byte7 (from big-endian sysout)
+    // BUT: readDLwordBE already does byte-swapping, so:
+    //   readDLwordBE(bytes[6,7]) = (byte6 << 8) | byte7 (converts big-endian to little-endian)
+    //   hi2fnheader = (readDLwordBE(...) >> 8) & 0xFF = byte6 (from big-endian sysout)
+    // CRITICAL: Read frame fields as native little-endian DLwords (pages are byte-swapped on load)
+    // C: After word_swap_page, pages are in native little-endian format
+    // So we read DLwords directly without byte-swapping
+    // DEBUG: Actual data shows fields are swapped compared to struct definition:
+    //   [4,5]: hi1fnheader_hi2fnheader (with hi2fnheader in low byte)
+    //   [6,7]: lofnheader
+    const frame_bytes = virtual_memory[frame_offset..][0..12];
+    const hi1fnheader_hi2fnheader = std.mem.readInt(DLword, frame_bytes[4..6], .little);
+    const lofnheader = std.mem.readInt(DLword, frame_bytes[6..8], .little);
+    // hi2fnheader is in the LOW byte (bits 0-7) of hi1fnheader_hi2fnheader, not high byte!
+    // This is the opposite of what the struct definition suggests, but matches actual data
+    const hi2fnheader: u8 = @as(u8, @truncate(hi1fnheader_hi2fnheader & 0xFF));
+    const fnheader_be = (@as(LispPTR, hi2fnheader) << 16) | lofnheader;
     
-    std.debug.print("DEBUG: Reading frame fields (big-endian from sysout):\n", .{});
+    std.debug.print("DEBUG: Reading frame fields (native little-endian, pages byte-swapped on load):\n", .{});
     std.debug.print("  Frame offset: 0x{x}\n", .{frame_offset});
-    std.debug.print("  lofnheader bytes: 0x{x:0>2} 0x{x:0>2} -> 0x{x:0>4}\n", .{ virtual_memory[frame_offset + 4], virtual_memory[frame_offset + 5], lofnheader_be });
-    std.debug.print("  hi2fnheader byte: 0x{x:0>2}\n", .{hi2fnheader});
+    std.debug.print("  First 16 bytes of frame: ", .{});
+    for (0..16) |i| {
+        std.debug.print("0x{x:0>2} ", .{virtual_memory[frame_offset + i]});
+    }
+    std.debug.print("\n", .{});
+    std.debug.print("  Bytes [0,1] (flags+usecount): 0x{x:0>2} 0x{x:0>2}\n", .{ virtual_memory[frame_offset + 0], virtual_memory[frame_offset + 1] });
+    std.debug.print("  Bytes [2,3] (alink): 0x{x:0>2} 0x{x:0>2}\n", .{ virtual_memory[frame_offset + 2], virtual_memory[frame_offset + 3] });
+    std.debug.print("  Bytes [4,5] (hi1fnheader_hi2fnheader): 0x{x:0>2} 0x{x:0>2} -> 0x{x:0>4}\n", .{ virtual_memory[frame_offset + 4], virtual_memory[frame_offset + 5], hi1fnheader_hi2fnheader });
+    std.debug.print("  Bytes [6,7] (lofnheader): 0x{x:0>2} 0x{x:0>2} -> 0x{x:0>4}\n", .{ virtual_memory[frame_offset + 6], virtual_memory[frame_offset + 7], lofnheader });
+    std.debug.print("  Bytes [8,9] (nextblock): 0x{x:0>2} 0x{x:0>2}\n", .{ virtual_memory[frame_offset + 8], virtual_memory[frame_offset + 9] });
+    std.debug.print("  Bytes [10,11] (pc): 0x{x:0>2} 0x{x:0>2}\n", .{ virtual_memory[frame_offset + 10], virtual_memory[frame_offset + 11] });
+    std.debug.print("  hi2fnheader (from low byte of [4,5]): 0x{x:0>2}\n", .{hi2fnheader});
     std.debug.print("  FX_FNHEADER (24-bit): 0x{x:0>6}\n", .{fnheader_be & 0xFFFFFF});
+    std.debug.print("  Expected FX_FNHEADER for C emulator: 0x307864\n", .{});
+    std.debug.print("  For 0x307864: lofnheader should be 0x7864, hi2fnheader should be 0x30\n", .{});
 
     // For non-BIGVM, mask to 24 bits (0xFFFFFF)
     // C: hi2fnheader is 8 bits, lofnheader is 16 bits = 24 bits total
@@ -265,7 +322,7 @@ pub fn initializeVMState(
     // Per maiko/inc/stack.h:81-100 (frameex1 structure)
     // CRITICAL: CURRENTFX->pc is a BYTE offset from FuncObj, not a DLword offset!
     // C: PC = (ByteCode *)FuncObj + CURRENTFX->pc;
-    const frame_pc = readDLwordBE(virtual_memory, frame_offset + 10);
+    const frame_pc = std.mem.readInt(DLword, frame_bytes[10..12], .little);
     std.debug.print("  pc bytes: 0x{x:0>2} 0x{x:0>2} -> {} (0x{x:0>4})\n", .{ virtual_memory[frame_offset + 10], virtual_memory[frame_offset + 11], frame_pc, frame_pc });
     std.debug.print("DEBUG: CURRENTFX->pc={} (byte offset from FuncObj)\n", .{frame_pc});
 
@@ -278,7 +335,7 @@ pub fn initializeVMState(
     // Read nextblock from frame to calculate CurrentStackPTR
     // Frame layout: flags+usecount (2), alink (2), fnheader (4), nextblock (2), pc (2)
     // So nextblock is at offset 8 bytes from frame start
-    const nextblock = readDLwordBE(virtual_memory, frame_offset + 8);
+    const nextblock = std.mem.readInt(DLword, frame_bytes[8..10], .little);
     std.debug.print("  nextblock bytes: 0x{x:0>2} 0x{x:0>2} -> 0x{x:0>4} (DLword offset)\n", .{ virtual_memory[frame_offset + 8], virtual_memory[frame_offset + 9], nextblock });
 
     // Calculate CurrentStackPTR: Stackspace + nextblock - 2 DLwords
@@ -322,20 +379,22 @@ pub fn initializeVMState(
 
     // Walk through free stack blocks
     while (freeptr_byte_offset + 4 <= virtual_memory.len) {
-        // Read STK_FSB_WORD marker (big-endian from virtual memory)
-        const marker_be = readDLwordBE(virtual_memory, freeptr_byte_offset);
+        // Read STK_FSB_WORD marker (native little-endian, pages byte-swapped on load)
+        const marker_bytes = virtual_memory[freeptr_byte_offset..][0..2];
+        const marker = std.mem.readInt(DLword, marker_bytes, .little);
 
-        if (marker_be != STK_FSB_WORD) {
+        if (marker != STK_FSB_WORD) {
             break; // Not a free stack block, stop walking
         }
 
-        // Read free block size (big-endian, at offset +2)
-        const block_size_dlwords_be = readDLwordBE(virtual_memory, freeptr_byte_offset + 2);
-        const block_size_bytes = @as(usize, @intCast(block_size_dlwords_be)) * 2;
+        // Read free block size (native little-endian, at offset +2)
+        const block_size_bytes_slice = virtual_memory[freeptr_byte_offset + 2..][0..2];
+        const block_size_dlwords = std.mem.readInt(DLword, block_size_bytes_slice, .little);
+        const block_size_bytes = @as(usize, @intCast(block_size_dlwords)) * 2;
 
         // Move to next free block: freeptr = freeptr + block_size
-        endstkp_byte_offset = freeptr_byte_offset + block_size_bytes;
-        freeptr_byte_offset = endstkp_byte_offset;
+        freeptr_byte_offset = freeptr_byte_offset + block_size_bytes;
+        endstkp_byte_offset = freeptr_byte_offset;
     }
 
     // Set stack_end to EndSTKP
@@ -378,7 +437,8 @@ pub fn initializeVMState(
             vm.pc = 0x100;
             return;
         }
-        const bf_word = readDLwordBE(virtual_memory, bf_offset);
+        const bf_bytes = virtual_memory[bf_offset..][0..2];
+        const bf_word = std.mem.readInt(DLword, bf_bytes, .little);
         std.debug.print("DEBUG: BF word (CURRENTFX - 1) = 0x{x}\n", .{bf_word});
 
         // FuncObj = NativeAligned4FromLAddr(0) = Lisp_world base (offset 0)
