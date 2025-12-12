@@ -1,7 +1,15 @@
 # CRITICAL: Documentation Improvement Memory
 
-**Date**: 2025-12-07
+**Date**: 2025-12-12 15:59
 **Status**: ACTIVE - MUST FOLLOW
+
+## CRITICAL: Date/Time Format
+
+**ALWAYS use the Unix `date` command to get the current date and time:**
+- **Format**: `YYYY-mm-dd HH:MM` (e.g., `2025-12-12 15:59`)
+- **Command**: `date +"%Y-%m-%d %H:%M"`
+- **Requirement**: All timestamps in documentation MUST include hours and minutes (HH:MM)
+- **Never use**: Bogus dates or dates without time component
 
 ## CRITICAL RULE: Emulator-Independent Documentation
 

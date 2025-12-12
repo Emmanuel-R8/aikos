@@ -32,7 +32,7 @@ Interlisp/
 ├── .ai_assistant_db/          # Knowledge base (emulator-independent specs + implementations)
 │   ├── rewrite-spec/          # Emulator-independent specifications
 │   ├── implementations/       # Language-specific implementation notes
-│   └── CRITICAL_MEMORY.md     # ⚠️ MUST READ - Documentation rules
+│   └── CRITICAL_MEMORY.md     # ⚠️ MUST READ AND ABIDE BY - Documentation rules
 ├── maiko/                     # Maiko VM source code
 │   ├── src/                   # C implementation (reference)
 │   └── alternatives/zig/      # Zig implementation (in progress)

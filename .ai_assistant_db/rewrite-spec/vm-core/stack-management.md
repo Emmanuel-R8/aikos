@@ -88,13 +88,50 @@ struct FrameEx:
 
 ```pseudocode
 function CalculateFX_FNHEADER(frame):
-    // Read hi2fnheader from low byte of offset 4-5 (NOT high byte!)
-    hi2fnheader = (frame[4] & 0xFF)  // Low byte contains hi2fnheader
-    lofnheader = ReadDLword(frame, offset=6)  // lofnheader at offset 6-7
+    // CRITICAL: Frame fields are stored in native little-endian format after page byte-swapping
+    // Read hi1fnheader_hi2fnheader from offset 4-5 (swapped position)
+    hi1fnheader_hi2fnheader = ReadDLword(frame, offset=4)  // Native little-endian
+    
+    // Read lofnheader from offset 6-7 (swapped position)
+    lofnheader = ReadDLword(frame, offset=6)  // Native little-endian
+    
+    // hi2fnheader is in the LOW byte (bits 0-7) of hi1fnheader_hi2fnheader
+    hi2fnheader = (hi1fnheader_hi2fnheader & 0xFF)  // Low byte
     
     // Combine: FX_FNHEADER = (hi2fnheader << 16) | lofnheader
+    // FX_FNHEADER is a LispPTR, which is a DLword offset from Lisp_world
     return (hi2fnheader << 16) | lofnheader
 ```
+
+**Address Translation from FX_FNHEADER**:
+
+**CRITICAL DISCREPANCY (2025-12-12 16:54)**: Based on actual execution logs, FX_FNHEADER appears to be treated as a **byte offset** in FastRetCALL, not a DLword offset. See [Address Translation Investigation](../memory/address-translation.md#address-translation-investigation) for details.
+
+```pseudocode
+function TranslateFX_FNHEADERToFuncObj(fx_fnheader):
+    // OBSERVED BEHAVIOR (from execution logs):
+    // PC = 0x307898 = FX_FNHEADER (0x307864) + 0x34 (52 bytes = 104/2)
+    // This suggests FX_FNHEADER is a byte offset, not DLword offset!
+    return Lisp_world + fx_fnheader  // Byte offset (NOT multiplied by 2)
+```
+
+**Documented Behavior** (may not match actual):
+```pseudocode
+    // C: NativeAligned4FromLAddr(FX_FNHEADER) = (void *)(Lisp_world + FX_FNHEADER)
+    // Since Lisp_world is DLword*, adding FX_FNHEADER adds FX_FNHEADER DLwords
+    // Byte offset = FX_FNHEADER * 2
+    return Lisp_world + (fx_fnheader * 2)  // In bytes
+```
+
+**PC Calculation**:
+```pseudocode
+function CalculatePCFromFrame(funcobj, frame_pc):
+    // OBSERVED: PC = FuncObj + (CURRENTFX->pc / 2)
+    // This suggests CURRENTFX->pc is stored as DLword offset, not byte offset
+    return funcobj + (frame_pc / 2)  // Divide by 2 to convert DLword to bytes
+```
+
+**Verification Needed**: Run C emulator with debug statements to confirm actual behavior vs. documentation.
 
 **C Reference**: `maiko/inc/stack.h:81-110` defines the struct, but actual memory layout may differ. Verified against `starter.sysout` frame at offset `0x25ce4` (virtual page 302).
 

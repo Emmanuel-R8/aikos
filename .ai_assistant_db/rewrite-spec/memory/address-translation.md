@@ -114,6 +114,8 @@ function NativeAligned2FromLAddr(lisp_address):
 
 **C Reference**: `maiko/inc/adr68k.h:44-47` - `return (Lisp_world + LAddr);`
 
+**INVESTIGATION NOTE (2025-12-12 16:45)**: There is an ongoing investigation into whether LispPTR values are actually stored as byte offsets despite the documentation stating they are DLword offsets. See "Address Translation Investigation" section below.
+
 ### NativeAligned4FromLAddr
 
 Translates to 4-byte aligned native address:
@@ -132,6 +134,8 @@ function NativeAligned4FromLAddr(lisp_address):
 ```
 
 **C Reference**: `maiko/inc/adr68k.h:49-55` - `return (void *)(Lisp_world + LAddr);`
+
+**INVESTIGATION NOTE (2025-12-12 16:45)**: There is an ongoing investigation into whether this function should actually use byte addressing: `(char *)Lisp_world + lisp_address`. See "Address Translation Investigation" section below.
 
 ### NativeAligned4FromLPage
 
@@ -266,6 +270,66 @@ For contiguous memory:
 - Direct offset calculation
 - No lookup required
 - Fastest translation method
+
+## Address Translation Investigation
+
+**Date**: 2025-12-12 16:45
+**Status**: Investigation in progress
+
+### Hypothesis
+
+**All addresses should be bytes everywhere** (makes sense since instructions are single bytes). This contradicts the documentation which states LispPTR is a DLword offset.
+
+### Key Observation
+
+From C emulator execution log:
+- PC: `0x307898`
+- FX_FNHEADER: `0x307864`
+- Difference: `0x34` = 52 bytes = `104/2`
+
+This suggests: **PC = FX_FNHEADER + (CURRENTFX->pc / 2)**
+
+### Pattern in C Code
+
+**When converting FROM native pointer TO LispPTR** (dividing by 2):
+- `maiko/src/xc.c:546`: `pc_dlword_offset = (LispPTR)(pc_byte_offset / 2);`
+- `maiko/src/xc.c:704`: `stack_ptr_offset = (LispPTR)((char *)CurrentStackPTR - (char *)Stackspace) / 2;`
+- `maiko/src/xc.c:743`: `currentfx_offset = (LispPTR)((char *)CURRENTFX - (char *)Stackspace) / 2;`
+
+**Pattern**: When converting native pointers to LispPTR, they:
+1. Cast to `char *` to get byte offset
+2. Divide by 2 to convert to DLword offset
+
+**When converting FROM LispPTR TO native pointer**:
+- `maiko/inc/adr68k.h:46`: `return (Lisp_world + LAddr);` - Uses DLword arithmetic
+- `maiko/inc/adr68k.h:58`: `return (void *)(Lisp_world + LAddr);` - Uses DLword arithmetic
+
+**Pattern**: When converting LispPTR to native pointers, they use DLword pointer arithmetic (no cast to `char *`).
+
+### Hypothesis
+
+**Maybe LispPTR values are actually stored as byte offsets, not DLword offsets**, despite the documentation. The `NativeAligned4FromLAddr` function might need to cast to `char *` first:
+
+```c
+// Current (documented):
+return (void *)(Lisp_world + LAddr);  // DLword arithmetic
+
+// Should be (if byte addressing):
+return (void *)((char *)Lisp_world + LAddr);  // Byte arithmetic
+```
+
+### Testing Status
+
+- C code modified to test byte addressing (debug statements added)
+- Zig code modified to test byte addressing
+- Awaiting C emulator execution with debug output to verify actual behavior
+
+### Next Steps
+
+1. Run C emulator with modified byte addressing to see actual behavior
+2. Verify if `NativeAligned4FromLAddr` should cast to `char *` first
+3. Check if CURRENTFX->pc is actually stored as 52 (bytes) or 104 (DLwords)
+4. Update this documentation based on findings
 
 ## Related Documentation
 

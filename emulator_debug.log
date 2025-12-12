@@ -1,0 +1,52 @@
+# FORMATTING OF THE C and ZIG EMULATOR EXECUTION LOG
+#
+# 1 line per instruction executed
+# Fixed-width format: 441 characters per line
+# All numbers are right-aligned with leading spaces unless otherwise specified
+#
+# Each line has the following format:
+#
+# - column  1- 6: instruction count (right-aligned, 5 digits + 1 space)
+#   Format: `%5d ` (e.g., `   13 `)
+#
+# - column  7-68: PC information (62 characters)
+#   Format: `PC: 0x%06x (Lisp_world+0x%06x, FuncObj+%5d bytes) `
+#   - Uses DLword offset for PC and Lisp_world (divide byte offset by 2)
+#   - FuncObj offset in bytes, right-aligned 5 digits
+#   Example: `PC: 0x780064 (Lisp_world+0x780064, FuncObj+  104 bytes) `
+#
+# - column 69-88: Instruction bytes (20 characters)
+#   Format: `%02x%02x%02x%02x%02x%02x%02x%02x    ` (8 bytes hex, no spaces, 4 trailing spaces)
+#   Shows first 8 bytes of instruction
+#   Example: `bf000060bfc9120a    `
+#
+# - column 89-108: Instruction name + parameters (20 characters, left-aligned)
+#   Format: `%-15s` for name, then parameters if space allows
+#   Truncate if total exceeds 20 characters
+#   Examples: `PVAR_1           ` or `PVARX param1=0x43`
+#
+# - column 109-278: Stack information (170 characters)
+#   Format: `Stack: D:%5d P:%5d TOS:0x%016lx N:[0x%08x 0x%08x 0x%08x 0x%08x]` + padding
+#   - D = Depth in DLwords (right-aligned, 5 digits)
+#   - P = Stack pointer offset in DLwords from Stackspace (right-aligned, 5 digits)
+#   - TOS = TopOfStack value (64-bit, compact hex format, 16 hex digits)
+#   - N = Next 4 stack values (32-bit each, 8 hex digits each)
+#   Pad with trailing spaces to 170 characters
+#   Example: `Stack: D:11912 P:11912 TOS:0x000000000000000e N:[0x0000000e 0xfffe0002 0xfffe0000 0x006de388]                    `
+#
+# - column 279-441: Frame information (163 characters)
+#   Format: `Frame: FX:%5d FH:0x%06x PC:%5d NB:%5d FO:+%5d` + padding
+#   - FX = CURRENTFX offset in DLwords from Stackspace (right-aligned, 5 digits, use `-----` if NULL)
+#   - FH = FX_FNHEADER value (24-bit, 6 hex digits)
+#   - PC = CURRENTFX->pc byte offset from FuncObj (right-aligned, 5 digits, use `-----` if NULL)
+#   - NB = CURRENTFX->nextblock DLword offset (right-aligned, 5 digits, use `-----` if NULL)
+#   - FO = FuncObj byte offset from Lisp_world (right-aligned, 5 digits with + sign, use `-----` if NULL)
+#   Pad with trailing spaces to 163 characters
+#   Example: `Frame: FX:11882 FH:0x780030 PC:  104 NB:11882 FO:+15728672                                                      `
+#
+# NULL/Missing Value Handling:
+# - Use `-----` (5 dashes) for missing numeric values
+# - Use `(none)` for missing frame (but still pad to field width)
+#
+# Example complete line:
+#    13 PC: 0x780064 (Lisp_world+0x780064, FuncObj+  104 bytes) bf000060bfc9120a PVAR_1            Stack: D:11912 P:11912 TOS:0x000000000000000e N:[0x0000000e 0xfffe0002 0xfffe0000 0x006de388]                    Frame: FX:11882 FH:0x780030 PC:  104 NB:11882 FO:+15728672                                                      

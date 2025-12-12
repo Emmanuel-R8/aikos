@@ -212,8 +212,10 @@
   - ✅ Validates FPtoVP table format (BIGVM) matches C emulator
   - ✅ Validates virtual page 302 mapping (entries 9427, 16629)
   - ✅ Validates BIGVM format (GETFPTOVP != GETPAGEOK behavior)
-  - ⏳ TODO: Add instruction-by-instruction execution comparison
-  - ⏳ TODO: Add memory state comparison after execution
+  - ✅ Added VM state snapshot capture function for comparison
+  - ✅ Added instruction-by-instruction execution comparison infrastructure
+  - ✅ Added memory state comparison after execution (memory hash comparison)
+  - ✅ Added tests for VM state initialization, memory state comparison, and stack state consistency
 
 ---
 
