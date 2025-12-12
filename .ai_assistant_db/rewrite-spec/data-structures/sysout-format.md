@@ -377,7 +377,7 @@ function LoadPage(file, file_page_number, virtual_page_number):
 
 ### General Rules
 
-1. **Sysout Format**: Always store data in **big-endian format** (network byte order)
+1. **Sysout Format**: Always store data in **big-endian format**
 2. **Host Adaptation**: Byte-swap when loading on little-endian machines
 3. **Memory Access**: Use specialized macros that handle byte order differences
 4. **Address Handling**: Never byte-swap address values (LispPTR) - they are opaque 32-bit offsets
