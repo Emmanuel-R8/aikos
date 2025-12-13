@@ -391,6 +391,25 @@ pub fn loadMemoryPages(
         std.debug.print("  File page {d} -> virtual page {d}\n", .{ found_frame_pages[i], frame_vpage });
     }
 
+    // DEBUG: Track pages loaded for virtual page 6204 (where PC 0x307898 is)
+    const target_vpage = 6204; // PC 0x307898 / 512 = 6204
+    var found_target_page = false;
+    var target_page_count: usize = 0;
+    
+    // First pass: count how many file pages map to target virtual page
+    for (0..num_file_pages) |file_page| {
+        if (fptovp.isSparse(file_page)) {
+            continue;
+        }
+        const vpage = fptovp.getFPtoVP(file_page);
+        if (vpage == target_vpage) {
+            target_page_count += 1;
+        }
+    }
+    if (target_page_count > 0) {
+        std.debug.print("DEBUG: Found {d} file page(s) mapping to virtual page {} (PC page)\n", .{ target_page_count, target_vpage });
+    }
+    
     for (0..num_file_pages) |file_page| {
         // Skip sparse pages (GETPAGEOK returns 0xFFFF for sparse pages)
         if (fptovp.isSparse(file_page)) {
@@ -399,6 +418,12 @@ pub fn loadMemoryPages(
 
         // Use GETFPTOVP to get virtual page number (low 16 bits)
         const virtual_page = fptovp.getFPtoVP(file_page);
+        
+        // DEBUG: Check if this maps to target virtual page
+        if (virtual_page == target_vpage) {
+            std.debug.print("DEBUG: Loading file page {} -> virtual page {} (PC page) [{d}/{d}]\n", .{ file_page, virtual_page, target_page_count, target_page_count });
+            found_target_page = true;
+        }
 
         // Calculate file offset for this page
         const file_offset = @as(u64, file_page) * BYTESPER_PAGE;
@@ -435,6 +460,24 @@ pub fn loadMemoryPages(
             std.debug.print("    - Page extends beyond file end\n", .{});
             return error.SysoutLoadFailed;
         }
+        
+        // DEBUG: Dump raw bytes for PC page BEFORE byte-swap
+        if (virtual_page == target_vpage) {
+            std.debug.print("DEBUG sysout_loader: PC PAGE - Raw bytes from file (BEFORE byte-swap):\n", .{});
+            std.debug.print("  First 16 bytes: ", .{});
+            for (0..16) |i| {
+                std.debug.print("0x{x:0>2} ", .{page_buffer[i]});
+            }
+            std.debug.print("\n", .{});
+            const pc_offset_in_page: usize = 0x98; // PC 0x307898 - base 0x307800 = 0x98
+            std.debug.print("  Bytes at PC offset 0x{x} (0x{x}): ", .{ pc_offset_in_page, pc_offset_in_page });
+            for (0..8) |i| {
+                if (pc_offset_in_page + i < BYTESPER_PAGE) {
+                    std.debug.print("0x{x:0>2} ", .{page_buffer[pc_offset_in_page + i]});
+                }
+            }
+            std.debug.print("\n", .{});
+        }
 
         // Calculate virtual address
         const virtual_address = @as(u64, virtual_page) * BYTESPER_PAGE;
@@ -458,16 +501,41 @@ pub fn loadMemoryPages(
         
         // CRITICAL: Byte-swap page data (big-endian sysout -> little-endian native)
         // C: #ifdef BYTESWAP word_swap_page((DLword *)(lispworld_scratch + lispworld_offset), 128); #endif
+        // word_swap_page uses ntohl() which swaps 32-bit longwords, not 16-bit DLwords!
+        // The parameter 128 is the number of 32-bit longwords (128 * 4 = 512 bytes = 1 page)
         // We always byte-swap because sysout files are big-endian and we're on little-endian host
-        // word_swap_page swaps u16 words, so we swap each DLword (2 bytes) in the page
-        const page_dlwords = @as([*]DLword, @ptrCast(@alignCast(virtual_memory.ptr + virtual_address)));
-        const num_dlwords = BYTESPER_PAGE / 2; // 512 bytes / 2 = 256 DLwords
-        for (0..num_dlwords) |i| {
-            // Swap bytes in each DLword: [high, low] -> [low, high]
-            const word_bytes = @as(*[2]u8, @ptrCast(&page_dlwords[i]));
-            const temp = word_bytes[0];
-            word_bytes[0] = word_bytes[1];
-            word_bytes[1] = temp;
+        const page_longwords = @as([*]u32, @ptrCast(@alignCast(virtual_memory.ptr + virtual_address)));
+        const num_longwords = BYTESPER_PAGE / 4; // 512 bytes / 4 = 128 longwords
+        for (0..num_longwords) |i| {
+            // Swap bytes in each 32-bit longword using ntohl equivalent
+            // Big-endian: [b0, b1, b2, b3] -> Little-endian: [b3, b2, b1, b0]
+            page_longwords[i] = @byteSwap(page_longwords[i]);
         }
+        
+        // DEBUG: Dump bytes for PC page AFTER byte-swap
+        if (virtual_page == target_vpage) {
+            std.debug.print("DEBUG sysout_loader: PC PAGE - Bytes AFTER byte-swap (in virtual memory):\n", .{});
+            std.debug.print("  First 16 bytes at virtual address 0x{x}: ", .{virtual_address});
+            for (0..16) |i| {
+                std.debug.print("0x{x:0>2} ", .{virtual_memory[virtual_address + i]});
+            }
+            std.debug.print("\n", .{});
+            const pc_offset_in_page: usize = 0x98; // PC 0x307898 - base 0x307800 = 0x98
+            const pc_addr = virtual_address + pc_offset_in_page;
+            std.debug.print("  Bytes at PC location (offset 0x{x}, address 0x{x}): ", .{ pc_offset_in_page, pc_addr });
+            for (0..8) |i| {
+                if (pc_offset_in_page + i < BYTESPER_PAGE) {
+                    std.debug.print("0x{x:0>2} ", .{virtual_memory[virtual_address + pc_offset_in_page + i]});
+                }
+            }
+            std.debug.print("\n", .{});
+        }
+    }
+    
+    // DEBUG: Report if target page was found
+    if (!found_target_page) {
+        std.debug.print("WARNING: Virtual page {} (PC page) was NOT loaded from sysout file!\n", .{target_vpage});
+        std.debug.print("  PC 0x307898 is in virtual page {}\n", .{target_vpage});
+        std.debug.print("  This page should have been loaded from a file page mapping to virtual page {}\n", .{target_vpage});
     }
 }
