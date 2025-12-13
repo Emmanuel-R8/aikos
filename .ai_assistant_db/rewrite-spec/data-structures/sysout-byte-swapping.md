@@ -167,9 +167,17 @@ function LoadFPtoVPTable(file, ifpage):
 
 ### Memory Pages Byte Swapping
 
-**CRITICAL**: All memory pages loaded from sysout files MUST be byte-swapped after loading when running on little-endian hosts. The C implementation uses `word_swap_page()` which swaps all DLwords in the page, converting from big-endian (sysout format) to little-endian (native format on x86_64).
+**CRITICAL**: All memory pages loaded from sysout files MUST be byte-swapped after loading when running on little-endian hosts. The C implementation uses `word_swap_page()` which swaps 32-bit longwords in the page, converting from big-endian (sysout format) to little-endian (native format on x86_64).
 
-**C Reference**: `maiko/src/ldsout.c:676-678` - `word_swap_page((DLword *)(lispworld_scratch + lispworld_offset), 128);`
+**CRITICAL Implementation Detail**: `word_swap_page()` swaps **32-bit longwords**, NOT 16-bit DLwords!
+- Function signature: `void word_swap_page(void *page, unsigned longwordcount)`
+- Uses `ntohl()` to swap each 32-bit value: `[b0, b1, b2, b3] -> [b3, b2, b1, b0]`
+- Parameter `128` = number of 32-bit longwords (128 * 4 = 512 bytes = 1 page)
+- **Common mistake**: Swapping 16-bit DLwords instead of 32-bit longwords will produce incorrect results
+
+**C Reference**: 
+- `maiko/src/ldsout.c:707-708` - `word_swap_page((DLword *)(lispworld_scratch + lispworld_offset), 128);`
+- `maiko/src/byteswap.c:31-34` - Implementation using `ntohl()` for 32-bit longwords
 
 **Note**: This byte-swapping applies to ALL pages (both code and data pages). There is no distinction between code and data pages regarding byte-swapping - all pages are byte-swapped uniformly.
 

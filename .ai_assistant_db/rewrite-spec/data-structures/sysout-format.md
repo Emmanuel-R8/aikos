@@ -374,24 +374,29 @@ function LoadPage(file, file_page_number, virtual_page_number):
     
     // CRITICAL: Byte-swap page data (big-endian sysout -> little-endian native)
     // C: #ifdef BYTESWAP word_swap_page((DLword *)(lispworld_scratch + lispworld_offset), 128); #endif
-    // word_swap_page swaps u16 words, so we swap each DLword (2 bytes) in the page
-    // This converts: [high_byte, low_byte] -> [low_byte, high_byte] for each DLword
-    page_dlwords = GetDLwordArray(virtual_memory, virtual_address)
-    num_dlwords = 512 / 2  // 256 DLwords per page
-    for i = 0 to num_dlwords:
-        // Swap bytes in each DLword: [high, low] -> [low, high]
-        temp = page_dlwords[i] & 0xFF
-        page_dlwords[i] = ((page_dlwords[i] >> 8) & 0xFF) | (temp << 8)
+    // CRITICAL: word_swap_page() swaps 32-bit longwords using ntohl(), NOT 16-bit DLwords!
+    // The parameter 128 is the number of 32-bit longwords (128 * 4 = 512 bytes = 1 page)
+    // This converts big-endian 32-bit values to little-endian: [b0, b1, b2, b3] -> [b3, b2, b1, b0]
+    page_longwords = GetU32Array(virtual_memory, virtual_address)
+    num_longwords = 512 / 4  // 128 longwords per page
+    for i = 0 to num_longwords:
+        // Swap bytes in each 32-bit longword using ntohl equivalent
+        page_longwords[i] = ntohl(page_longwords[i])  // or equivalent byte-swap function
 ```
 
 **Byte Swapping Details**:
 - **IFPAGE**: All DLword fields must be byte-swapped after reading
 - **FPtoVP Table**: Each entry (u16 or u32) must be byte-swapped after reading
-- **Memory Pages**: All DLwords in each page must be byte-swapped after loading (C: `word_swap_page`)
+- **Memory Pages**: All 32-bit longwords in each page must be byte-swapped after loading (C: `word_swap_page`)
+  - **CRITICAL**: `word_swap_page()` swaps 32-bit longwords using `ntohl()`, NOT 16-bit DLwords
+  - Parameter `128` = number of 32-bit longwords (128 * 4 = 512 bytes = 1 page)
+  - Converts big-endian 32-bit values to little-endian: `[b0, b1, b2, b3] -> [b3, b2, b1, b0]`
 - **Frame Structures**: After page byte-swapping, frame fields are in native little-endian format
 - **Function Headers**: After page byte-swapping, function header fields are in native little-endian format
 
-**C Reference**: `maiko/src/ldsout.c:676-678` - `word_swap_page((DLword *)(lispworld_scratch + lispworld_offset), 128);`
+**C Reference**: 
+- `maiko/src/ldsout.c:707-708` - `word_swap_page((DLword *)(lispworld_scratch + lispworld_offset), 128);`
+- `maiko/src/byteswap.c:31-34` - `word_swap_page()` implementation using `ntohl()` for 32-bit longwords
 
 ## Byte Swapping and Endianness
 

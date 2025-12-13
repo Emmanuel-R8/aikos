@@ -67,6 +67,12 @@ The Zig implementation provides a complete framework for the Maiko emulator in Z
   - ✅ **Page byte-swapping** (2025-12-12): Pages are now byte-swapped when loading from sysout file (matching C `word_swap_page`)
     - Converts big-endian DLwords to little-endian native format
     - Frame fields are now read as native little-endian (not using `readDLwordBE`)
+  - ✅ **Page byte-swap fix** (2025-12-13 10:33): Fixed critical bug - `word_swap_page()` swaps 32-bit longwords, NOT 16-bit DLwords!
+    - **Bug**: Was swapping 16-bit DLwords (256 swaps per page) instead of 32-bit longwords
+    - **Fix**: Now swaps 32-bit longwords using `@byteSwap()` (128 swaps per page, matching C's `ntohl()`)
+    - **Impact**: Memory content at PC now matches C emulator - correct instruction bytes loaded
+    - **C Reference**: `maiko/src/byteswap.c:31-34` - `word_swap_page()` uses `ntohl()` for 32-bit values
+    - **Parameter**: `128` = number of 32-bit longwords (128 * 4 = 512 bytes = 1 page)
   - ✅ System initialization: Implemented initializeSystem() equivalent to build_lisp_map(), init_storage(), etc.
   - ✅ Frame repair: Implemented initializeFrame() to repair uninitialized frames (sets nextblock and free stack block)
   - ✅ PC initialization: Implemented FastRetCALL logic (PC = FuncObj + CURRENTFX->pc)
