@@ -2,7 +2,7 @@
 
 **Navigation**: [Implementations README](README.md) | [Main README](../README.md)
 
-**Date**: 2025-12-12 15:59
+**Date**: 2025-12-15 11:09
 **Status**: ✅ Core Complete - SDL2 Integration Complete (Minor Fixes Pending)
 **Location**: `maiko/alternatives/zig/`
 **Build System**: Zig build system (`build.zig`)
@@ -124,6 +124,20 @@ The Zig implementation provides a complete framework for the Maiko emulator in Z
 - ⏳ Performance optimization
 - ⏳ Additional platform support (macOS, Windows)
 - ⏳ Comprehensive integration testing
+
+## Critical Findings
+
+### C Implementation Bug Fix: pccache Initialization (2025-12-15)
+
+**Issue**: The C implementation had a critical bug where `pccache` (used by `PCMAC` macro) was uninitialized at the start of the `nextopcode:` label in `dispatch()`. This caused undefined behavior when `PCMAC` (which is `pccache - 1`) was used immediately for instruction fetching and execution logging.
+
+**Fix**: Added `pccache = PC + 1;` at the very start of the `nextopcode:` label, before any code that uses `PCMAC`. This ensures `PCMAC` correctly points to the current instruction.
+
+**Impact**: This bug prevented the execution log from being created and could cause incorrect instruction fetching. The fix is critical for all implementations - `pccache` must be initialized from `PC` at the start of the dispatch loop.
+
+**Location**: `maiko/src/xc.c` line 534
+
+**Related Documentation**: See [Execution Model - PC Caching](../rewrite-spec/vm-core/execution-model.md#pc-caching) for the correct initialization pattern.
 
 ## Critical Findings
 

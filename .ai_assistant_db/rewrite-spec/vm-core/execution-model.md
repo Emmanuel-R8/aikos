@@ -379,15 +379,26 @@ stateDiagram-v2
 
 ### PC Caching
 
+**CRITICAL**: The `pccache` variable must be initialized at the start of the dispatch loop before any use of `PCMAC` (which is `pccache - 1`). This is essential because `PCMAC` is used immediately for instruction fetching and logging.
+
 ```pseudocode
 // Cache PC in register/local variable
-pccache = PC
+// CRITICAL: Initialize pccache from PC at start of dispatch loop
+// PCMAC = pccache - 1, so pccache = PC + 1
+pccache = PC + 1
+
 while not ErrorExit:
-    opcode = ReadByte(pccache)
+    // PCMAC = pccache - 1 points to current instruction
+    opcode = ReadByte(PCMAC)  // or ReadByte(pccache - 1)
     // ... execute ...
+    // After instruction execution, update pccache
     pccache = pccache + instruction_length
-PC = pccache  // Update global PC periodically
+    // Continue loop (pccache now points one byte ahead again)
+    
+PC = pccache - 1  // Update global PC periodically (if needed)
 ```
+
+**Implementation Note**: In the C implementation, `pccache` is a local variable in `dispatch()` that must be initialized at the `nextopcode:` label. The original code had a bug where `pccache` was uninitialized when `PCMAC` was first used, causing undefined behavior. The fix is to add `pccache = PC + 1;` at the very start of the `nextopcode:` label, before any code that uses `PCMAC`.
 
 ### Stack Pointer Caching
 
