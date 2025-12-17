@@ -1,6 +1,7 @@
 // Atom table access utilities
 // Implements atom table access matching C implementation in maiko/inc/cell.h
 
+const std = @import("std");
 const types = @import("../utils/types.zig");
 const errors = @import("../utils/errors.zig");
 const stack = @import("../vm/stack.zig");
@@ -74,11 +75,26 @@ pub fn getVALCELL(_: *VM, atom_index: LispPTR) errors.VMError!usize {
 
 /// Get definition cell pointer for an atom (matching GetDEFCELL68k)
 /// Returns byte offset in virtual memory for the definition cell
-pub fn getDEFCELL(_: *VM, atom_index: LispPTR) errors.VMError!usize {
+pub fn getDEFCELL(vm: *VM, atom_index: LispPTR) errors.VMError!usize {
+    const virtual_memory = vm.virtual_memory orelse {
+        return errors.VMError.MemoryAccessFailed;
+    };
+    
+    std.debug.print("DEBUG getDEFCELL: atom_index=0x{x} ({d})\n", .{ atom_index, atom_index });
+    std.debug.print("  atom_index / 2: {d} (0x{x})\n", .{ atom_index / 2, atom_index / 2 });
+    std.debug.print("  atom_index * 2: {d} (0x{x})\n", .{ atom_index * 2, atom_index * 2 });
+    std.debug.print("  virtual_memory.len: {d} (0x{x})\n", .{ virtual_memory.len, virtual_memory.len });
+    
     if (!BIGATOMS) {
         // Non-BIGATOMS: Defspace + atom_index
         const defspace_offset: usize = 0; // TODO: Get from memory layout
-        return defspace_offset + (@as(usize, @intCast(atom_index)) * @sizeOf(LispPTR));
+        const result = defspace_offset + (@as(usize, @intCast(atom_index)) * @sizeOf(LispPTR));
+        std.debug.print("  Non-BIGATOMS: defcell_offset=0x{x}\n", .{result});
+        if (result >= virtual_memory.len) {
+            std.debug.print("  ERROR: defcell_offset exceeds virtual_memory bounds!\n", .{});
+            return errors.VMError.InvalidAddress;
+        }
+        return result;
     }
 
     // BIGATOMS: Check if NEWATOM or LITATOM
@@ -86,6 +102,11 @@ pub fn getDEFCELL(_: *VM, atom_index: LispPTR) errors.VMError!usize {
         // NEWATOM: Use NativeAligned4FromLAddr(atom_index + NEWATOM_DEFN_OFFSET)
         const defn_offset_bytes = NEWATOM_DEFN_OFFSET * 2;
         const defn_addr = @as(usize, @intCast(atom_index)) + defn_offset_bytes;
+        std.debug.print("  NEWATOM: defn_addr=0x{x}\n", .{defn_addr});
+        if (defn_addr >= virtual_memory.len) {
+            std.debug.print("  ERROR: defn_addr exceeds virtual_memory bounds!\n", .{});
+            return errors.VMError.InvalidAddress;
+        }
         return defn_addr;
     } else {
         // LITATOM
@@ -93,11 +114,22 @@ pub fn getDEFCELL(_: *VM, atom_index: LispPTR) errors.VMError!usize {
             // BIGVM: AtomSpace + (atom_index * 5) + NEWATOM_DEFN_PTROFF
             const atom_offset = ATOMS_OFFSET + (@as(usize, @intCast(atom_index)) * 20);
             const defn_offset = atom_offset + (NEWATOM_DEFN_PTROFF * @sizeOf(LispPTR));
+            std.debug.print("  LITATOM (BIGVM): atom_offset=0x{x}, defn_offset=0x{x}\n", .{ atom_offset, defn_offset });
+            if (defn_offset >= virtual_memory.len) {
+                std.debug.print("  ERROR: defn_offset exceeds virtual_memory bounds!\n", .{});
+                return errors.VMError.InvalidAddress;
+            }
             return defn_offset;
         } else {
             // Non-BIGVM: Defspace + atom_index
             const defspace_offset: usize = 0; // TODO: Get from memory layout
-            return defspace_offset + (@as(usize, @intCast(atom_index)) * @sizeOf(LispPTR));
+            const result = defspace_offset + (@as(usize, @intCast(atom_index)) * @sizeOf(LispPTR));
+            std.debug.print("  LITATOM (non-BIGVM): defcell_offset=0x{x}\n", .{result});
+            if (result >= virtual_memory.len) {
+                std.debug.print("  ERROR: defcell_offset exceeds virtual_memory bounds!\n", .{});
+                return errors.VMError.InvalidAddress;
+            }
+            return result;
         }
     }
 }

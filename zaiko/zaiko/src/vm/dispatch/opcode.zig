@@ -191,6 +191,7 @@ pub const Opcode = enum(u8) {
     CMLMEMBER = 0x1D,
     FINDKEY = 0x1E,
     CREATECELL = 0x1F,
+    WRTPTRTAG = 0x36, // 54 - calls FINDKEY with byte operand
     BIN = 0x20,
     BOUT = 0x21,
     RESTLIST = 0x23,

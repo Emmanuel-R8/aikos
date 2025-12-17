@@ -1,3 +1,4 @@
+const std = @import("std");
 const errors = @import("../../utils/errors.zig");
 const stack = @import("../stack.zig");
 const types = @import("../../utils/types.zig");
@@ -46,14 +47,26 @@ pub fn handleFN4(vm: *VM, instruction: *const @import("../dispatch.zig").Instruc
 fn handleFN(vm: *VM, instruction: *const @import("../dispatch.zig").Instruction, arg_count: u8) errors.VMError!void {
 
     // Get atom index from instruction operand (2 bytes after opcode for non-BIGATOMS)
-    // C: Get_AtomNo_PCMAC1 - gets atom index as DLword (2 bytes) from PC+1
-    // For non-BIGATOMS: Get_AtomNo(ptr) = Get_DLword(ptr) - 2 bytes
-    const atom_index: LispPTR = instruction.getWordOperand(0); // DLword (2 bytes) for non-BIGATOMS
+    // C: Get_AtomNo_PCMAC1 = Get_DLword_PCMAC1 = Get_DLword(PCMAC + 1)
+    // C: Get_AtomNo(ptr) = Get_DLword(ptr) for non-BIGATOMS (no subtraction)
+    // Read DLword operand (little-endian, pages already byte-swapped on load)
+    const atom_index_raw: u16 = instruction.getWordOperand(0); // DLword (2 bytes)
+    const atom_index: LispPTR = @as(LispPTR, atom_index_raw);
+    
+    std.debug.print("DEBUG handleFN: atom_index_raw=0x{x:0>4} ({d}), atom_index=0x{x} ({d})\n", 
+        .{ atom_index_raw, atom_index_raw, atom_index, atom_index });
+    std.debug.print("  atom_index / 2: {d} (0x{x})\n", .{ atom_index / 2, atom_index / 2 });
+    std.debug.print("  atom_index * 2: {d} (0x{x})\n", .{ atom_index * 2, atom_index * 2 });
 
     // Lookup function definition from atom table
     // C: defcell = GetDEFCELL68k(atom_index)
     const defcell_module = @import("../../data/defcell.zig");
-    const defcell = try defcell_module.readDefCell(vm, atom_index);
+    std.debug.print("DEBUG handleFN: Calling readDefCell with atom_index=0x{x}\n", .{atom_index});
+    const defcell = defcell_module.readDefCell(vm, atom_index) catch |err| {
+        std.debug.print("ERROR handleFN: readDefCell failed with error: {}\n", .{err});
+        std.debug.print("  atom_index=0x{x} ({d})\n", .{ atom_index, atom_index });
+        return err;
+    };
     
     // Check if C code (ccodep flag)
     // C: if (!(fn_defcell->ccodep)) { /* it's not a CCODEP */ }
@@ -67,8 +80,26 @@ fn handleFN(vm: *VM, instruction: *const @import("../dispatch.zig").Instruction,
     // C: LOCFNCELL = (struct fnhead *)NativeAligned4FromLAddr((defcell_word &= POINTERMASK))
     const fnheader_ptr = defcell_module.getFunctionHeader(defcell);
     
+    // CRITICAL: Check if defpointer is valid (not 0/NIL)
+    // C: op_fn_common checks GetTypeNumber(defcell->defpointer) == TYPE_COMPILED_CLOSURE
+    // If not a compiled closure, uses ATOM_INTERPRETER
+    // For now, if defpointer is 0, treat as undefined function (should trigger UFN)
+    if (fnheader_ptr == 0) {
+        std.debug.print("WARNING handleFN: defpointer is 0 (no function definition) for atom_index=0x{x}\n", .{atom_index});
+        std.debug.print("  This should trigger UFN (Undefined Function Name) lookup\n", .{});
+        // TODO: Implement UFN lookup (op_ufn in C code)
+        // For now, return error to prevent crash
+        return errors.VMError.InvalidOpcode;
+    }
+    
+    std.debug.print("DEBUG handleFN: fnheader_ptr=0x{x}\n", .{fnheader_ptr});
+    
     // Read function header from memory
-    var fnheader = try readFunctionHeader(vm, fnheader_ptr);
+    var fnheader = readFunctionHeader(vm, fnheader_ptr) catch |err| {
+        std.debug.print("ERROR handleFN: readFunctionHeader failed with error: {}\n", .{err});
+        std.debug.print("  fnheader_ptr=0x{x}\n", .{fnheader_ptr});
+        return err;
+    };
     
     // Call function with argument count
     // C: OPFN sets up frame, pushes TOS, handles spread args, sets up BF/FX markers

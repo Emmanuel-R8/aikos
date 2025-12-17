@@ -42,10 +42,18 @@ pub fn getTypeNumber(vm: *VM, address: LispPTR) ?u16 {
 
 /// Check if address is a list (cons cell)
 /// C: Listp(address) = (GetTypeNumber(address) == TYPE_LISTP)
+/// C: GetTypeNumber(address) = GetTypeEntry(address) & 0x7ff
+/// C: GetTypeEntry(address) = GETWORD(MDStypetbl + ((address) >> 9))
 pub fn isList(vm: *VM, address: LispPTR) bool {
     // Special cases
     if (address == NIL_PTR) return false; // NIL is not a list (though (cdr nil) = nil)
     if (address == ATOM_T) return false; // T is an atom, not a list
+    
+    // CRITICAL: Small values (< 0x10000) are NOT cons cell pointers
+    // They are small positive/negative integers, characters, or special values
+    // Cons cells are in MDS (heap) region, which starts at much higher addresses
+    // C: MDS_OFFSET is typically 0x180000 or larger
+    if (address < 0x10000) return false; // Too small to be a cons cell pointer
     
     // For addresses that could be cons cells:
     // - Must be even (4-byte aligned)
@@ -59,9 +67,11 @@ pub fn isList(vm: *VM, address: LispPTR) bool {
         return false;
     }
     
-    // For now, assume even addresses within bounds could be cons cells
-    // Full implementation would check type table: GetTypeNumber(address) == TYPE_LISTP
-    // TODO: Implement full type table lookup when MDStypetbl is available
+    // TODO: Full implementation should check type table:
+    //   GetTypeNumber(address) == TYPE_LISTP
+    //   Requires: MDStypetbl access, GetTypeEntry(address) lookup
+    // For now, assume even addresses >= 0x10000 within bounds could be cons cells
+    // This is a heuristic - full type table lookup needed for correctness
     return true;
 }
 
