@@ -72,8 +72,12 @@ pub const VM = struct {
     top_of_stack: LispPTR, // Cached top of stack value (initially 0 = NIL)
 
     pub fn init(allocator: std.mem.Allocator, stack_size: usize) !VM {
-        const stack_mem = try allocator.alloc(DLword, stack_size);
-        const stack_base_ptr: [*]DLword = stack_mem.ptr + stack_size;
+        // CRITICAL: stack_size is in BYTES, but alloc() expects count of DLwords
+        // Convert bytes to DLwords: 1 DLword = 2 bytes
+        const stack_size_dlwords = stack_size / 2;
+        const stack_mem = try allocator.alloc(DLword, stack_size_dlwords);
+        // Stack grows down, so base is at the end of allocated memory
+        const stack_base_ptr: [*]DLword = stack_mem.ptr + stack_size_dlwords;
 
         return VM{
             .allocator = allocator,
@@ -391,6 +395,10 @@ pub fn setTopOfStack(vm: *VM, value: LispPTR) void {
 /// Returns 0 if stack is empty
 /// C: Stack depth = (CurrentStackPTR - Stackspace) / 2
 /// Stackspace is the BASE (lowest address), CurrentStackPTR is the current top (higher address when stack has data)
+/// CRITICAL: In C, CurrentStackPTR and Stackspace are DLword* pointers.
+/// When you subtract two DLword* pointers, you get the difference in DLwords (pointer arithmetic).
+/// But the C code divides by 2 anyway, which suggests the subtraction might give 2x the DLwords?
+/// Or maybe there's a different interpretation.
 pub fn getStackDepth(vm: *const VM) usize {
     const stack_base_addr = @intFromPtr(vm.stack_base);
     const stack_ptr_addr = @intFromPtr(vm.stack_ptr);
@@ -402,7 +410,21 @@ pub fn getStackDepth(vm: *const VM) usize {
         return 0; // Stack is empty
     }
 
-    // Stack has data: depth = (current - base) / 2 DLwords
-    const diff = stack_ptr_addr - stack_base_addr;
-    return @as(usize, @intCast(diff / 2)); // Divide by 2 to get DLwords (each DLword is 2 bytes)
+    // CRITICAL: In C, CurrentStackPTR and Stackspace are DLword* pointers.
+    // When you subtract two DLword* pointers, you get the difference in DLwords (pointer arithmetic).
+    // C code: stack_depth = (CurrentStackPTR - Stackspace) / 2
+    // 
+    // Analysis: If ptr_diff = CurrentStackPTR - Stackspace gives DLwords,
+    // then dividing by 2 would give half the DLwords. But C shows 5956,
+    // which matches (nextblock - 2) / 2 = (11914 - 2) / 2 = 5956.
+    //
+    // In Zig, we use @intFromPtr which gives byte addresses.
+    // So: diff_bytes = stack_ptr_addr - stack_base_addr (in bytes)
+    // To match C's behavior, we need to divide by 4:
+    //   - diff_bytes / 2 = DLwords (if we just convert bytes to DLwords)
+    //   - But C divides pointer diff (in DLwords) by 2, so we need diff_bytes / 4
+    //   - This gives: (11912 DLwords * 2 bytes) / 4 = 5956 DLwords ✓
+    const diff_bytes = stack_ptr_addr - stack_base_addr;
+    const depth = diff_bytes / 4; // Divide by 4 to match C's (ptr_diff / 2) behavior
+    return @as(usize, @intCast(depth));
 }
