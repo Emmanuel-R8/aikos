@@ -2,7 +2,7 @@
 
 **Navigation**: [Implementations README](README.md) | [Main README](../README.md)
 
-**Date**: 2025-12-15 11:09
+**Date**: 2025-12-16 12:41
 **Status**: ✅ Core Complete - SDL2 Integration Complete (Minor Fixes Pending)
 **Location**: `maiko/alternatives/zig/`
 **Build System**: Zig build system (`build.zig`)
@@ -247,6 +247,18 @@ See `specs/005-zig-completion/` for detailed completion plan:
 10. ⚠️ **SDL2 Not Integrated**: Framework ready but rendering not implemented
 11. ⚠️ **Opcode Conflicts**: Several opcodes removed due to conflicts with C implementation
 12. ✅ **LIST/APPEND Opcodes**: Verified that LIST and APPEND opcodes do not exist in C implementation (maiko/inc/opcodes.h). Lists are created via CONS opcode, which is already implemented. Tasks T048-T049 cancelled.
+13. ✅ **Execution Trace Debugging** (2025-12-17 11:41): Fixed multiple calculation bugs identified through execution trace comparison:
+    - ✅ **Frame Field Reading**: Fixed swapped `pc` and `nextblock` fields in `dispatch.zig:307-308`
+      - Actual memory layout has `pc` at [8-9] and `nextblock` at [10-11], not as struct definition suggests
+      - Root cause: C struct definition doesn't match actual runtime memory layout
+      - Fix: Read `pc` from `frame_bytes[8..10]` and `nextblock` from `frame_bytes[10..12]`
+    - ✅ **Stack Depth Calculation**: Fixed 2x error in `stack.zig:424`
+      - Changed from `diff_bytes / 2` to `diff_bytes / 4`
+      - Root cause: C uses `DLword*` pointer arithmetic (gives DLwords), then divides by 2
+      - Zig uses `@intFromPtr` (gives bytes), so must divide by 4 to match C's behavior
+      - Verified: Old value was 11912 (0x2e88), C shows 5956 (0x1744), fix produces 5956 ✓
+    - ⚠️ **PC Calculation**: Still investigating - C log shows PC as DLword offset (0x307898), Zig calculates as byte offset (0x60f130)
+      - Pattern: `Zig PC / 2 = C Log PC`, suggesting C log format difference, not calculation error
 
 ## Recent Implementation Details (2025-12-07)
 

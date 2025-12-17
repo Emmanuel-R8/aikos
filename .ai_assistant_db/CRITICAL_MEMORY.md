@@ -11,6 +11,23 @@
 - **Requirement**: All timestamps in documentation MUST include hours and minutes (HH:MM)
 - **Never use**: Bogus dates or dates without time component
 
+## CRITICAL: Debugging Technique for Byte Swaps, Alignment, and Addresses
+
+**ALWAYS apply this technique when debugging byte swaps, alignment, or address calculations:**
+
+For EACH value, consider:
+1. The value itself (decimal and hexadecimal)
+2. The value divided by 2 (decimal and hexadecimal)
+3. The value multiplied by 2 (decimal and hexadecimal)
+
+**See**: `.ai_assistant_db/CRITICAL_DEBUGGING_TECHNIQUE.md` for full details and examples.
+
+This technique helps identify:
+- Byte vs DLword confusion (values off by factors of 2)
+- Alignment issues
+- Address calculation errors (LispPTR as DLword offset vs byte offset)
+- Endianness problems
+
 ## CRITICAL RULE: Emulator-Independent Documentation
 
 **ALL improvements to `.ai_assistant_db` documentation MUST be emulator-independent** inpriority so that any implementor in any language benefits from the knowledge.
