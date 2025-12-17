@@ -11,8 +11,10 @@ The VM Core is the execution engine that interprets Lisp bytecode. It manages th
 ## Documentation Structure
 
 - **[Execution Model](execution-model.md)** - Dispatch loop and instruction execution
+- **[Execution Trace](execution-trace.md)** - Execution trace format for debugging and validation
 - **[Stack Management](stack-management.md)** - Stack frames and operations
 - **[Function Calls](function-calls.md)** - Call/return mechanisms
+- **[Type Checking](type-checking.md)** - Type table access, type predicates, and type checking
 - **[Interrupt Handling](interrupt-handling.md)** - Interrupt processing
 
 ## Core Components
@@ -50,6 +52,16 @@ Function calls involve:
 - Return value handling
 
 See [Function Calls](function-calls.md) for complete specification.
+
+### Type Checking System
+
+Type checking validates object types:
+
+- Type table (MDStypetbl) lookup
+- Type predicates (LISTP, NUMBERP, etc.)
+- Address range heuristics (when type table unavailable)
+
+See [Type Checking](type-checking.md) for complete specification.
 
 ### Interrupt System
 

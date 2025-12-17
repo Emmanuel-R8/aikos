@@ -15,6 +15,7 @@ This section documents the binary formats of all data structures used by the VM.
 
 ## Documentation Structure
 
+- **[Atom Table](atom-table.md)** - Atom table structure, DefCell access, and atom cell layout
 - **[Cons Cells](cons-cells.md)** - Cons cell format and CDR coding
 - **[Arrays](arrays.md)** - Array formats and layouts
 - **[Function Headers](function-headers.md)** - Function metadata format

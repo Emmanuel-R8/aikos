@@ -40,16 +40,32 @@ function ExecuteFN(arg_count, atom_index):
 
     // Lookup function definition from atom table
     // C: defcell = GetDEFCELL68k(atom_index)
+    // See data-structures/atom-table.md for detailed calculation
+    // For BIGVM+BIGATOMS: GetDEFCELLlitatom(index) = AtomSpace + (5 * index + 2) * sizeof(LispPTR)
     defcell = GetDEFCELL(atom_index)
     
     // Check if C code function (ccodep flag)
+    // C: defcell_word = *(int *)fn_defcell; ccodep = (defcell_word >> 31) & 1;
+    // DefCell first LispPTR: bit 31 = ccodep, bit 30 = fastp, bits 29-28 = argtype, bits 27-0 = defpointer
     if defcell.ccodep != 0:
         // C code function - handle via C function dispatch
         HandleCCodeFunction(defcell)
     else:
         // Lisp function - get function header from defpointer
         // C: LOCFNCELL = (struct fnhead *)NativeAligned4FromLAddr((defcell->defpointer & POINTERMASK))
+        // defpointer is 28-bit value in low bits of first LispPTR
         fnheader_ptr = defcell.defpointer & POINTERMASK
+        
+        // CRITICAL: Check if defpointer is valid (not 0/NIL)
+        // C: op_fn_common checks GetTypeNumber(defcell->defpointer) == TYPE_COMPILED_CLOSURE
+        // If defpointer is 0 or not a compiled closure, uses ATOM_INTERPRETER
+        // If defpointer is 0, should trigger UFN (Undefined Function Name) lookup
+        if fnheader_ptr == 0:
+            // Atom has no function definition - trigger UFN lookup
+            // C: goto op_ufn; - looks up function in UFN table
+            TriggerUFNLookup(atom_index)
+            return
+        
         function_obj = ReadFunctionHeader(fnheader_ptr)
 
     // Validate function object

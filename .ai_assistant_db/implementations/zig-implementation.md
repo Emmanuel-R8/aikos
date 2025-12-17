@@ -259,6 +259,32 @@ See `specs/005-zig-completion/` for detailed completion plan:
       - Verified: Old value was 11912 (0x2e88), C shows 5956 (0x1744), fix produces 5956 ✓
     - ⚠️ **PC Calculation**: Still investigating - C log shows PC as DLword offset (0x307898), Zig calculates as byte offset (0x60f130)
       - Pattern: `Zig PC / 2 = C Log PC`, suggesting C log format difference, not calculation error
+    - ✅ **DefCell Byte Order Fix** (2025-12-17 12:29): Fixed critical bug in DefCell reading
+      - **Bug**: Was reading DefCell first LispPTR as big-endian (manual byte construction)
+      - **Root Cause**: Misunderstood that virtual_memory is already byte-swapped to native format
+      - **Fix**: Changed to `std.mem.readInt(LispPTR, defcell_bytes[0..4], .little)` to read as native little-endian
+      - **C Reference**: `maiko/src/xc.c:193` - `defcell_word = *(int *)fn_defcell;` reads as native int
+      - **Impact**: DefCell structure now read correctly, matches C implementation behavior
+    - ✅ **GetDEFCELL Calculation Verified** (2025-12-17 12:29): Verified address calculation matches C
+      - **C Implementation**: `GetDEFCELLlitatom(index) = ((LispPTR *)AtomSpace + (5 * index) + 2)`
+      - **Zig Implementation**: `ATOMS_OFFSET + (index * 20) + (2 * 4) = 0x2c0000 + (index * 20) + 8`
+      - **Verification**: For index=10, both calculate `0x2c00d0` ✓
+      - **Documentation**: Created `rewrite-spec/data-structures/atom-table.md` with complete specification
+    - ✅ **DefPointer = 0 Handling** (2025-12-17 12:29): Fixed crash when atom has no function definition
+      - **Issue**: Crash when `defpointer = 0` (atom has no function definition)
+      - **Root Cause**: `readFunctionHeader` attempted to translate address 0, causing integer overflow
+      - **Fix**: Added check for `defpointer == 0` before reading function header, returns `InvalidOpcode` error
+      - **C Reference**: `maiko/inc/tosfns.h:361-365` - Uses `ATOM_INTERPRETER` when `defpointer` is not a compiled closure
+      - **Impact**: Emulator now handles undefined functions gracefully, execution continues (14 instructions logged vs 3 before)
+      - **Future**: Should trigger UFN (Undefined Function Name) lookup instead of returning error
+    - ✅ **isList() Heuristic Fix** (2025-12-17 12:35): Fixed CDR crash on small integer values
+      - **Issue**: Crash in `handleCDR` when TOS=0x1 (small positive integer), `isList()` incorrectly returned true
+      - **Root Cause**: `isList()` was too permissive - returned true for any even address within bounds
+      - **C Reference**: `maiko/inc/lsptypes.h:617` - `Listp(address) = (GetTypeNumber(address) == TYPE_LISTP)`
+      - **C Implementation**: Uses type table lookup `GetTypeEntry(address) = GETWORD(MDStypetbl + ((address) >> 9))`
+      - **Fix**: Added heuristic to reject values < 0x10000 (cons cells are in MDS region, typically >= 0x180000)
+      - **Impact**: CDR now correctly rejects small integers, execution continues (14 instructions logged)
+      - **Future**: Full implementation requires type table (MDStypetbl) access for accurate type checking
 
 ## Recent Implementation Details (2025-12-07)
 

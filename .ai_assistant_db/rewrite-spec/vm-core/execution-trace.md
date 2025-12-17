@@ -74,19 +74,39 @@ Each line contains exactly 462 characters (461 + newline) with the following col
 
 **Padding**: Field padded to exactly 170 characters with spaces.
 
+**CRITICAL - Stack Depth Calculation** (2025-12-17):
+- **C Implementation**: `stack_depth = (CurrentStackPTR - Stackspace) / 2`
+  - `CurrentStackPTR` and `Stackspace` are `DLword*` pointers
+  - Pointer subtraction gives difference in DLwords (pointer arithmetic)
+  - Then divided by 2 to get final stack depth
+- **Implementations using byte addresses** (e.g., `@intFromPtr` in Zig):
+  - Byte difference must be divided by 4 to match C's behavior
+  - Formula: `(byte_diff / 4) = (ptr_diff_in_dlwords / 2)`
+  - Example: `23824 bytes / 4 = 5956 DLwords` (matches C's `11912 DLwords / 2 = 5956`)
+
 #### Frame Information (Columns 299-461)
 
 **Format** (with frame): `Frame: FX:%5d FH:0x%06x PC:%5d NB:%5d FO:+%5d`
 
 - **FX**: Current frame offset from Stackspace in DLwords (5 digits, right-aligned)
-- **FH**: Frame function header (24-bit, 6 hex digits)
+- **FH**: Frame function header (24-bit or 32-bit depending on BIGVM, 6 hex digits)
 - **PC**: Frame PC offset from FuncObj in bytes (5 digits, right-aligned)
-- **NB**: Next block pointer (5 digits, right-aligned)
+- **NB**: Next block pointer in DLwords from Stackspace (5 digits, right-aligned)
 - **FO**: FuncObj byte offset from Lisp_world (5 digits, right-aligned, with `+` prefix)
 
 **Format** (no frame): `Frame: FX:----- FH:------ PC:----- NB:----- FO:-----`
 
 **Padding**: Field padded to exactly 163 characters with spaces.
+
+**CRITICAL - Frame Field Memory Layout** (2025-12-17):
+- **Actual memory layout may differ from C struct definition**
+- In BIGVM mode, observed layout:
+  - Offset [4-7]: `fnheader` (32-bit LispPTR, native little-endian)
+  - Offset [8-9]: `pc` (DLword, native little-endian) - **NOT nextblock as struct suggests**
+  - Offset [10-11]: `nextblock` (DLword, native little-endian) - **NOT pc as struct suggests**
+- The struct definition in `maiko/inc/stack.h` may not match actual runtime layout
+- Implementations must verify actual byte offsets by examining memory contents
+- This discrepancy affects BIGVM mode frame field reading
 
 ## Stop Condition
 
