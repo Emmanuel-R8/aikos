@@ -44,9 +44,13 @@ Each line contains exactly 462 characters (461 + newline) with the following col
 - Missing bytes padded with `00`
 - Format: `%02x%02x%02x%02x%02x%02x%02x%02x    ` (16 hex + 4 spaces)
 
-**Debug Info** (first 5 instructions only):
+**Debug Info** (first 10 instructions, expanded for diagnosis):
 - `[vpage:%u off:0x%03x]` - Virtual page number and offset within page
 - `@mem:%p` (first instruction only) - Actual memory address pointer
+- `[MEM_ZEROS]` - Indicates memory at PC location is all zeros (memory loading issue)
+- `[PC_MISMATCH_CHECK vpage:%u]` - Special marker for known PC mismatch locations (PC 0x307898/0x307899)
+
+**Note**: Debug info can be expanded as needed for diagnosis, as long as the core format (columns 1-461) remains identical across emulators.
 
 #### Instruction Name (Columns 89-128)
 
@@ -135,6 +139,10 @@ STOP: PC=0x%x reached target 0xf000d5, total instructions=%d\n
    - Byte order must match memory layout
 
 4. **Instruction Bytes**: Must read from correct virtual memory location
+   - **CRITICAL** (2025-12-18 19:48): Logging uses RAW memory (no XOR addressing)
+   - **Logging**: Read directly from `virtual_memory[PC + i]` to show actual memory contents
+   - **Execution**: Uses XOR addressing (`address ^ 3` for bytes) in BYTESWAP mode
+   - This matches C emulator behavior: logging shows raw bytes, execution uses XOR addressing
    - Use PC byte offset to index into virtual memory
    - Handle byte swapping if needed (pages are byte-swapped on load)
 
