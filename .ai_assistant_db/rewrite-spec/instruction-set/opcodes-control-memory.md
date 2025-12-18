@@ -28,7 +28,12 @@ Control flow and memory operation opcodes (0x00-0x7F).
 
 ### Returns
 - **RETURN (0x10)** [1] Pop frame, restore PC, return value on TOS.
-- **SLRETURN (0x3F)** [1] Soft return (different frame handling).
+- **SLRETURN (0x3F)** [1] Soft return (stack-relative return).
+  - **Purpose**: Return from function using stack-relative addressing
+  - **C Implementation**: `maiko/src/mvs.c` - handles soft return with different frame handling
+  - **Difference from RETURN**: Uses stack-relative addressing for return address, may preserve different stack state
+  - **Stack Effect**: [return_value] -> [] (returns to caller)
+  - **Updated**: 2025-12-18 20:26 - Documented and implemented basic version
 
 ### Jumps
 - **JUMP0-JUMP15 (0x80-0x8F)** [1] Unconditional jump, offset encoded in opcode (0-15). Stack: No effect.
