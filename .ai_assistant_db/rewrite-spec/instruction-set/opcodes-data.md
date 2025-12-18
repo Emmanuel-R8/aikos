@@ -2,6 +2,8 @@
 
 **Navigation**: [Opcode Reference](opcodes.md) | [Instruction Format](instruction-format.md) | [Execution Semantics](execution-semantics.md)
 
+**Last Updated**: 2025-12-18 20:26
+
 Data operation opcodes for cons cells, arrays, types, and lists.
 
 ## Data Operations (0x00-0x3F, 0x80-0xBF)
@@ -72,9 +74,13 @@ Data operation opcodes for cons cells, arrays, types, and lists.
 - **NTYPX (0x04)** [1] TOS = type number of TOS.
   - Returns type number (0-2047) from type table: `GetTypeNumber(TOS) = GetTypeEntry(TOS) & 0x7ff`
   - Type entry read from: `MDStypetbl + (TOS >> 9)`
-- **TYPEP (0x05)** [2] Type code (1B). TOS = (GetType(TOS) == code) ? T : NIL.
+- **TYPEP (0x05)** [2] Type code (1B). Type predicate.
+  - **C Implementation**: `TYPEP(n)` macro in `maiko/inc/inlineC.h`
+  - **Behavior**: `if ((DLword)GetTypeNumber(TOPOFSTACK) != (n)) TOPOFSTACK = NIL_PTR;`
   - Compares type number of TOS with operand type code.
-  - Uses `GetTypeNumber(TOS)` to get type number.
+  - Uses `GetTypeNumber(TOS)` to get type number from type table.
+  - **Stack Effect**: If types match, TOS remains unchanged. If types don't match, TOS is set to NIL_PTR.
+  - **Updated**: 2025-12-18 20:26 - Fixed implementation to match C behavior exactly
 - **DTEST (0x06)** [3] Atom index (2B). TOS = (TOS has type named by atom_index) ? T : NIL.
   - **Implementation**: Walks DTD (Data Type Descriptor) chain starting from `GetDTD(GetTypeNumber(TOS))`.
   - Compares `dtd->dtd_name` with `atom_index` (or `dtd->dtd_namelo + (dtd->dtd_namehi << 16)` for non-BIGVM).

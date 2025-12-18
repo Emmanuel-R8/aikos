@@ -2,6 +2,8 @@
 
 **Navigation**: [Opcode Reference](opcodes.md) | [Instruction Format](instruction-format.md) | [Execution Semantics](execution-semantics.md)
 
+**Last Updated**: 2025-12-18 20:26
+
 Control flow and memory operation opcodes (0x00-0x7F).
 
 ## Control Flow (0x00-0x3F)
@@ -12,6 +14,16 @@ Control flow and memory operation opcodes (0x00-0x7F).
 - **FN2-FN4 (0x0A-0x0C)** [3] Calls 2-4 arg function. Format: [opcode][atom_index:2B]. Creates frame.
 - **FNX (0x0D)** [4-5] Variable argument count. Format: [opcode][atom_index:2-3B][arg_count:1B]. Atom index size depends on BIGATOMS setting.
 - **APPLYFN (0x0E)** [1] Apply function to arg list on stack.
+  - **Purpose**: Apply a function to a list of arguments (Lisp APPLY semantics)
+  - **Stack State Before**: [arg_list, function] where arg_list is a cons cell list
+  - **Algorithm**: 
+    1. Pop argument list from stack
+    2. Pop function object from stack  
+    3. Spread list elements onto stack as individual arguments
+    4. Count arguments while spreading
+    5. Call function with spread arguments (similar to FNX)
+  - **C Implementation**: Similar to FNX but handles list spreading
+  - **Updated**: 2025-12-18 20:26 - Added documentation and basic implementation structure
 - **CHECKAPPLY (0x0F)** [1] Validate apply args before apply.
 
 ### Returns
