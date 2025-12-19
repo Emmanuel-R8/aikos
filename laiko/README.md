@@ -1,9 +1,6 @@
-# Laiko - Maiko Emulator Implementation in Common Lisp
+# Maiko Emulator Implementation in Common Lisp
 
-**Project Name**: laiko  
-**Location**: `laiko/` (relocated from `maiko/alternatives/lisp/`)
-
-This directory contains a complete implementation of the Maiko emulator in Common Lisp (SBCL), following the rewrite documentation specifications in `documentation/specifications/`.
+This directory contains a complete implementation of the Maiko emulator in Common Lisp (SBCL), following the rewrite documentation specifications in `.ai_assistant_db/rewrite-spec/`.
 
 ## Overview
 
