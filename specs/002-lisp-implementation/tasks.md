@@ -24,7 +24,7 @@
 **Purpose**: Project initialization and basic structure
 
 - [X] T001 Create project directory structure `alternatives/lisp/` with subdirectories per plan.md
-- [X] T002 [P] Create `alternatives/lisp/maiko-lisp.asd` with ASDF system definition
+- [X] T002 [P] Create `alternatives/lisp/laiko.asd` with ASDF system definition
 - [X] T003 [P] Create `alternatives/lisp/README.md` with project overview and build instructions
 - [X] T004 [P] Create `alternatives/lisp/build.sh` build script
 - [X] T005 [P] Create `alternatives/lisp/run.sh` run script

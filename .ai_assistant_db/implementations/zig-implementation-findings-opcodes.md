@@ -9,7 +9,7 @@ Opcode implementation related findings and implementations.
 ### Arithmetic Opcodes: SMALLP/FIXP Handling
 
 **Zig Implementation**:
-- **Location**: `maiko/alternatives/zig/src/utils/types.zig:124-212`
+- **Location**: `zaiko/src/utils/types.zig:124-212`
 - **Functions**: `extractInteger()`, `encodeIntegerResult()` matching C `N_IGETNUMBER` and `N_ARITH_SWITCH` macros
 - **Constants**: `S_POSITIVE`, `S_NEGATIVE`, `SEGMASK`, `MAX_SMALL`, `MIN_SMALL`, `MAX_FIXP`, `MIN_FIXP`
 - **Status**: ✅ Implemented - Arithmetic opcodes (IPLUS2, IDIFFERENCE, ITIMES2, IQUO, IREM) now match C behavior
@@ -20,8 +20,8 @@ Opcode implementation related findings and implementations.
 ### Array Operations Implementation
 
 **Zig Implementation**:
-- **Location**: `maiko/alternatives/zig/src/vm/opcodes/array_ops.zig:handleAREF1()`, `handleASET1()`
-- **Module**: `maiko/alternatives/zig/src/data/array.zig` with `OneDArray` structure
+- **Location**: `zaiko/src/vm/opcodes/array_ops.zig:handleAREF1()`, `handleASET1()`
+- **Module**: `zaiko/src/data/array.zig` with `OneDArray` structure
 - **C Reference**: `maiko/inc/lsptypes.h` for structure definition
 - **Status**: ✅ Implemented - AREF1 and ASET1 now properly handle OneDArray structures with type dispatch
 
@@ -36,7 +36,7 @@ Opcode implementation related findings and implementations.
 ### Variable Access with DLword Offsets
 
 **Zig Implementation**:
-- **Location**: `maiko/alternatives/zig/src/vm/opcodes/variable_access.zig:handlePVARX()`, `handleIVARX()`, `handlePVAR_SET()`, `handleIVARX_()`
+- **Location**: `zaiko/src/vm/opcodes/variable_access.zig:handlePVARX()`, `handleIVARX()`, `handlePVAR_SET()`, `handleIVARX_()`
 - **Status**: ✅ Implemented - PVARX/IVARX operations now correctly use DLword offsets matching C implementation
 
 **Zig-Specific Details**:
@@ -50,7 +50,7 @@ Opcode implementation related findings and implementations.
 ### Frame Information Opcodes
 
 **Zig Implementation**:
-- **Location**: `maiko/alternatives/zig/src/vm/opcodes/variable_access.zig:handleMYALINK()`, `handleMYARGCOUNT()`
+- **Location**: `zaiko/src/vm/opcodes/variable_access.zig:handleMYALINK()`, `handleMYARGCOUNT()`
 - **Status**: ✅ Implemented - MYALINK and MYARGCOUNT now provide frame information matching C implementation
 
 **Zig-Specific Details**:
@@ -62,7 +62,7 @@ Opcode implementation related findings and implementations.
 ### Atom Table Access Implementation
 
 **Zig Implementation**:
-- **Location**: `maiko/alternatives/zig/src/data/atom.zig`
+- **Location**: `zaiko/src/data/atom.zig`
 - **Status**: ✅ Implemented - GVAR, GVAR_, ACONST, GCONST opcodes now properly access atom table
 
 **Zig-Specific Details**:
@@ -75,7 +75,7 @@ Opcode implementation related findings and implementations.
 ### Type Checking Implementation
 
 **Zig Implementation**:
-- **Location**: `maiko/alternatives/zig/src/utils/type_check.zig`
+- **Location**: `zaiko/src/utils/type_check.zig`
 - **Status**: ✅ Implemented - Type checking integrated into CAR/CDR and type opcodes
 
 **Zig-Specific Details**:
@@ -89,7 +89,7 @@ Opcode implementation related findings and implementations.
 ### Base Operations Implementation
 
 **Zig Implementation**:
-- **Location**: `maiko/alternatives/zig/src/vm/opcodes/base_ops.zig`
+- **Location**: `zaiko/src/vm/opcodes/base_ops.zig`
 - **Status**: ✅ Implemented - All base operations complete (2 TODOs remain for FIXP handling in byte operations)
 
 **Zig-Specific Details**:
@@ -103,7 +103,7 @@ Opcode implementation related findings and implementations.
 ### Function Lookup Implementation
 
 **Zig Implementation**:
-- **Location**: `maiko/alternatives/zig/src/data/defcell.zig`, `maiko/alternatives/zig/src/vm/opcodes/function_calls.zig`
+- **Location**: `zaiko/src/data/defcell.zig`, `zaiko/src/vm/opcodes/function_calls.zig`
 - **Status**: ✅ Implemented - FN0-FN4 opcodes now properly lookup functions from atom table (C code functions TODO)
 
 **Zig-Specific Details**:
@@ -116,7 +116,7 @@ Opcode implementation related findings and implementations.
 ### Binding Operations Implementation
 
 **Zig Implementation**:
-- **Location**: `maiko/alternatives/zig/src/vm/opcodes/binding.zig`
+- **Location**: `zaiko/src/vm/opcodes/binding.zig`
 - **Status**: ✅ Implemented - All binding operations complete
 
 **Zig-Specific Details**:
@@ -128,7 +128,7 @@ Opcode implementation related findings and implementations.
 ### Comparison Operations Implementation
 
 **Zig Implementation**:
-- **Location**: `maiko/alternatives/zig/src/vm/opcodes/comparison.zig`
+- **Location**: `zaiko/src/vm/opcodes/comparison.zig`
 - **Status**: ✅ Implemented - All comparison operations complete with proper atom and array handling
 
 **Zig-Specific Details**:
@@ -140,7 +140,7 @@ Opcode implementation related findings and implementations.
 ### GC Operations Integration
 
 **Zig Implementation**:
-- **Location**: `maiko/alternatives/zig/src/vm/stack.zig`, `maiko/alternatives/zig/src/vm/opcodes/gc_ops.zig`
+- **Location**: `zaiko/src/vm/stack.zig`, `zaiko/src/vm/opcodes/gc_ops.zig`
 - **Status**: ✅ Implemented - GC operations integrated into VM struct
 
 **Zig-Specific Details**:
@@ -153,7 +153,7 @@ Opcode implementation related findings and implementations.
 ### FIXP Handling in Base Operations
 
 **Zig Implementation**:
-- **Location**: `maiko/alternatives/zig/src/vm/opcodes/base_ops.zig`
+- **Location**: `zaiko/src/vm/opcodes/base_ops.zig`
 - **Status**: ✅ Implemented - FIXP handling complete for base byte operations
 
 **Zig-Specific Details**:
@@ -166,7 +166,7 @@ Opcode implementation related findings and implementations.
 ### GC Integration in GVAR_
 
 **Zig Implementation**:
-- **Location**: `maiko/alternatives/zig/src/vm/opcodes/atom_ops.zig`
+- **Location**: `zaiko/src/vm/opcodes/atom_ops.zig`
 - **Status**: ✅ Implemented - GC integration complete for GVAR_ opcode
 
 **Zig-Specific Details**:
@@ -179,7 +179,7 @@ Opcode implementation related findings and implementations.
 ### List Operations Implementation
 
 **Zig Implementation**:
-- **Location**: `maiko/alternatives/zig/src/vm/opcodes/list_ops.zig`
+- **Location**: `zaiko/src/vm/opcodes/list_ops.zig`
 - **Status**: ✅ Implemented - All list operations complete (RESTLIST simplified, full IVar version TODO)
 
 **Zig-Specific Details**:
@@ -191,7 +191,7 @@ Opcode implementation related findings and implementations.
 ### RPLPTR_N Implementation
 
 **Zig Implementation**:
-- **Location**: `maiko/alternatives/zig/src/vm/opcodes/control_misc.zig`
+- **Location**: `zaiko/src/vm/opcodes/control_misc.zig`
 - **Status**: ✅ Implemented - RPLPTR_N complete with GC ref updates
 
 **Zig-Specific Details**:
@@ -203,7 +203,7 @@ Opcode implementation related findings and implementations.
 ### FIXP Box Operations Implementation
 
 **Zig Implementation**:
-- **Location**: `maiko/alternatives/zig/src/vm/opcodes/number_ops.zig`
+- **Location**: `zaiko/src/vm/opcodes/number_ops.zig`
 - **Status**: ✅ Implemented - FIXP box operations complete
 
 **Zig-Specific Details**:
@@ -216,7 +216,7 @@ Opcode implementation related findings and implementations.
 ### Type Predicates Implementation
 
 **Zig Implementation**:
-- **Location**: `maiko/alternatives/zig/src/vm/opcodes/type_checking.zig`, `maiko/alternatives/zig/src/utils/type_check.zig`
+- **Location**: `zaiko/src/vm/opcodes/type_checking.zig`, `zaiko/src/utils/type_check.zig`
 - **Status**: ✅ Implemented - Type predicates complete with proper type number checks
 
 **Zig-Specific Details**:

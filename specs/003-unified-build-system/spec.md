@@ -150,7 +150,7 @@ A developer wants to build emulators on different operating systems and architec
 
 ## Dependencies
 
-- Access to all three emulator source trees (C in `maiko/src/`, Zig in `maiko/alternatives/zig/`, Lisp in `maiko/alternatives/lisp/`)
+- Access to all three emulator source trees (C in `maiko/src/`, Zig in `zaiko/`, Lisp in `laiko/`)
 - Native build tools for each emulator (CMake/Make, Zig compiler, SBCL with ASDF)
 - Platform detection utilities (`osversion`, `machinetype` from Maiko)
 - Existing Medley loadup scripts and their expected interfaces
@@ -158,7 +158,7 @@ A developer wants to build emulators on different operating systems and architec
 
 ## Out of Scope
 
-- Modifying the internal build systems of individual emulators (CMakeLists.txt, build.zig, maiko-lisp.asd)
+- Modifying the internal build systems of individual emulators (CMakeLists.txt, build.zig, laiko.asd)
 - Cross-compilation support beyond what native build tools provide
 - Automated installation of build prerequisites
 - Build caching or artifact management beyond basic incremental detection

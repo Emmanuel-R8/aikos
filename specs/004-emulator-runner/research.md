@@ -127,14 +127,14 @@
 
 #### Zig Emulator
 
-- **Executable**: `maiko-zig`
-- **Invocation**: Direct execution (e.g., `./maiko-zig sysout.sysout`)
+- **Executable**: `zaiko`
+- **Invocation**: Direct execution (e.g., `./zaiko sysout.sysout`)
 - **Arguments**: Should accept same arguments as C emulator (compatibility)
 
 #### Lisp Emulator
 
-- **Executable**: `maiko-lisp` (wrapper script created by build system)
-- **Invocation**: Wrapper script executes `sbcl --load maiko-lisp.asd --eval "(asdf:load-system :maiko-lisp)"`
+- **Executable**: `laiko` (wrapper script created by build system)
+- **Invocation**: Wrapper script executes `sbcl --load laiko.asd --eval "(asdf:load-system :laiko)"`
 - **Arguments**: Wrapper script must pass through command-line arguments to SBCL/Lisp system
 - **Note**: Wrapper script already created by unified build system (spec 003)
 
@@ -145,8 +145,8 @@
 - All emulators receive same command-line arguments (sysout, display options, memory, etc.)
 - Executable selection based on emulator type:
   - C emulator: `lde` (or `ldex`/`ldesdl` based on display backend)
-  - Zig emulator: `maiko-zig`
-  - Lisp emulator: `maiko-lisp` (wrapper script)
+  - Zig emulator: `zaiko`
+  - Lisp emulator: `laiko` (wrapper script)
 
 **Rationale**:
 

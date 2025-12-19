@@ -175,10 +175,10 @@ maiko/build/
 │       └── ldex
 ├── zig/
 │   └── <os>.<arch>/
-│       └── maiko-zig
+│       └── zaiko
 └── lisp/
     └── <os>.<arch>/
-        └── maiko-lisp
+        └── laiko
 ```
 
 ## Troubleshooting

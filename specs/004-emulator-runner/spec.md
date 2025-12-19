@@ -89,7 +89,7 @@ A developer wants to run Interlisp with a specific emulator, and if that emulato
 - **FR-010**: System MUST preserve all existing run-medley script functionality (sysout selection, display options, memory settings, etc.)
 - **FR-011**: System MUST work with all existing Medley run scripts (run-medley, medley.command, medley_run.sh)
 - **FR-012**: System MUST handle platform-specific emulator availability gracefully (e.g., inform user if emulator not available for current platform)
-- **FR-013**: System MUST maintain executable naming conventions expected by Medley scripts (lde, ldeinit, ldex, ldesdl, maiko-zig, maiko-lisp)
+- **FR-013**: System MUST maintain executable naming conventions expected by Medley scripts (lde, ldeinit, ldex, ldesdl, zaiko, laiko)
 - **FR-014**: System MUST fail with clear error message when selected emulator fails to start (no automatic fallback to other emulators)
 - **FR-015**: System MUST proactively detect corrupted or non-executable emulator files (check permissions, basic validation) and display clear error messages before attempting to run
 - **FR-016**: System MUST prevent concurrent runs using a locking mechanism (e.g., lock file) to ensure only one Interlisp instance runs at a time
@@ -116,7 +116,7 @@ A developer wants to run Interlisp with a specific emulator, and if that emulato
 
 - The unified build system (spec 003) is already implemented and emulators are built in `maiko/build/<emulator>/<os>.<arch>/`
 - Existing Medley run scripts (run-medley, medley.command, medley_run.sh) continue to function as before
-- Emulator executables follow naming conventions: `lde`/`ldex`/`ldesdl` for C emulator, `maiko-zig` for Zig emulator, `maiko-lisp` for Lisp emulator
+- Emulator executables follow naming conventions: `lde`/`ldex`/`ldesdl` for C emulator, `zaiko` for Zig emulator, `laiko` for Lisp emulator
 - Platform detection works correctly (leveraging existing Maiko utilities or uname fallback)
 - Users have appropriate permissions to execute emulator binaries
 - Display backends (X11, SDL2, SDL3) are available as needed by each emulator

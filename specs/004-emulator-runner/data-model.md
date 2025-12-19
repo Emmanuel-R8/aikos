@@ -36,7 +36,7 @@ Represents the emulator executable to be invoked, with location resolution logic
 
 **Attributes**:
 - `emulator_type`: String - Emulator type ("c", "zig", "lisp")
-- `executable_name`: String - Name of executable (e.g., "lde", "maiko-zig", "maiko-lisp")
+- `executable_name`: String - Name of executable (e.g., "lde", "zaiko", "laiko")
 - `platform`: String - Platform identifier (e.g., "linux.x86_64")
 - `path`: String - Full path to executable
 - `location_source`: String - Where executable was found: "unified-build", "maikodir", "path", "not-found"
@@ -44,8 +44,8 @@ Represents the emulator executable to be invoked, with location resolution logic
 **Validation Rules**:
 - `executable_name` MUST match expected name for emulator type:
   - C: "lde", "ldeinit", "ldex", or "ldesdl"
-  - Zig: "maiko-zig"
-  - Lisp: "maiko-lisp"
+  - Zig: "zaiko"
+  - Lisp: "laiko"
 - `path` MUST be absolute path if `location_source != "not-found"`
 - `path` MUST point to executable file (permissions checked)
 - Location resolution order: unified-build → maikodir → path → not-found

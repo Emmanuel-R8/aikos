@@ -53,7 +53,7 @@ Complete the Zig emulator implementation to achieve functional parity with the C
 ### II. Build System Flexibility ✅
 
 **Status**: COMPLIANT
-**Rationale**: Zig implementation uses Zig build system (`build.zig`), which is a valid alternative to CMake/Make. The constitution requires support for multiple build systems, and Zig build system is a modern alternative. No conflicts with C emulator build systems.
+**Rationale**: Zig implementation uses Zig build system (`build.zig`), which satisfies Constitution Principle II (Build System Flexibility). The constitution requires support for multiple build systems (CMake and make for C implementation). The Zig implementation provides an alternative build system (Zig build system), maintaining the principle of build system flexibility across implementations. The C emulator continues to support CMake and make, while the Zig implementation uses Zig build system - both satisfy the flexibility requirement within their respective implementation contexts.
 
 ### III. Display Abstraction ✅
 
@@ -93,7 +93,7 @@ specs/005-zig-completion/
 ### Source Code (repository root)
 
 ```text
-maiko/alternatives/zig/
+zaiko/
 ├── build.zig            # Build configuration (SDL2 already enabled)
 ├── src/
 │   ├── main.zig         # Entry point (VM activation complete ✅)

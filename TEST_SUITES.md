@@ -31,7 +31,7 @@ The C emulator does not appear to have a formal automated test suite. Testing is
 ## Zig Emulator
 
 ### Test Suite
-- **Location**: `maiko/alternatives/zig/tests/`
+- **Location**: `zaiko/tests/`
 - **Type**: Zig unit tests using `std.testing`
 - **Test Files**: 40+ test files covering:
   - `integration.zig` - Integration tests for VM execution cycle
@@ -50,7 +50,7 @@ The C emulator does not appear to have a formal automated test suite. Testing is
 
 ### Running Tests
 ```bash
-cd maiko/alternatives/zig
+cd zaiko
 zig build test
 ```
 
@@ -65,7 +65,7 @@ The Zig test suite is comprehensive and includes:
 ## Lisp Emulator
 
 ### Test Suite
-- **Location**: `maiko/alternatives/lisp/tests/`
+- **Location**: `laiko/tests/`
 - **Type**: Common Lisp tests using FiveAM testing framework
 - **Test Files**: 11 test files:
   - `compatibility.lisp` - Compatibility tests with C implementation
@@ -82,19 +82,19 @@ The Zig test suite is comprehensive and includes:
 
 ### Running Tests
 ```bash
-cd maiko/alternatives/lisp
-sbcl --load maiko-lisp.asd --eval "(asdf:test-system :maiko-lisp)"
+cd laiko
+sbcl --load laiko.asd --eval "(asdf:test-system :laiko)"
 ```
 
 Or using the build script:
 ```bash
-cd maiko/alternatives/lisp
+cd laiko
 ./build.sh test
 ```
 
 ### Test Framework
 - **Framework**: FiveAM (FiveAM is a Common Lisp testing framework)
-- **System Definition**: Tests are defined in `maiko-lisp.asd` under the `:maiko-lisp/tests` system
+- **System Definition**: Tests are defined in `laiko.asd` under the `:laiko/tests` system
 
 ## Medley Test Suites
 

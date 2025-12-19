@@ -1,6 +1,9 @@
-# Maiko Emulator Implementation in Zig
+# Zaiko - Maiko Emulator Implementation in Zig
 
-This directory contains a complete implementation of the Maiko emulator in Zig programming language, following the rewrite documentation specifications in `.ai_assistant_db/rewrite-spec/`.
+**Project Name**: zaiko  
+**Location**: `zaiko/` (relocated from `maiko/alternatives/zig/`)
+
+This directory contains a complete implementation of the Maiko emulator in Zig programming language, following the rewrite documentation specifications in `documentation/specifications/`.
 
 ## Overview
 

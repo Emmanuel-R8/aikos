@@ -67,7 +67,7 @@ Interlisp/
 
 - **File Size Limit**: Keep files under 500 lines (user preference)
 - **Modular Structure**: Split large files into logical modules
-- **Naming**: Follow existing conventions (see `maiko/alternatives/zig/src/`)
+- **Naming**: Follow existing conventions (see `zaiko/src/`)
 
 ### 2. Documentation Updates
 
@@ -123,9 +123,9 @@ Language-Specific Documentation Updates:
 
 ### Adding New Opcodes
 
-1. Add opcode to `maiko/alternatives/zig/src/vm/dispatch/opcode.zig`
-2. Add handler to appropriate module in `maiko/alternatives/zig/src/vm/opcodes/`
-3. Add to dispatch switch in `maiko/alternatives/zig/src/vm/dispatch/execution.zig`
+1. Add opcode to `zaiko/src/vm/dispatch/opcode.zig`
+2. Add handler to appropriate module in `zaiko/src/vm/opcodes/`
+3. Add to dispatch switch in `zaiko/src/vm/dispatch/execution.zig`
 4. Update documentation in `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md`
 5. Add test cases if applicable
 
@@ -194,8 +194,8 @@ When a file exceeds 500 lines:
 
 ### Important Paths
 
-- Zig source: `maiko/alternatives/zig/src/`
-- Zig tests: `maiko/alternatives/zig/tests/`
+- Zig source: `zaiko/src/`
+- Zig tests: `zaiko/tests/`
 - C reference: `maiko/src/`
 - Documentation: `.ai_assistant_db/`
 - Specs: `specs/005-zig-completion/`
@@ -212,7 +212,7 @@ When a file exceeds 500 lines:
 
 ```bash
 # Build Zig emulator
-cd maiko/alternatives/zig
+cd zaiko
 zig build
 
 # Run Zig emulator

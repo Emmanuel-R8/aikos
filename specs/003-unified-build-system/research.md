@@ -25,20 +25,20 @@
 
 #### Zig Emulator
 - **Build System**: Zig build (`zig build`)
-- **Output Location**: `maiko/alternatives/zig/zig-out/bin/maiko-zig`
-- **Executable**: `maiko-zig` (single executable)
+- **Output Location**: `zaiko/zig-out/bin/zaiko`
+- **Executable**: `zaiko` (single executable)
 - **Platform Detection**: Zig build system handles target platform via `b.standardTargetOptions`
 - **Note**: Currently outputs to `zig-out/bin/` relative to source directory
 
 #### Lisp Emulator
 - **Build System**: ASDF (via SBCL)
 - **Output Location**: ASDF compiles to FASL files, but no standalone executable is created
-- **Execution**: Requires SBCL to load and run: `sbcl --load maiko-lisp.asd --eval "(asdf:load-system :maiko-lisp)"`
+- **Execution**: Requires SBCL to load and run: `sbcl --load laiko.asd --eval "(asdf:load-system :laiko)"`
 - **Note**: Lisp implementation may need a wrapper script or executable builder to match other emulators
 
 **Decision**:
 - C emulator outputs to `maiko/<os>.<arch>/` with multiple executables
-- Zig emulator outputs to `zig-out/bin/maiko-zig` relative to source
+- Zig emulator outputs to `zig-out/bin/zaiko` relative to source
 - Lisp emulator requires SBCL runtime, may need executable wrapper
 - Unified system will copy/move executables to `maiko/build/<emulator>/<os>.<arch>/`
 
@@ -68,7 +68,7 @@
 
 #### Zig Emulator
 - **Completion Indicators**:
-  - Presence of `zig-out/bin/maiko-zig` executable
+  - Presence of `zig-out/bin/zaiko` executable
   - Executable must be executable
   - Zig build system tracks dependencies internally
 - **Incomplete Build Detection**: Missing executable or build errors
@@ -157,7 +157,7 @@
 - **Future**: May need build options for display backend selection
 
 #### Lisp Emulator Options
-- **ASDF**: System definition in `maiko-lisp.asd`, dependencies specified there
+- **ASDF**: System definition in `laiko.asd`, dependencies specified there
 - **Display Backend**: SDL3 (specified in system definition)
 - **Runtime Options**: Passed via SBCL command-line arguments
 
@@ -193,8 +193,8 @@
 
 #### Source Change Detection
 - **C Emulator**: Many source files in `maiko/src/`, header files in `maiko/inc/`
-- **Zig Emulator**: Source files in `maiko/alternatives/zig/src/`
-- **Lisp Emulator**: Source files in `maiko/alternatives/lisp/src/`
+- **Zig Emulator**: Source files in `zaiko/src/`
+- **Lisp Emulator**: Source files in `laiko/src/`
 
 #### Build System Capabilities
 - **CMake**: Tracks dependencies, only rebuilds changed files

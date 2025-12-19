@@ -2,7 +2,7 @@
 
 *Date*: 2025-12-18 19:48  
 *Status*: ✅ Implemented - Execution Working, Investigation Ongoing  
-*Location*: `maiko/alternatives/zig/src/utils/memory_access.zig`
+*Location*: `zaiko/src/utils/memory_access.zig`
 
 == Overview
 
@@ -12,7 +12,7 @@ The Zig implementation uses XOR addressing for memory access in BYTESWAP mode, m
 
 === Core Module
 
-*File*: `maiko/alternatives/zig/src/utils/memory_access.zig`
+*File*: `zaiko/src/utils/memory_access.zig`
 
 Provides XOR addressing functions matching C emulator macros:
 - `getByte()`: Applies `address ^ 3` for byte access (matches `GETBYTE()`)

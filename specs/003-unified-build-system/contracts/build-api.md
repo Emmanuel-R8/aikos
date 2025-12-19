@@ -240,7 +240,7 @@ find_emulator_executable(emulator_type, platform, executable_name) -> path
 **Parameters**:
 - `emulator_type`: Emulator type
 - `platform`: Platform identifier
-- `executable_name`: Name of executable (`"lde"`, `"maiko-zig"`, etc.)
+- `executable_name`: Name of executable (`"lde"`, `"zaiko"`, etc.)
 
 **Returns**: Path to executable, or empty string if not found
 

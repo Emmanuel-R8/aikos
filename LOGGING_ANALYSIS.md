@@ -256,6 +256,6 @@ The logging analysis reveals **two separate issues**:
 - Result: `PC = FuncObj + CURRENTFX->pc = 0x307830 + 104 = 0x307898` ✓
 
 ### Code Changes
-- File: `maiko/alternatives/zig/src/vm/vm_initialization.zig`
+- File: `zaiko/src/vm/vm_initialization.zig`
 - Changed: `funcobj_offset_calc` calculation to subtract 52 bytes
 - Changed: Removed division by 2 from `frame_pc` (use directly as byte offset)

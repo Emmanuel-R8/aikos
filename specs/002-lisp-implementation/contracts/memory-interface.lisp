@@ -2,7 +2,7 @@
 ;;; Feature: 002-lisp-implementation
 ;;; Date: 2025-12-04
 
-(in-package :maiko-lisp.memory)
+(in-package :laiko.memory)
 
 ;;; ============================================================================
 ;;; Storage Allocation

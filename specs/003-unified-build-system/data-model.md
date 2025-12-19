@@ -43,7 +43,7 @@ Represents a built executable or artifact from an emulator build.
 **Attributes**:
 - `emulator_type` (string, required): Emulator that produced this artifact
 - `platform` (string, required): Platform identifier
-- `executable_name` (string, required): Name of the executable (e.g., `"lde"`, `"maiko-zig"`)
+- `executable_name` (string, required): Name of the executable (e.g., `"lde"`, `"zaiko"`)
 - `executable_path` (path, required): Full path to the executable
 - `build_timestamp` (datetime, required): When the artifact was built
 - `build_options` (object, optional): Build options used (display backend, release version, etc.)

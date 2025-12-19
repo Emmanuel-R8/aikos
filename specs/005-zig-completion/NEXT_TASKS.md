@@ -22,7 +22,7 @@
 
 #### 2. **Verify Basic Execution** 🔴 HIGH PRIORITY
 - **Task**: Test that VM can load sysout and enter dispatch loop
-- **Action**: Run `./zig-out/bin/maiko-zig medley/internal/loadups/starter.sysout`
+- **Action**: Run `./zig-out/bin/zaiko medley/internal/loadups/starter.sysout`
 - **Expected**: VM loads sysout, initializes, enters dispatch loop
 - **If fails**: Fix runtime errors preventing execution
 - **Files to check**: `main.zig`, `vm/dispatch.zig`, `vm/init.zig`
@@ -98,14 +98,14 @@
 
 ```bash
 # Build
-cd maiko/alternatives/zig
+cd zaiko
 zig build
 
 # Test basic execution
-./zig-out/bin/maiko-zig ../../medley/internal/loadups/starter.sysout
+./zig-out/bin/zaiko ../../medley/internal/loadups/starter.sysout
 
 # Test with full Medley (if basic works)
-./zig-out/bin/maiko-zig ../../medley/internal/loadups/lisp.sysout
+./zig-out/bin/zaiko ../../medley/internal/loadups/lisp.sysout
 
 # Run tests
 zig build test

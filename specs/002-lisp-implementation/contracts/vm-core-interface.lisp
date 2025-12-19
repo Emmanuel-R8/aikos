@@ -2,7 +2,7 @@
 ;;; Feature: 002-lisp-implementation
 ;;; Date: 2025-12-04
 
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 
 ;;; ============================================================================
 ;;; VM Initialization

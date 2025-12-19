@@ -162,7 +162,7 @@
 - Provides system loading and compilation
 
 **Implementation Notes**:
-- Create `maiko-lisp.asd` system definition
+- Create `laiko.asd` system definition
 - Define dependencies: `cl-sdl3` (optional), `cffi` (if needed)
 - Organize source files by subsystem (vm/, memory/, display/, io/)
 - Provide build scripts for convenience

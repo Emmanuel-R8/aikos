@@ -7,7 +7,7 @@
 
 ## Context
 
-The Zig emulator implementation (`maiko/alternatives/zig/`) has a complete framework in place but is missing critical functionality to run Medley Interlisp. The C emulator is fully functional and successfully runs Medley. This feature focuses on completing the Zig implementation to achieve functional parity with the C emulator.
+The Zig emulator implementation (`zaiko/`) has a complete framework in place but is missing critical functionality to run Medley Interlisp. The C emulator is fully functional and successfully runs Medley. This feature focuses on completing the Zig implementation to achieve functional parity with the C emulator.
 
 ## Current Status
 
@@ -41,7 +41,7 @@ A developer wants to load an existing sysout file (created by C emulator) and ha
 
 **Why this priority**: Without sysout loading, the emulator cannot run any Lisp code. This is the absolute minimum for functionality.
 
-**Independent Test**: A developer can run `maiko-zig medley/internal/loadups/starter.sysout` and the emulator successfully loads the sysout, initializes VM state, and enters the dispatch loop (even if it doesn't execute code yet).
+**Independent Test**: A developer can run `zaiko medley/internal/loadups/starter.sysout` and the emulator successfully loads the sysout, initializes VM state, and enters the dispatch loop (even if it doesn't execute code yet).
 
 **Acceptance Scenarios**:
 
@@ -75,7 +75,7 @@ A developer wants the Zig emulator to execute enough opcodes to successfully sta
 
 **Why this priority**: Medley requires a specific set of opcodes to initialize. Completing these enables actual Medley execution.
 
-**Independent Test**: A developer can run `maiko-zig medley/internal/loadups/lisp.sysout` and Medley starts successfully, displaying the Interlisp prompt.
+**Independent Test**: A developer can run `zaiko medley/internal/loadups/lisp.sysout` and Medley starts successfully, displaying the Interlisp prompt.
 
 **Acceptance Scenarios**:
 
@@ -139,7 +139,7 @@ A developer wants the Zig emulator to display graphics and handle input via SDL2
 - **FR-005**: Implementation MUST implement page loading algorithm mapping file pages to virtual addresses
 - **FR-006**: Implementation MUST initialize VM state from IFPAGE (stack pointers, frame pointers, registers)
 - **FR-007**: Implementation MUST activate VM dispatch loop to execute bytecode
-- **FR-008**: Implementation MUST implement all opcodes required for Medley startup (minimum viable set)
+- **FR-008**: Implementation MUST implement all opcodes required for Medley startup (minimum viable set: ~80-100 opcodes per plan.md:L37)
 - **FR-009**: Implementation MUST execute opcodes with semantics matching C implementation exactly
 - **FR-010**: Implementation MUST implement complete GC hash table operations (ADDREF, DELREF, reclamation)
 - **FR-011**: Implementation MUST integrate SDL2 display rendering for BitBLT operations
@@ -187,6 +187,6 @@ A developer wants the Zig emulator to display graphics and handle input via SDL2
 ## Out of Scope
 
 - Implementing all 256 opcodes (focus on essential set for Medley startup first)
-- Performance optimization (correctness first, optimization later)
+- Performance optimization beyond baseline targets (baseline performance goals defined in plan.md:L25-26; optimization deferred to Phase 6 polish tasks T103-T104)
 - Advanced features beyond C emulator capabilities
 - Platform support beyond Linux (macOS/Windows can be added incrementally)

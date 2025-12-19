@@ -16,7 +16,7 @@ The actual memory layout of frame fields differs from the C struct definition:
 Additionally, `hi2fnheader` is in the **low byte** (bits 0-7) of `hi1fnheader_hi2fnheader`, not the high byte.
 
 ### Solution
-**File**: `maiko/alternatives/zig/src/vm/vm_initialization.zig`
+**File**: `zaiko/src/vm/vm_initialization.zig`
 
 ```zig
 // Read swapped: lofnheader is actually at [6,7], hi1fnheader_hi2fnheader is at [4,5]
@@ -38,7 +38,7 @@ const fnheader_be = (@as(LispPTR, hi2fnheader) << 16) | lofnheader;
 ## Zig-Specific Implementation Notes
 
 ### Zig Implementation Details
-**File**: `maiko/alternatives/zig/src/vm/vm_initialization.zig`
+**File**: `zaiko/src/vm/vm_initialization.zig`
 
 The Zig implementation treats FX_FNHEADER as byte offset and divides CURRENTFX->pc by 2:
 ```zig
@@ -68,8 +68,8 @@ Using calculated PC=0x307898 (opcode=0x0e)
 ```
 
 ## Related Files
-- `maiko/alternatives/zig/src/vm/vm_initialization.zig` - Frame reading and PC initialization
-- `maiko/alternatives/zig/src/vm/stack.zig` - Frame structure definition
+- `zaiko/src/vm/vm_initialization.zig` - Frame reading and PC initialization
+- `zaiko/src/vm/stack.zig` - Frame structure definition
 - `.ai_assistant_db/rewrite-spec/vm-core/stack-management.md` - Frame structure documentation (general knowledge)
 - `.ai_assistant_db/rewrite-spec/memory/address-translation.md` - Address translation investigation (general knowledge)
 - `.ai_assistant_db/rewrite-spec/data-structures/sysout-byte-swapping.md` - Endianness documentation

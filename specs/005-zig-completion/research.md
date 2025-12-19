@@ -126,7 +126,7 @@ Determine the exact implementation details needed to complete the Zig emulator, 
 - Implement all 256 opcodes first: Too large scope, essential set enables Medley startup
 - Different opcode order: Function calls must come first, others can follow
 
-**Source**: `maiko/alternatives/zig/src/vm/opcodes.zig`, `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md`
+**Source**: `zaiko/src/vm/opcodes.zig`, `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md`
 
 ---
 
@@ -180,7 +180,7 @@ Determine the exact implementation details needed to complete the Zig emulator, 
 - SDL3 instead: C emulator uses SDL2, matching is better for compatibility
 - Different rendering approach: Texture-based matches C implementation
 
-**Source**: `maiko/src/sdl.c`, `maiko/alternatives/zig/src/display/`
+**Source**: `maiko/src/sdl.c`, `zaiko/src/display/`
 
 ---
 

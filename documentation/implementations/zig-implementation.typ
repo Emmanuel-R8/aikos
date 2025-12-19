@@ -4,7 +4,7 @@
 
 *Date*: 2025-12-16 12:41
 *Status*: ✅ Core Complete - SDL2 Integration Complete (Minor Fixes Pending)
-*Location*: `maiko/alternatives/zig/`
+*Location*: `zaiko/`
 *Build System*: Zig build system (`build.zig`)
 *Display Backend*: SDL2 (linked, integration complete)
 
@@ -180,14 +180,14 @@ This document contains all the detailed implementation notes, including:
 === Build
 
 #codeblock(lang: "bash", [
-cd maiko/alternatives/zig
+cd zaiko
 zig build -Doptimize=ReleaseFast
 ])
 
 === Run
 
 #codeblock(lang: "bash", [
-./zig-out/bin/maiko-zig path/to/sysout.sysout
+./zig-out/bin/zaiko path/to/sysout.sysout
 ])
 
 *Current Status*: ✅ Builds successfully. ✅ Sysout loading complete. ✅ VM execution working. ✅ Essential opcodes implemented. ✅ GC operations complete. ✅ SDL2 display integration implemented (initialization, BitBLT, events, integration). ⚠️ Minor compilation fixes pending (type mismatches, optional unwrapping).
@@ -293,7 +293,7 @@ See `specs/005-zig-completion/` for detailed completion plan:
 
 === PC Initialization from Sysout
 
-*Implementation*: `maiko/alternatives/zig/src/vm/dispatch.zig:initializeVMState()`
+*Implementation*: `zaiko/src/vm/dispatch.zig:initializeVMState()`
 
 *Approach*:
 1. Read `currentfxp` from IFPAGE (stack offset)
@@ -312,7 +312,7 @@ See `specs/005-zig-completion/` for detailed completion plan:
 
 === Stack Initialization
 
-*Implementation*: `maiko/alternatives/zig/src/vm/dispatch.zig:initializeVMState()`
+*Implementation*: `zaiko/src/vm/dispatch.zig:initializeVMState()`
 
 *Approach*:
 - Push NIL (0) onto stack before entering dispatch loop
@@ -322,7 +322,7 @@ See `specs/005-zig-completion/` for detailed completion plan:
 
 === Unknown Opcode Handling
 
-*Implementation*: `maiko/alternatives/zig/src/vm/dispatch.zig:dispatch()`
+*Implementation*: `zaiko/src/vm/dispatch.zig:dispatch()`
 
 *Approach*:
 - Log unknown opcode byte and PC
@@ -337,7 +337,7 @@ See `specs/005-zig-completion/` for detailed completion plan:
 
 *C Reference*: `maiko/src/initsout.c:222` - `Stackspace = (DLword *)NativeAligned2FromLAddr(STK_OFFSET);`
 
-*Implementation*: `maiko/alternatives/zig/src/vm/dispatch.zig:201-234`
+*Implementation*: `zaiko/src/vm/dispatch.zig:201-234`
 
 *Approach*:
 - Stack pointers now point into `virtual_memory` at correct offsets
@@ -388,13 +388,13 @@ const hi2fnheader: u8 = @as(u8, @truncate(hi1fnheader_hi2fnheader & 0xFF));
 const fnheader_be = (@as(LispPTR, hi2fnheader) << 16) | lofnheader;
 ])
 
-*Location*: `maiko/alternatives/zig/src/vm/dispatch.zig:initializeVMState()`
+*Location*: `zaiko/src/vm/dispatch.zig:initializeVMState()`
 
 *Status*: ✅ Fixed - Frame field reading now matches C emulator behavior
 
 === Frame Reading with Byte-Swapping
 
-*Implementation*: `maiko/alternatives/zig/src/vm/dispatch.zig:initializeVMState()`
+*Implementation*: `zaiko/src/vm/dispatch.zig:initializeVMState()`
 
 *Approach*:
 - Read frame fields directly from virtual_memory byte array

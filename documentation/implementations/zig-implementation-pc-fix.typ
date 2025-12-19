@@ -24,7 +24,7 @@ Zig emulator initialized PC to `0x307899` instead of `0x307898` (off by 1 byte),
 == Solution
 
 === Fix 1: FuncObj Offset Adjustment
-- *File*: `maiko/alternatives/zig/src/vm/vm_initialization.zig`
+- *File*: `zaiko/src/vm/vm_initialization.zig`
 - *Change*: Adjusted FuncObj calculation to account for 52-byte offset
 - *Code*:
 #codeblock(lang: "zig", [
@@ -70,6 +70,6 @@ After fix:
 
 == Related Files
 
-- `maiko/alternatives/zig/src/vm/vm_initialization.zig` - PC initialization logic
+- `zaiko/src/vm/vm_initialization.zig` - PC initialization logic
 - `maiko/inc/retmacro.h` - C FastRetCALL macro reference
 - `maiko/inc/stack.h` - Frame structure definition

@@ -159,12 +159,12 @@ cd scripts/build
 
 ### Emulator Not Executable
 
-**Error**: "Error: Emulator executable is not executable: /path/to/maiko-zig"
+**Error**: "Error: Emulator executable is not executable: /path/to/zaiko"
 
 **Solution**:
 ```bash
 # Fix permissions
-chmod +x /path/to/maiko-zig
+chmod +x /path/to/zaiko
 
 # Or rebuild
 cd scripts/build

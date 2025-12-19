@@ -7,7 +7,7 @@
 
 ### File Splits Completed ✅
 
-1. **`maiko/alternatives/zig/src/vm/opcodes.zig`**: **201 lines** ✅
+1. **`zaiko/src/vm/opcodes.zig`**: **201 lines** ✅
    - **Before**: 2,820 lines (monolithic)
    - **After**: Split into 13 modules in `vm/opcodes/` directory
    - **Status**: COMPLETE - All files now under 500 lines
@@ -16,7 +16,7 @@
      - gc_ops, character, list_ops, base_ops, io_ops, atom_ops, instance_ops, graphics_ops, number_ops, float_ops, control_misc, element_ops, type_misc, misc_ops
    - **Current largest file**: variable_access.zig (365 lines) ✅
 
-2. **`maiko/alternatives/zig/src/vm/dispatch.zig`**: **425 lines** ✅
+2. **`zaiko/src/vm/dispatch.zig`**: **425 lines** ✅
    - **Before**: 1,150 lines (monolithic)
    - **After**: Split into 3 modules in `vm/dispatch/` directory
    - **Status**: COMPLETE - All files now under 540 lines
@@ -38,9 +38,9 @@
 - ✅ Dispatch loop activated in main.zig
 
 **Evidence**:
-- `maiko/alternatives/zig/src/data/sysout.zig` contains complete implementation
-- `maiko/alternatives/zig/src/main.zig` shows dispatch loop activation
-- `maiko/alternatives/zig/src/vm/dispatch.zig` has `initializeVMState` function
+- `zaiko/src/data/sysout.zig` contains complete implementation
+- `zaiko/src/main.zig` shows dispatch loop activation
+- `zaiko/src/vm/dispatch.zig` has `initializeVMState` function
 
 ### Phase 2: User Story 2 - Execute Basic Bytecode Instructions ✅ COMPLETE
 
@@ -55,9 +55,9 @@
 - ✅ Error handling implemented
 
 **Evidence**:
-- `maiko/alternatives/zig/src/vm/opcodes/` contains all handlers
-- `maiko/alternatives/zig/src/vm/function.zig` exists (frame management)
-- `maiko/alternatives/zig/src/vm/stack.zig` has error handling
+- `zaiko/src/vm/opcodes/` contains all handlers
+- `zaiko/src/vm/function.zig` exists (frame management)
+- `zaiko/src/vm/stack.zig` has error handling
 
 ### Phase 3: User Story 3 - Complete Essential Opcodes for Medley Startup ✅ COMPLETE
 
@@ -89,8 +89,8 @@
 - ✅ T070-T074: Comprehensive GC test cases
 
 **Evidence**:
-- `maiko/alternatives/zig/src/memory/gc.zig` contains complete GC implementation
-- `maiko/alternatives/zig/tests/gc.zig` contains comprehensive test cases
+- `zaiko/src/memory/gc.zig` contains complete GC implementation
+- `zaiko/tests/gc.zig` contains comprehensive test cases
 - Hash table operations implemented with collision and overflow handling
 - Reclamation list implemented for tracking objects with zero references
 
@@ -106,11 +106,11 @@
 - ⚠️ T092-T096: Test cases - **PENDING** (implementation complete, tests needed)
 
 **Evidence**:
-- `maiko/alternatives/zig/src/display/sdl2.zig` - SDL2 C interop bindings
-- `maiko/alternatives/zig/src/display/sdl_backend.zig` - Display interface with SDL2 initialization
-- `maiko/alternatives/zig/src/display/graphics.zig` - BitBLT operations
-- `maiko/alternatives/zig/src/display/events.zig` - Event polling and handling
-- `maiko/alternatives/zig/src/main.zig` - Integrated SDL2 into main loop
+- `zaiko/src/display/sdl2.zig` - SDL2 C interop bindings
+- `zaiko/src/display/sdl_backend.zig` - Display interface with SDL2 initialization
+- `zaiko/src/display/graphics.zig` - BitBLT operations
+- `zaiko/src/display/events.zig` - Event polling and handling
+- `zaiko/src/main.zig` - Integrated SDL2 into main loop
 
 **Compilation Status**: Minor fixes needed (type mismatches, optional unwrapping)
 

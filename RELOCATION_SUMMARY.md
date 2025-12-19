@@ -5,16 +5,16 @@
 
 ## Overview
 
-Relocating implementations from `maiko/alternatives/zig` and `maiko/alternatives/lisp` to standalone projects `zaiko/` and `laiko/` respectively, with full git history preservation.
+Relocating implementations from `zaiko` and `laiko` to standalone projects `zaiko/` and `laiko/` respectively, with full git history preservation.
 
 ## Current Status
 
 ### ✅ Completed
 
 1. **Initial Relocation**
-   - Created `zaiko/` directory with current state from `maiko/alternatives/zig`
-   - Created `laiko/` directory with current state from `maiko/alternatives/lisp`
-   - Created initial commit: `e0a427e` - "Initial zaiko commit: Relocate maiko/alternatives/zig to zaiko/"
+   - Created `zaiko/` directory with current state from `zaiko`
+   - Created `laiko/` directory with current state from `laiko`
+   - Created initial commit: `e0a427e` - "Initial zaiko commit: Relocate zaiko to zaiko/"
 
 2. **Git History Analysis**
    - Found **29 commits** for `alternatives/zig` in maiko submodule
@@ -78,30 +78,30 @@ for commit in zig_commits:
 - [ ] `specs/005-zig-completion/tasks.md` - Update paths
 - [ ] `specs/005-zig-completion/spec.md` - Update paths
 - [ ] `AGENTS.md` - Update paths
-- [ ] All Typst files referencing `maiko/alternatives/zig` or `maiko/alternatives/lisp`
+- [ ] All Typst files referencing `zaiko` or `laiko`
 
 **Code References**:
-- [ ] Search for `maiko/alternatives/zig` in all files → replace with `zaiko`
-- [ ] Search for `maiko/alternatives/lisp` in all files → replace with `laiko`
+- [ ] Search for `zaiko` in all files → replace with `zaiko`
+- [ ] Search for `laiko` in all files → replace with `laiko`
 - [ ] Update import paths if any cross-references exist
 - [ ] Update README files in zaiko/ and laiko/
 
 **Script Required**: `update_path_references.py`
 ```bash
 # Find all references
-grep -r "maiko/alternatives/zig" . --exclude-dir=.git --exclude-dir=maiko --exclude-dir=deprecated
-grep -r "maiko/alternatives/lisp" . --exclude-dir=.git --exclude-dir=maiko --exclude-dir=deprecated
+grep -r "zaiko" . --exclude-dir=.git --exclude-dir=maiko --exclude-dir=deprecated
+grep -r "laiko" . --exclude-dir=.git --exclude-dir=maiko --exclude-dir=deprecated
 ```
 
 ### 3. Project Name Updates (MEDIUM PRIORITY)
 
-**Goal**: Update project names from "maiko-zig"/"maiko-lisp" to "zaiko"/"laiko".
+**Goal**: Update project names from "zaiko"/"laiko" to "zaiko"/"laiko".
 
 **Files to Update**:
 - [ ] `zaiko/README.md` - Update project name
 - [ ] `zaiko/build.zig` - Update project name if hardcoded
 - [ ] `laiko/README.md` - Update project name
-- [ ] `laiko/maiko-lisp.asd` - Consider renaming to `laiko.asd`
+- [ ] `laiko/laiko.asd` - Consider renaming to `laiko.asd`
 - [ ] Documentation references to project names
 - [ ] Build output names (binaries, artifacts)
 
@@ -110,8 +110,8 @@ grep -r "maiko/alternatives/lisp" . --exclude-dir=.git --exclude-dir=maiko --exc
 **Goal**: Add deprecation notices to old locations.
 
 **Files to Create/Update**:
-- [ ] `maiko/alternatives/zig/README.md` - Add deprecation notice
-- [ ] `maiko/alternatives/lisp/README.md` - Add deprecation notice
+- [ ] `zaiko/README.md` - Add deprecation notice
+- [ ] `laiko/README.md` - Add deprecation notice
 
 **Deprecation Notice Template**:
 ```markdown
@@ -167,8 +167,8 @@ This directory has been relocated.
 1. Create `update_path_references.py` script
 2. Find all references to old paths
 3. Replace systematically:
-   - `maiko/alternatives/zig` → `zaiko`
-   - `maiko/alternatives/lisp` → `laiko`
+   - `zaiko` → `zaiko`
+   - `laiko` → `laiko`
 4. Verify no broken references remain
 
 ### Phase 3: Project Name Updates (Estimated: 30 minutes)
@@ -220,7 +220,7 @@ This directory has been relocated.
 ### High Priority (Path References)
 
 1. **Documentation Files** (Typst):
-   - `documentation/implementations/zig-implementation.typ` - Line 7: `maiko/alternatives/zig/`
+   - `documentation/implementations/zig-implementation.typ` - Line 7: `zaiko/`
    - `documentation/implementations/lisp-implementation.typ` - Similar references
    - All other Typst files referencing old paths
 
@@ -237,7 +237,7 @@ This directory has been relocated.
 
 1. `zaiko/README.md` - Update project name
 2. `laiko/README.md` - Update project name
-3. `laiko/maiko-lisp.asd` - Consider renaming
+3. `laiko/laiko.asd` - Consider renaming
 
 ### Low Priority (Build System)
 
@@ -252,8 +252,8 @@ After completion, verify:
 - [ ] All 29 zig commits replayed successfully
 - [ ] All 1 lisp commit replayed successfully
 - [ ] Git log shows correct commit history
-- [ ] No references to `maiko/alternatives/zig` remain (except in deprecated/)
-- [ ] No references to `maiko/alternatives/lisp` remain (except in deprecated/)
+- [ ] No references to `zaiko` remain (except in deprecated/)
+- [ ] No references to `laiko` remain (except in deprecated/)
 - [ ] `zaiko/build.zig` compiles successfully
 - [ ] `laiko/build.sh` works correctly
 - [ ] Documentation references updated
@@ -263,7 +263,7 @@ After completion, verify:
 ## Notes
 
 - The maiko submodule will remain unchanged - only the main repository is being updated
-- Old locations (`maiko/alternatives/zig` and `maiko/alternatives/lisp`) will remain with deprecation notices
+- Old locations (`zaiko` and `laiko`) will remain with deprecation notices
 - Full git history replay ensures traceability and preserves development context
 - Path transformations must be consistent across all file types (code, docs, configs)
 

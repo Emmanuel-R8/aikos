@@ -135,11 +135,11 @@ maiko/build/                           # New unified build output directory
 │   └── [other platforms]
 ├── zig/
 │   ├── linux.x86_64/
-│   │   └── maiko-zig
+│   │   └── zaiko
 │   └── [other platforms]
 └── lisp/
     ├── linux.x86_64/
-    │   └── maiko-lisp
+    │   └── laiko
     └── [other platforms]
 ```
 

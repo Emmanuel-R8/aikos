@@ -25,7 +25,7 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL), following t
 
 ```
 alternatives/lisp/
-├── maiko-lisp.asd          # ASDF system definition
+├── laiko.asd          # ASDF system definition
 ├── build.sh                 # Build script
 ├── run.sh                   # Run script
 ├── README.md                # Project README

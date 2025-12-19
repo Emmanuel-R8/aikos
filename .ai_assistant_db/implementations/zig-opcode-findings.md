@@ -24,7 +24,7 @@ During Phase 1 implementation of the Zig emulator, several opcode conflicts and 
 
 **Zig Resolution**: Removed generic jump opcodes from Zig enum. Use `JUMPX`, `JUMPXX`, or optimized variants (`JUMP0`-`JUMP15`, etc.) as documented in [Opcodes Reference](../../rewrite-spec/instruction-set/opcodes.md#jumps).
 
-**Zig Implementation Detail**: Zig enum definitions were commented out in `maiko/alternatives/zig/src/vm/dispatch.zig:73-75`. The `executeInstruction` function was updated to remove corresponding case statements.
+**Zig Implementation Detail**: Zig enum definitions were commented out in `zaiko/src/vm/dispatch.zig:73-75`. The `executeInstruction` function was updated to remove corresponding case statements.
 
 **General Note**: See [Common Misconceptions](../../rewrite-spec/instruction-set/opcodes.md#common-misconceptions-non-existent-opcodes) for emulator-independent documentation.
 
@@ -38,7 +38,7 @@ During Phase 1 implementation of the Zig emulator, several opcode conflicts and 
 
 **Zig Resolution**: Commented out Zig enum definitions. Character operations are handled via different mechanisms in the C implementation.
 
-**Zig Implementation Detail**: Opcodes commented out in `maiko/alternatives/zig/src/vm/dispatch.zig:274-275`.
+**Zig Implementation Detail**: Opcodes commented out in `zaiko/src/vm/dispatch.zig:274-275`.
 
 **General Note**: See [Common Misconceptions](../../rewrite-spec/instruction-set/opcodes.md#common-misconceptions-non-existent-opcodes) for emulator-independent documentation.
 
@@ -54,7 +54,7 @@ During Phase 1 implementation of the Zig emulator, several opcode conflicts and 
 
 **Zig Resolution**: Commented out Zig enum definitions. Use `AREF1/2` and `ASET1/2` instead as documented in [Opcodes Reference](../../rewrite-spec/instruction-set/opcodes.md#array-operations).
 
-**Zig Implementation Detail**: Opcodes commented out in `maiko/alternatives/zig/src/vm/dispatch.zig:246-253`.
+**Zig Implementation Detail**: Opcodes commented out in `zaiko/src/vm/dispatch.zig:246-253`.
 
 **General Note**: See [Common Misconceptions](../../rewrite-spec/instruction-set/opcodes.md#common-misconceptions-non-existent-opcodes) for emulator-independent documentation.
 
@@ -69,7 +69,7 @@ During Phase 1 implementation of the Zig emulator, several opcode conflicts and 
 
 **Zig Resolution**: Commented out `FIXP` and `SMALLP`. `LISTP` was incorrectly removed but should be kept. Use `TYPEP` opcode with appropriate type codes for `FIXP` and `SMALLP` checks.
 
-**Zig Implementation Detail**: Opcodes commented out in `maiko/alternatives/zig/src/vm/dispatch.zig:264-270`. `LISTP` should be restored.
+**Zig Implementation Detail**: Opcodes commented out in `zaiko/src/vm/dispatch.zig:264-270`. `LISTP` should be restored.
 
 **General Note**: See [Common Misconceptions](../../rewrite-spec/instruction-set/opcodes.md#common-misconceptions-non-existent-opcodes) for emulator-independent documentation.
 
@@ -82,7 +82,7 @@ During Phase 1 implementation of the Zig emulator, several opcode conflicts and 
 
 **Zig Resolution**: Commented out Zig enum definition. Stack operations are handled implicitly by other opcodes as documented in [Opcodes Reference](../../rewrite-spec/instruction-set/opcodes.md#stack-operations).
 
-**Zig Implementation Detail**: Opcode commented out in `maiko/alternatives/zig/src/vm/dispatch.zig:317`.
+**Zig Implementation Detail**: Opcode commented out in `zaiko/src/vm/dispatch.zig:317`.
 
 **General Note**: See [Common Misconceptions](../../rewrite-spec/instruction-set/opcodes.md#common-misconceptions-non-existent-opcodes) for emulator-independent documentation.
 
@@ -102,7 +102,7 @@ During Phase 1 implementation of the Zig emulator, several opcode conflicts and 
 
 **Resolution**: Corrected all comparison opcode values to match C implementation.
 
-**Location**: `maiko/alternatives/zig/src/vm/dispatch.zig:255-261`
+**Location**: `zaiko/src/vm/dispatch.zig:255-261`
 
 ### Duplicate Opcodes (Fixed)
 

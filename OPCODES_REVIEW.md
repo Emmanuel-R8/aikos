@@ -26,7 +26,7 @@ This document provides a detailed comparison between the Zig emulator's opcode i
 
 ## Opcode Coverage Analysis
 
-### Zig Implemented Opcodes (from `maiko/alternatives/zig/src/vm/opcodes.zig`)
+### Zig Implemented Opcodes (from `zaiko/src/vm/opcodes.zig`)
 
 **Total Implemented**: ~100 opcodes
 
@@ -61,7 +61,7 @@ This document provides a detailed comparison between the Zig emulator's opcode i
 
 ### 1. Arithmetic Operations
 
-**Zig Location**: `maiko/alternatives/zig/src/vm/opcodes/arithmetic.zig`
+**Zig Location**: `zaiko/src/vm/opcodes/arithmetic.zig`
 
 **C Reference**: `maiko/src/arithops.c`
 
@@ -74,7 +74,7 @@ This document provides a detailed comparison between the Zig emulator's opcode i
 
 ### 2. Bitwise Operations
 
-**Zig Location**: `maiko/alternatives/zig/src/vm/opcodes/bitwise.zig`
+**Zig Location**: `zaiko/src/vm/opcodes/bitwise.zig`
 
 **C Reference**: `maiko/src/arithops.c`
 
@@ -86,7 +86,7 @@ This document provides a detailed comparison between the Zig emulator's opcode i
 
 ### 3. Stack Operations
 
-**Zig Location**: `maiko/alternatives/zig/src/vm/opcodes/stack_ops.zig`
+**Zig Location**: `zaiko/src/vm/opcodes/stack_ops.zig`
 
 **C Reference**: `maiko/src/stack.c`
 
@@ -99,7 +99,7 @@ This document provides a detailed comparison between the Zig emulator's opcode i
 
 ### 4. Function Calls
 
-**Zig Location**: `maiko/alternatives/zig/src/vm/opcodes/function_calls.zig`
+**Zig Location**: `zaiko/src/vm/opcodes/function_calls.zig`
 
 **C Reference**: `maiko/src/gvar2.c`, `maiko/src/gvar3.c`
 
@@ -113,7 +113,7 @@ This document provides a detailed comparison between the Zig emulator's opcode i
 
 ### 5. Binding Operations
 
-**Zig Location**: `maiko/alternatives/zig/src/vm/opcodes/binding.zig`
+**Zig Location**: `zaiko/src/vm/opcodes/binding.zig`
 
 **C Reference**: `maiko/src/bind.c`
 
@@ -126,7 +126,7 @@ This document provides a detailed comparison between the Zig emulator's opcode i
 
 ### 6. Control Flow
 
-**Zig Location**: `maiko/alternatives/zig/src/vm/opcodes/control_flow.zig`
+**Zig Location**: `zaiko/src/vm/opcodes/control_flow.zig`
 
 **C Reference**: `maiko/src/gvar2.c`
 
@@ -139,7 +139,7 @@ This document provides a detailed comparison between the Zig emulator's opcode i
 
 ### 7. Data Operations
 
-**Zig Location**: `maiko/alternatives/zig/src/vm/opcodes/data_ops.zig`
+**Zig Location**: `zaiko/src/vm/opcodes/data_ops.zig`
 
 **C Reference**: `maiko/src/gvar2.c`
 
@@ -152,7 +152,7 @@ This document provides a detailed comparison between the Zig emulator's opcode i
 
 ### 8. Array Operations
 
-**Zig Location**: `maiko/alternatives/zig/src/vm/opcodes/array_ops.zig`
+**Zig Location**: `zaiko/src/vm/opcodes/array_ops.zig`
 
 **C Reference**: `maiko/src/aref.c`
 
@@ -167,7 +167,7 @@ This document provides a detailed comparison between the Zig emulator's opcode i
 
 ### 9. Comparison Operations
 
-**Zig Location**: `maiko/alternatives/zig/src/vm/opcodes/comparison.zig`
+**Zig Location**: `zaiko/src/vm/opcodes/comparison.zig`
 
 **C Reference**: `maiko/src/gvar2.c`
 
@@ -181,7 +181,7 @@ This document provides a detailed comparison between the Zig emulator's opcode i
 
 ### 10. Type Checking
 
-**Zig Location**: `maiko/alternatives/zig/src/vm/opcodes/type_checking.zig`
+**Zig Location**: `zaiko/src/vm/opcodes/type_checking.zig`
 
 **C Reference**: `maiko/src/gvar2.c`
 
@@ -195,7 +195,7 @@ This document provides a detailed comparison between the Zig emulator's opcode i
 
 ### 11. Variable Access
 
-**Zig Location**: `maiko/alternatives/zig/src/vm/opcodes/variable_access.zig`
+**Zig Location**: `zaiko/src/vm/opcodes/variable_access.zig`
 
 **C Reference**: `maiko/src/gvar2.c`, `maiko/src/gvar3.c`
 
@@ -212,7 +212,7 @@ This document provides a detailed comparison between the Zig emulator's opcode i
 
 ### 12. Floating Point
 
-**Zig Location**: `maiko/alternatives/zig/src/vm/opcodes/floating_point.zig`
+**Zig Location**: `zaiko/src/vm/opcodes/floating_point.zig`
 
 **C Reference**: `maiko/src/arithops.c`
 
@@ -225,7 +225,7 @@ This document provides a detailed comparison between the Zig emulator's opcode i
 
 ### 13. Miscellaneous Operations
 
-**Zig Location**: `maiko/alternatives/zig/src/vm/opcodes/misc.zig` and submodules
+**Zig Location**: `zaiko/src/vm/opcodes/misc.zig` and submodules
 
 **C Reference**: Various files in `maiko/src/`
 

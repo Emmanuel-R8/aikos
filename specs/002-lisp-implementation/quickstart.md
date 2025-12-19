@@ -33,8 +33,8 @@ sbcl --load quicklisp.lisp --eval "(quicklisp-quickstart:install)" --quit
 
 ```bash
 cd alternatives/lisp
-sbcl --load maiko-lisp.asd \
-     --eval "(asdf:load-system :maiko-lisp)" \
+sbcl --load laiko.asd \
+     --eval "(asdf:load-system :laiko)" \
      --quit
 ```
 
@@ -57,7 +57,7 @@ cd alternatives/lisp
 ### Command-Line Options
 
 ```
-Usage: maiko-lisp [options] <sysout-file>
+Usage: laiko [options] <sysout-file>
 
 Options:
   --stack-size <size>     Stack size in DLwords (default: 32768)
@@ -82,27 +82,27 @@ Options:
 ### Loading in REPL
 
 ```lisp
-(load "maiko-lisp.asd")
-(asdf:load-system :maiko-lisp)
+(load "laiko.asd")
+(asdf:load-system :laiko)
 
-(in-package :maiko-lisp.main)
+(in-package :laiko.main)
 
 ;; Create VM
-(defvar *vm* (maiko-lisp.vm:make-vm 32768))
+(defvar *vm* (laiko.vm:make-vm 32768))
 
 ;; Load sysout
-(defvar *sysout* (maiko-lisp.data:load-sysout "path/to/sysout.file"))
+(defvar *sysout* (laiko.data:load-sysout "path/to/sysout.file"))
 
 ;; Run emulator
-(maiko-lisp.main:run-emulator "path/to/sysout.file" nil)
+(laiko.main:run-emulator "path/to/sysout.file" nil)
 ```
 
 ### Running Tests
 
 ```bash
 cd alternatives/lisp
-sbcl --load maiko-lisp.asd \
-     --eval "(asdf:test-system :maiko-lisp)" \
+sbcl --load laiko.asd \
+     --eval "(asdf:test-system :laiko)" \
      --quit
 ```
 
@@ -110,7 +110,7 @@ sbcl --load maiko-lisp.asd \
 
 ```
 alternatives/lisp/
-├── maiko-lisp.asd          # ASDF system definition
+├── laiko.asd          # ASDF system definition
 ├── README.md               # Project documentation
 ├── build.sh                # Build script
 ├── run.sh                  # Run script
@@ -131,29 +131,29 @@ alternatives/lisp/
 ### Loading a Sysout File
 
 ```lisp
-(maiko-lisp.data:load-sysout "path/to/sysout.file")
+(laiko.data:load-sysout "path/to/sysout.file")
 ```
 
 ### Creating a VM
 
 ```lisp
-(maiko-lisp.vm:make-vm 32768)  ; 32KB stack
+(laiko.vm:make-vm 32768)  ; 32KB stack
 ```
 
 ### Executing Bytecode
 
 ```lisp
-(let ((vm (maiko-lisp.vm:make-vm 32768))
-      (code (make-array 10 :element-type 'maiko-lisp.utils:bytecode
+(let ((vm (laiko.vm:make-vm 32768))
+      (code (make-array 10 :element-type 'laiko.utils:bytecode
                         :initial-contents '(#xD8 #xD9 #xBF ...))))
-  (maiko-lisp.vm:dispatch vm code))
+  (laiko.vm:dispatch vm code))
 ```
 
 ### Allocating Memory
 
 ```lisp
-(let ((storage (maiko-lisp.memory:make-storage (* 16 1024 1024))))
-  (maiko-lisp.memory:allocate-cons-cell storage))
+(let ((storage (laiko.memory:make-storage (* 16 1024 1024))))
+  (laiko.memory:allocate-cons-cell storage))
 ```
 
 ## Troubleshooting

@@ -29,14 +29,14 @@ This guide provides a quick start for completing the Zig emulator implementation
 5. Add byte swapping support: Handle BYTESWAP for cross-platform compatibility
 
 **Files to Modify**:
-- `maiko/alternatives/zig/src/data/sysout.zig` - Complete sysout loading implementation
-- `maiko/alternatives/zig/src/utils/types.zig` - Add IFPAGE structure definition
+- `zaiko/src/data/sysout.zig` - Complete sysout loading implementation
+- `zaiko/src/utils/types.zig` - Add IFPAGE structure definition
 
 **Testing**:
 ```bash
-cd maiko/alternatives/zig
+cd zaiko
 zig build
-./zig-out/bin/maiko-zig ../../medley/loadups/starter.sysout
+./zig-out/bin/zaiko ../../medley/loadups/starter.sysout
 # Should successfully load sysout (may not execute yet)
 ```
 
@@ -55,14 +55,14 @@ zig build
 4. Initialize interrupt handling: Set up interrupt state
 
 **Files to Modify**:
-- `maiko/alternatives/zig/src/main.zig` - Activate dispatch loop
-- `maiko/alternatives/zig/src/vm/dispatch.zig` - Ensure dispatch loop is ready
-- `maiko/alternatives/zig/src/vm/` - VM state initialization
+- `zaiko/src/main.zig` - Activate dispatch loop
+- `zaiko/src/vm/dispatch.zig` - Ensure dispatch loop is ready
+- `zaiko/src/vm/` - VM state initialization
 
 **Testing**:
 ```bash
 zig build
-./zig-out/bin/maiko-zig ../../medley/loadups/starter.sysout
+./zig-out/bin/zaiko ../../medley/loadups/starter.sysout
 # Should enter dispatch loop (may fail on opcode execution)
 ```
 
@@ -82,14 +82,14 @@ zig build
 5. Complete list operations: LIST, APPEND, RPLACA, RPLACD
 
 **Files to Modify**:
-- `maiko/alternatives/zig/src/vm/opcodes.zig` - Implement opcode handlers
-- `maiko/alternatives/zig/src/data/cons.zig` - Complete cons cell operations
+- `zaiko/src/vm/opcodes.zig` - Implement opcode handlers
+- `zaiko/src/data/cons.zig` - Complete cons cell operations
 
 **Testing**:
 ```bash
 zig build test  # Run opcode tests
 zig build
-./zig-out/bin/maiko-zig ../../medley/loadups/lisp.sysout
+./zig-out/bin/zaiko ../../medley/loadups/lisp.sysout
 # Should progress further in startup
 ```
 
@@ -108,13 +108,13 @@ zig build
 4. Implement hash table operations: HTmain and HTcoll management
 
 **Files to Modify**:
-- `maiko/alternatives/zig/src/memory/gc.zig` - Complete GC operations
+- `zaiko/src/memory/gc.zig` - Complete GC operations
 
 **Testing**:
 ```bash
 zig build test  # Run GC tests
 zig build
-./zig-out/bin/maiko-zig ../../medley/loadups/lisp.sysout
+./zig-out/bin/zaiko ../../medley/loadups/lisp.sysout
 # Should run without memory leaks
 ```
 
@@ -133,13 +133,13 @@ zig build
 4. Integrate with VM: Connect display operations to VM execution
 
 **Files to Modify**:
-- `maiko/alternatives/zig/src/display/sdl_backend.zig` - Complete SDL2 integration
-- `maiko/alternatives/zig/src/display/graphics.zig` - Implement BitBLT operations
+- `zaiko/src/display/sdl_backend.zig` - Complete SDL2 integration
+- `zaiko/src/display/graphics.zig` - Implement BitBLT operations
 
 **Testing**:
 ```bash
 zig build
-./zig-out/bin/maiko-zig ../../medley/loadups/starter.sysout -sc 1024x768
+./zig-out/bin/zaiko ../../medley/loadups/starter.sysout -sc 1024x768
 # Should open SDL2 window and display graphics
 ```
 
@@ -153,7 +153,7 @@ zig build
 
 Test individual components:
 ```bash
-cd maiko/alternatives/zig
+cd zaiko
 zig build test
 ```
 
@@ -168,9 +168,9 @@ zig build test
 
 Test with actual sysout files:
 ```bash
-./zig-out/bin/maiko-zig ../../medley/loadups/starter.sysout
-./zig-out/bin/maiko-zig ../../medley/loadups/lisp.sysout
-./zig-out/bin/maiko-zig ../../medley/loadups/full.sysout
+./zig-out/bin/zaiko ../../medley/loadups/starter.sysout
+./zig-out/bin/zaiko ../../medley/loadups/lisp.sysout
+./zig-out/bin/zaiko ../../medley/loadups/full.sysout
 ```
 
 ### Comparison Tests
@@ -181,7 +181,7 @@ Compare behavior with C emulator:
 ../../linux.x86_64/ldesdl ../../medley/loadups/starter.sysout -sc 1024x768
 
 # Zig emulator
-./zig-out/bin/maiko-zig ../../medley/loadups/starter.sysout -sc 1024x768
+./zig-out/bin/zaiko ../../medley/loadups/starter.sysout -sc 1024x768
 ```
 
 Compare execution results, memory usage, and behavior.
@@ -259,7 +259,7 @@ After completing this quickstart:
 - **C Implementation Reference**: `maiko/src/ldsout.c`, `maiko/src/main.c`
 - **IFPAGE Structure**: `maiko/inc/ifpage.h`
 - **Rewrite Documentation**: `.ai_assistant_db/rewrite-spec/`
-- **Zig Implementation**: `maiko/alternatives/zig/`
+- **Zig Implementation**: `zaiko/`
 - **Medley Documentation**: `.ai_assistant_db/medley/`
 
 ---

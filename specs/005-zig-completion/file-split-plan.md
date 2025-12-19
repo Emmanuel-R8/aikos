@@ -6,8 +6,8 @@
 ## Overview
 
 ### Target Files
-1. `maiko/alternatives/zig/src/vm/opcodes.zig` (2,820 lines) → 13 modules
-2. `maiko/alternatives/zig/src/vm/dispatch.zig` (1,150 lines) → 3 modules
+1. `zaiko/src/vm/opcodes.zig` (2,820 lines) → 13 modules
+2. `zaiko/src/vm/dispatch.zig` (1,150 lines) → 3 modules
 
 ### Goal
 - Each file < 500 lines (user preference)
@@ -19,7 +19,7 @@
 ### Module Structure
 
 ```
-maiko/alternatives/zig/src/vm/opcodes/
+zaiko/src/vm/opcodes/
 ├── arithmetic.zig      (~200 lines) - Integer and general arithmetic
 ├── bitwise.zig         (~130 lines) - Bitwise operations
 ├── stack_ops.zig        (~65 lines) - Stack manipulation
@@ -248,7 +248,7 @@ pub const handleIDIFFERENCE = arithmetic.handleIDIFFERENCE;
 ### Module Structure
 
 ```
-maiko/alternatives/zig/src/vm/dispatch/
+zaiko/src/vm/dispatch/
 ├── instruction.zig  (~400 lines) - Instruction struct and decoding
 └── execution.zig    (~700 lines) - executeOpcodeWithOperands switch
 ```

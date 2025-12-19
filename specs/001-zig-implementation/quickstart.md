@@ -81,13 +81,13 @@ This will:
 
 - Compile all source files
 - Link SDL3 library
-- Create executable `zig-out/bin/maiko-zig`
+- Create executable `zig-out/bin/zaiko`
 
 ## Running
 
 ```bash
 # Run with sysout file
-zig-out/bin/maiko-zig path/to/sysout.sysout
+zig-out/bin/zaiko path/to/sysout.sysout
 ```
 
 ## Implementation Path

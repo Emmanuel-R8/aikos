@@ -16,7 +16,7 @@ echo ""
 
 # Clean old logs
 rm -f "$REPO_ROOT/c_emulator_execution_log.txt" "$REPO_ROOT/zig_emulator_execution_log.txt"
-rm -f "$REPO_ROOT/maiko/alternatives/zig/zig_emulator_execution_log.txt"
+rm -f "$REPO_ROOT/zaiko/zig_emulator_execution_log.txt"
 
 # Find C emulator
 C_EMULATOR=""
@@ -43,13 +43,13 @@ fi
 
 echo ""
 echo "=== Running Zig Emulator ==="
-echo "Command: cd maiko/alternatives/zig && zig build run -- $SYSOUT_FILE"
-cd "$REPO_ROOT/maiko/alternatives/zig"
+echo "Command: cd zaiko && zig build run -- $SYSOUT_FILE"
+cd "$REPO_ROOT/zaiko"
 timeout 5 zig build run -- "../../../$SYSOUT_FILE" > /dev/null 2>&1 || true
 
 # Check for log in both possible locations
-if [ -f "$REPO_ROOT/maiko/alternatives/zig/zig_emulator_execution_log.txt" ]; then
-    cp "$REPO_ROOT/maiko/alternatives/zig/zig_emulator_execution_log.txt" "$REPO_ROOT/zig_emulator_execution_log.txt"
+if [ -f "$REPO_ROOT/zaiko/zig_emulator_execution_log.txt" ]; then
+    cp "$REPO_ROOT/zaiko/zig_emulator_execution_log.txt" "$REPO_ROOT/zig_emulator_execution_log.txt"
     ZIG_LINES=$(wc -l < "$REPO_ROOT/zig_emulator_execution_log.txt")
     echo "✓ Zig emulator log created: $ZIG_LINES lines"
 elif [ -f "$REPO_ROOT/zig_emulator_execution_log.txt" ]; then
