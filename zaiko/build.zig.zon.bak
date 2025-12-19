@@ -1,0 +1,7 @@
+.{
+    .name = @import("builtin").ZigString.init("maiko-zig"),
+    .version = @import("builtin").ZigString.init("0.1.0"),
+    .description = @import("builtin").ZigString.init("Maiko emulator implementation in Zig"),
+    .dependencies = .{},
+    .paths = .{""},
+}
