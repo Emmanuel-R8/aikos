@@ -1,5 +1,6 @@
 = Reference Behaviors
 
+*Navigation*: README | Compatibility Criteria
 
 Reference test cases for validating emulator rewrite implementations. These test cases verify that implementations match Maiko behavior.
 
@@ -17,9 +18,11 @@ Reference behaviors provide concrete test cases that implementations must pass t
 
 *Validation*:
 
-[`cons_cell = CreateConsCell(A, B`]
+#codeblock(lang: "pseudocode", [
+cons_cell = CreateConsCell(A, B)
 result = CAR(cons_cell)
-assert result == A)
+assert result == A
+])
 
 === Test Case: CDR Operation
 
@@ -29,9 +32,11 @@ assert result == A)
 
 *Validation*:
 
-[`cons_cell = CreateConsCell(A, B`]
+#codeblock(lang: "pseudocode", [
+cons_cell = CreateConsCell(A, B)
 result = CDR(cons_cell)
-assert result == B)
+assert result == B
+])
 
 === Test Case: CONS Operation
 
@@ -41,9 +46,11 @@ assert result == B)
 
 *Validation*:
 
-[`result = CONS(A, B`]
+#codeblock(lang: "pseudocode", [
+result = CONS(A, B)
 assert CAR(result) == A
-assert CDR(result) == B)
+assert CDR(result) == B
+])
 
 === Test Case: Arithmetic Operations
 
@@ -53,11 +60,13 @@ assert CDR(result) == B)
 
 *Validation*:
 
-[`PushStack(5`]
+#codeblock(lang: "pseudocode", [
+PushStack(5)
 PushStack(3)
 ExecuteOpcode(IPLUS2)
 result = PopStack()
-assert result == 8)
+assert result == 8
+])
 
 === Test Case: Function Call
 
@@ -67,12 +76,14 @@ assert result == 8)
 
 *Validation*:
 
-[`function = GetFunction("add"`]
+#codeblock(lang: "pseudocode", [
+function = GetFunction("add")
 PushStack(5)
 PushStack(3)
 CallFunction(function, 2)
 result = PopStack()
-assert result == 8)
+assert result == 8
+])
 
 == Memory Management Test Cases
 
@@ -84,11 +95,13 @@ assert result == 8)
 
 *Validation*:
 
-[`cell = AllocateConsCell(`]
+#codeblock(lang: "pseudocode", [
+cell = AllocateConsCell()
 assert cell != null
 assert IsValidAddress(cell)
 assert GetConsCell(cell).car_field == NIL
-assert GetConsCell(cell).cdr_code == CDR_NIL)
+assert GetConsCell(cell).cdr_code == CDR_NIL
+])
 
 === Test Case: Reference Counting
 
@@ -98,11 +111,13 @@ assert GetConsCell(cell).cdr_code == CDR_NIL)
 
 *Validation*:
 
-[`object = AllocateObject(`]
+#codeblock(lang: "pseudocode", [
+object = AllocateObject()
 ADDREF(object)  // refcount = 1
 ADDREF(object)  // refcount = 2
 DELREF(object)  // refcount = 1
-assert GetReferenceCount(object) == 1)
+assert GetReferenceCount(object) == 1
+])
 
 === Test Case: Garbage Collection
 
@@ -112,11 +127,13 @@ assert GetReferenceCount(object) == 1)
 
 *Validation*:
 
-[`object = AllocateObject(`]
+#codeblock(lang: "pseudocode", [
+object = AllocateObject()
 ADDREF(object)
 DELREF(object)  // refcount = 0
 RunGC()
-assert IsReclaimed(object))
+assert IsReclaimed(object)
+])
 
 == Display Test Cases
 
@@ -128,11 +145,13 @@ assert IsReclaimed(object))
 
 *Validation*:
 
-[`source = CreateBitmap(10, 10`]
+#codeblock(lang: "pseudocode", [
+source = CreateBitmap(10, 10)
 FillBitmap(source, pattern)
 dest = CreateBitmap(10, 10)
 BitBLT(source, dest, 0, 0, 10, 10, COPY)
-assert BitmapsEqual(source, dest))
+assert BitmapsEqual(source, dest)
+])
 
 === Test Case: Keycode Translation
 
@@ -142,9 +161,11 @@ assert BitmapsEqual(source, dest))
 
 *Validation*:
 
-[`os_keycode = GetOSKeycode('A'`]
+#codeblock(lang: "pseudocode", [
+os_keycode = GetOSKeycode('A')
 lisp_keycode = TranslateKeycode(os_keycode, no_modifiers)
-assert lisp_keycode == 0x41  // ASCII 'A')
+assert lisp_keycode == 0x41  // ASCII 'A'
+])
 
 == File System Test Cases
 
@@ -156,10 +177,12 @@ assert lisp_keycode == 0x41  // ASCII 'A')
 
 *Validation*:
 
-[`lisp_path = "DSK:>file>test.lisp"`]
-[`platform_path = LispToPlatformPathname(lisp_path`]
+#codeblock(lang: "pseudocode", [
+lisp_path = "DSK:>file>test.lisp"
+platform_path = LispToPlatformPathname(lisp_path)
 assert platform_path == "/file/test.lisp"  // Unix
-// or "C:\file\test.lisp" on DOS)
+// or "C:\file\test.lisp" on DOS
+])
 
 === Test Case: File Operations
 
@@ -169,14 +192,16 @@ assert platform_path == "/file/test.lisp"  // Unix
 
 *Validation*:
 
-[`file = OpenFile("test.lisp", WRITE`]
+#codeblock(lang: "pseudocode", [
+file = OpenFile("test.lisp", WRITE)
 WriteFile(file, "test data", 9)
 CloseFile(file)
 
 file = OpenFile("test.lisp", READ)
 data = ReadFile(file, 9)
 assert data == "test data"
-CloseFile(file))
+CloseFile(file)
+])
 
 == Sysout Compatibility Test Cases
 
@@ -188,10 +213,12 @@ CloseFile(file))
 
 *Validation*:
 
-[`sysout = LoadSysoutFile("test.sysout"`]
+#codeblock(lang: "pseudocode", [
+sysout = LoadSysoutFile("test.sysout")
 assert sysout != null
 assert ValidateSysout(sysout)
-assert CanExecuteBytecode(sysout))
+assert CanExecuteBytecode(sysout)
+])
 
 === Test Case: Execute Sysout Program
 
@@ -201,11 +228,13 @@ assert CanExecuteBytecode(sysout))
 
 *Validation*:
 
-[`sysout = LoadSysoutFile("test.sysout"`]
+#codeblock(lang: "pseudocode", [
+sysout = LoadSysoutFile("test.sysout")
 StartVM(sysout)
 ExecuteProgram()
 assert ProgramCompletes()
-assert ResultsMatchExpected())
+assert ResultsMatchExpected()
+])
 
 == Integration Test Cases
 
@@ -217,10 +246,12 @@ assert ResultsMatchExpected())
 
 *Validation*:
 
-[`program = LoadLispProgram("test.lisp"`]
+#codeblock(lang: "pseudocode", [
+program = LoadLispProgram("test.lisp")
 ExecuteProgram(program)
 results = GetProgramResults()
-assert results == ExpectedResults())
+assert results == ExpectedResults()
+])
 
 === Test Case: Interactive Session
 
@@ -230,10 +261,12 @@ assert results == ExpectedResults())
 
 *Validation*:
 
-[`SendKeyEvent('A'`]
+#codeblock(lang: "pseudocode", [
+SendKeyEvent('A')
 assert DisplayShows('A')
 SendMouseEvent(click, x, y)
-assert CorrectResponseToClick())
+assert CorrectResponseToClick()
+])
 
 == Performance Test Cases
 
@@ -245,12 +278,14 @@ assert CorrectResponseToClick())
 
 *Validation*:
 
-[`start_time = GetTime(`]
+#codeblock(lang: "pseudocode", [
+start_time = GetTime()
 for i = 1 to 1000000:
     ExecuteOpcode(CAR, test_cell)
 end_time = GetTime()
 execution_time = end_time - start_time
-assert execution_time < MAX_EXECUTION_TIME)
+assert execution_time < MAX_EXECUTION_TIME
+])
 
 == Related Documentation
 

@@ -1,5 +1,6 @@
 = Array Specification
 
+*Navigation*: README | Cons Cells | Function Headers
 
 Complete specification of array formats, including array headers, element access, and array types.
 
@@ -11,47 +12,52 @@ Arrays in Maiko are stored with headers describing their structure, type, and di
 
 === One-Dimensional Array (OneDArray)
 
-[`struct OneDArray:`]
-[`    base: 24-28 bits      // Base address of array data`]
-[`    nil1: 4-8 bits        // Reserved`]
-[`    offset: DLword        // Offset into base`]
-[`    typenumber: 8 bits    // Element type code`]
-[`    extendablep: 1 bit    // Extendable flag`]
-[`    fillpointerp: 1 bit   // Has fill pointer`]
-[`    displacedp: 1 bit     // Displaced array flag`]
-[`    ajustablep: 1 bit     // Adjustable flag`]
-[`    stringp: 1 bit        // String array flag`]
-[`    bitp: 1 bit           // Bit array flag`]
-[`    indirectp: 1 bit      // Indirect array flag`]
-[`    readonlyp: 1 bit      // Read-only flag`]
-[`    totalsize: DLword/int32_t  // Total size`]
-[`    fill: DLword/int32_t // Fill (if fillpointerp`])
+#codeblock(lang: "pseudocode", [
+struct OneDArray:
+    base: 24-28 bits      // Base address of array data
+    nil1: 4-8 bits        // Reserved
+    offset: DLword        // Offset into base
+    typenumber: 8 bits    // Element type code
+    extendablep: 1 bit    // Extendable flag
+    fillpointerp: 1 bit   // Has fill pointer
+    displacedp: 1 bit     // Displaced array flag
+    ajustablep: 1 bit     // Adjustable flag
+    stringp: 1 bit        // String array flag
+    bitp: 1 bit           // Bit array flag
+    indirectp: 1 bit      // Indirect array flag
+    readonlyp: 1 bit      // Read-only flag
+    totalsize: DLword/int32_t  // Total size
+    fillpointer: DLword/int32_t // Fill pointer (if fillpointerp)
+])
 
 *Size*: Variable (depends on BIGVM)
 *Alignment*: 4-byte aligned
 
 === Multi-Dimensional Array (LispArray)
 
-[`struct LispArray:`]
-[`    base: 24-28 bits      // Base address`]
-[`    nil1: 4-8 bits        // Reserved`]
-[`    Dim0: int32_t/DLword  // Dimension 0`]
-[`    typenumber: 8 bits    // Element type`]
-[`    extendablep: 1 bit`]
-[`    fillpointerp: 1 bit`]
-[`    displacedp: 1 bit`]
-[`    ajustablep: 1 bit`]
-[`    stringp: 1 bit`]
-[`    bitp: 1 bit`]
-[`    indirectp: 1 bit`]
-[`    readonlyp: 1 bit`]
-[`    Dim1: int32_t/DLword  // Dimension 1`]
-[`    Dim2: int32_t/DLword  // Dimension 2`]
-[`    totalsize: int32_t/DLword  // Total size`]
+#codeblock(lang: "pseudocode", [
+struct LispArray:
+    base: 24-28 bits      // Base address
+    nil1: 4-8 bits        // Reserved
+    Dim0: int32_t/DLword  // Dimension 0
+    typenumber: 8 bits    // Element type
+    extendablep: 1 bit
+    fillpointerp: 1 bit
+    displacedp: 1 bit
+    ajustablep: 1 bit
+    stringp: 1 bit
+    bitp: 1 bit
+    indirectp: 1 bit
+    readonlyp: 1 bit
+    Dim1: int32_t/DLword  // Dimension 1
+    Dim2: int32_t/DLword  // Dimension 2
+    totalsize: int32_t/DLword  // Total size
+])
 
 == Array Types
 
 === Type Numbers
+
 - *0*: Bit array (1 bit per element)
 - *3*: Unsigned 8-bit
 - *4*: Unsigned 16-bit
@@ -65,7 +71,8 @@ Arrays in Maiko are stored with headers describing their structure, type, and di
 
 === Type-Specific Access
 
-[`function GetElementSize(typenumber`]:
+#codeblock(lang: "pseudocode", [
+function GetElementSize(typenumber):
     switch typenumber:
         case 0: return 1 bit
         case 3: return 1 byte
@@ -76,13 +83,15 @@ Arrays in Maiko are stored with headers describing their structure, type, and di
         case 54: return 4 bytes
         case 67: return 1 byte
         case 68: return 2 bytes
-        case 86: return 4 bytes)
+        case 86: return 4 bytes
+])
 
 == Array Access
 
 === One-Dimensional Access (AREF1)
 
-[`function AREF1(array_address, index`]:
+#codeblock(lang: "pseudocode", [
+function AREF1(array_address, index):
     array = GetArray(array_address)
 
     // Validate index
@@ -97,12 +106,14 @@ Arrays in Maiko are stored with headers describing their structure, type, and di
     base_address = array.base
 
     // Access element
-    element_address = base_address + (element_offset element_size)
-    return ReadElement(element_address, array.typenumber))
+    element_address = base_address + (element_offset * element_size)
+    return ReadElement(element_address, array.typenumber)
+])
 
 === Two-Dimensional Access (AREF2)
 
-[`function AREF2(array_address, index0, index1`]:
+#codeblock(lang: "pseudocode", [
+function AREF2(array_address, index0, index1):
     array = GetArray(array_address)
 
     // Validate indices
@@ -110,7 +121,7 @@ Arrays in Maiko are stored with headers describing their structure, type, and di
         Error("Index out of range")
 
     // Calculate linear index
-    linear_index = (index0 array.Dim1) + index1
+    linear_index = (index0 * array.Dim1) + index1
 
     // Calculate element offset
     element_offset = array.offset + linear_index
@@ -118,12 +129,14 @@ Arrays in Maiko are stored with headers describing their structure, type, and di
 
     // Access element
     base_address = array.base
-    element_address = base_address + (element_offset element_size)
-    return ReadElement(element_address, array.typenumber))
+    element_address = base_address + (element_offset * element_size)
+    return ReadElement(element_address, array.typenumber)
+])
 
 === Array Set (ASET1, ASET2)
 
-[`function ASET1(array_address, index, value`]:
+#codeblock(lang: "pseudocode", [
+function ASET1(array_address, index, value):
     array = GetArray(array_address)
 
     // Check readonly
@@ -138,28 +151,32 @@ Arrays in Maiko are stored with headers describing their structure, type, and di
     element_offset = array.offset + index
     element_size = GetElementSize(array.typenumber)
     base_address = array.base
-    element_address = base_address + (element_offset element_size)
+    element_address = base_address + (element_offset * element_size)
 
     // Write element
-    WriteElement(element_address, value, array.typenumber))
+    WriteElement(element_address, value, array.typenumber)
+])
 
 == Array Block Structure
 
 === Array Block Header
 
-[`struct ArrayBlock:`]
-[`    password: 13 bits     // Block password`]
-[`    gctype: 2 bits        // GC type`]
-[`    inuse: 1 bit          // In-use flag`]
-[`    arlen: DLword         // Array length`]
-[`    fwd: LispPTR          // Forward (for GC`]
-    bkwd: LispPTR         // Backward (for GC))
+#codeblock(lang: "pseudocode", [
+struct ArrayBlock:
+    password: 13 bits     // Block password
+    gctype: 2 bits        // GC type
+    inuse: 1 bit          // In-use flag
+    arlen: DLword         // Array length
+    fwd: LispPTR          // Forward pointer (for GC)
+    bkwd: LispPTR         // Backward pointer (for GC)
+])
 
 == Array Allocation
 
 === Allocate Array
 
-[`function AllocateArray(dimensions, typenumber, flags`]:
+#codeblock(lang: "pseudocode", [
+function AllocateArray(dimensions, typenumber, flags):
     // Calculate total size
     totalsize = CalculateTotalSize(dimensions, typenumber)
 
@@ -178,33 +195,38 @@ Arrays in Maiko are stored with headers describing their structure, type, and di
     array_header.adjustablep = flags.adjustable
     array_header.fillpointerp = flags.fillpointer
 
-    return LispAddressOf(array_block))
+    return LispAddressOf(array_block)
+])
 
 == String Arrays
 
 Strings are special arrays:
 
-[`struct StringArray:`]
-[`    // Same as OneDArray but with stringp flag set`]
-[`    base: 24-28 bits`]
-[`    type: 4 bits          // String type`]
-[`    readonly: 1 bit`]
-[`    substringed: 1 bit`]
-[`    origin: 1 bit`]
-[`    length: DLword/int32_t`]
-[`    offset: LispPTR/DLword`]
+#codeblock(lang: "pseudocode", [
+struct StringArray:
+    // Same as OneDArray but with stringp flag set
+    base: 24-28 bits
+    type: 4 bits          // String type
+    readonly: 1 bit
+    substringed: 1 bit
+    origin: 1 bit
+    length: DLword/int32_t
+    offset: LispPTR/DLword
+])
 
 == Displaced Arrays
 
 Displaced arrays share data with another array:
 
-[`function CreateDisplacedArray(base_array, offset, length`]:
+#codeblock(lang: "pseudocode", [
+function CreateDisplacedArray(base_array, offset, length):
     array = AllocateArrayHeader()
     array.base = base_array.base
     array.offset = base_array.offset + offset
     array.totalsize = length
     array.displacedp = true
-    return array)
+    return array
+])
 
 == Related Documentation
 

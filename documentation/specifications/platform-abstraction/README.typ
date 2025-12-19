@@ -1,5 +1,6 @@
 = Platform Abstraction
 
+*Navigation*: README | Index
 
 This section documents platform abstraction requirements for emulator rewrites, distinguishing behaviors that must match exactly from implementation choices that may differ.
 

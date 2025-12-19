@@ -1,5 +1,6 @@
 = Instruction Set Specification
 
+*Navigation*: README | Index | VM Core
 
 Complete specification of the Maiko bytecode instruction set. This section provides all information needed to implement bytecode execution in any language.
 
@@ -8,6 +9,7 @@ Complete specification of the Maiko bytecode instruction set. This section provi
 The Maiko VM uses a bytecode instruction set with 256 possible opcode values (0-255). Instructions are variable-length, with the opcode byte followed by zero or more operand bytes.
 
 == Documentation Structure
+
 - *Instruction Format* - How bytecode instructions are encoded
 - *Opcodes Reference* - Complete reference for all 256 opcodes
 - *Execution Semantics* - Execution behavior and rules
@@ -37,11 +39,13 @@ The Maiko VM uses a bytecode instruction set with 256 possible opcode values (0-
 
 - Integer arithmetic (IPLUS2, IDIFFERENCE, ITIMES2, IQUOTIENT)
 - Floating-point arithmetic (FPLUS2, FDIFFERENCE, FTIMES2, FQUOTIENT)
-- Comparisons (EQ, EQUAL, GREATERP, IGREATERP, FGREATERP) - Bitwise operations (LOGOR2, LOGAND2, LOGXOR2, LSH)
+- Comparisons (EQ, EQUAL, GREATERP, IGREATERP, FGREATERP)
+- Bitwise operations (LOGOR2, LOGAND2, LOGXOR2, LSH)
 
 == Opcode Organization
 
 Opcodes are organized by function:
+
 - *Sequential opcodes*: Related opcodes grouped together (e.g., IVAR0-IVAR6, JUMP0-JUMP15)
 - *Unused opcodes*: Some values are unused (marked as `opc_unused_N`)
 - *UFN handling*: Undefined function names handled specially
@@ -49,6 +53,7 @@ Opcodes are organized by function:
 == Instruction Length
 
 Instructions have variable length:
+
 - *1 byte*: Opcode only (no operands)
 - *2 bytes*: Opcode + 1 operand byte
 - *3 bytes*: Opcode + 2 operand bytes

@@ -1,5 +1,6 @@
 = Stack Management Specification
 
+*Navigation*: README | Execution Model | Function Calls
 
 Complete specification of stack frame structure, stack operations, and frame management.
 
@@ -7,36 +8,44 @@ Complete specification of stack frame structure, stack operations, and frame man
 
 The VM uses a stack-based execution model where each function call creates a stack frame (FX - Frame eXtended). The stack manages function activation, local variables, parameters, and return addresses.
 
-== Stack Frame Addressing pointerCRITICAL: Frame pointers (`currentfxp`, `stackbase`, `endofstack`) in IFPAGE are `DLword` StackOffsets, NOT LispPTR values!
+== Stack Frame Addressing
+
+*CRITICAL*: Frame pointers (`currentfxp`, `stackbase`, `endofstack`) in IFPAGE are `DLword` StackOffsets, NOT LispPTR values!
 
 - `currentfxp`: DLword offset from Stackspace base
 - `stackbase`: DLword offset from Stackspace base
 - `endofstack`: DLword offset from Stackspace base
 
 C: `NativeAligned2FromStackOffset(DLword StackOffset) = Stackspace + StackOffset`
-- Since `Stackspace` is `DLword pointer`, arithmetic adds `StackOffset` DLwords = `StackOffset × 2` bytes
+- Since `Stackspace` is `DLword*`, pointer arithmetic adds `StackOffset` DLwords = `StackOffset * 2` bytes
 - Per `maiko/inc/adr68k.h:72-75` and `maiko/src/main.c:797`
 
 == Stack Frame Structure
 
 === Frame Layout
 
-#figure(
-  caption: [Diagram],
-  [Diagram: See original documentation for visual representation.],
-)
-
-  )
-)
+#codeblock(lang: "mermaid", [
+graph TD
+    Frame[Stack Frame FX] --> Flags[Flags Word]
+    Frame --> Alink[Activation Link]
+    Frame --> FnHeader[Function Header Ptr]
+    Frame --> NextBlock[Next Block Ptr]
+    Frame --> PC[Program Counter]
+    Frame --> NameTable[Name Table Ptr]
+    Frame --> Blink[Binding Link]
+    Frame --> Clink[Closure Link]
+    Frame --> Locals[Local Variables]
+])
 
 === Frame Structure (FX)
 
 *CRITICAL*: The actual memory layout of frame fields may differ from the C struct definition due to compiler-specific bitfield packing and struct layout. Implementations MUST verify the actual byte offsets by examining memory contents, not just relying on struct definitions.
 
-*Non-BIGVM Frame Layout* (actual memory bytes):
+*Non-BIGVM Frame Layout (actual memory bytes)*:
 
-[`struct FrameEx:`]
-[`    // Offset 0-1: flags + usecount (packed into one DLword`]
+#codeblock(lang: "pseudocode", [
+struct FrameEx:
+    // Offset 0-1: flags + usecount (packed into one DLword)
     flags: 3 bits          // Frame flags
     fast: 1 bit            // Fast call flag
     nil2: 1 bit            // Reserved
@@ -50,12 +59,12 @@ C: `NativeAligned2FromStackOffset(DLword StackOffset) = Stackspace + StackOffset
     
     // Offset 4-5: hi1fnheader_hi2fnheader (NOT lofnheader!)
     // CRITICAL: Field positions are swapped compared to struct definition
-    hi1fnheader: 8 bits    // Function header (Hi1 addr, low byte)
-    hi2fnheader: 8 bits    // Function header (Hi2 addr, high byte)
+    hi1fnheader: 8 bits    // Function header pointer (Hi1 addr, low byte)
+    hi2fnheader: 8 bits    // Function header pointer (Hi2 addr, high byte)
     
     // Offset 6-7: lofnheader (NOT hi1fnheader_hi2fnheader!)
     // CRITICAL: Field positions are swapped compared to struct definition
-    lofnheader: DLword     // Function header (Low addr, 16 bits)
+    lofnheader: DLword     // Function header pointer (Low addr, 16 bits)
     
     // Offset 8-9: nextblock
     nextblock: DLword      // Next stack block offset
@@ -63,16 +72,22 @@ C: `NativeAligned2FromStackOffset(DLword StackOffset) = Stackspace + StackOffset
     // Offset 10-11: pc
     pc: DLword             // Program counter offset (byte offset from FuncObj)
     
-    // Offset 12-15: nametable (non-BIGVM*: lonametable + hi1nametable_hi2nametable)
-    nametable: LispPTR     // Name table // Offset 16-17: blink
+    // Offset 12-15: nametable (non-BIGVM: lonametable + hi1nametable_hi2nametable)
+    nametable: LispPTR     // Name table pointer
+    
+    // Offset 16-17: blink
     blink: DLword          // Binding link
     
     // Offset 18-19: clink
     clink: DLword          // Closure link
     
-    // ... local variables follow ...)
+    // ... local variables follow ...
+])
 
-*FX_FNHEADER Calculation*: [`function CalculateFX_FNHEADER(frame`]:
+*FX_FNHEADER Calculation*:
+
+#codeblock(lang: "pseudocode", [
+function CalculateFX_FNHEADER(frame):
     // CRITICAL: Frame fields are stored in native little-endian format after page byte-swapping
     // Read hi1fnheader_hi2fnheader from offset 4-5 (swapped position)
     hi1fnheader_hi2fnheader = ReadDLword(frame, offset=4)  // Native little-endian
@@ -85,81 +100,116 @@ C: `NativeAligned2FromStackOffset(DLword StackOffset) = Stackspace + StackOffset
     
     // Combine: FX_FNHEADER = (hi2fnheader << 16) | lofnheader
     // FX_FNHEADER is a LispPTR, which is a DLword offset from Lisp_world
-    return (hi2fnheader << 16) | lofnheader)
+    return (hi2fnheader << 16) | lofnheader
+])
 
 *Address Translation from FX_FNHEADER*:
 
-*CRITICAL DISCREPANCY* (2025-12-12 16:54): Based on actual execution logs, FX_FNHEADER appears to be treated as a pointerbyte offset in FastRetCALL, not a DLword offset. See Address Translation Investigation for details.
+*CRITICAL DISCREPANCY (2025-12-12 16:54)*: Based on actual execution logs, FX_FNHEADER appears to be treated as a *byte offset* in FastRetCALL, not a DLword offset. See Address Translation Investigation for details.
 
-[`function TranslateFX_FNHEADERToFuncObj(fx_fnheader`]:
+#codeblock(lang: "pseudocode", [
+function TranslateFX_FNHEADERToFuncObj(fx_fnheader):
     // OBSERVED BEHAVIOR (from execution logs):
     // PC = 0x307898 = FX_FNHEADER (0x307864) + 0x34 (52 bytes = 104/2)
     // This suggests FX_FNHEADER is a byte offset, not DLword offset!
-    return Lisp_world + fx_fnheader  // Byte offset (NOT multiplied by 2))
+    return Lisp_world + fx_fnheader  // Byte offset (NOT multiplied by 2)
+])
 
 *Documented Behavior* (may not match actual):
-[`// C: NativeAligned4FromLAddr(FX_FNHEADER) = (void)(Lisp_world + FX_FNHEADER)`]
-    // Since Lisp_world is DLword pointer, adding FX_FNHEADER adds FX_FNHEADER DLwords
-    // Byte offset = FX_FNHEADER × 2
-    return Lisp_world + (fx_fnheader × 2)  // In bytes)
+#codeblock(lang: "pseudocode", [
+    // C: NativeAligned4FromLAddr(FX_FNHEADER) = (void *)(Lisp_world + FX_FNHEADER)
+    // Since Lisp_world is DLword*, adding FX_FNHEADER adds FX_FNHEADER DLwords
+    // Byte offset = FX_FNHEADER * 2
+    return Lisp_world + (fx_fnheader * 2)  // In bytes
+])
 
-*PC Calculation*: [`function CalculatePCFromFrame(funcobj, frame_pc`]:
-    return funcobj + (frame_pc / 2)  // Divide by 2 to convert DLword to bytes)
+*PC Calculation*:
+#codeblock(lang: "pseudocode", [
+function CalculatePCFromFrame(funcobj, frame_pc):
+    // OBSERVED: PC = FuncObj + (CURRENTFX->pc / 2)
+    // This suggests CURRENTFX->pc is stored as DLword offset, not byte offset
+    return funcobj + (frame_pc / 2)  // Divide by 2 to convert DLword to bytes
+])
 
 *Verification Needed*: Run C emulator with debug statements to confirm actual behavior vs. documentation.
 
 *C Reference*: `maiko/inc/stack.h:81-110` defines the struct, but actual memory layout may differ. Verified against `starter.sysout` frame at offset `0x25ce4` (virtual page 302).
 
-=== Frame Markers pointerFX_MARK (0xC000):
+=== Frame Markers
 
-- Marks start of frame - Used for frame identification pointerBF_MARK (0x8000):
+*FX_MARK (0xC000)*:
 
-- Marks binding frame - Used for variable binding tracking pointerSTK_FSB_WORD (0xA000):
+- Marks start of frame
+- Used for frame identification
+
+*BF_MARK (0x8000)*:
+
+- Marks binding frame
+- Used for variable binding tracking
+
+*STK_FSB_WORD (0xA000)*:
 
 - Marks free stack block
 - Used for stack space management
 
 == Stack Initialization
 
-=== Stack Area Location pointerCRITICAL: The stack area is part of virtual memory (`Lisp_world`), NOT a separate allocation!
+=== Stack Area Location
+
+*CRITICAL*: The stack area is part of virtual memory (`Lisp_world`), NOT a separate allocation!
 
 - `Stackspace = NativeAligned2FromLAddr(STK_OFFSET) = Lisp_world + STK_OFFSET`
 - `STK_OFFSET = 0x00010000` (DLword offset from Lisp_world base)
-- Stackspace byte offset = `STK_OFFSET × 2 = 0x20000` bytes
+- Stackspace byte offset = `STK_OFFSET * 2 = 0x20000` bytes
 - The stack area already contains data from the sysout file (thousands of DLwords)
-- Stack operations must use the virtual memory's stack area directly pointerC Reference: `maiko/src/initsout.c:222` - `Stackspace = (DLword)NativeAligned2FromLAddr(STK_OFFSET);`
+- Stack operations must use the virtual memory's stack area directly
 
-=== CurrentStackPTR Initialization pointerCRITICAL: `CurrentStackPTR` is initialized from the frame's `nextblock` field, not from a separate stack pointer.
+*C Reference*: `maiko/src/initsout.c:222` - `Stackspace = (DLword *)NativeAligned2FromLAddr(STK_OFFSET);`
 
-[`function InitializeStackPointer(frame, Stackspace`]:
+=== CurrentStackPTR Initialization
+
+*CRITICAL*: `CurrentStackPTR` is initialized from the frame's `nextblock` field, not from a separate stack pointer.
+
+#codeblock(lang: "pseudocode", [
+function InitializeStackPointer(frame, Stackspace):
+    // C: start_lisp() -> next68k = NativeAligned2FromStackOffset(CURRENTFX->nextblock)
     // C: CurrentStackPTR = next68k - 2
     next68k = Stackspace + frame.nextblock  // nextblock is DLword offset from Stackspace
     CurrentStackPTR = next68k - 2  // Move back 2 DLwords (stack grows down)
 
     // Stack depth = (CurrentStackPTR - Stackspace) / 2 (in DLwords)
     stack_depth = (CurrentStackPTR - Stackspace) / 2
-    // Typically thousands of DLwords (e.g., 5956 DLwords in starter.sysout))
+    // Typically thousands of DLwords (e.g., 5956 DLwords in starter.sysout)
+])
 
+*C Reference*: `maiko/src/main.c:795-801` - `next68k = NativeAligned2FromStackOffset(CURRENTFX->nextblock); CurrentStackPTR = next68k - 2;`
 
-=== Initial Stack State pointerCRITICAL: The stack area from the sysout already contains data. `TopOfStack` is just a cached variable, not the actual stack pointer.
+=== Initial Stack State
+
+*CRITICAL*: The stack area from the sysout already contains data. `TopOfStack` is just a cached variable, not the actual stack pointer.
 
 - The stack area has pre-existing data (typically thousands of DLwords)
 - `TopOfStack = 0` in `start_lisp()` is just resetting a cached variable
-- The actual stack (`CurrentStackPTR`) points to existing stack data
-- Stack depth is calculated as `(CurrentStackPTR - Stackspace) / 2` DLwords pointerCRITICAL: `TopOfStack` must be implemented as a cached value, NOT read from memory initially. Reading from stack memory initially would return garbage data (e.g., 0xaaaaaaaa patterns) from uninitialized sysout memory. The C code sets `TopOfStack = 0` as a cached variable, and updates it only when stack operations occur.
+- The actual stack pointer (`CurrentStackPTR`) points to existing stack data
+- Stack depth is calculated as `(CurrentStackPTR - Stackspace) / 2` DLwords
 
-*C Reference*: `maiko/src/main.c:790` - `TopOfStack = 0;` (cached variable, not stack initialization)
+*CRITICAL*: `TopOfStack` must be implemented as a cached value, NOT read from memory initially. Reading from stack memory initially would return garbage data (e.g., 0xaaaaaaaa patterns) from uninitialized sysout memory. The C code sets `TopOfStack = 0` as a cached variable, and updates it only when stack operations occur.
+
+*C Reference*: `maiko/src/main.c:790` - `TopOfStack = 0;` (cached variable, not stack pointer initialization)
 
 == Stack Operations
 
-=== Push Stack pointerCRITICAL: Stack stores LispPTR values as 32-bit (2 DLwords). The stack is a `DLword pointer` array, but values are stored as full LispPTR (4 bytes).
+=== Push Stack
+
+*CRITICAL*: Stack stores LispPTR values as 32-bit (2 DLwords). The stack pointer is a `DLword*` array, but values are stored as full LispPTR (4 bytes).
 
 *CRITICAL*: Stack grows DOWN. `Stackspace` is the BASE (lowest address), `CurrentStackPTR` is the current top (higher address when stack has data). Pushing moves `CurrentStackPTR` DOWN (toward lower addresses).
 
 *CRITICAL*: Stack memory from sysout stores DLwords in BIG-ENDIAN format. When writing to stack memory, values must be stored in big-endian format to maintain compatibility with sysout format.
 
-[`function PushStack(value: LispPTR`]:
-    // Stack grows down, move down by 4 bytes (2 DLwords)
+#codeblock(lang: "pseudocode", [
+function PushStack(value: LispPTR):
+    // Stack grows down, move pointer down by 4 bytes (2 DLwords)
     CurrentStackPTR = CurrentStackPTR - 2  // Move DOWN 2 DLwords
 
     // Store LispPTR as 2 DLwords in BIG-ENDIAN format
@@ -175,21 +225,27 @@ C: `NativeAligned2FromStackOffset(DLword StackOffset) = Stackspace + StackOffset
 
     // Check stack overflow (CurrentStackPTR must not go below EndSTKP)
     if CurrentStackPTR < EndSTKP:
-        HandleStackOverflow())
+        HandleStackOverflow()
+])
 
 *C Implementation Reference*: `maiko/inc/lispemul.h:PushStack(x)` decrements `CurrentStackPTR` by 2 DLwords and stores LispPTR value.
 
-*Stack Layout*: - `Stackspace` (BASE): Lowest address, where stack starts
+*Stack Layout*:
+- `Stackspace` (BASE): Lowest address, where stack starts
 - `CurrentStackPTR`: Current top, higher address when stack has data
-- Stack depth = `(CurrentStackPTR - Stackspace) / 2` DLwords - Stack grows DOWN: pushing moves `CurrentStackPTR` DOWN (toward lower addresses)
+- Stack depth = `(CurrentStackPTR - Stackspace) / 2` DLwords
+- Stack grows DOWN: pushing moves `CurrentStackPTR` DOWN (toward lower addresses)
 
-=== Pop Stack pointerCRITICAL: Stack stores LispPTR values as 32-bit (2 DLwords). Reading requires reconstructing the 32-bit value from 2 DLwords.
+=== Pop Stack
+
+*CRITICAL*: Stack stores LispPTR values as 32-bit (2 DLwords). Reading requires reconstructing the 32-bit value from 2 DLwords.
 
 *CRITICAL*: Stack grows DOWN. Popping moves `CurrentStackPTR` UP (toward higher addresses). Stack is empty when `CurrentStackPTR <= Stackspace`.
 
 *CRITICAL*: Stack memory from sysout stores DLwords in BIG-ENDIAN format. When reading from stack memory, values must be byte-swapped from big-endian to native format.
 
-[`function PopStack(`]:
+#codeblock(lang: "pseudocode", [
+function PopStack():
     // Check for stack underflow: CurrentStackPTR must be > Stackspace (stack has data)
     if CurrentStackPTR <= Stackspace:
         return StackUnderflow
@@ -214,19 +270,22 @@ C: `NativeAligned2FromStackOffset(DLword StackOffset) = Stackspace + StackOffset
     else:
         TopOfStack = ReadTopOfStackFromMemory()  // Read new top (with byte-swapping)
     
-    return value)
+    return value
+])
 
-*C Implementation Reference*: `maiko/inc/tos1defs.h:POP_TOS_1` increments `CSTKPTRL` (LispPTR) and reads LispPTR value.
+*C Implementation Reference*: `maiko/inc/tos1defs.h:POP_TOS_1` increments `CSTKPTRL` (LispPTR*) and reads LispPTR value.
 
-*Stack Underflow Check*: - Stack is empty when `CurrentStackPTR <= Stackspace`
+*Stack Underflow Check*:
+- Stack is empty when `CurrentStackPTR <= Stackspace`
 - Stack has data when `CurrentStackPTR > Stackspace`
 - Stack depth = `(CurrentStackPTR - Stackspace) / 2` DLwords
 
 === Stack Frame Allocation
 
-[`function AllocateStackFrame(function_obj`]:
+#codeblock(lang: "pseudocode", [
+function AllocateStackFrame(function_obj):
     // Calculate frame size
-    frame_size = FRAMESIZE + function_obj.local_count × 2
+    frame_size = FRAMESIZE + function_obj.local_count * 2
 
     // Check available space
     if CurrentStackPTR - frame_size < EndSTKP:
@@ -243,7 +302,8 @@ C: `NativeAligned2FromStackOffset(DLword StackOffset) = Stackspace + StackOffset
     frame.pc = 0
     frame.alink = LAddrFromNative(PreviousFrame)
 
-    return frame_ptr)
+    return frame_ptr
+])
 
 == Frame Management
 
@@ -251,51 +311,64 @@ C: `NativeAligned2FromStackOffset(DLword StackOffset) = Stackspace + StackOffset
 
 Activation links chain frames together:
 
-[`function SetActivationLink(new_frame, previous_frame`]:
-    new_frame.alink = LAddrFromNative(previous_frame))
+#codeblock(lang: "pseudocode", [
+function SetActivationLink(new_frame, previous_frame):
+    new_frame.alink = LAddrFromNative(previous_frame)
+])
 
 === Frame Traversal
 
-[`function GetPreviousFrame(current_frame`]:
+#codeblock(lang: "pseudocode", [
+function GetPreviousFrame(current_frame):
     if current_frame.alink == 0:
         return null
-    return NativeAligned4FromLAddr(current_frame.alink))
+    return NativeAligned4FromLAddr(current_frame.alink)
+])
 
 === Current Frame Access
 
-[`function GetCurrentFrame(`]:
-    return NativeAligned4FromStackOffset(CurrentFrameOffset))
+#codeblock(lang: "pseudocode", [
+function GetCurrentFrame():
+    return NativeAligned4FromStackOffset(CurrentFrameOffset)
+])
 
 == Variable Access
 
 === IVar (Local Variables)
 
-[`function GetIVar(index`]:
+#codeblock(lang: "pseudocode", [
+function GetIVar(index):
     frame = GetCurrentFrame()
     ivar_base = NativeAligned2FromStackOffset(frame.nextblock)
-    return ivar_base[index])
+    return ivar_base[index]
+])
 
 === PVar (Parameter Variables)
 
-[`function GetPVar(index`]:
+#codeblock(lang: "pseudocode", [
+function GetPVar(index):
     frame = GetCurrentFrame()
     pvar_base = frame + FRAMESIZE
-    return pvar_base[index])
+    return pvar_base[index]
+])
 
 === FVar (Free Variables)
 
-[`function GetFVar(index`]:
+#codeblock(lang: "pseudocode", [
+function GetFVar(index):
     frame = GetCurrentFrame()
     fvar_offset = frame.fnheader.fvaroffset
     nametable = GetNameTable(frame)
     fvar_base = nametable + fvar_offset
-    return fvar_base[index])
+    return fvar_base[index]
+])
 
 == Stack Extension
 
 === Extend Stack Algorithm
 
-[`function ExtendStack(`]:
+#codeblock(lang: "pseudocode", [
+function ExtendStack():
     // Check if extension needed
     if CurrentStackPTR < EndSTKP:
         return  // No extension needed
@@ -313,17 +386,21 @@ Activation links chain frames together:
 
     // Set up guard block
     guard_block = GetGuardBlock(EndSTKP)
-    guard_block.marker = STK_GUARD_WORD)
+    guard_block.marker = STK_GUARD_WORD
+])
 
 == Stack Overflow Handling
 
-=== Overflow Detection pointerCRITICAL: Stack overflow checks must include a safety margin (`STK_SAFE = 32` words) to prevent stack exhaustion during operations.
+=== Overflow Detection
 
-[`const STK_SAFE = 32  // Safety margin in words (matches C: maiko/inc/stack.h:38`]
+*CRITICAL*: Stack overflow checks must include a safety margin (`STK_SAFE = 32` words) to prevent stack exhaustion during operations.
+
+#codeblock(lang: "pseudocode", [
+const STK_SAFE = 32  // Safety margin in words (matches C: maiko/inc/stack.h:38)
 
 function CheckStackOverflow(required_space):
     // Add safety margin to required space
-    safe_required_space = required_space + (STK_SAFE × sizeof(DLword))
+    safe_required_space = required_space + (STK_SAFE * sizeof(DLword))
 
     if CurrentStackPTR - safe_required_space < EndSTKP:
         if CurrentStackPTR < GuardStackAddr:
@@ -332,43 +409,51 @@ function CheckStackOverflow(required_space):
         else:
             ExtendStack()  // Try to extend stack
             return false
-    return false)
+    return false
+])
 
 *C Reference*: `maiko/inc/stack.h:STK_SAFE`, `maiko/src/llstk.c:do_stackoverflow()`
 
 === Overflow Recovery
 
-[`function HandleStackOverflow(`]:
+#codeblock(lang: "pseudocode", [
+function HandleStackOverflow():
     // Set interrupt flag
     interrupt_state.stackoverflow = true
     interrupt_state.waitinginterrupt = true
 
     // Trigger interrupt handler
-    TriggerInterrupt(STACKOVERFLOW))
+    TriggerInterrupt(STACKOVERFLOW)
+])
 
 == Free Stack Block Management
 
 === Free Block Structure
 
-[`struct FreeStackBlock:`]
-[`    marker: DLword      // STK_FSB_WORD`]
-[`    size: DLword        // Size in words`]
-[`    // ... free space ...`]
+#codeblock(lang: "pseudocode", [
+struct FreeStackBlock:
+    marker: DLword      // STK_FSB_WORD
+    size: DLword        // Size in words
+    // ... free space ...
+])
 
 === Merge Free Blocks
 
-[`function MergeFreeBlocks(block_ptr`]:
+#codeblock(lang: "pseudocode", [
+function MergeFreeBlocks(block_ptr):
     while GetNextBlock(block_ptr).marker == STK_FSB_WORD:
         next_block = GetNextBlock(block_ptr)
         block_ptr.size += next_block.size
         block_ptr = next_block
-    return block_ptr)
+    return block_ptr
+])
 
 == Frame Cleanup
 
 === Frame Deallocation
 
-[`function DeallocateFrame(frame_ptr`]:
+#codeblock(lang: "pseudocode", [
+function DeallocateFrame(frame_ptr):
     frame = GetFrame(frame_ptr)
 
     // Mark as free stack block
@@ -377,7 +462,8 @@ function CheckStackOverflow(required_space):
     free_block.size = CalculateFrameSize(frame)
 
     // Merge with adjacent free blocks
-    MergeFreeBlocks(free_block))
+    MergeFreeBlocks(free_block)
+])
 
 == Related Documentation
 

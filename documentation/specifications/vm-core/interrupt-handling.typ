@@ -1,5 +1,6 @@
 = Interrupt Handling Specification
 
+*Navigation*: README | Execution Model | Function Calls
 
 Complete specification of interrupt handling, including interrupt types, check points, and interrupt processing.
 
@@ -16,40 +17,48 @@ Interrupts are checked between instruction execution and allow the VM to handle 
 - *Network*: Ethernet/socket events
 - *File I/O*: File system events
 
-=== Timer Interrupts - *Periodic*: Regular timer ticks
+=== Timer Interrupts
+
+- *Periodic*: Regular timer ticks
 - *Scheduled*: Time-based events
 
 === System Interrupts
+
 - *Stack Overflow*: Stack space exhausted
 - *Storage Full*: Memory exhausted
 - *GC*: Garbage collection requests
 
 == Interrupt State Structure
 
-[`struct InterruptState:`]
-[`    LogFileIO: 1 bit          // Log file I/O interrupt`]
-[`    ETHERInterrupt: 1 bit     // Ethernet interrupt`]
-[`    IOInterrupt: 1 bit         // General I/O interrupt`]
-[`    gcdisabled: 1 bit          // GC disabled flag`]
-[`    vmemfull: 1 bit            // Virtual memory full`]
-[`    stackoverflow: 1 bit       // Stack overflow`]
-[`    storagefull: 1 bit         // Storage full`]
-[`    waitinginterrupt: 1 bit    // Interrupt pending`]
-[`    intcharcode: DLword        // Interrupt character code`]
+#codeblock(lang: "pseudocode", [
+struct InterruptState:
+    LogFileIO: 1 bit          // Log file I/O interrupt
+    ETHERInterrupt: 1 bit     // Ethernet interrupt
+    IOInterrupt: 1 bit         // General I/O interrupt
+    gcdisabled: 1 bit          // GC disabled flag
+    vmemfull: 1 bit            // Virtual memory full
+    stackoverflow: 1 bit       // Stack overflow
+    storagefull: 1 bit         // Storage full
+    waitinginterrupt: 1 bit    // Interrupt pending
+    intcharcode: DLword        // Interrupt character code
+])
 
 == Interrupt Check Points
 
 === Check Before Instruction
 
-[`function CheckInterruptsBeforeExecution(`]:
+#codeblock(lang: "pseudocode", [
+function CheckInterruptsBeforeExecution():
     if interrupt_state.waitinginterrupt:
         HandlePendingInterrupts()
         return true
-    return false)
+    return false
+])
 
 === Check After Instruction
 
-[`function CheckInterruptsAfterExecution(`]:
+#codeblock(lang: "pseudocode", [
+function CheckInterruptsAfterExecution():
     // Check stack overflow
     if CheckStackOverflow():
         HandleStackOverflow()
@@ -65,23 +74,30 @@ Interrupts are checked between instruction execution and allow the VM to handle 
         HandleTimerInterrupt()
         return true
 
-    return false)
+    return false
+])
 
 == Interrupt Processing
 
 === Interrupt Processing Algorithm
 
-#figure(
-  caption: [Sequence Diagram],
-  [Diagram: See original documentation for visual representation.],
-)
+#codeblock(lang: "mermaid", [
+sequenceDiagram
+    participant Dispatch as Dispatch Loop
+    participant Check as Interrupt Check
+    participant Process as Interrupt Processor
+    participant Handler as Interrupt Handler
 
-  )
-)
+    Dispatch->>Check: Check Interrupts
+    Check->>Process: Interrupt Pending
+    Process->>Handler: Call Handler
+    Handler->>Dispatch: Return to Dispatch
+])
 
 === Process Interrupts
 
-[`function ProcessInterrupts(`]:
+#codeblock(lang: "pseudocode", [
+function ProcessInterrupts():
     interrupt_state = GetInterruptState()
 
     // Process I/O interrupts
@@ -106,75 +122,89 @@ Interrupts are checked between instruction execution and allow the VM to handle 
         ProcessPeriodicInterrupt()
 
     // Clear interrupt flags
-    ClearInterruptFlags())
+    ClearInterruptFlags()
+])
 
 == I/O Interrupt Handling
 
 === Keyboard Interrupts
 
-[`function ProcessKeyboardInterrupts(`]:
+#codeblock(lang: "pseudocode", [
+function ProcessKeyboardInterrupts():
     while HasKeyboardEvents():
         event = GetKeyboardEvent()
         TranslateKeyEvent(event)
         QueueKeyEvent(event)
 
-    SetInterruptFlag(IOInterrupt))
+    SetInterruptFlag(IOInterrupt)
+])
 
 === Mouse Interrupts
 
-[`function ProcessMouseInterrupts(`]:
+#codeblock(lang: "pseudocode", [
+function ProcessMouseInterrupts():
     while HasMouseEvents():
         event = GetMouseEvent()
         TranslateMouseEvent(event)
         QueueMouseEvent(event)
 
-    SetInterruptFlag(IOInterrupt))
+    SetInterruptFlag(IOInterrupt)
+])
 
 === Network Interrupts
 
-[`function ProcessNetworkInterrupts(`]:
+#codeblock(lang: "pseudocode", [
+function ProcessNetworkInterrupts():
     while HasNetworkEvents():
         event = GetNetworkEvent()
         ProcessNetworkPacket(event)
 
-    SetInterruptFlag(ETHERInterrupt))
+    SetInterruptFlag(ETHERInterrupt)
+])
 
 == Timer Interrupt Handling
 
 === Periodic Timer
 
-[`function ProcessPeriodicInterrupt(`]:
+#codeblock(lang: "pseudocode", [
+function ProcessPeriodicInterrupt():
     // Check if periodic interrupt enabled
     if PERIODIC_INTERRUPT != NIL:
         period_count = period_count - 1
         if period_count <= 0:
             CauseInterruptCall(PERIODIC_INTERRUPT_FRAME)
-            ResetPeriodCount())
+            ResetPeriodCount()
+])
 
 === Timer Update
 
-[`function UpdateTimer(`]:
+#codeblock(lang: "pseudocode", [
+function UpdateTimer():
     // Update system timer
     current_time = GetSystemTime()
     timer_delta = current_time - last_timer_time
     last_timer_time = current_time
 
     // Check for timer-based events
-    CheckTimerEvents())
+    CheckTimerEvents()
+])
 
 == Stack Overflow Handling
 
 === Overflow Detection
 
-[`function CheckStackOverflow(`]:
+#codeblock(lang: "pseudocode", [
+function CheckStackOverflow():
     if CurrentStackPTR < Irq_Stk_Check:
         if Irq_Stk_End > 0 and Irq_Stk_Check > 0:
             return true
-    return false)
+    return false
+])
 
 === Overflow Processing
 
-[`function ProcessStackOverflow(`]:
+#codeblock(lang: "pseudocode", [
+function ProcessStackOverflow():
     // Save TOS
     PushCStack(TopOfStack)
 
@@ -187,13 +217,15 @@ Interrupts are checked between instruction execution and allow the VM to handle 
         // Stack extension failed
         SetInterruptFlag(stackoverflow)
         CauseInterruptCall(STACKOVERFLOW_FRAME)
-        // May trigger hard reset)
+        // May trigger hard reset
+])
 
 == Interrupt Call Mechanism
 
 === Cause Interrupt Call
 
-[`function CauseInterruptCall(frame_index`]:
+#codeblock(lang: "pseudocode", [
+function CauseInterruptCall(frame_index):
     // Get interrupt frame
     interrupt_frame = GetInterruptFrame(frame_index)
 
@@ -205,9 +237,11 @@ Interrupts are checked between instruction execution and allow the VM to handle 
 
     // Transfer control to interrupt handler
     PC = interrupt_frame.code_start
-    ContinueDispatch())
+    ContinueDispatch()
+])
 
 === Interrupt Frame Types
+
 - *KEYBOARD_FRAME*: Keyboard interrupt handler
 - *MOUSE_FRAME*: Mouse interrupt handler
 - *NETWORK_FRAME*: Network interrupt handler
@@ -219,33 +253,41 @@ Interrupts are checked between instruction execution and allow the VM to handle 
 
 === Disable Interrupts
 
-[`function DisableInterrupts(`]:
+#codeblock(lang: "pseudocode", [
+function DisableInterrupts():
     interrupt_state.gcdisabled = true
-    // Interrupts checked but not processed)
+    // Interrupts checked but not processed
+])
 
 === Enable Interrupts
 
-[`function EnableInterrupts(`]:
+#codeblock(lang: "pseudocode", [
+function EnableInterrupts():
     interrupt_state.gcdisabled = false
-    // Interrupts processed normally)
+    // Interrupts processed normally
+])
 
 == Async Interrupt Emulation
 
 === Timer Emulation
 
-[`function EmulateTimerInterrupts(`]:
+#codeblock(lang: "pseudocode", [
+function EmulateTimerInterrupts():
     instruction_count = instruction_count - 1
     if instruction_count <= 0:
         SetInterruptFlag(IOInterrupt)
-        instruction_count = INSTRUCTIONS_PER_INTERRUPT)
+        instruction_count = INSTRUCTIONS_PER_INTERRUPT
+])
 
 === Async Event Emulation
 
-[`function EmulateAsyncInterrupts(`]:
+#codeblock(lang: "pseudocode", [
+function EmulateAsyncInterrupts():
     if IO_Signalled:
         IO_Signalled = false
         ProcessIOEvents()
-        SetInterruptFlag(IOInterrupt))
+        SetInterruptFlag(IOInterrupt)
+])
 
 == Related Documentation
 

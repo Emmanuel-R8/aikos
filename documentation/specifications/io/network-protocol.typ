@@ -1,5 +1,6 @@
 = Network Protocol Specification
 
+*Navigation*: README | Keyboard Protocol | Mouse Protocol | File System
 
 Complete specification of network communication protocols, including Ethernet and Internet (TCP/IP) protocols.
 
@@ -20,6 +21,7 @@ Raw Ethernet packet communication:
 === Internet (TCP/IP)
 
 Standard TCP/IP communication:
+
 - *Purpose*: Standard network communication
 - *Protocol*: TCP sockets
 - *Use*: General network I/O
@@ -28,37 +30,57 @@ Standard TCP/IP communication:
 
 === Ethernet Packet Format
 
-[`struct EthernetPacket:`]
-[`    destination: uint48      // Destination MAC address (6 bytes`]
+#codeblock(lang: "pseudocode", [
+struct EthernetPacket:
+    destination: uint48      // Destination MAC address (6 bytes)
     source: uint48           // Source MAC address (6 bytes)
     type: uint16             // EtherType (protocol type)
     data: bytes[]            // Packet payload
-    checksum: uint16         // Checksum (optional))
+    checksum: uint16         // Checksum (optional)
+])
 
 === Ethernet Address
 
-[`struct EthernetAddress:`]
-[`    bytes: array[6] of uint8  // 48-bit MAC address`]
+#codeblock(lang: "pseudocode", [
+struct EthernetAddress:
+    bytes: array[6] of uint8  // 48-bit MAC address
+])
 
-=== Ethernet Operations pointerInitialize Ethernet: [`function InitializeEthernet(`]:
+=== Ethernet Operations
+
+*Initialize Ethernet*:
+
+#codeblock(lang: "pseudocode", [
+function InitializeEthernet():
     // Open Ethernet interface
     ether_fd = OpenEthernetInterface()
 
     // Get host MAC address
     ether_host = GetMACAddress()
 
-    // Initialize interface page)
+    // Initialize interface page
+    InterfacePage->nshost0 = (ether_host[0] << 8) | ether_host[1]
+    InterfacePage->nshost1 = (ether_host[2] << 8) | ether_host[3]
+    InterfacePage->nshost2 = (ether_host[4] << 8) | ether_host[5]
+])
 
-*Send Packet*: [`function SendEthernetPacket(destination, packet_data, length`]:
+*Send Packet*:
+
+#codeblock(lang: "pseudocode", [
+function SendEthernetPacket(destination, packet_data, length):
     // Build Ethernet frame
     frame = BuildEthernetFrame(destination, ether_host, packet_data, length)
 
     // Send frame
     bytes_sent = Write(ether_fd, frame, frame_length)
 
-    return bytes_sent)
+    return bytes_sent
+])
 
-*Receive Packet*: [`function ReceiveEthernetPacket(buffer, max_length`]:
+*Receive Packet*:
+
+#codeblock(lang: "pseudocode", [
+function ReceiveEthernetPacket(buffer, max_length):
     // Read Ethernet frame
     frame = Read(ether_fd, max_length + ETHERNET_HEADER_SIZE)
 
@@ -71,11 +93,13 @@ Standard TCP/IP communication:
     // Copy to buffer
     CopyToBuffer(buffer, packet_data)
 
-    return packet_data.length)
+    return packet_data.length
+])
 
 === Checksum Calculation
 
-[`function CalculateChecksum(data, length, initial_sum`]:
+#codeblock(lang: "pseudocode", [
+function CalculateChecksum(data, length, initial_sum):
     checksum = initial_sum or 0
 
     for i = 0 to length - 1:
@@ -92,20 +116,31 @@ Standard TCP/IP communication:
     if checksum == 0xFFFF:
         return 0  // Checksum valid
     else:
-        return checksum)
+        return checksum
+])
 
 == TCP/IP Protocol
 
-=== TCP Socket Operations pointerCreate Socket: [`function CreateTCPSocket(`]:
-    socket_fd = Socket(AF_INET, SOCK_STREAM, 0)
-    return socket_fd)
+=== TCP Socket Operations
 
-*Connect*: [`function TCPConnect(hostname_or_address, port`]:
+*Create Socket*:
+
+#codeblock(lang: "pseudocode", [
+function CreateTCPSocket():
+    socket_fd = Socket(AF_INET, SOCK_STREAM, 0)
+    return socket_fd
+])
+
+*Connect*:
+
+#codeblock(lang: "pseudocode", [
+function TCPConnect(hostname_or_address, port):
     // Resolve hostname
     if IsNumericAddress(hostname_or_address):
         address = ParseNumericAddress(hostname_or_address)
     else:
         host = GetHostByName(hostname_or_address)
+        address = host->h_addr
 
     // Set up socket address
     sockaddr.sin_family = AF_INET
@@ -121,9 +156,13 @@ Standard TCP/IP communication:
     // Set non-blocking
     SetNonBlocking(socket_fd)
 
-    return socket_fd)
+    return socket_fd
+])
 
-*Send Data*: [`function TCPSend(socket_fd, buffer, length`]:
+*Send Data*:
+
+#codeblock(lang: "pseudocode", [
+function TCPSend(socket_fd, buffer, length):
     // Byte swap if needed
     if BYTESWAP:
         SwapBytes(buffer, length)
@@ -137,9 +176,13 @@ Standard TCP/IP communication:
     if bytes_sent < 0:
         return NIL
 
-    return bytes_sent)
+    return bytes_sent
+])
 
-*Receive Data*: [`function TCPReceive(socket_fd, buffer, max_length`]:
+*Receive Data*:
+
+#codeblock(lang: "pseudocode", [
+function TCPReceive(socket_fd, buffer, max_length):
     bytes_received = Receive(socket_fd, buffer, max_length, 0)
 
     if bytes_received < 0:
@@ -152,17 +195,23 @@ Standard TCP/IP communication:
     if BYTESWAP:
         SwapBytes(buffer, bytes_received)
 
-    return bytes_received)
+    return bytes_received
+])
 
-*Close Socket*: [`function TCPClose(socket_fd`]:
+*Close Socket*:
+
+#codeblock(lang: "pseudocode", [
+function TCPClose(socket_fd):
     Close(socket_fd)
-    return T)
+    return T
+])
 
 == Network Event Handling
 
 === Event Detection
 
-[`function CheckNetworkEvents(`]:
+#codeblock(lang: "pseudocode", [
+function CheckNetworkEvents():
     // Check Ethernet events
     if ether_fd >= 0:
         if HasEthernetData(ether_fd):
@@ -172,33 +221,49 @@ Standard TCP/IP communication:
     // Check TCP events
     for socket in open_tcp_sockets:
         if HasTCPData(socket):
-            SetInterruptFlag(IOInterrupt))
+            SetInterruptFlag(IOInterrupt)
+])
 
 === Event Processing
 
-[`function ProcessNetworkEvents(`]:
+#codeblock(lang: "pseudocode", [
+function ProcessNetworkEvents():
     // Process Ethernet packets
     if ETHEREventCount > 0:
         ProcessEthernetPackets()
         ETHEREventCount--
 
     // Process TCP data
-    ProcessTCPData())
+    ProcessTCPData()
+])
 
 == Platform-Specific Implementations
 
-=== Ethernet Backends pointerDLPI (Data Link Provider Interface):
+=== Ethernet Backends
+
+*DLPI (Data Link Provider Interface)*:
 
 - Used on Solaris
-- Raw packet access - Packet filtering pointerNIT (Network Interface Tap):
+- Raw packet access
+- Packet filtering
+
+*NIT (Network Interface Tap)*:
 
 - Used on older Unix systems
 - Raw packet access
-- Packet filtering pointerNethub: - TCP-based Ethernet emulation
+- Packet filtering
+
+*Nethub*:
+
+- TCP-based Ethernet emulation
 - Connects to nethub server
 - XIP packet format
 
-=== TCP/IP Backends pointerStandard Sockets: - POSIX socket API
+=== TCP/IP Backends
+
+*Standard Sockets*:
+
+- POSIX socket API
 - Works on Unix, Linux, macOS, Windows
 - Standard TCP/IP
 

@@ -1,5 +1,6 @@
 = Garbage Collection Algorithm Specification
 
+*Navigation*: README | Virtual Memory | Memory Layout
 
 Complete specification of the reference-counting garbage collection algorithm, including hash table structure, reference counting operations, and reclamation phases.
 
@@ -9,13 +10,40 @@ Maiko uses a reference-counting garbage collection system that tracks references
 
 == GC System Overview
 
-#figure(
-  caption: [Diagram],
-  [Diagram: See original documentation for visual representation.],
-)
+#codeblock(lang: "mermaid", [
+graph TD
+    subgraph GC["Garbage Collection System"]
+        HTmain["HTmain<br/>Main Hash Table"]
+        HTcoll["HTcoll<br/>Collision Table"]
+        HTbig["HTbigcount<br/>Overflow Table"]
+    end
 
-  )
-)
+    subgraph Operations["GC Operations"]
+        ADDREF["ADDREF<br/>Add Reference"]
+        DELREF["DELREF<br/>Delete Reference"]
+        STKREF["STKREF<br/>Stack Reference"]
+    end
+
+    subgraph Phases["GC Phases"]
+        Scan["Scan Hash Table<br/>gcmapscan()"]
+        Stack["Scan Stack<br/>gcscanstack()"]
+        Reclaim["Reclaim Objects<br/>GcreclaimLp()"]
+    end
+
+    ADDREF --> HTmain
+    DELREF --> HTmain
+    STKREF --> HTmain
+    HTmain -->|Collision| HTcoll
+    HTmain -->|Overflow| HTbig
+
+    Scan --> Reclaim
+    Stack --> Reclaim
+    Reclaim -->|Free Memory| Heap["Heap"]
+
+    style HTmain fill:#e1f5ff
+    style Scan fill:#fff4e1
+    style Reclaim fill:#ffe1e1
+])
 
 == GC Hash Tables
 
@@ -23,89 +51,106 @@ Maiko uses a reference-counting garbage collection system that tracks references
 
 Primary hash table for reference counting:
 
-[`struct HashEntry:`]
-[`    count: 15 bits        // Reference count (0-32767 in BIGVM, 0-63 otherwise`]
+#codeblock(lang: "pseudocode", [
+struct HashEntry:
+    count: 15 bits        // Reference count (0-32767 in BIGVM, 0-63 otherwise)
     stackref: 1 bit       // Stack reference flag
-    segnum: 15 bits       // Segment number (high bits of)
-    collision: 1 bit       // Collision flag (points to HTcoll))
+    segnum: 15 bits       // Segment number (high bits of pointer)
+    collision: 1 bit       // Collision flag (points to HTcoll)
+])
 
 *Purpose*:
 
 - Primary lookup table
-- Stores reference counts - Indexed by low bits of === HTcoll (Collision Table)
+- Stores reference counts
+- Indexed by low bits of pointer
+
+=== HTcoll (Collision Table)
 
 Handles hash collisions:
 
-[`struct CollisionEntry:`]
-[`    free_ptr: LispPTR     // Pointer being counted`]
-[`    next_free: LispPTR    // Next collision entry`]
+#codeblock(lang: "pseudocode", [
+struct CollisionEntry:
+    free_ptr: LispPTR     // Pointer being counted
+    next_free: LispPTR    // Next collision entry
+])
 
 *Purpose*:
 
 - Chain entries for same hash
-- Linked list of collisions - Reused when entries deleted
+- Linked list of collisions
+- Reused when entries deleted
 
 === HTbigcount (Overflow Table)
 
 Handles reference count overflow:
 
-[`struct OverflowEntry:`]
-[`    ovfl_ptr: LispPTR     // Pointer with overflow count`]
-[`    ovfl_cnt: uint        // Large reference count`]
+#codeblock(lang: "pseudocode", [
+struct OverflowEntry:
+    ovfl_ptr: LispPTR     // Pointer with overflow count
+    ovfl_cnt: uint        // Large reference count
+])
 
 *Purpose*:
 
 - Stores counts > MAX_GCCOUNT
-- Prevents count overflow - Separate table for large counts
+- Prevents count overflow
+- Separate table for large counts
 
 == Reference Counting Operations
 
 === ADDREF (Add Reference)
 
-[`function ADDREF(pointer`]:
+#codeblock(lang: "pseudocode", [
+function ADDREF(pointer):
     if not RefCntP(pointer):
         return  // Not reference counted
 
     if ReclaimCountdown != NIL:
         htfind(pointer, ADDREF)
     else:
-        rec_htfind(pointer, ADDREF))
+        rec_htfind(pointer, ADDREF)
+])
 
 *Algorithm*:
 
-1. Look up in HTmain
+1. Look up pointer in HTmain
 2. If entry exists: increment count
 3. If count overflows: move to HTbigcount
 4. If new entry: create entry with count=2
 
 === DELREF (Delete Reference)
 
-[`function DELREF(pointer`]:
+#codeblock(lang: "pseudocode", [
+function DELREF(pointer):
     if not RefCntP(pointer):
         return
 
     if ReclaimCountdown != NIL:
         htfind(pointer, DELREF)
     else:
-        rec_htfind(pointer, DELREF))
+        rec_htfind(pointer, DELREF)
+])
 
 *Algorithm*:
 
-1. Look up in HTmain
+1. Look up pointer in HTmain
 2. Decrement reference count
 3. If count reaches 0: mark for reclamation
 4. If entry becomes empty: remove from table
 
 === STKREF (Stack Reference)
 
-[`function STKREF(pointer`]:
+#codeblock(lang: "pseudocode", [
+function STKREF(pointer):
     if not RefCntP(pointer):
         return
 
     if ReclaimCountdown != NIL:
         htfind(pointer, STKREF)
     else:
-        rec_htfind(pointer, STKREF))
+        rec_htfind(pointer, STKREF)
+])
 
 *Algorithm*:
 
@@ -117,7 +162,8 @@ Handles reference count overflow:
 
 === htfind Algorithm
 
-[`function htfind(pointer, operation`]:
+#codeblock(lang: "pseudocode", [
+function htfind(pointer, operation):
     // Extract high bits
     hiptr = (pointer >> (16 - HTHISHIFT)) & HTHIMASK
 
@@ -154,13 +200,15 @@ Handles reference count overflow:
 
 delentry:
     GETGC(entry) = 0
-    return NIL)
+    return NIL
+])
 
 == GC Phases
 
 === Phase 1: Scan Hash Table
 
-[`function gcmapscan(`]:
+#codeblock(lang: "pseudocode", [
+function gcmapscan():
     probe = HTMAIN_ENTRY_COUNT
 
     while (probe = gcscan1(probe)) != -1:
@@ -194,11 +242,13 @@ delentry:
             entry.contents = 0
             GcreclaimLp(ptr)
 
-    return NIL)
+    return NIL
+])
 
 === Phase 2: Scan Stack
 
-[`function gcscanstack(`]:
+#codeblock(lang: "pseudocode", [
+function gcscanstack():
     // Scan stack for references
     frame = GetCurrentFrame()
 
@@ -210,11 +260,13 @@ delentry:
         ScanLocalVariables(frame)
 
         // Move to previous frame
-        frame = GetPreviousFrame(frame))
+        frame = GetPreviousFrame(frame)
+])
 
 === Phase 3: Reclamation
 
-[`function GcreclaimLp(pointer`]:
+#codeblock(lang: "pseudocode", [
+function GcreclaimLp(pointer):
     // Reclaim object based on type
     type = GetTypeNumber(pointer)
 
@@ -225,24 +277,28 @@ delentry:
             GcreclaimArray(pointer)
         case TYPE_CODE:
             GcreclaimCode(pointer)
-        // ... other types ...)
+        // ... other types ...
+])
 
 == Reference Count Overflow
 
 === Overflow Detection
 
-[`function CheckOverflow(count`]:
+#codeblock(lang: "pseudocode", [
+function CheckOverflow(count):
     if count >= MAX_GCCOUNT:
         return true
-    return false)
+    return false
+])
 
 === Overflow Handling
 
-[`function enter_big_reference_count(pointer`]:
+#codeblock(lang: "pseudocode", [
+function enter_big_reference_count(pointer):
     // Find free overflow entry
     oventry = HTbigcount
     while oventry.ovfl_ptr != ATOM_T and oventry.ovfl_ptr != NIL:
-        if oventry.ovfl_ptr == :
+        if oventry.ovfl_ptr == pointer:
             Error("Pointer already in overflow table")
             oventry.ovfl_cnt += 0x10000  // Make it live forever
             return
@@ -257,13 +313,15 @@ delentry:
 
     // Store overflow entry
     oventry.ovfl_cnt = MAX_GCCOUNT
-    oventry.ovfl_ptr = pointer)
+    oventry.ovfl_ptr = pointer
+])
 
 == GC Triggering
 
 === Allocation Countdown
 
-[`function IncAllocCnt(count`]:
+#codeblock(lang: "pseudocode", [
+function IncAllocCnt(count):
     ReclaimCountdown = ReclaimCountdown - count
 
     if ReclaimCountdown <= S_POSITIVE:
@@ -271,25 +329,29 @@ delentry:
         Irq_Stk_Check = 0
         Irq_Stk_End = 0
         ReclaimCountdown = S_POSITIVE
-        TriggerGC())
+        TriggerGC()
+])
 
 === GC Disabled State
 
-[`function RefCntP(pointer`]:
-    // Check if is reference counted
+#codeblock(lang: "pseudocode", [
+function RefCntP(pointer):
+    // Check if pointer is reference counted
     if GetTypeEntry(pointer) & TT_NOREF:
         return false
 
     if GcDisabled_word == ATOM_T:
         return false
 
-    return true)
+    return true
+])
 
 == Cell Reclamation
 
 === Cons Cell Reclamation
 
-[`function GcreclaimCell(cell`]:
+#codeblock(lang: "pseudocode", [
+function GcreclaimCell(cell):
     // Get cons cell
     cons_cell = GetConsCell(cell)
 
@@ -304,7 +366,8 @@ delentry:
         DELREF(cdr_value)
 
     // Free cell
-    FreeConsCell(cell))
+    FreeConsCell(cell)
+])
 
 == Related Documentation
 

@@ -1,5 +1,6 @@
 = Medley Documentation Index
 
+*Navigation*: README | Architecture | Components | Interface | Platform | Glossary
 
 Quick reference guide to all Medley documentation files.
 
@@ -7,31 +8,33 @@ Quick reference guide to all Medley documentation files.
 
 == Documentation Structure
 
-[`.ai_assistant_db/medley/`]
-[`├── README.md`]
-[`├── INDEX.md`]
-[`├── architecture.md`]
-[`├── glossary.md`]
-[`├── components/`]
-[`│   ├── scripts.md`]
-[`│   ├── sysout.md`]
-[`│   ├── vmem.md`]
-[`│   ├── configuration.md`]
-[`│   ├── greetfiles.md`]
-[`│   ├── loadup.md`]
-[`│   └── directory-structure.md`]
-[`├── interface/`]
-[`│   ├── README.md`]
-[`│   ├── command-line.md`]
-[`│   ├── environment.md`]
-[`│   ├── file-formats.md`]
-[`│   └── protocols.md`]
-[`└── platform/`]
-[`    ├── README.md`]
-[`    ├── linux.md`]
-[`    ├── macos.md`]
-[`    ├── windows.md`]
-[`    └── wsl.md`]
+#codeblock(lang: "text", [
+.ai_assistant_db/medley/
+├── README.md                    # Overview and navigation
+├── INDEX.md                      # This file - quick reference
+├── architecture.md               # System architecture overview
+├── glossary.md                   # Terminology and concepts
+├── components/                   # Component documentation
+│   ├── scripts.md              # Medley script system
+│   ├── sysout.md               # Sysout file format
+│   ├── vmem.md                 # Virtual memory files
+│   ├── configuration.md        # Configuration files
+│   ├── greetfiles.md           # Greet file system
+│   ├── loadup.md               # Loadup workflow
+│   └── directory-structure.md  # Directory organization
+├── interface/                   # Medley-Maiko interface
+│   ├── README.md               # Interface overview
+│   ├── command-line.md         # Command-line arguments
+│   ├── environment.md          # Environment variables
+│   ├── file-formats.md         # File format specifications
+│   └── protocols.md             # Runtime protocols
+└── platform/                    # Platform-specific documentation
+    ├── README.md               # Platform overview
+    ├── linux.md                # Linux-specific
+    ├── macos.md                # macOS-specific
+    ├── windows.md              # Windows/Cygwin-specific
+    └── wsl.md                  # WSL-specific
+])
 
 == Quick Reference
 
@@ -45,6 +48,7 @@ Quick reference guide to all Medley documentation files.
 === By Topic
 
 ==== Medley Components
+
 - *Scripts*: components/scripts.md - Medley script system and argument parsing
 - *Sysout Files*: components/sysout.md - Sysout file format and loading
 - *Virtual Memory*: components/vmem.md - Vmem files and session persistence
@@ -54,12 +58,14 @@ Quick reference guide to all Medley documentation files.
 - *Directory Structure*: components/directory-structure.md - Medley directory organization
 
 ==== Medley-Maiko Interface
+
 - *Command-Line Arguments*: interface/command-line.md - Complete argument mapping
 - *Environment Variables*: interface/environment.md - Environment variable usage
 - *File Formats*: interface/file-formats.md - File format specifications
 - *Protocols*: interface/protocols.md - Runtime communication protocols
 
 ==== Platform-Specific
+
 - *Linux*: platform/linux.md - Linux-specific behaviors
 - *macOS*: platform/macos.md - macOS-specific behaviors
 - *Windows*: platform/windows.md - Windows/Cygwin-specific behaviors
@@ -104,23 +110,27 @@ Quick reference guide to all Medley documentation files.
 == Key Concepts Quick Lookup
 
 === Core Concepts
+
 - *MEDLEYDIR*: Top-level Medley installation directory → glossary.md
 - *LOGINDIR*: User-specific Medley directory → glossary.md
 - *Sysout*: Binary Lisp system state file → glossary.md
 - *Vmem*: Virtual memory file for session persistence → glossary.md
 
 === File Types
+
 - *Sysout Files*: components/sysout.md
 - *Vmem Files*: components/vmem.md
 - *Config Files*: components/configuration.md
 - *Greet Files*: components/greetfiles.md
 
 === Script Terms
+
 - *Medley Scripts*: components/scripts.md
 - *Argument Parsing*: components/scripts.md
 - *Maiko Invocation*: interface/command-line.md
 
 === Interface Terms
+
 - *Command-Line Arguments*: interface/command-line.md
 - *Environment Variables*: interface/environment.md
 - *File Formats*: interface/file-formats.md
@@ -129,16 +139,19 @@ Quick reference guide to all Medley documentation files.
 == Related Documentation
 
 === Maiko Documentation
+
 - *Maiko Overview*: `../README.md` - Maiko emulator documentation
 - *Maiko Architecture*: `../architecture.md` - Maiko system architecture
 - *Maiko Components*: `../components/` - Maiko component documentation
 
 === Source Code References
+
 - *Medley Scripts*: `medley/scripts/medley/` - Medley script source
 - *Medley Source*: `medley/sources/` - Lisp source code
 - *Maiko Source*: `maiko/src/` - Maiko emulator source
 
 == Documentation Statistics
+
 - *Total Files*: 21 documentation files
 - *Components Documented*: 7 major components
 - *Interface Mechanisms*: 4 interface types documented
@@ -152,7 +165,8 @@ This documentation should be updated when:
 - New Medley components are added
 - Interface mechanisms change
 - Platform-specific behaviors change
-- Script behavior changes - File formats evolve
+- Script behavior changes
+- File formats evolve
 
 == Feedback
 

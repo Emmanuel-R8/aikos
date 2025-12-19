@@ -1,5 +1,6 @@
 = Rewrite Specification Index
 
+*Navigation*: README | Quickstart | Contributing
 
 Quick reference guide to all rewrite specification documents.
 
@@ -37,33 +38,41 @@ Quick reference guide to all rewrite specification documents.
 - *Dispatch Loop*: vm-core/execution-model.md#dispatch-loop
 
 ==== Memory Management
+
 - *GC Algorithm*: memory/garbage-collection.md
 - *Address Translation*: memory/address-translation.md
 - *Memory Layout*: memory/memory-layout.md
 - *Virtual Memory*: memory/virtual-memory.md
 
 ==== Data Structures
+
 - *Cons Cells*: data-structures/cons-cells.md
 - *Arrays*: data-structures/arrays.md
 - *Function Headers*: data-structures/function-headers.md
 - *Sysout Format*: data-structures/sysout-format.md
 
 ==== Display and Graphics
+
 - *Display Interface*: display/interface-abstraction.md
 - *Graphics Operations*: display/graphics-operations.md
 - *Event Protocols*: display/event-protocols.md
 
 ==== I/O Systems
+
 - *Keyboard*: io/keyboard-protocol.md
 - *Mouse*: io/mouse-protocol.md
 - *File System*: io/file-system.md
 - *Network*: io/network-protocol.md
 
 ==== Platform Requirements
-- *Required Behaviors*: platform-abstraction/required-behaviors.md - *Implementation Choices*: platform-abstraction/implementation-choices.md
+
+- *Required Behaviors*: platform-abstraction/required-behaviors.md
+- *Implementation Choices*: platform-abstraction/implementation-choices.md
 
 ==== Validation
-- *Reference Behaviors*: validation/reference-behaviors.md - *Compatibility Criteria*: validation/compatibility-criteria.md
+
+- *Reference Behaviors*: validation/reference-behaviors.md
+- *Compatibility Criteria*: validation/compatibility-criteria.md
 
 == File-to-Specification Mapping
 
@@ -81,7 +90,7 @@ Quick reference guide to all rewrite specification documents.
 - Opcode implementations → instruction-set/opcodes.md
 - Execution semantics → instruction-set/execution-semantics.md
 
-==== Memory Management (`src/gc pointer.c`, `src/storage.c`)
+==== Memory Management (`src/gc*.c`, `src/storage.c`)
 
 - GC algorithm → memory/garbage-collection.md
 - Memory allocation → memory/memory-layout.md
@@ -93,7 +102,7 @@ Quick reference guide to all rewrite specification documents.
 - Graphics operations → display/graphics-operations.md
 - Events → display/event-protocols.md
 
-==== I/O* (`src/kbdif.c`, `src/mouseif.c`, `src/dir.c`)
+==== I/O (`src/kbdif.c`, `src/mouseif.c`, `src/dir.c`)
 
 - Keyboard → io/keyboard-protocol.md
 - Mouse → io/mouse-protocol.md
@@ -137,4 +146,4 @@ Quick reference guide to all rewrite specification documents.
 
 - Maiko Source Documentation - Original source code documentation
 - Architecture Overview - System architecture
-- Component Documentation* - Component details
+- Component Documentation - Component details

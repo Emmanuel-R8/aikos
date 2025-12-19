@@ -1,5 +1,6 @@
 = File System Interface Specification
 
+*Navigation*: README | Keyboard Protocol | Mouse Protocol | Network Protocol
 
 Complete specification of file I/O operations and pathname translation between Lisp and platform-specific formats.
 
@@ -13,9 +14,12 @@ The file system interface provides file operations abstracting platform-specific
 
 Lisp uses a generic pathname format:
 
-[`[host:][device:][directory>]name[.extension][;version]`]
+#codeblock(lang: "text", [
+[host:][device:][directory>]name[.extension][;version]
+])
 
 *Components*:
+
 - *host*: Host name (DSK, UNIX, etc.)
 - *device*: Device name (drive letter on DOS)
 - *directory*: Directory path (separated by `>`)
@@ -23,11 +27,26 @@ Lisp uses a generic pathname format:
 - *extension*: File extension (preceded by `.`)
 - *version*: Version number (preceded by `;`)
 
-=== Platform Pathname Format pointerUnix: [`[/]directory/.../name[.extension]`]
+=== Platform Pathname Format
 
-*DOS*: [`[drive:][\directory\...\name[.extension]]`]
+*Unix*:
 
-=== Translation Algorithm pointerLisp to Platform: [`function LispToPlatformPathname(lisp_pathname, versionp, genp`]:
+#codeblock(lang: "text", [
+[/]directory/.../name[.extension]
+])
+
+*DOS*:
+
+#codeblock(lang: "text", [
+[drive:][\directory\...\name[.extension]]
+])
+
+=== Translation Algorithm
+
+*Lisp to Platform*:
+
+#codeblock(lang: "pseudocode", [
+function LispToPlatformPathname(lisp_pathname, versionp, genp):
     // Extract components
     host = ExtractHost(lisp_pathname)
     device = ExtractDevice(lisp_pathname)
@@ -56,9 +75,13 @@ Lisp uses a generic pathname format:
     // Build platform pathname
     platform_path = BuildPlatformPath(device, platform_directory, name, extension, platform_version)
 
-    return platform_path)
+    return platform_path
+])
 
-*Platform to Lisp*: [`function PlatformToLispPathname(platform_pathname, dirp, versionp`]:
+*Platform to Lisp*:
+
+#codeblock(lang: "pseudocode", [
+function PlatformToLispPathname(platform_pathname, dirp, versionp):
     // Handle root directory
     if platform_pathname == "/":
         return "<"
@@ -79,13 +102,15 @@ Lisp uses a generic pathname format:
     // Build Lisp pathname
     lisp_path = BuildLispPath(device, lisp_directory, lisp_name, lisp_extension)
 
-    return lisp_path)
+    return lisp_path
+])
 
 == File Operations
 
 === Open File
 
-[`function OpenFile(lisp_pathname, mode, recognition, error_ptr`]:
+#codeblock(lang: "pseudocode", [
+function OpenFile(lisp_pathname, mode, recognition, error_ptr):
     // Translate pathname
     platform_path = LispToPlatformPathname(lisp_pathname, true, false)
 
@@ -115,11 +140,13 @@ Lisp uses a generic pathname format:
         SetError(error_ptr, errno)
         return NIL
 
-    return CreateFileHandle(file_descriptor))
+    return CreateFileHandle(file_descriptor)
+])
 
 === Read File
 
-[`function ReadFile(file_handle, buffer, length, error_ptr`]:
+#codeblock(lang: "pseudocode", [
+function ReadFile(file_handle, buffer, length, error_ptr):
     file_descriptor = GetFileDescriptor(file_handle)
 
     bytes_read = Read(file_descriptor, buffer, length)
@@ -128,11 +155,13 @@ Lisp uses a generic pathname format:
         SetError(error_ptr, errno)
         return NIL
 
-    return bytes_read)
+    return bytes_read
+])
 
 === Write File
 
-[`function WriteFile(file_handle, buffer, length, error_ptr`]:
+#codeblock(lang: "pseudocode", [
+function WriteFile(file_handle, buffer, length, error_ptr):
     file_descriptor = GetFileDescriptor(file_handle)
 
     bytes_written = Write(file_descriptor, buffer, length)
@@ -141,20 +170,24 @@ Lisp uses a generic pathname format:
         SetError(error_ptr, errno)
         return NIL
 
-    return bytes_written)
+    return bytes_written
+])
 
 === Close File
 
-[`function CloseFile(file_handle`]:
+#codeblock(lang: "pseudocode", [
+function CloseFile(file_handle):
     file_descriptor = GetFileDescriptor(file_handle)
     Close(file_descriptor)
-    return T)
+    return T
+])
 
 == Directory Operations
 
 === List Directory
 
-[`function ListDirectory(lisp_directory, pattern, error_ptr`]:
+#codeblock(lang: "pseudocode", [
+function ListDirectory(lisp_directory, pattern, error_ptr):
     // Translate directory pathname
     platform_directory = LispToPlatformPathname(lisp_directory, false, true)
 
@@ -177,11 +210,13 @@ Lisp uses a generic pathname format:
 
     CloseDirectory(dir_handle)
 
-    return CreateList(entries))
+    return CreateList(entries)
+])
 
 === Create Directory
 
-[`function CreateDirectory(lisp_directory, error_ptr`]:
+#codeblock(lang: "pseudocode", [
+function CreateDirectory(lisp_directory, error_ptr):
     platform_directory = LispToPlatformPathname(lisp_directory, false, true)
 
     result = MakeDirectory(platform_directory, permissions)
@@ -190,11 +225,13 @@ Lisp uses a generic pathname format:
         SetError(error_ptr, errno)
         return NIL
 
-    return T)
+    return T
+])
 
 === Delete File
 
-[`function DeleteFile(lisp_pathname, error_ptr`]:
+#codeblock(lang: "pseudocode", [
+function DeleteFile(lisp_pathname, error_ptr):
     platform_path = LispToPlatformPathname(lisp_pathname, true, false)
 
     result = Unlink(platform_path)
@@ -203,13 +240,15 @@ Lisp uses a generic pathname format:
         SetError(error_ptr, errno)
         return NIL
 
-    return T)
+    return T
+])
 
 == File Attributes
 
 === Get File Info
 
-[`function GetFileInfo(lisp_pathname, attribute, buffer, error_ptr`]:
+#codeblock(lang: "pseudocode", [
+function GetFileInfo(lisp_pathname, attribute, buffer, error_ptr):
     platform_path = LispToPlatformPathname(lisp_pathname, true, false)
 
     stat_info = Stat(platform_path)
@@ -231,21 +270,24 @@ Lisp uses a generic pathname format:
             value = ConvertPermissions(stat_info.st_mode)
 
     StoreInBuffer(buffer, value)
-    return T)
+    return T
+])
 
 == Special Characters
 
 === Quoting Rules
 
 Special characters in Lisp pathnames must be quoted:
-- `>`: Directory separator (quoted as `'>`)
-- `;`: Version separator (quoted as `';`)
-- `'`: Quote character (quoted as `''`)
-- `.`: Extension separator (quoted as `'.` when in extension)
+
+- *`>`*: Directory separator (quoted as `'>`)
+- *`;`*: Version separator (quoted as `';`)
+- *`'`*: Quote character (quoted as `''`)
+- *`.`*: Extension separator (quoted as `'.` when in extension)
 
 === Quoting Algorithm
 
-[`function QuoteSpecialCharacters(string, in_extension`]:
+#codeblock(lang: "pseudocode", [
+function QuoteSpecialCharacters(string, in_extension):
     result = ""
     for char in string:
         if char in special_chars:
@@ -255,25 +297,32 @@ Special characters in Lisp pathnames must be quoted:
                 result += "'" + char
         else:
             result += char
-    return result)
+    return result
+])
 
 == Version Handling
 
-=== Version Translation pointerLisp Version Format: `;version` (semicolon followed by number)
+=== Version Translation
+
+*Lisp Version Format*: `;version` (semicolon followed by number)
 
 *Unix Version Format*: Version handled via:
 
 - Hard links (multiple versions as separate files)
 - Version numbers in filenames
-- No native version support pointerDOS Version Format: Version numbers in filenames
+- No native version support
 
-[`function ConvertVersion(lisp_version`]:
+*DOS Version Format*: Version numbers in filenames
+
+#codeblock(lang: "pseudocode", [
+function ConvertVersion(lisp_version):
     if platform == UNIX:
         // Unix doesn't support versions natively
         return null
     else if platform == DOS:
         // DOS version in filename
-        return lisp_version)
+        return lisp_version
+])
 
 == Related Documentation
 

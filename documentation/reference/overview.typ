@@ -1,8 +1,10 @@
 = API Reference Overview
 
+*Navigation*: README | Index | Architecture | Components | Glossary | Build System
 
 This directory contains API documentation for Maiko functions, data structures, and interfaces.
 
+*Related Documentation*:
 
 - VM Core Component - Detailed VM core functions
 - Memory Management Component - Memory and GC functions
@@ -12,11 +14,13 @@ This directory contains API documentation for Maiko functions, data structures, 
 == Organization
 
 === Core APIs
+
 - *VM Core*: Dispatch loop, stack management, instruction execution
-- See Key Functions for function listings*
+  - See Key Functions for function listings
 - *Memory Management*: Allocation, GC, virtual memory
-  - See Key Functions for function listings - *Display*: Graphics output, window management
-- See Key Files for function listings
+  - See Key Functions for function listings
+- *Display*: Graphics output, window management
+  - See Key Files for function listings
 - *I/O*: Keyboard, mouse, file system, network
   - See Key Files for function listings
 
@@ -33,7 +37,7 @@ This directory contains API documentation for Maiko functions, data structures, 
 ==== Execution Functions
 
 - `dispatch()` - Main dispatch loop
-- `OP_ pointer()` - Opcode handlers
+- `OP_*()` - Opcode handlers
 - `lcfuncall()` - Function call
 - `make_FXcopy()` - Hard return
 
@@ -92,22 +96,25 @@ Key header files defining APIs:
 
 == Function Naming Conventions
 
-- `OP_ pointer` - Opcode handlers
-- `init_ pointer` - Initialization functions - `*_68k` - Functions operating on 68k addresses
-- `Native pointer` - Address translation functions
-- `Get_ pointer` - Getter macros/functions
-- `Set_ pointer` - Setter macros/functions
+- `OP_*` - Opcode handlers
+- `init_*` - Initialization functions
+- `*_68k` - Functions operating on 68k addresses
+- `Native*` - Address translation functions
+- `Get_*` - Getter macros/functions
+- `Set_*` - Setter macros/functions
 
 == Macros
 
 === Address Translation
 
-- `NativeAligned2FromLAddr()` - Convert to 16-bit aligned native  - `NativeAligned4FromLAddr()` - Convert to 32-bit aligned native  - `LAddrFromNative()` - Convert native address to Lisp address
+- `NativeAligned2FromLAddr()` - Convert to 16-bit aligned native pointer
+- `NativeAligned4FromLAddr()` - Convert to 32-bit aligned native pointer
+- `LAddrFromNative()` - Convert native address to Lisp address
 
 === Memory Access
 
 - `Get_DLword()` - Get 16-bit word
-- `Get_Pointer()` - Get value
+- `Get_Pointer()` - Get pointer value
 - `GETWORD()` - Get word macro
 
 === Stack Operations

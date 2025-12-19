@@ -1,4 +1,8 @@
-= Quickstart: Using the Rewrite Documentation pointerDate: 2025-12-04
+= Quickstart: Using the Rewrite Documentation
+
+*Navigation*: README | Index
+
+*Date*: 2025-12-04
 *Feature*: Complete Emulator Rewrite Documentation
 
 == Overview
@@ -11,60 +15,63 @@ This guide helps developers use the rewrite documentation to implement a Maiko-c
 
 - Understanding of virtual machines and bytecode interpreters
 - Familiarity with garbage collection concepts
-- Knowledge of systems programming (memory management, I/O) - Target language and platform chosen
+- Knowledge of systems programming (memory management, I/O)
+- Target language and platform chosen
 
 === Documentation Structure
 
 The rewrite documentation is organized in `.ai_assistant_db/rewrite-spec/`:
 
-[`rewrite-spec/`]
-[`├── README.md`]
-[`├── INDEX.md`]
-[`├── CONTRIBUTING.md`]
-[`├── COMPLETENESS.md`]
-[`├── quickstart.md`]
-[`├── instruction-set/`]
-[`│   ├── README.md`]
-[`│   ├── opcodes.md`]
-[`│   ├── instruction-format.md`]
-[`│   └── execution-semantics.md`]
-[`├── vm-core/`]
-[`│   ├── README.md`]
-[`│   ├── execution-model.md`]
-[`│   ├── stack-management.md`]
-[`│   ├── function-calls.md`]
-[`│   └── interrupt-handling.md`]
-[`├── memory/`]
-[`│   ├── README.md`]
-[`│   ├── virtual-memory.md`]
-[`│   ├── address-translation.md`]
-[`│   ├── garbage-collection.md`]
-[`│   └── memory-layout.md`]
-[`├── data-structures/`]
-[`│   ├── README.md`]
-[`│   ├── cons-cells.md`]
-[`│   ├── arrays.md`]
-[`│   ├── function-headers.md`]
-[`│   └── sysout-format.md`]
-[`├── display/`]
-[`│   ├── README.md`]
-[`│   ├── interface-abstraction.md`]
-[`│   ├── graphics-operations.md`]
-[`│   └── event-protocols.md`]
-[`├── io/`]
-[`│   ├── README.md`]
-[`│   ├── keyboard-protocol.md`]
-[`│   ├── mouse-protocol.md`]
-[`│   ├── file-system.md`]
-[`│   └── network-protocol.md`]
-[`├── platform-abstraction/`]
-[`│   ├── README.md`]
-[`│   ├── required-behaviors.md`]
-[`│   └── implementation-choices.md`]
-[`└── validation/`]
-[`    ├── README.md`]
-[`    ├── reference-behaviors.md`]
-[`    └── compatibility-criteria.md`]
+#codeblock(lang: "text", [
+rewrite-spec/
+├── README.md                    # Start here - overview and navigation
+├── INDEX.md                     # Quick reference index
+├── CONTRIBUTING.md              # Documentation standards
+├── COMPLETENESS.md              # Completeness checklist
+├── quickstart.md                # This file
+├── instruction-set/             # Bytecode specifications
+│   ├── README.md
+│   ├── opcodes.md              # All 256 opcodes
+│   ├── instruction-format.md   # Encoding
+│   └── execution-semantics.md   # Execution rules
+├── vm-core/                     # Execution engine specifications
+│   ├── README.md
+│   ├── execution-model.md       # Dispatch loop
+│   ├── stack-management.md     # Stack frames
+│   ├── function-calls.md       # Call/return
+│   └── interrupt-handling.md   # Interrupts
+├── memory/                      # Memory management specifications
+│   ├── README.md
+│   ├── virtual-memory.md       # Address spaces
+│   ├── address-translation.md  # LispPTR translation
+│   ├── garbage-collection.md   # GC algorithm
+│   └── memory-layout.md        # Memory regions
+├── data-structures/             # Data structure formats
+│   ├── README.md
+│   ├── cons-cells.md           # Cons cells and CDR coding
+│   ├── arrays.md               # Array formats
+│   ├── function-headers.md      # Function metadata
+│   └── sysout-format.md        # Sysout file format
+├── display/                     # Display interface specifications
+│   ├── README.md
+│   ├── interface-abstraction.md # Display contract
+│   ├── graphics-operations.md  # BitBLT and rendering
+│   └── event-protocols.md      # Event handling
+├── io/                          # I/O interface specifications
+│   ├── README.md
+│   ├── keyboard-protocol.md    # Keycode translation
+│   ├── mouse-protocol.md       # Mouse events
+│   ├── file-system.md          # File I/O
+│   └── network-protocol.md     # Network communication
+├── platform-abstraction/        # Platform requirements
+│   ├── README.md
+│   ├── required-behaviors.md   # Must-match behaviors
+│   └── implementation-choices.md # May-differ choices
+└── validation/                   # Test cases and validation
+    ├── README.md
+    ├── reference-behaviors.md   # Test cases
+    └── compatibility-criteria.md # Compatibility requirements
+])
 
 == Implementation Path
 
@@ -78,11 +85,19 @@ The rewrite documentation is organized in `.ai_assistant_db/rewrite-spec/`:
 4. *Read*: Stack Management - Understand stack frames
 5. *Read*: Opcodes Reference - Start with 10-20 simple opcodes
 6. *Implement*: Basic dispatch loop with selected opcodes
-7. *Validate*: Use Reference Behaviors test cases pointerDeliverable: Working bytecode interpreter executing simple arithmetic Key Documents: - Instruction Set - All instruction specifications
+7. *Validate*: Use Reference Behaviors test cases
+
+*Deliverable*: Working bytecode interpreter executing simple arithmetic
+
+*Key Documents*:
+
+- Instruction Set - All instruction specifications
 - VM Core - Execution engine specifications
 - Execution Semantics - Execution rules
 
-=== Phase 2: Memory Management pointerGoal: Implement GC and memory allocation
+=== Phase 2: Memory Management
+
+*Goal*: Implement GC and memory allocation
 
 1. *Read*: Memory Management Overview - Understand memory system
 2. *Read*: Virtual Memory - Understand address spaces
@@ -91,21 +106,37 @@ The rewrite documentation is organized in `.ai_assistant_db/rewrite-spec/`:
 5. *Read*: Memory Layout - Understand memory organization
 6. *Read*: Cons Cells - Understand data formats
 7. *Implement*: Basic memory allocation and GC
-8. *Validate*: Load simple sysout file pointerDeliverable: Memory system compatible with sysout files Key Documents: - Memory Management - Complete memory specifications
+8. *Validate*: Load simple sysout file
+
+*Deliverable*: Memory system compatible with sysout files
+
+*Key Documents*:
+
+- Memory Management - Complete memory specifications
 - Data Structures - Data format specifications
 - Sysout Format - File format
 
-=== Phase 3: Complete Instruction Set pointerGoal: Implement all 256 opcodes
+=== Phase 3: Complete Instruction Set
+
+*Goal*: Implement all 256 opcodes
 
 1. *Read*: Complete Opcodes Reference - All 256 opcodes
 2. *Read*: Execution Semantics - Execution rules
 3. *Implement*: Remaining opcodes incrementally
 4. *Validate*: Execute complex Lisp programs
-5. *Test*: Use Reference Behaviors pointerDeliverable: Complete instruction set implementation Key Documents: - Opcodes Reference - Complete opcode list
+5. *Test*: Use Reference Behaviors
+
+*Deliverable*: Complete instruction set implementation
+
+*Key Documents*:
+
+- Opcodes Reference - Complete opcode list
 - Function Calls - Function invocation
 - Interrupt Handling - Interrupt processing
 
-=== Phase 4: I/O and Display pointerGoal: Implement I/O and display subsystems
+=== Phase 4: I/O and Display
+
+*Goal*: Implement I/O and display subsystems
 
 1. *Read*: I/O Overview - Understand I/O system
 2. *Read*: Keyboard Protocol - Understand keycode translation
@@ -115,7 +146,13 @@ The rewrite documentation is organized in `.ai_assistant_db/rewrite-spec/`:
 6. *Read*: Graphics Operations - Understand BitBLT
 7. *Read*: Platform Abstraction - Understand requirements
 8. *Implement*: Platform-specific I/O and display backends
-9. *Validate*: Interactive Lisp session pointerDeliverable: Fully functional emulator with graphics and I/O Key Documents: - Display Subsystem - Display specifications
+9. *Validate*: Interactive Lisp session
+
+*Deliverable*: Fully functional emulator with graphics and I/O
+
+*Key Documents*:
+
+- Display Subsystem - Display specifications
 - I/O Subsystem - I/O specifications
 - Platform Abstraction - Platform requirements
 - Required Behaviors - Must-match behaviors
@@ -124,6 +161,7 @@ The rewrite documentation is organized in `.ai_assistant_db/rewrite-spec/`:
 == Reading the Documentation
 
 === Understanding Specifications
+
 - *Algorithms*: Pseudocode describes step-by-step procedures
 - *Data Structures*: Diagrams and field layouts show exact formats
 - *Protocols*: Message formats specify byte-level structures
@@ -137,6 +175,7 @@ The rewrite documentation is organized in `.ai_assistant_db/rewrite-spec/`:
 4. *Validation*: Use test cases to verify correctness
 
 === Common Patterns
+
 - *Address Translation*: Always use FPtoVP mapping, never direct pointers (see Address Translation)
 - *Stack Frames*: Follow exact layout for compatibility (see Stack Management)
 - *GC References*: Use hash table for reference tracking (see Garbage Collection)
@@ -158,7 +197,8 @@ See Reference Behaviors for:
 See Compatibility Criteria for:
 
 - What must match exactly
-- What may differ - How to verify compatibility
+- What may differ
+- How to verify compatibility
 
 === Testing Your Implementation
 
@@ -169,16 +209,28 @@ See Compatibility Criteria for:
 
 == Troubleshooting
 
-=== Common Issues pointerProblem: Opcode produces different result than Maiko
+=== Common Issues
+
+*Problem*: Opcode produces different result than Maiko
+
 - *Solution*: Check execution semantics in Opcodes Reference
 - *Check*: Operand decoding, stack effects, side effects
-- *See*: Execution Semantics pointerProblem: Sysout file won't load
+- *See*: Execution Semantics
+
+*Problem*: Sysout file won't load
+
 - *Solution*: Verify memory layout matches specification
 - *Check*: Memory Layout and Sysout Format
-- *See*: Data Structures for format details pointerProblem: GC causes crashes
+- *See*: Data Structures for format details
+
+*Problem*: GC causes crashes
+
 - *Solution*: Verify reference counting algorithm
 - *Check*: Garbage Collection hash table structure
-- *See*: Reference Behaviors for test cases pointerProblem: Display/IO doesn't work
+- *See*: Reference Behaviors for test cases
+
+*Problem*: Display/IO doesn't work
+
 - *Solution*: Verify interface contract implementation
 - *Check*: Display Interface and I/O Protocols
 - *See*: Required Behaviors for must-match behaviors
@@ -193,11 +245,13 @@ See Compatibility Criteria for:
 == Documentation Navigation
 
 === Quick Reference
+
 - *Index*: Quick reference guide
 - *README*: Overview and navigation
 - *Completeness Checklist*: Documentation status
 
 === By Topic
+
 - *Bytecode*: Instruction Set
 - *Execution*: VM Core
 - *Memory*: Memory Management
@@ -223,6 +277,7 @@ Your implementation is successful when:
 - ✅ Executes bytecode correctly (matches Maiko behavior)
 - ✅ Loads and runs existing sysout files
 - ✅ Handles I/O and display correctly
-- ✅ Passes validation test cases (see Reference Behaviors) - ✅ Maintains compatibility with Medley Interlisp (see Compatibility Criteria)
+- ✅ Passes validation test cases (see Reference Behaviors)
+- ✅ Maintains compatibility with Medley Interlisp (see Compatibility Criteria)
 
 Good luck with your rewrite!

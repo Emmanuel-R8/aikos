@@ -1,5 +1,6 @@
 = Compatibility Criteria
 
+*Navigation*: README | Reference Behaviors
 
 Complete specification of compatibility criteria defining what must match exactly for emulator compatibility.
 
@@ -15,7 +16,8 @@ Compatibility criteria define the requirements for an implementation to be consi
 
 - All 256 opcode execution semantics
 - Stack effects of each opcode
-- Error conditions and error handling - Program counter advancement
+- Error conditions and error handling
+- Program counter advancement
 
 *Validation*: Execute reference test cases, compare results with Maiko
 
@@ -25,7 +27,8 @@ Compatibility criteria define the requirements for an implementation to be consi
 
 - Memory region offsets
 - Data structure formats
-- Field layouts and sizes - Alignment requirements
+- Field layouts and sizes
+- Alignment requirements
 
 *Validation*: Load sysout files, verify data structure access
 
@@ -35,7 +38,8 @@ Compatibility criteria define the requirements for an implementation to be consi
 
 - Sysout file format
 - IFPAGE structure
-- FPtoVP table format - Page loading algorithm
+- FPtoVP table format
+- Page loading algorithm
 
 *Validation*: Load existing sysout files successfully
 
@@ -48,7 +52,8 @@ Compatibility criteria define the requirements for an implementation to be consi
 *Validation*:
 
 - Execute opcode test cases
-- Compare results with Maiko - Verify error handling
+- Compare results with Maiko
+- Verify error handling
 
 === Memory Management Compatibility
 
@@ -57,7 +62,8 @@ Compatibility criteria define the requirements for an implementation to be consi
 *Validation*:
 
 - Reference counting matches
-- Reclamation behavior matches - Memory layout matches
+- Reclamation behavior matches
+- Memory layout matches
 
 === I/O Compatibility
 
@@ -66,7 +72,8 @@ Compatibility criteria define the requirements for an implementation to be consi
 *Validation*:
 
 - File operations work correctly
-- Pathname translation correct - Network protocols compatible
+- Pathname translation correct
+- Network protocols compatible
 
 == Behavioral Compatibility
 
@@ -76,7 +83,8 @@ Compatibility criteria define the requirements for an implementation to be consi
 
 - Instruction execution order
 - Stack frame behavior
-- Function call/return behavior - Interrupt handling
+- Function call/return behavior
+- Interrupt handling
 
 === Memory Behavior
 
@@ -84,7 +92,8 @@ Compatibility criteria define the requirements for an implementation to be consi
 
 - Address translation
 - Memory allocation
-- GC behavior - Data structure access
+- GC behavior
+- Data structure access
 
 === I/O Behavior
 
@@ -92,7 +101,8 @@ Compatibility criteria define the requirements for an implementation to be consi
 
 - Keycode translation
 - Mouse event handling
-- File I/O semantics - Network protocol behavior
+- File I/O semantics
+- Network protocol behavior
 
 == Compatibility Levels
 
@@ -101,7 +111,8 @@ Compatibility criteria define the requirements for an implementation to be consi
 *Requirements*:
 
 - Executes bytecode correctly
-- Loads sysout files - Basic memory management works
+- Loads sysout files
+- Basic memory management works
 
 *Use Case*: Running simple Lisp programs
 
@@ -110,7 +121,8 @@ Compatibility criteria define the requirements for an implementation to be consi
 *Requirements*:
 
 - All opcodes implemented correctly
-- Complete GC implementation - Full I/O support
+- Complete GC implementation
+- Full I/O support
 
 *Use Case*: Running complex Lisp programs
 
@@ -119,7 +131,8 @@ Compatibility criteria define the requirements for an implementation to be consi
 *Requirements*:
 
 - Performance acceptable
-- All edge cases handled - Full platform support
+- All edge cases handled
+- Full platform support
 
 *Use Case*: Production use
 

@@ -1,5 +1,6 @@
 = Virtual Memory Specification
 
+*Navigation*: README | Address Translation | Garbage Collection | Memory Layout
 
 Complete specification of virtual memory system, including address spaces, page mapping, and virtual memory management.
 
@@ -20,35 +21,48 @@ Lisp uses a 32-bit virtual address space:
 
 === Address Format
 
-[`struct LispPTR:`]
-[`    // 32-bit address`]
-[`    segment: 12-16 bits    // High bits (segment number`]
+#codeblock(lang: "pseudocode", [
+struct LispPTR:
+    // 32-bit address
+    segment: 12-16 bits    // High bits (segment number)
     page: 8-12 bits        // Page number within segment
-    offset: 8 bits         // Byte offset within page)
+    offset: 8 bits         // Byte offset within page
+])
 
-*BIGVM Configuration* (REQUIRED) 
-*CRITICAL*: All implementations (Zig and Lisp) *MUST* support BIGVM mode only. The non-BIGVM code path is *NOT* supported and can be ignored.
+*BIGVM Configuration (REQUIRED)*
+
+*CRITICAL*: All implementations (Zig and Lisp) *MUST* support *BIGVM mode only*. The non-BIGVM code path is *NOT* supported and can be ignored.
 
 BIGVM is a build-time configuration that enables support for larger address spaces (up to 256MB). All implementations use:
 
 1. *FPtoVP Table Format*:
-- *32-bit entries (low 16 bits = virtual page, high 16 bits = page OK flag)* - Each entry is an `unsigned int` (32-bit cell)
+   - *32-bit entries* (low 16 bits = virtual page, high 16 bits = page OK flag)
+   - Each entry is an `unsigned int` (32-bit cell)
 
-2. *Address Space Limits*: - Up to 256MB (524,288 pages of 512 bytes each)
+2. *Address Space Limits*:
+   - Up to 256MB (524,288 pages of 512 bytes each)
 
-3. *Memory Addressing*: - Uses 32-bit cells for page mapping tables
-  - `fptovp` is declared as `unsigned int pointer`
+3. *Memory Addressing*:
+   - Uses 32-bit cells for page mapping tables
+   - `fptovp` is declared as `unsigned int *`
 
 *Macro Definitions* (from `maiko/inc/lispemul.h:587-589`):
-[`#define GETFPTOVP(b, o`] ((b)[o)           // Returns low 16 bits (virtual page)
-[`#define GETPAGEOK(b, o) ((b)[o] >> 16)     // Returns high 16 bits (page OK flag)`]
+#codeblock(lang: "c", [
+#define GETFPTOVP(b, o) ((b)[o])           // Returns low 16 bits (virtual page)
+#define GETPAGEOK(b, o) ((b)[o] >> 16)     // Returns high 16 bits (page OK flag)
 ])
 
-~~*Without BIGVM pointer~~ *←* NOT SUPPORTED, IGNORE*: - Segment: 8 bits (high byte)
-- Page: 8 bits (middle byte) - Offset: 8 bits (low byte)
+~~*Without BIGVM*~~ *← NOT SUPPORTED, IGNORE*:
 
-*With BIGVM*: - Segment: 12 bits (high 12 bits)
-- Page: 8 bits (middle 8 bits) - Offset: 8 bits (low 8 bits)
+- Segment: 8 bits (high byte)
+- Page: 8 bits (middle byte)
+- Offset: 8 bits (low byte)
+
+*With BIGVM*:
+
+- Segment: 12 bits (high 12 bits)
+- Page: 8 bits (middle 8 bits)
+- Offset: 8 bits (low 8 bits)
 
 == Page Mapping
 
@@ -56,17 +70,22 @@ BIGVM is a build-time configuration that enables support for larger address spac
 
 The FPtoVP (File Page to Virtual Page) table maps file pages to virtual pages:
 
-[`struct FPtoVP:`]
-[`    // Array mapping file page number to virtual page number`]
-[`    entries: array[file_page_count] of virtual_page_number`]
+#codeblock(lang: "pseudocode", [
+struct FPtoVP:
+    // Array mapping file page number to virtual page number
+    entries: array[file_page_count] of virtual_page_number
+])
 
-*Purpose*: - Maps sysout file pages to virtual memory pages
+*Purpose*:
+
+- Maps sysout file pages to virtual memory pages
 - Enables loading sysout files
 - Supports virtual memory save/restore
 
 === Page Allocation
 
-[`function AllocatePage(base_address`]:
+#codeblock(lang: "pseudocode", [
+function AllocatePage(base_address):
     // Calculate virtual page number
     virtual_page = base_address >> 8
 
@@ -80,23 +99,27 @@ The FPtoVP (File Page to Virtual Page) table maps file pages to virtual pages:
     // Map file page to virtual page
     FPtoVP[active_pages] = virtual_page
 
-    return virtual_page)
+    return virtual_page
+])
 
 == Memory Regions
 
 === Stack Space
+
 - *Base*: STK_OFFSET
 - *Purpose*: Function activation frames
 - *Growth*: Grows downward
 - *Management*: Stack overflow detection and extension
 
 === Heap Space
+
 - *Base*: MDS_OFFSET
 - *Purpose*: Cons cells, arrays, code blocks
 - *Growth*: Grows upward
 - *Management*: GC and allocation
 
 === Atom Space
+
 - *Base*: ATOMS_OFFSET (0x2c0000 for BIGVM)
 - *Purpose*: Symbol table (atom storage)
 - *Growth*: Fixed size or grows
@@ -104,27 +127,37 @@ The FPtoVP (File Page to Virtual Page) table maps file pages to virtual pages:
 
 ==== Atom Table Access
 
-Atoms can be either pointerLITATOM (old-style, small atoms) or pointerNEWATOM (new-style, BIGATOMS). The format depends on build configuration:
+Atoms can be either *LITATOM* (old-style, small atoms) or *NEWATOM* (new-style, BIGATOMS). The format depends on build configuration:
 
-*For BIGATOMS* (BIGVM):
-- LITATOM: Stored in AtomSpace at `ATOMS_OFFSET + (atom_index × 20)` bytes
+*For BIGATOMS (BIGVM)*:
+- LITATOM: Stored in AtomSpace at `ATOMS_OFFSET + (atom_index * 20)` bytes
   - Each atom is 5 LispPTRs (20 bytes): PNAME, VALUE, DEFN, PLIST, and one reserved
-  - Value cell at offset: `ATOMS_OFFSET + (atom_index × 20) + 4` (NEWATOM_VALUE_PTROFF)
-  - Definition cell at offset: `ATOMS_OFFSET + (atom_index × 20) + 8` (NEWATOM_DEFN_PTROFF)
-- NEWATOM: Stored as with SEGMASK bits set
- - Value cell at: `atom_index + NEWATOM_VALUE_OFFSET` (8 bytes, NEWATOM_VALUE_OFFSET = 4 DLwords) - Definition cell at: `atom_index + NEWATOM_DEFN_OFFSET` (16 bytes, NEWATOM_DEFN_OFFSET = 8 DLwords)
+  - Value cell at offset: `ATOMS_OFFSET + (atom_index * 20) + 4` (NEWATOM_VALUE_PTROFF)
+  - Definition cell at offset: `ATOMS_OFFSET + (atom_index * 20) + 8` (NEWATOM_DEFN_PTROFF)
+- NEWATOM: Stored as pointer with SEGMASK bits set
+  - Value cell at: `atom_index + NEWATOM_VALUE_OFFSET` (8 bytes, NEWATOM_VALUE_OFFSET = 4 DLwords)
+  - Definition cell at: `atom_index + NEWATOM_DEFN_OFFSET` (16 bytes, NEWATOM_DEFN_OFFSET = 8 DLwords)
 
-*For non-BIGATOMS*: - LITATOM: Separate spaces (Valspace, Defspace, Pnamespace, Plistspace)
- - Value cell: `Valspace + (atom_index << 1)` (2-byte offset) - Definition cell: `Defspace + (atom_index × 4)` (LispPTR offset)
+*For non-BIGATOMS*:
+- LITATOM: Separate spaces (Valspace, Defspace, Pnamespace, Plistspace)
+  - Value cell: `Valspace + (atom_index << 1)` (2-byte offset)
+  - Definition cell: `Defspace + (atom_index * 4)` (LispPTR offset)
 
-*Atom Access Operations*: - `GVAR(atom_index)`: Read value from atom's value cell
+*Atom Access Operations*:
+- `GVAR(atom_index)`: Read value from atom's value cell
 - `GVAR_(atom_index)`: Write value to atom's value cell (with GC ref counting)
-- `ACONST(atom_index)`: Push atom (LITATOM index or NEWATOM)
-- `GCONST(atom_index)`: Push global constant atom pointerImplementation Notes: - Use `GetVALCELL68k(atom_index)` to get value cell  - Use `GetDEFCELL68k(atom_index)` to get definition cell - Check `(atom_index & SEGMASK) != 0` to detect NEWATOM vs LITATOM
+- `ACONST(atom_index)`: Push atom pointer (LITATOM index or NEWATOM pointer)
+- `GCONST(atom_index)`: Push global constant atom pointer
+
+*Implementation Notes*:
+- Use `GetVALCELL68k(atom_index)` to get value cell pointer
+- Use `GetDEFCELL68k(atom_index)` to get definition cell pointer
+- Check `(atom_index & SEGMASK) != 0` to detect NEWATOM vs LITATOM
 - For BIGVM BIGATOMS, use `AtomSpace` array access
 - For non-BIGVM, use separate space arrays
 
 === Interface Page
+
 - *Base*: IFPAGE_OFFSET
 - *Purpose*: VM state and control structures
 - *Size*: Fixed (one page)
@@ -134,16 +167,19 @@ Atoms can be either pointerLITATOM (old-style, small atoms) or pointerNEWATOM (n
 
 === Page Structure
 
-[`struct MemoryPage:`]
-[`    base_address: LispPTR      // Virtual base address`]
-[`    native_address: void // Native memory address`]
-[`    page_number: uint          // Virtual page number`]
-[`    file_page: uint            // File page number (if loaded`]
-    flags: PageFlags           // Page flags (locked, etc.))
+#codeblock(lang: "pseudocode", [
+struct MemoryPage:
+    base_address: LispPTR      // Virtual base address
+    native_address: void*      // Native memory address
+    page_number: uint          // Virtual page number
+    file_page: uint            // File page number (if loaded)
+    flags: PageFlags           // Page flags (locked, etc.)
+])
 
 === Page Allocation Algorithm
 
-[`function AllocateMemoryPage(virtual_page`]:
+#codeblock(lang: "pseudocode", [
+function AllocateMemoryPage(virtual_page):
     // Check if page already allocated
     if IsPageAllocated(virtual_page):
         return GetPageNativeAddress(virtual_page)
@@ -159,11 +195,13 @@ Atoms can be either pointerLITATOM (old-style, small atoms) or pointerNEWATOM (n
         file_page = GetFilePageForVirtualPage(virtual_page)
         FPtoVP[file_page] = virtual_page
 
-    return native_page)
+    return native_page
+])
 
 === Page Deallocation
 
-[`function DeallocateMemoryPage(virtual_page`]:
+#codeblock(lang: "pseudocode", [
+function DeallocateMemoryPage(virtual_page):
     // Get native address
     native_page = GetNativeAddress(virtual_page)
 
@@ -171,7 +209,8 @@ Atoms can be either pointerLITATOM (old-style, small atoms) or pointerNEWATOM (n
     FreeNativePage(native_page)
 
     // Clear mapping
-    ClearVirtualMapping(virtual_page))
+    ClearVirtualMapping(virtual_page)
+])
 
 == Virtual Memory Operations
 
@@ -181,36 +220,43 @@ See Address Translation for complete specification.
 
 === Memory Access
 
-[`function ReadMemory(lisp_address, size`]:
+#codeblock(lang: "pseudocode", [
+function ReadMemory(lisp_address, size):
     native_address = TranslateAddress(lisp_address)
     return ReadFromNative(native_address, size)
 
 function WriteMemory(lisp_address, value, size):
     native_address = TranslateAddress(lisp_address)
-    WriteToNative(native_address, value, size))
+    WriteToNative(native_address, value, size)
+])
 
 === Page Locking
 
 Some pages may be locked to prevent swapping:
 
-[`function LockPage(virtual_page`]:
+#codeblock(lang: "pseudocode", [
+function LockPage(virtual_page):
     page = GetPage(virtual_page)
     page.flags = page.flags | LOCKED
-    PreventPageSwap(page))
+    PreventPageSwap(page)
+])
 
 == Storage Management
 
 === Storage States
 
-[`enum StorageState:`]
-[`    SFS_NOTSWITCHABLE    // Cannot switch to secondary space`]
-[`    SFS_SWITCHABLE      // Can switch to secondary space`]
-[`    SFS_ARRAYSWITCHED    // Array space switched`]
-[`    SFS_FULLYSWITCHED   // Fully switched to secondary space`]
+#codeblock(lang: "pseudocode", [
+enum StorageState:
+    SFS_NOTSWITCHABLE    // Cannot switch to secondary space
+    SFS_SWITCHABLE      // Can switch to secondary space
+    SFS_ARRAYSWITCHED    // Array space switched
+    SFS_FULLYSWITCHED   // Fully switched to secondary space
+])
 
 === Storage Full Detection
 
-[`function CheckStorageFull(pages_needed`]:
+#codeblock(lang: "pseudocode", [
+function CheckStorageFull(pages_needed):
     pages_available = CalculateAvailablePages()
 
     if pages_available < GUARD_STORAGE_FULL:
@@ -225,13 +271,15 @@ Some pages may be locked to prevent swapping:
             TriggerStorageFullError()
         return true
 
-    return false)
+    return false
+])
 
 == Secondary Space
 
 When primary space is exhausted, VM can switch to secondary space:
 
-[`function SwitchToSecondarySpace(`]:
+#codeblock(lang: "pseudocode", [
+function SwitchToSecondarySpace():
     // Save current array space state
     SaveArraySpaceState()
 
@@ -240,8 +288,11 @@ When primary space is exhausted, VM can switch to secondary space:
     NextArrayPage = SecondaryArrayPage
 
     // Update storage state
-    storage_state = SFS_ARRAYSWITCHED or SFS_FULLYSWITCHED)
+    storage_state = SFS_ARRAYSWITCHED or SFS_FULLYSWITCHED
+])
 
-== Related Documentation - Address Translation - How addresses are translated
+== Related Documentation
+
+- Address Translation - How addresses are translated
 - Garbage Collection - Memory reclamation
 - Memory Layout - Memory organization

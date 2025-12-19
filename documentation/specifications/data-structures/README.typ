@@ -1,5 +1,6 @@
 = Data Structures Specification
 
+*Navigation*: README | Index | Memory Management | VM Core
 
 Complete specification of all VM data structure formats, including cons cells, arrays, function headers, and sysout file format.
 
@@ -13,7 +14,12 @@ This section documents the binary formats of all data structures used by the VM.
 - Maintaining compatibility
 
 == Documentation Structure
-- *Cons Cells* - Cons cell format and CDR coding- *Arrays* - Array formats and layouts- *Function Headers* - Function metadata format- *Sysout Format* - Sysout file structure
+
+- *Atom Table* - Atom table structure, DefCell access, and atom cell layout
+- *Cons Cells* - Cons cell format and CDR coding
+- *Arrays* - Array formats and layouts
+- *Function Headers* - Function metadata format
+- *Sysout Format* - Sysout file structure
 
 == Data Structure Categories
 
@@ -48,17 +54,21 @@ Persistent formats:
 === Type Tags
 
 All objects have type tags:
+
 - *Type Number*: Identifies object type
 - *Type Table*: Maps types to DTDs
 - *Type Checking*: Runtime type validation
 
 === Alignment
 
-Data structures have alignment requirements:* - *2-byte alignment: DLword, most structures
-- *4-byte alignment: LispPTR, some structures
+Data structures have alignment requirements:
+
+- *2-byte alignment*: DLword, most structures
+- *4-byte alignment*: LispPTR, some structures
 - *Page alignment*: Page-based structures
 
 === Endianness
+
 - *Byte order*: Little-endian
 - *Word order*: 16-bit words in little-endian
 - *Consistency*: Must match sysout file format
@@ -67,4 +77,4 @@ Data structures have alignment requirements:* - *2-byte alignment: DLword, most 
 
 - Memory Management - How structures are allocated
 - VM Core - How structures are used
-- Instruction Set* - Operations on structures
+- Instruction Set - Operations on structures

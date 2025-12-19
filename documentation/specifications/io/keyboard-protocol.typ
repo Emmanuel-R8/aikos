@@ -1,5 +1,6 @@
 = Keyboard Protocol Specification
 
+*Navigation*: README | Mouse Protocol | File System | Network Protocol
 
 Complete specification of keyboard event translation and handling protocol.
 
@@ -11,7 +12,8 @@ The keyboard protocol translates platform-specific keycodes to Lisp keycodes and
 
 === Translation Algorithm
 
-[`function TranslateKeycode(os_keycode, modifiers`]:
+#codeblock(lang: "pseudocode", [
+function TranslateKeycode(os_keycode, modifiers):
     // Look up base keycode
     base_keycode = KeycodeMap[os_keycode]
 
@@ -31,15 +33,16 @@ The keyboard protocol translates platform-specific keycodes to Lisp keycodes and
     if modifiers.META:
         lisp_keycode = ApplyMetaModifier(lisp_keycode)
 
-    return lisp_keycode)
+    return lisp_keycode
+])
 
 === Keycode Map
 
 Lisp uses its own keycode space:
 
-- *ASCII* (0x00-0x7F): Direct mapping for printable characters
-- *Control Characters* (0x00-0x1F): Control+character combinations
-- *Special Keys* (0x80-0xFF): Function keys, arrows, etc.
+- *ASCII (0x00-0x7F)*: Direct mapping for printable characters
+- *Control Characters (0x00-0x1F)*: Control+character combinations
+- *Special Keys (0x80-0xFF)*: Function keys, arrows, etc.
 
 === Modifier Encoding
 
@@ -52,27 +55,32 @@ Modifiers can be encoded in two ways:
 
 === Event Format
 
-[`struct KeyboardEvent:`]
-[`    type: KEY_PRESS | KEY_RELEASE`]
-[`    keycode: uint            // Lisp keycode (after translation`]
+#codeblock(lang: "pseudocode", [
+struct KeyboardEvent:
+    type: KEY_PRESS | KEY_RELEASE
+    keycode: uint            // Lisp keycode (after translation)
     modifiers: bitmask       // Modifier flags
     timestamp: uint          // Event timestamp
-    os_keycode: uint         // Original OS keycode (for debugging))
+    os_keycode: uint         // Original OS keycode (for debugging)
+])
 
 === Event Queue
 
-[`struct KeyEventQueue:`]
-[`    events: array[KeyboardEvent]`]
-[`    head: int`]
-[`    tail: int`]
-[`    size: int`]
-[`    buffering: boolean       // Buffering enabled flag`]
+#codeblock(lang: "pseudocode", [
+struct KeyEventQueue:
+    events: array[KeyboardEvent]
+    head: int
+    tail: int
+    size: int
+    buffering: boolean       // Buffering enabled flag
+])
 
 == Event Processing
 
 === Process Keyboard Event
 
-[`function ProcessKeyboardEvent(os_event`]:
+#codeblock(lang: "pseudocode", [
+function ProcessKeyboardEvent(os_event):
     // Translate keycode
     lisp_keycode = TranslateKeycode(os_event.keycode, os_event.modifiers)
 
@@ -92,11 +100,13 @@ Modifiers can be encoded in two ways:
 
     // Set interrupt flag
     SetInterruptFlag(IOInterrupt)
-    KBDEventFlg = true)
+    KBDEventFlg = true
+])
 
 === Key Event Buffering
 
-[`function EnableKeyBuffering(`]:
+#codeblock(lang: "pseudocode", [
+function EnableKeyBuffering():
     KeyEventQueue.buffering = true
 
 function DisableKeyBuffering():
@@ -104,13 +114,15 @@ function DisableKeyBuffering():
     // Process all buffered events
     while not QueueEmpty():
         event = DequeueKeyEvent()
-        ProcessKeyEventImmediately(event))
+        ProcessKeyEventImmediately(event)
+])
 
 == Special Key Handling
 
 === Function Keys
 
 Function keys (F1-F12) map to special keycodes:
+
 - *F1*: 0x80
 - *F2*: 0x81
 - *...*
@@ -119,6 +131,7 @@ Function keys (F1-F12) map to special keycodes:
 === Arrow Keys
 
 Arrow keys map to special keycodes:
+
 - *Up*: 0x8C
 - *Down*: 0x8D
 - *Left*: 0x8E
@@ -127,18 +140,20 @@ Arrow keys map to special keycodes:
 === Control Keys
 
 Control key combinations:
+
 - *Control-A through Control-Z*: 0x01-0x1A
 - *Control-[*: 0x1B (ESC)
 - *Control-\\*: 0x1C
-- *Control-close-bracket*: 0x1D
+- *Control-]*: 0x1D
 - *Control-^*: 0x1E
-- *Control-underscore*: 0x1F
+- *Control-_*: 0x1F
 
 == Platform-Specific Translation
 
 === X11 Keycode Translation
 
-[`function X11TranslateKeycode(x_keycode, x_keysym, modifiers`]:
+#codeblock(lang: "pseudocode", [
+function X11TranslateKeycode(x_keycode, x_keysym, modifiers):
     // Use keysym for translation
     lisp_keycode = XKeysymToLispKeycode(x_keysym)
 
@@ -150,11 +165,13 @@ Control key combinations:
     if modifiers.Mod1Mask:  // Meta/Alt
         lisp_keycode = ApplyMeta(lisp_keycode)
 
-    return lisp_keycode)
+    return lisp_keycode
+])
 
 === SDL Keycode Translation
 
-[`function SDLTranslateKeycode(sdl_keycode, sdl_scancode, modifiers`]:
+#codeblock(lang: "pseudocode", [
+function SDLTranslateKeycode(sdl_keycode, sdl_scancode, modifiers):
     // Map SDL keycode to Lisp keycode
     lisp_keycode = SDLKeycodeMap[sdl_keycode]
 
@@ -166,13 +183,15 @@ Control key combinations:
     if modifiers & KMOD_ALT:
         lisp_keycode = ApplyMeta(lisp_keycode)
 
-    return lisp_keycode)
+    return lisp_keycode
+])
 
 == Interrupt Integration
 
 === Keyboard Interrupt
 
-[`function HandleKeyboardInterrupt(`]:
+#codeblock(lang: "pseudocode", [
+function HandleKeyboardInterrupt():
     // Process pending keyboard events
     while HasKeyboardEvents():
         event = GetKeyboardEvent()
@@ -180,7 +199,8 @@ Control key combinations:
 
     // Trigger interrupt handler
     SetInterruptFlag(IOInterrupt)
-    TriggerInterruptCall(KEYBOARD_FRAME))
+    TriggerInterruptCall(KEYBOARD_FRAME)
+])
 
 == Related Documentation
 

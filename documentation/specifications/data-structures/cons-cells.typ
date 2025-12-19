@@ -1,5 +1,6 @@
 = Cons Cell Specification
 
+*Navigation*: README | Arrays | Function Headers
 
 Complete specification of cons cell format, CDR coding, and cons cell operations.
 
@@ -13,22 +14,26 @@ Cons cells are the fundamental building blocks of Lisp lists. They use CDR codin
 
 === Basic Format
 
-[`struct ConsCell:`]
-[`    car_field: LispPTR    // CAR value (32 bits`]
+#codeblock(lang: "pseudocode", [
+struct ConsCell:
+    car_field: LispPTR    // CAR value (32 bits)
     cdr_code: 8 bits      // CDR code (low byte of second word)
-    // ... padding ...)
+    // ... padding ...
+])
 
 *Size*: 8 bytes (2 DLwords)
 *Alignment*: 4-byte aligned
 
 === Memory Layout
 
-[`Offset  Size    Field`]
-[`------  ----    -----`]
-[`0       4       car_field (LispPTR`]
+#codeblock(lang: "text", [
+Offset  Size    Field
+------  ----    -----
+0       4       car_field (LispPTR)
 4       2       (unused/reserved)
 6       1       cdr_code
-7       1      (padding))
+7       1       (padding)
+])
 
 == CDR Coding
 
@@ -37,20 +42,23 @@ CDR coding is a compact representation that avoids storing full CDR pointers whe
 === CDR Code Values
 
 *Without NEWCDRCODING*:
-- *CDR_NIL* (128): CDR is NIL
-- *CDR_INDIRECT* (0): CDR stored indirectly
-- *CDR_ONPAGE* (128-255): CDR is on same page (offset encoded)
-- *CDR_MAXINDIRECT* (1-127): CDR on different page (offset encoded)
+
+- *CDR_NIL (128)*: CDR is NIL
+- *CDR_INDIRECT (0)*: CDR stored indirectly
+- *CDR_ONPAGE (128-255)*: CDR is on same page (offset encoded)
+- *CDR_MAXINDIRECT (1-127)*: CDR on different page (offset encoded)
 
 *With NEWCDRCODING*:
-- *CDR_NIL* (8): CDR is NIL
-- *CDR_INDIRECT* (0): CDR stored indirectly
-- *CDR_ONPAGE* (8-15): CDR is on same page (3-bit offset)
-- *CDR_MAXINDIRECT* (1-7): CDR on different page (offset encoded)
+
+- *CDR_NIL (8)*: CDR is NIL
+- *CDR_INDIRECT (0)*: CDR stored indirectly
+- *CDR_ONPAGE (8-15)*: CDR is on same page (3-bit offset)
+- *CDR_MAXINDIRECT (1-7)*: CDR on different page (offset encoded)
 
 === CDR Decoding Algorithm
 
-[`function DecodeCDR(cons_cell, cell_address`]:
+#codeblock(lang: "pseudocode", [
+function DecodeCDR(cons_cell, cell_address):
     cdr_code = cons_cell.cdr_code
 
     if cdr_code == CDR_NIL:
@@ -78,11 +86,13 @@ CDR coding is a compact representation that avoids storing full CDR pointers whe
         else:
             // Different page encoding
             offset = cdr_code << 1
-            return POINTER_PAGEBASE(cell_address) + offset)
+            return POINTER_PAGEBASE(cell_address) + offset
+])
 
 === CDR Encoding Algorithm
 
-[`function EncodeCDR(cons_cell, cell_address, cdr_value`]:
+#codeblock(lang: "pseudocode", [
+function EncodeCDR(cons_cell, cell_address, cdr_value):
     if cdr_value == NIL_PTR:
         cons_cell.cdr_code = CDR_NIL
         return
@@ -109,13 +119,15 @@ CDR coding is a compact representation that avoids storing full CDR pointers whe
     indirect_cell = AllocateIndirectCell()
     indirect_cell.car_field = cdr_value
     cons_cell.car_field = LAddrFromNative(indirect_cell)
-    cons_cell.cdr_code = CDR_INDIRECT)
+    cons_cell.cdr_code = CDR_INDIRECT
+])
 
 == Cons Cell Operations
 
 === CAR Operation
 
-[`function CAR(cons_cell_address`]:
+#codeblock(lang: "pseudocode", [
+function CAR(cons_cell_address):
     cons_cell = GetConsCell(cons_cell_address)
 
     if cons_cell.cdr_code == CDR_INDIRECT:
@@ -123,11 +135,13 @@ CDR coding is a compact representation that avoids storing full CDR pointers whe
         indirect_cell = GetConsCell(cons_cell.car_field)
         return indirect_cell.car_field
     else:
-        return cons_cell.car_field)
+        return cons_cell.car_field
+])
 
 === CDR Operation
 
-[`function CDR(cons_cell_address`]:
+#codeblock(lang: "pseudocode", [
+function CDR(cons_cell_address):
     cons_cell = GetConsCell(cons_cell_address)
     cdr_code = cons_cell.cdr_code
 
@@ -138,11 +152,13 @@ CDR coding is a compact representation that avoids storing full CDR pointers whe
         return CDR(cons_cell.car_field)
 
     // Decode CDR from code
-    return DecodeCDR(cons_cell, cons_cell_address))
+    return DecodeCDR(cons_cell, cons_cell_address)
+])
 
 === CONS Operation
 
-[`function CONS(car_value, cdr_value`]:
+#codeblock(lang: "pseudocode", [
+function CONS(car_value, cdr_value):
     // Allocate new cons cell
     new_cell = AllocateConsCell()
     new_cell_address = LAddrFromNative(new_cell)
@@ -158,11 +174,13 @@ CDR coding is a compact representation that avoids storing full CDR pointers whe
     DELREF(car_value)
     DELREF(cdr_value)
 
-    return new_cell_address)
+    return new_cell_address
+])
 
 === RPLACA Operation
 
-[`function RPLACA(cons_cell_address, new_car`]:
+#codeblock(lang: "pseudocode", [
+function RPLACA(cons_cell_address, new_car):
     cons_cell = GetConsCell(cons_cell_address)
 
     // Update GC references
@@ -177,11 +195,13 @@ CDR coding is a compact representation that avoids storing full CDR pointers whe
     else:
         cons_cell.car_field = new_car
 
-    return cons_cell_address)
+    return cons_cell_address
+])
 
 === RPLACD Operation
 
-[`function RPLACD(cons_cell_address, new_cdr`]:
+#codeblock(lang: "pseudocode", [
+function RPLACD(cons_cell_address, new_cdr):
     cons_cell = GetConsCell(cons_cell_address)
 
     // Update GC references
@@ -192,28 +212,34 @@ CDR coding is a compact representation that avoids storing full CDR pointers whe
     // Encode new CDR
     EncodeCDR(cons_cell, cons_cell_address, new_cdr)
 
-    return cons_cell_address)
+    return cons_cell_address
+])
 
 == Cons Page Organization
 
 === Cons Page Structure
 
-[`struct ConsPage:`]
-[`    count: uint           // Number of free cells`]
-[`    next_cell: LispPTR   // Next free cell pointer`]
-[`    // ... cons cells follow ...`]
+#codeblock(lang: "pseudocode", [
+struct ConsPage:
+    count: uint           // Number of free cells
+    next_cell: LispPTR   // Next free cell pointer
+    // ... cons cells follow ...
+])
 
 === Free Cell Management
 
-[`struct FreeCons:`]
-[`    next_free: LispPTR   // Next free cell in chain`]
-[`    // ... (reused as cons cell when allocated`] ...)
+#codeblock(lang: "pseudocode", [
+struct FreeCons:
+    next_free: LispPTR   // Next free cell in chain
+    // ... (reused as cons cell when allocated) ...
+])
 
 == CDR Coding Examples
 
 === Example 1: Simple List
 
-[`List: (A B C`]
+#codeblock(lang: "text", [
+List: (A B C)
 Cells:
   Cell1: CAR=A, CDR=Cell2 (same page, offset=2)
          cdr_code = CDR_ONPAGE + 1 = 9 (NEWCDRCODING)
@@ -222,17 +248,20 @@ Cells:
          cdr_code = CDR_ONPAGE + 1 = 9
 
   Cell3: CAR=C, CDR=NIL
-         cdr_code = CDR_NIL = 8)
+         cdr_code = CDR_NIL = 8
+])
 
 === Example 2: Indirect CDR
 
-[`List: (A . B`] where B is far away
+#codeblock(lang: "text", [
+List: (A . B) where B is far away
 Cell1: CAR=A, CDR=indirect
        car_field = IndirectCell1
        cdr_code = CDR_INDIRECT = 0
 
 IndirectCell1: CAR=B, CDR=...
-                (normal cons cell))
+                (normal cons cell)
+])
 
 == Related Documentation
 

@@ -1,5 +1,6 @@
 = Opcode Reference
 
+*Navigation*: README | Instruction Format | Execution Semantics
 
 Complete specification of all 256 bytecode opcodes (0x00-0xFF). Format: `Name (0xXX) [Len] [Ops] Stack: [effect] Exec: [brief]`
 
@@ -21,7 +22,7 @@ This document provides a high-level overview. For detailed opcode specifications
 - Other control: UNWIND, BIND, UNBIND, DUNBIND
 
 === Memory Operations (0x40-0x7F)
-- Variable access: IVAR0-IVAR6, IVARX, PVAR0-PVAR6, PVARX, FVAR0-FVAR6, FVARX, GVAR, GVAR (underscore variant)
+- Variable access: IVAR0-IVAR6, IVARX, PVAR0-PVAR6, PVARX, FVAR0-FVAR6, FVARX, GVAR, GVAR_
 - Variable setting: PVARSETPOP0-PVARSETPOP6
 - Stack operations: POP, POP_N
 

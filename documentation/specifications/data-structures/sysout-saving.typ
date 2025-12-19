@@ -1,11 +1,13 @@
 = Sysout Saving Procedures
 
+*Navigation*: Sysout Format | Data Structures README | Main README
 
 Complete specification of procedures for saving VM state to sysout files.
 
 == Save Procedure
 
-[`function SaveSysoutFile(filename`]:
+#codeblock(lang: "pseudocode", [
+function SaveSysoutFile(filename):
     // Create file
     file = CreateFile(filename)
 
@@ -24,7 +26,8 @@ Complete specification of procedures for saving VM state to sysout files.
         page_data = ReadMemoryPage(virtual_page)
         WritePage(file, file_page, page_data)
 
-    CloseFile(file))
+    CloseFile(file)
+])
 
 == Related Documentation
 

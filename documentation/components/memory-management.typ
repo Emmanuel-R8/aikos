@@ -1,14 +1,18 @@
 = Memory Management Component
 
+*Navigation*: README | Index | Architecture | VM Core | Display | I/O | Glossary
 
 The Memory Management system handles heap allocation, garbage collection, and virtual memory mapping for the Lisp heap.
 
-*Related Components*: - VM Core - Uses memory for stack and execution
+*Related Components*:
+
+- VM Core - Uses memory for stack and execution
 - I/O Systems - May allocate buffers
 
 == Overview
 
 Maiko uses a virtual memory model with:
+
 - *Virtual Address Space*: Lisp addresses (LispPTR) mapped to physical memory
 - *Garbage Collection*: Reference-counting based GC with mark-sweep phases (see Garbage Collection Algorithm)
 - *Page Management*: Virtual pages mapped to physical memory pages (see Address Translation)
@@ -16,138 +20,222 @@ Maiko uses a virtual memory model with:
 
 == Key Files
 
-=== Garbage Collection Core - `src/gc.c`: Basic GC operations
+=== Garbage Collection Core
+
+- *`src/gc.c`*: Basic GC operations
   - `OP_gcref()`: GC reference opcode handler
- - Reference counting operations - `src/gc2.c`: Extended GC operations
+  - Reference counting operations
+
+- *`src/gc2.c`*: Extended GC operations
   - Additional GC primitives
- - GC state management - `src/gcmain3.c`: Main GC scanning routines
+  - GC state management
+
+- *`src/gcmain3.c`*: Main GC scanning routines
   - `gcmapscan()`: Scan hash table for GC
   - `gcmapunscan()`: Unscan hash table
- - `gcscanstack()`: Scan stack for references - `src/gcscan.c`: GC scanning phase
-  - Mark phase implementation
- - Object traversal - `src/gcr.c`: GC reclamation
-  - Reclaim unreferenced objects
- - Free memory back to heap - `src/gcrcell.c`: Cell reclamation
-  - Cons cell reclamation
- - Cell chain processing - `src/gcarray.c`: Array GC
-  - Array object collection
- - Array block management - `src/gccode.c`: Code GC
-  - Function code collection
- - Code block reclamation - `src/gcfinal.c`: Final GC phase
-  - Finalization processing
- - Cleanup operations - `src/gchtfind.c`: Hash table GC
-  - Hash table entry management
- - Reference lookup
+  - `gcscanstack()`: Scan stack for references
 
-=== Storage Management - `src/storage.c`: Storage allocation and management
+- *`src/gcscan.c`*: GC scanning phase
+  - Mark phase implementation
+  - Object traversal
+
+- *`src/gcr.c`*: GC reclamation
+  - Reclaim unreferenced objects
+  - Free memory back to heap
+
+- *`src/gcrcell.c`*: Cell reclamation
+  - Cons cell reclamation
+  - Cell chain processing
+
+- *`src/gcarray.c`*: Array GC
+  - Array object collection
+  - Array block management
+
+- *`src/gccode.c`*: Code GC
+  - Function code collection
+  - Code block reclamation
+
+- *`src/gcfinal.c`*: Final GC phase
+  - Finalization processing
+  - Cleanup operations
+
+- *`src/gchtfind.c`*: Hash table GC
+  - Hash table entry management
+  - Reference lookup
+
+=== Storage Management
+
+- *`src/storage.c`*: Storage allocation and management
   - `init_storage()`: Initialize storage system
   - `checkfor_storagefull()`: Check if storage is full
   - `newpage()`: Allocate new page
- - Storage state management - `src/conspage.c`: Cons cell page management
-  - Cons page allocation
- - Cons cell management - `src/allocmds.c`: MDS (Memory Data Structure) allocation
-  - MDS page management
- - Array allocation
+  - Storage state management
 
-=== Virtual Memory - `src/vmemsave.c`: Virtual memory save/restore
+- *`src/conspage.c`*: Cons cell page management
+  - Cons page allocation
+  - Cons cell management
+
+- *`src/allocmds.c`*: MDS (Memory Data Structure) allocation
+  - MDS page management
+  - Array allocation
+
+=== Virtual Memory
+
+- *`src/vmemsave.c`*: Virtual memory save/restore
   - Save VM state to disk
- - Restore VM state from disk
+  - Restore VM state from disk
 
 == Memory Layout
 
 === Address Spaces
 
-#figure(
-  caption: [Memory Layout],
-  [Diagram: See original documentation for visual representation.],
-)
-    
-  )
-)
+#codeblock(lang: "mermaid", [
+graph TD
+    subgraph LispAddr["Lisp Virtual Address Space"]
+        Stack["Stack Space<br/>(STK_HI)<br/>See: VM Core Stack"]
+        Atom["Atom Space<br/>(AtomSpace, AtomHT)"]
+        Plist["Property List Space<br/>(Plistspace)"]
+        Heap["Heap Space (MDS)"]
+        IFPage["Interface Page<br/>(IFPAGE)"]
+
+        Heap --> Cons["Cons Cells<br/>(see Cons Cells)"]
+        Heap --> Arrays["Arrays<br/>(see Arrays)"]
+        Heap --> Code["Code Blocks"]
+    end
+
+    subgraph Native["Native Memory"]
+        PhysPages["Physical Memory Pages"]
+        TransTable["FPtoVP Translation Table"]
+        PageMap["Page Mapping Table"]
+    end
+
+    LispAddr -->|Address Translation| TransTable
+    LispAddr -->|Page Mapping| PageMap
+    TransTable --> PhysPages
+    PageMap --> PhysPages
+
+    style Stack fill:#e1f5ff
+    style Heap fill:#fff4e1
+    style IFPage fill:#f0e1ff
+])
 
 The VM uses virtual addresses that are translated to native addresses (see Address Translation in VM Core):
+
 - *Stack Space*: Execution stack (see VM Core Stack Management)
 - *Atom Space*: Symbol storage (see Memory Regions)
 - *Property List Space*: Symbol properties
-- *Heap Space* (MDS): Cons cells, arrays, code blocks
+- *Heap Space (MDS)*: Cons cells, arrays, code blocks
 - *Interface Page*: VM-Lisp communication (see Interface Page)
 
 === Address Translation
 
-#figure(
-  caption: [Diagram],
-  [Diagram: See original documentation for visual representation.],
-)
+#codeblock(lang: "mermaid", [
+graph LR
+    A[LispPTR<br/>Virtual Address] -->|FPtoVP Lookup| B[FPtoVP Table]
+    B --> C[Native Address<br/>C Pointer]
+    D[Page Number] -->|PAGEMap Lookup| E[PageMap Table]
+    E --> F[Physical Page]
+    G[Locked Pages] -->|Check| H[LockedPageTable]
 
-  )
-)
-- `FPtoVP`: Frame Pointer to Virtual Pointer mapping table (see Address Translation in VM Core)
-- `PAGEMap`: Page mapping table
-- `PageMapTBL`: Page map table
-- `LockedPageTable`: Locked pages (not swappable)
+    style A fill:#e1f5ff
+    style C fill:#fff4e1
+])
+
+- *`FPtoVP`*: Frame Pointer to Virtual Pointer mapping table (see Address Translation in VM Core)
+- *`PAGEMap`*: Page mapping table
+- *`PageMapTBL`*: Page map table
+- *`LockedPageTable`*: Locked pages (not swappable)
 
 === BIGVM Support
 
-With `BIGVM` defined (see Build System Feature Flags): - Larger address space (32+ bits)
-- Extended types (see BIGVM in Glossary) - Different address encoding
+With `BIGVM` defined (see Build System Feature Flags):
+
+- Larger address space (32+ bits)
+- Extended pointer types (see BIGVM in Glossary)
+- Different address encoding
 
 == Garbage Collection Algorithm
 
 === Reference Counting
 
-#figure(
-  caption: [Diagram],
-  [Diagram: See original documentation for visual representation.],
-)
+#codeblock(lang: "mermaid", [
+graph TD
+    A[Object Created] --> B[Add to HTmain/HTcoll]
+    B --> C{Reference Operation}
+    C -->|ADDREF| D[Increment refcnt]
+    C -->|DELREF| E[Decrement refcnt]
+    C -->|STKREF| F[Mark stack-referenced]
+    D --> G{refcnt == 0?}
+    E --> G
+    G -->|Yes| H[Mark for Reclamation]
+    G -->|No| I[Keep Object]
+    H --> J[GC Reclaim Phase]
 
-  )
-)
+    style A fill:#e1f5ff
+    style H fill:#ffe1e1
+    style I fill:#e1ffe1
+])
 
 Maiko uses a reference-counting GC system (see GC Terms in Glossary):
 
 1. *Reference Tracking*: Each object has a reference count (see GC Data Structures)
 2. *Hash Table*: `HTmain` and `HTcoll` track references
 3. *Stack References*: Special handling for stack-referenced objects (see STKREF in Glossary)
-4. *Reference Operations*: - `ADDREF`: Increment reference count (see ADDREF in Glossary)
-  - `DELREF`: Decrement reference count (see DELREF in Glossary)
-  - `STKREF`: Mark as stack-referenced
+4. *Reference Operations*:
+   - `ADDREF`: Increment reference count (see ADDREF in Glossary)
+   - `DELREF`: Decrement reference count (see DELREF in Glossary)
+   - `STKREF`: Mark as stack-referenced
 
 === GC Phases
 
-#figure(
-  caption: [Sequence Diagram],
-  [Diagram: See original documentation for visual representation.],
-)
+#codeblock(lang: "mermaid", [
+sequenceDiagram
+    participant Trigger as GC Trigger
+    participant Scan as Scan Phase<br/>(gcmapscan)
+    participant Reclaim as Reclaim Phase<br/>(gcr.c)
+    participant Final as Finalization<br/>(gcfinal.c)
 
-  )
-)
+    Trigger->>Scan: Storage full or<br/>explicit GC
+    Scan->>Scan: Scan hash table entries
+    Scan->>Scan: Mark reachable objects
+    Scan->>Scan: Process reference counts
+    Scan->>Reclaim: Unreferenced objects
+    Reclaim->>Reclaim: Identify unreferenced
+    Reclaim->>Reclaim: Reclaim memory
+    Reclaim->>Reclaim: Update free lists
+    Reclaim->>Final: Process finalizers
+    Final->>Final: Clean up resources
+])
 
 1. *Scan Phase* (`gcmapscan()` - see GC Main Loop):
    - Scan hash table entries
-  - Mark reachable objects
-  - Process reference counts
+   - Mark reachable objects
+   - Process reference counts
 
 2. *Reclaim Phase* (`gcr.c` - see GC Reclamation):
    - Identify unreferenced objects
-  - Reclaim memory
-  - Update free lists
+   - Reclaim memory
+   - Update free lists
 
 3. *Finalization Phase* (`gcfinal.c` - see GC Finalization):
    - Process finalizers
-  - Clean up resources
+   - Clean up resources
 
 === GC Data Structures
 
 ==== Hash Table Entry (`GCENTRY`)
 
-[`struct hashentry {`]
-[`    LispPTR ptr;        // Object pointer`]
-[`    unsigned stkcnt;   // Stack reference count`]
-[`    unsigned refcnt;   // Reference count`]
-[`    // ... flags ...`]
-[`};`]
+#codeblock(lang: "c", [
+struct hashentry {
+    LispPTR ptr;        // Object pointer
+    unsigned stkcnt;   // Stack reference count
+    unsigned refcnt;   // Reference count
+    // ... flags ...
+};
+])
 
 ==== Reference Types
+
 - *ADDREF*: Normal reference increment
 - *DELREF*: Normal reference decrement
 - *STKREF*: Stack reference (special handling)
@@ -157,6 +245,7 @@ Maiko uses a reference-counting GC system (see GC Terms in Glossary):
 === Cons Cells
 
 Cons cells are allocated in pages:
+
 - *Cons Page*: Contains multiple cons cells
 - *CDR Coding*: Compact representation using CDR codes
 - *Allocation*: `cons()` function allocates new cons cell
@@ -164,6 +253,7 @@ Cons cells are allocated in pages:
 === Arrays
 
 Arrays are allocated in the MDS (Memory Data Structure):
+
 - *Array Blocks*: Contiguous memory blocks
 - *Block Size*: Variable size based on array type
 - *Alignment*: Proper alignment for array elements
@@ -171,6 +261,7 @@ Arrays are allocated in the MDS (Memory Data Structure):
 === Storage States
 
 Storage can be in different states:
+
 - *SFS_NOTSWITCHABLE*: Cannot switch array space
 - *SFS_SWITCHABLE*: Can switch array space
 - *SFS_FULLYSWITCHED*: Array space fully switched
@@ -239,7 +330,9 @@ When storage is full:
 
 === Memory Access
 
-- `NativeAligned2FromLAddr()`: Convert Lisp address to native 16-bit  - `NativeAligned4FromLAddr()`: Convert Lisp address to native 32-bit - `LAddrFromNative()`: Convert native address to Lisp address
+- `NativeAligned2FromLAddr()`: Convert Lisp address to native 16-bit pointer
+- `NativeAligned4FromLAddr()`: Convert Lisp address to native 32-bit pointer
+- `LAddrFromNative()`: Convert native address to Lisp address
 
 == Performance Considerations
 
@@ -266,5 +359,5 @@ When storage is full:
   - `maiko/inc/gcdata.h` - GC data structure definitions
   - `maiko/inc/gcdefs.h` - GC function definitions
   - `maiko/inc/storagedefs.h` - Storage function definitions
- - `maiko/inc/lispmap.h` - Memory map definitions
+  - `maiko/inc/lispmap.h` - Memory map definitions
 - API Overview - Memory management functions

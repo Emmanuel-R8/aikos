@@ -1,5 +1,6 @@
 = Mouse Protocol Specification
 
+*Navigation*: README | Keyboard Protocol | File System
 
 Complete specification of mouse event handling protocol.
 
@@ -11,13 +12,15 @@ The mouse protocol handles mouse button presses, releases, and motion events, tr
 
 === Event Format
 
-[`struct MouseEvent:`]
-[`    type: BUTTON_PRESS | BUTTON_RELEASE | MOTION`]
-[`    button: uint            // Button number (1, 2, 3`] or 0 for motion
+#codeblock(lang: "pseudocode", [
+struct MouseEvent:
+    type: BUTTON_PRESS | BUTTON_RELEASE | MOTION
+    button: uint            // Button number (1, 2, 3) or 0 for motion
     x: int                  // X coordinate (pixels)
     y: int                  // Y coordinate (pixels)
     modifiers: bitmask      // Modifier keys
-    timestamp: uint         // Event timestamp)
+    timestamp: uint         // Event timestamp
+])
 
 === Coordinate System
 
@@ -31,7 +34,8 @@ The mouse protocol handles mouse button presses, releases, and motion events, tr
 
 === Two-Button Mouse
 
-[`function MapTwoButtonMouse(os_button`]:
+#codeblock(lang: "pseudocode", [
+function MapTwoButtonMouse(os_button):
     switch os_button:
         case LEFT_BUTTON:
             return 1  // Left button
@@ -39,24 +43,28 @@ The mouse protocol handles mouse button presses, releases, and motion events, tr
             return 2  // Right button
         case MIDDLE_BUTTON:
             // Simulate middle via modifier + right
-            return 2  // Right button (with modifier))
+            return 2  // Right button (with modifier)
+])
 
 === Three-Button Mouse
 
-[`function MapThreeButtonMouse(os_button`]:
+#codeblock(lang: "pseudocode", [
+function MapThreeButtonMouse(os_button):
     switch os_button:
         case LEFT_BUTTON:
             return 1  // Left button
         case MIDDLE_BUTTON:
             return 2  // Middle button
         case RIGHT_BUTTON:
-            return 3  // Right button)
+            return 3  // Right button
+])
 
 == Mouse Event Processing
 
 === Process Mouse Event
 
-[`function ProcessMouseEvent(os_event`]:
+#codeblock(lang: "pseudocode", [
+function ProcessMouseEvent(os_event):
     // Translate button
     lisp_button = MapMouseButton(os_event.button)
 
@@ -81,50 +89,63 @@ The mouse protocol handles mouse button presses, releases, and motion events, tr
     QueueMouseEvent(lisp_event)
 
     // Set interrupt flag
-    SetInterruptFlag(IOInterrupt))
+    SetInterruptFlag(IOInterrupt)
+])
 
 == Mouse Position Tracking
 
 === Update Mouse Position
 
-[`function UpdateMousePosition(x, y`]:
+#codeblock(lang: "pseudocode", [
+function UpdateMousePosition(x, y):
     // Store in IOPage
+    IOPage->dlmousex = x
+    IOPage->dlmousey = y
 
     // Update last user action
-    UpdateLastUserAction())
+    UpdateLastUserAction()
+])
 
 === Get Mouse Position
 
-[`function GetMousePosition(`]:)
+#codeblock(lang: "pseudocode", [
+function GetMousePosition():
+    return (IOPage->dlmousex, IOPage->dlmousey)
+])
 
 == Button State Tracking
 
 === Button State
 
-[`struct MouseButtonState:`]
-[`    button1_pressed: boolean`]
-[`    button2_pressed: boolean`]
-[`    button3_pressed: boolean`]
-[`    last_press_time: uint`]
-[`    chord_ticks: uint`]
+#codeblock(lang: "pseudocode", [
+struct MouseButtonState:
+    button1_pressed: boolean
+    button2_pressed: boolean
+    button3_pressed: boolean
+    last_press_time: uint
+    chord_ticks: uint
+])
 
 === Button Press/Release
 
-[`function HandleButtonPress(button`]:
-    key_name = format("button%d_pressed", button)
-    MouseButtonState[key_name] = true
+#codeblock(lang: "pseudocode", [
+function HandleButtonPress(button):
+    MouseButtonState["button" + button + "_pressed"] = true
     MouseButtonState.last_press_time = GetTimestamp()
-    CheckButtonChords())
 
-[`function HandleButtonRelease(button`]:
-    key_name = format("button%d_pressed", button)
-    MouseButtonState[key_name] = false)
+    // Check for button chords
+    CheckButtonChords()
+
+function HandleButtonRelease(button):
+    MouseButtonState["button" + button + "_pressed"] = false
+])
 
 == Mouse Motion
 
 === Motion Event Processing
 
-[`function ProcessMotionEvent(x, y`]:
+#codeblock(lang: "pseudocode", [
+function ProcessMotionEvent(x, y):
     // Update position
     UpdateMousePosition(x, y)
 
@@ -139,31 +160,37 @@ The mouse protocol handles mouse button presses, releases, and motion events, tr
     )
 
     // Queue event
-    QueueMouseEvent(event))
+    QueueMouseEvent(event)
+])
 
 == Cursor Management
 
 === Cursor Position
 
 Cursor position tracked separately from mouse position:
-- *Mouse Position*: Physical mouse position - *Cursor Position*: Display cursor position (may differ)
+
+- *Mouse Position*: Physical mouse position
+- *Cursor Position*: Display cursor position (may differ)
 
 === Cursor Update
 
-[`function UpdateCursorPosition(x, y`]:
+#codeblock(lang: "pseudocode", [
+function UpdateCursorPosition(x, y):
     // Update cursor display position
     CursorX = x
     CursorY = y
 
     // Update display if needed
     if CursorVisible:
-        RedrawCursor())
+        RedrawCursor()
+])
 
 == Platform-Specific Handling
 
 === X11 Mouse Events
 
-[`function ProcessX11MouseEvent(x_event`]:
+#codeblock(lang: "pseudocode", [
+function ProcessX11MouseEvent(x_event):
     switch x_event.type:
         case ButtonPress:
             button = MapX11Button(x_event.xbutton.button)
@@ -172,11 +199,13 @@ Cursor position tracked separately from mouse position:
             button = MapX11Button(x_event.xbutton.button)
             ProcessMouseEvent(BUTTON_RELEASE, button, x_event.xbutton.x, x_event.xbutton.y)
         case MotionNotify:
-            ProcessMotionEvent(x_event.xmotion.x, x_event.xmotion.y))
+            ProcessMotionEvent(x_event.xmotion.x, x_event.xmotion.y)
+])
 
 === SDL Mouse Events
 
-[`function ProcessSDLMouseEvent(sdl_event`]:
+#codeblock(lang: "pseudocode", [
+function ProcessSDLMouseEvent(sdl_event):
     switch sdl_event.type:
         case SDL_MOUSEBUTTONDOWN:
             button = MapSDLButton(sdl_event.button.button)
@@ -185,10 +214,11 @@ Cursor position tracked separately from mouse position:
             button = MapSDLButton(sdl_event.button.button)
             ProcessMouseEvent(BUTTON_RELEASE, button, sdl_event.button.x, sdl_event.button.y)
         case SDL_MOUSEMOTION:
-            ProcessMotionEvent(sdl_event.motion.x, sdl_event.motion.y))
+            ProcessMotionEvent(sdl_event.motion.x, sdl_event.motion.y)
+])
 
 == Related Documentation
 
 - Keyboard Protocol - Keyboard event handling
 - Event Protocols - General event handling
-- *Display* - Display coordinate system
+- Display - Display coordinate system

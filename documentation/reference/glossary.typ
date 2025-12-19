@@ -1,28 +1,47 @@
 = Maiko Glossary
 
+*Navigation*: README | Index | Architecture | Components | API | Build System
+
 Terminology and concepts used throughout the Maiko codebase.
+
+*Related Documentation*:
+
+- VM Core Component - Execution-related terms
+- Memory Management Component - Memory-related terms
+- Display Component - Display-related terms
+- I/O Systems Component - I/O-related terms
 
 == Core Concepts
 
 === LispPTR
 
-Virtual address in Lisp address space. A 32-bit (or larger with BIGVM) value that represents a location in the Lisp heap. Must be translated to native addresses using address translation functions.
+Virtual address pointer in Lisp address space. A 32-bit (or larger with BIGVM) value that represents a location in the Lisp heap. Must be translated to native addresses using address translation functions (see Address Translation).
+
+*See also*: Memory Layout, Address Translation
 
 === DLword
 
 Double-Length word. A 16-bit unsigned integer type used throughout the VM for addresses, offsets, and data.
 
+*See also*: Core Data Types
+
 === ByteCode
 
-Single byte representing a Lisp bytecode instruction. The VM executes sequences of ByteCode values.
+Single byte representing a Lisp bytecode instruction. The VM executes sequences of ByteCode values (see Dispatch Loop).
+
+*See also*: Opcode, Instruction Format
 
 === Sysout
 
 System output file. A saved Lisp image (`.virtualmem` file) containing the complete Lisp state including code, data, and execution state.
 
+*See also*: Startup Sequence, Storage Management
+
 === Dispatch Loop
 
-The main execution loop that fetches bytecode instructions and calls the appropriate handler function. Implemented in `dispatch()` function.
+The main execution loop that fetches bytecode instructions and calls the appropriate handler function. Implemented in `dispatch()` function (see Dispatch Loop Structure).
+
+*See also*: VM Core Component, Execution Model
 
 === Stack Frame (FX)
 
@@ -236,7 +255,7 @@ Unix RAID. File system operations subsystem.
 
 === Native Address
 
-Host system memory address (C).
+Host system memory address (C pointer).
 
 === Lisp Address
 

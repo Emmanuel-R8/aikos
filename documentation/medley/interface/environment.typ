@@ -1,5 +1,6 @@
 = Environment Variables
 
+*Navigation*: Medley README | Medley Index | Interface Overview
 
 == Overview
 
@@ -7,26 +8,52 @@ Medley scripts set environment variables that Maiko reads during initialization 
 
 == Environment Variables
 
-=== MEDLEYDIR pointerSet By: Medley scripts (computed from script location)
+=== MEDLEYDIR
 
-*Read By*: Maiko, Medley scripts pointerPurpose: Top-level directory of the Medley installation.
+*Set By*: Medley scripts (computed from script location)
 
-*Computation*: 1. Resolve all symbolic links in medley script path
+*Read By*: Maiko, Medley scripts
+
+*Purpose*: Top-level directory of the Medley installation.
+
+*Computation*:
+
+1. Resolve all symbolic links in medley script path
 2. MEDLEYDIR is the directory containing the resolved script
 3. In standard global installation: `/usr/local/interlisp/medley`
-4. Can be installed in multiple places on the same machine pointerUsage: Used by scripts and Maiko to locate Medley files (sysouts, greet files, etc.)
+4. Can be installed in multiple places on the same machine
+
+*Usage*: Used by scripts and Maiko to locate Medley files (sysouts, greet files, etc.)
 
 *Source Code Reference*: Scripts compute MEDLEYDIR from script location
 
-=== LOGINDIR pointerSet By: Medley scripts pointerRead By: Maiko pointerPurpose: User-specific Medley directory where user files are stored.
+=== LOGINDIR
+
+*Set By*: Medley scripts
+
+*Read By*: Maiko
+
+*Purpose*: User-specific Medley directory where user files are stored.
 
 *Default*: `MEDLEYDIR/logindir` or `HOME/il`
 
-*Override*: `-x DIR, --logindir DIR` flag pointerUsage: - Location for vmem files: `LOGINDIR/vmem/`
-- Location for user greet files: `LOGINDIR/INIT.LISP`
-- Working directory for Medley sessions pointerSource Code Reference: medley/scripts/medley/medley_run.sh - LOGINDIR setup
+*Override*: `-x DIR, --logindir DIR` flag
 
-=== LDESOURCESYSOUT pointerSet By: Medley scripts pointerRead By: Maiko pointerPurpose: Source sysout file path that Maiko should load.
+*Usage*:
+
+- Location for vmem files: `LOGINDIR/vmem/`
+- Location for user greet files: `LOGINDIR/INIT.LISP`
+- Working directory for Medley sessions
+
+*Source Code Reference*: medley/scripts/medley/medley_run.sh - LOGINDIR setup
+
+=== LDESOURCESYSOUT
+
+*Set By*: Medley scripts
+
+*Read By*: Maiko
+
+*Purpose*: Source sysout file path that Maiko should load.
 
 *Value*: Resolved sysout file path (e.g., `MEDLEYDIR/loadups/full.sysout`)
 
@@ -34,39 +61,72 @@ Medley scripts set environment variables that Maiko reads during initialization 
 
 *Source Code Reference*: medley/scripts/medley/medley_run.sh - LDESOURCESYSOUT setup
 
-=== LDEDESTSYSOUT pointerSet By: Medley scripts pointerRead By: Maiko pointerPurpose: Destination vmem file path where Maiko should save session state.
+=== LDEDESTSYSOUT
+
+*Set By*: Medley scripts
+
+*Read By*: Maiko
+
+*Purpose*: Destination vmem file path where Maiko should save session state.
 
 *Default*: `LOGINDIR/vmem/lisp_{run-id}.virtualmem` or `LOGINDIR/vmem/lisp.virtualmem` (if run ID is "default")
 
-*Override*: `-p FILE, --vmem FILE` flag pointerUsage: Maiko saves session state to this file on exit.
+*Override*: `-p FILE, --vmem FILE` flag
+
+*Usage*: Maiko saves session state to this file on exit.
 
 *Source Code Reference*: medley/scripts/medley/medley_run.sh - LDEDESTSYSOUT setup
 
-=== LDEINIT pointerSet By: Medley scripts pointerRead By: Maiko pointerPurpose: Greet file path that Maiko should execute during startup.
+=== LDEINIT
 
-*Default*: - Standard sysout: `MEDLEYDIR/greetfiles/MEDLEYDIR-INIT` - Apps sysout: `MEDLEYDIR/greetfiles/APPS-INIT`
+*Set By*: Medley scripts
 
-*Override*: `-r FILE, --greet FILE` flag pointerSuppress: `-r -, --greet -` flag (LDEINIT not set)
+*Read By*: Maiko
+
+*Purpose*: Greet file path that Maiko should execute during startup.
+
+*Default*:
+
+- Standard sysout: `MEDLEYDIR/greetfiles/MEDLEYDIR-INIT`
+- Apps sysout: `MEDLEYDIR/greetfiles/APPS-INIT`
+
+*Override*: `-r FILE, --greet FILE` flag
+
+*Suppress*: `-r -, --greet -` flag (LDEINIT not set)
 
 *Usage*: Maiko executes this file during startup before main Lisp system starts.
 
 *Source Code Reference*: medley/scripts/medley/medley_args.sh - LDEINIT setup
 
-=== LDEREMCM pointerSet By: Medley scripts pointerRead By: Maiko pointerPurpose: REM.CM file path that Maiko should execute after greet files.
+=== LDEREMCM
+
+*Set By*: Medley scripts
+
+*Read By*: Maiko
+
+*Purpose*: REM.CM file path that Maiko should execute after greet files.
 
 *Default*: Not set (no default REM.CM file)
 
-*Override*: `-cm FILE, --rem.cm FILE` flag pointerSuppress: `-cm -, --rem.cm -` flag (LDEREMCM not set)
+*Override*: `-cm FILE, --rem.cm FILE` flag
+
+*Suppress*: `-cm -, --rem.cm -` flag (LDEREMCM not set)
 
 *Usage*: Maiko executes this file after greet files, typically used for loadup operations.
 
 *Source Code Reference*: medley/scripts/medley/medley_args.sh - LDEREMCM setup
 
-=== LDEREPEATCM pointerSet By: Medley scripts (when `-cc FILE, --repeat FILE` is used)
+=== LDEREPEATCM
 
-*Read By*: Medley scripts, Maiko pointerPurpose: Repeat file path for repeated Medley runs.
+*Set By*: Medley scripts (when `-cc FILE, --repeat FILE` is used)
 
-*Value*: Path to repeat file specified with `-cc FILE, --repeat FILE` flag pointerUsage: Medley scripts check if this file exists and is non-empty to determine if Medley should run again.
+*Read By*: Medley scripts, Maiko
+
+*Purpose*: Repeat file path for repeated Medley runs.
+
+*Value*: Path to repeat file specified with `-cc FILE, --repeat FILE` flag
+
+*Usage*: Medley scripts check if this file exists and is non-empty to determine if Medley should run again.
 
 *Source Code Reference*: medley/scripts/medley/medley_args.sh - repeat file handling
 
@@ -89,16 +149,19 @@ Environment variables are set by Medley scripts before invoking Maiko:
 
 All environment variables are exported so Maiko can read them:
 
-[`export MEDLEYDIR`]
-[`export LOGINDIR`]
-[`export LDESOURCESYSOUT`]
-[`export LDEDESTSYSOUT`]
-[`export LDEINIT`]
-[`export LDEREMCM`]
+#codeblock(lang: "bash", [
+export MEDLEYDIR
+export LOGINDIR
+export LDESOURCESYSOUT
+export LDEDESTSYSOUT
+export LDEINIT
+export LDEREMCM
+])
 
 === Maiko Reading
 
 Maiko reads environment variables during initialization:
+
 - *Startup*: Maiko reads variables to locate files and configure behavior
 - *File Loading*: Maiko uses variables to load sysout, vmem, greet files
 - *File Saving*: Maiko uses LDEDESTSYSOUT to save vmem file on exit
@@ -150,14 +213,23 @@ LDEREMCM resolution order:
 === Windows/Cygwin
 
 On Windows/Cygwin, some environment variables may need special handling:
-- *Path Format*: Windows/Cygwin path conventions - *File System*: Medley file system vs. host Windows file system pointerSee: Platform - Windows for Windows-specific details
+
+- *Path Format*: Windows/Cygwin path conventions
+- *File System*: Medley file system vs. host Windows file system
+
+*See*: Platform - Windows for Windows-specific details
 
 === WSL
 
 On WSL, environment variables follow WSL conventions:
-- *Path Format*: WSL path conventions - *VNC Mode*: Special handling when VNC is used pointerSee: Platform - WSL for WSL-specific details
+
+- *Path Format*: WSL path conventions
+- *VNC Mode*: Special handling when VNC is used
+
+*See*: Platform - WSL for WSL-specific details
 
 == Related Documentation
+
 - *Scripts Component*: Scripts Component - Script system and environment setup
 - *Command-Line Interface*: Command-Line Interface - Command-line argument mapping
 - *File Formats*: File Formats - File format specifications

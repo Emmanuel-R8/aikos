@@ -1,5 +1,6 @@
 = Execution Semantics
 
+*Navigation*: README | Instruction Format | Opcodes
 
 Complete specification of instruction execution semantics, including execution rules, stack effects, and side effects.
 
@@ -7,13 +8,22 @@ Complete specification of instruction execution semantics, including execution r
 
 === Instruction Execution Cycle
 
-#figure(
-  caption: [Sequence Diagram],
-  [Diagram: See original documentation for visual representation.],
-)
+#codeblock(lang: "mermaid", [
+sequenceDiagram
+    participant Dispatch as Dispatch Loop
+    participant Fetch as Instruction Fetch
+    participant Decode as Instruction Decode
+    participant Execute as Opcode Handler
+    participant Stack as Stack Manager
+    participant Memory as Memory Manager
 
-  )
-)
+    Dispatch->>Fetch: Get bytecode at PC
+    Fetch->>Decode: Opcode byte + operands
+    Decode->>Execute: Opcode value + decoded operands
+    Execute->>Stack: Push/Pop operations
+    Execute->>Memory: Read/Write operations
+    Execute->>Dispatch: Update PC, continue
+])
 
 === Execution Steps
 
@@ -25,78 +35,116 @@ Complete specification of instruction execution semantics, including execution r
 
 == Execution Rules
 
-=== Stack Operations pointerPush Operation: [`function PushStack(value`]:
-    CurrentStackPTR = CurrentStackPTR - 2  // Move stack down
-    CurrentStackPTR[0] = value
-    TopOfStack = value)
+=== Stack Operations
 
-*Pop Operation*: [`function PopStack(`]:
-    value = CurrentStackPTR[0]
-    CurrentStackPTR = CurrentStackPTR + 2  // Move stack up
-    TopOfStack = (CurrentStackPTR - 2)[0]  // New top
-    return value)
+*Push Operation*:
+
+#codeblock(lang: "pseudocode", [
+function PushStack(value):
+    CurrentStackPTR = CurrentStackPTR - 2  // Move stack pointer down
+    *CurrentStackPTR = value
+    TopOfStack = value
+])
+
+*Pop Operation*:
+
+#codeblock(lang: "pseudocode", [
+function PopStack():
+    value = *CurrentStackPTR
+    CurrentStackPTR = CurrentStackPTR + 2  // Move stack pointer up
+    TopOfStack = *(CurrentStackPTR - 2)  // New top
+    return value
+])
 
 === Stack Effects Notation
+
 - *+N*: Pushes N values onto stack
 - *-N*: Pops N values from stack
 - *0*: No stack change
 - *→value*: Replaces TOS with value
 - *value→*: Pops value, result on TOS
 
-=== Memory Access pointerRead Operation: [`function ReadMemory(lisp_address, size`]:
-    native_ptr = TranslateAddress(lisp_address)
-    return ReadFromNative(native_ptr, size))
+=== Memory Access
 
-*Write Operation*: [`function WriteMemory(lisp_address, value, size`]:
+*Read Operation*:
+
+#codeblock(lang: "pseudocode", [
+function ReadMemory(lisp_address, size):
+    native_ptr = TranslateAddress(lisp_address)
+    return ReadFromNative(native_ptr, size)
+])
+
+*Write Operation*:
+
+#codeblock(lang: "pseudocode", [
+function WriteMemory(lisp_address, value, size):
     native_ptr = TranslateAddress(lisp_address)
     WriteToNative(native_ptr, value, size)
-    UpdateGCReferences(lisp_address, value))
+    UpdateGCReferences(lisp_address, value)
+])
 
 === Address Translation
 
 All memory accesses use address translation:
 
-[`function TranslateAddress(lisp_address, alignment`]:
+#codeblock(lang: "pseudocode", [
+function TranslateAddress(lisp_address, alignment):
     // Use FPtoVP mapping table
     page_base = GetPageBase(lisp_address)
     offset = GetPageOffset(lisp_address)
     native_page = FPtoVP[page_base]
-    return native_page + offset)
+    return native_page + offset
+])
 
 == Opcode Execution Patterns
 
-=== Pattern 1: Stack-Based Operations pointerExample: Arithmetic operations
+=== Pattern 1: Stack-Based Operations
 
-[`function ExecuteArithmeticOp(operation`]:
+*Example*: Arithmetic operations
+
+#codeblock(lang: "pseudocode", [
+function ExecuteArithmeticOp(operation):
     arg2 = PopStack()
     arg1 = PopStack()
     result = operation(arg1, arg2)
     PushStack(result)
-    PC = PC + instruction_length)
+    PC = PC + instruction_length
+])
 
-=== Pattern 2: Memory Modification pointerExample: RPLACA, RPLACD
+=== Pattern 2: Memory Modification
 
-[`function ExecuteMemoryModifyOp(`]:
+*Example*: RPLACA, RPLACD
+
+#codeblock(lang: "pseudocode", [
+function ExecuteMemoryModifyOp():
     new_value = PopStack()
     target = PopStack()
     old_value = ReadMemory(target)
     WriteMemory(target, new_value)
     UpdateGCReferences(target, old_value, new_value)
     PushStack(target)
-    PC = PC + instruction_length)
+    PC = PC + instruction_length
+])
 
-=== Pattern 3: Control Flow pointerExample: JUMP, FJUMP, TJUMP
+=== Pattern 3: Control Flow
 
-[`function ExecuteJumpOp(condition_check`]:
+*Example*: JUMP, FJUMP, TJUMP
+
+#codeblock(lang: "pseudocode", [
+function ExecuteJumpOp(condition_check):
     if condition_check():
         offset = DecodeOffset(operands)
         PC = PC + offset
     else:
-        PC = PC + instruction_length)
+        PC = PC + instruction_length
+])
 
-=== Pattern 4: Function Calls pointerExample: FN0-FN4, FNX
+=== Pattern 4: Function Calls
 
-[`function ExecuteFunctionCall(arg_count`]:
+*Example*: FN0-FN4, FNX
+
+#codeblock(lang: "pseudocode", [
+function ExecuteFunctionCall(arg_count):
     // Save current frame state
     SavePC()
     SaveStackPointer()
@@ -113,21 +161,36 @@ All memory accesses use address translation:
     // Enter function
     SetCurrentFrame(new_frame)
     PC = function_obj.code_start
-    // Continue dispatch loop)
+    // Continue dispatch loop
+])
 
 == Error Handling
 
-=== Error Conditions pointerType Errors: [`if not HasExpectedType(value, expected_type`]:
+=== Error Conditions
+
+*Type Errors*:
+
+#codeblock(lang: "pseudocode", [
+if not HasExpectedType(value, expected_type):
     ERROR_EXIT(value)
-    // Triggers error handler, may unwind stack)
+    // Triggers error handler, may unwind stack
+])
 
-*Overflow Errors*: [`if arithmetic_overflow_detected(result`]:
+*Overflow Errors*:
+
+#codeblock(lang: "pseudocode", [
+if arithmetic_overflow_detected(result):
     ERROR_EXIT(operands)
-    // Triggers error handler)
+    // Triggers error handler
+])
 
-*Memory Errors*: [`if invalid_address(address`]:
+*Memory Errors*:
+
+#codeblock(lang: "pseudocode", [
+if invalid_address(address):
     ERROR_EXIT(address)
-    // Triggers error handler)
+    // Triggers error handler
+])
 
 === Error Propagation
 
@@ -144,17 +207,22 @@ Errors propagate through:
 === GC Side Effects
 
 Operations that affect GC:
+
 - *CONS*: Allocates memory, may trigger GC
 - *RPLACA/RPLACD*: Updates reference counts
 - *GCREF*: Explicit reference counting
 
 === I/O Side Effects
 
-Operations that perform I/O: - *BIN/BOUT*: Byte input/output - *Subroutine calls*: May perform I/O
+Operations that perform I/O:
+
+- *BIN/BOUT*: Byte input/output
+- *Subroutine calls*: May perform I/O
 
 === State Side Effects
 
 Operations that modify VM state:
+
 - *BIND/UNBIND*: Modifies variable bindings
 - *CONTEXTSW*: Changes execution context
 - *Interrupts*: Modify interrupt state
@@ -188,16 +256,19 @@ Each instruction is atomic:
 == Performance Considerations
 
 === Dispatch Optimization
+
 - *Computed Goto*: Fastest dispatch method
 - *Switch Statement*: Portable fallback
 - *Opcode Table*: Pre-computed handler addresses
 
 === Stack Management
-- *Efficient Push/Pop*: Minimal manipulation
+
+- *Efficient Push/Pop*: Minimal pointer manipulation
 - *Stack Overflow Check*: Before frame allocation
 - *Frame Reuse*: Where possible
 
 === Memory Access
+
 - *Address Translation Cache*: Cache recent translations
 - *Alignment*: Proper alignment for performance
 - *GC Coordination*: Minimize GC overhead

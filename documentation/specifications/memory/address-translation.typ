@@ -1,5 +1,6 @@
 = Address Translation Specification
 
+*Navigation*: README | Virtual Memory | Memory Layout
 
 Complete specification of how LispPTR virtual addresses are translated to native memory addresses.
 
@@ -11,10 +12,12 @@ Address translation converts Lisp virtual addresses (LispPTR) to native memory a
 
 === LispPTR Structure
 
-[`struct LispPTR:`]
-[`    // 32-bit virtual address`]
-[`    bits: uint32`]
-[`    // Address components (without BIGVM`]
+#codeblock(lang: "pseudocode", [
+struct LispPTR:
+    // 32-bit virtual address
+    bits: uint32
+
+    // Address components (without BIGVM)
     segment: bits[24:31]    // High 8 bits
     page: bits[16:23]        // Middle 8 bits
     offset: bits[0:7]        // Low 8 bits
@@ -22,11 +25,13 @@ Address translation converts Lisp virtual addresses (LispPTR) to native memory a
     // Address components (with BIGVM)
     segment: bits[20:31]    // High 12 bits
     page: bits[12:19]        // Middle 8 bits
-    offset: bits[0:7]        // Low 8 bits)
+    offset: bits[0:7]        // Low 8 bits
+])
 
 === Address Extraction Macros
 
-[`function HILOC(lisp_address`]:
+#codeblock(lang: "pseudocode", [
+function HILOC(lisp_address):
     // Extract high bits (segment)
     return (lisp_address & SEGMASK) >> 16
 
@@ -46,13 +51,15 @@ function POINTER_PAGEBASE(lisp_address):
     if BIGVM:
         return lisp_address & 0x0FFFFF00
     else:
-        return lisp_address & 0x0FFFF00)
+        return lisp_address & 0x0FFFF00
+])
 
 == Translation Algorithm
 
 === Basic Translation
 
-[`function TranslateAddress(lisp_address, alignment`]:
+#codeblock(lang: "pseudocode", [
+function TranslateAddress(lisp_address, alignment):
     // Get page base
     page_base = POINTER_PAGEBASE(lisp_address)
 
@@ -71,11 +78,13 @@ function POINTER_PAGEBASE(lisp_address):
     else if alignment == 4:
         native_address = AlignTo4Bytes(native_address)
 
-    return native_address)
+    return native_address
+])
 
 === Page Translation
 
-[`function TranslatePage(virtual_page_base`]:
+#codeblock(lang: "pseudocode", [
+function TranslatePage(virtual_page_base):
     // Calculate virtual page number
     virtual_page_num = virtual_page_base >> 8
 
@@ -85,7 +94,8 @@ function POINTER_PAGEBASE(lisp_address):
     // Calculate native address
     native_page = native_base + virtual_page_base
 
-    return native_page)
+    return native_page
+])
 
 == Translation Functions
 
@@ -93,44 +103,50 @@ function POINTER_PAGEBASE(lisp_address):
 
 Translates to 2-byte aligned native address:
 
-[`function NativeAligned2FromLAddr(lisp_address`]:
+#codeblock(lang: "pseudocode", [
+function NativeAligned2FromLAddr(lisp_address):
     // CRITICAL: lisp_address is a DLword offset from Lisp_world, not byte offset!
     // Per maiko/inc/lspglob.h: "Pointers in Cell or any object means DLword offset from Lisp_world"
-    // Lisp_world is DLword pointer, so arithmetic: Lisp_world + lisp_address = lisp_address DLwords = lisp_address × 2 bytes
+    // Lisp_world is DLword*, so pointer arithmetic: Lisp_world + lisp_address = lisp_address DLwords = lisp_address * 2 bytes
     native_ptr = Lisp_world + lisp_address
-    return native_ptr  // Already 2-byte aligned)
+    return native_ptr  // Already 2-byte aligned
+])
 
 *C Reference*: `maiko/inc/adr68k.h:44-47` - `return (Lisp_world + LAddr);`
 
-*INVESTIGATION NOTE* (2025-12-12 16:45): There is an ongoing investigation into whether LispPTR values are actually stored as byte offsets despite the documentation stating they are DLword offsets. See "Address Translation Investigation" section below.
+*INVESTIGATION NOTE (2025-12-12 16:45)*: There is an ongoing investigation into whether LispPTR values are actually stored as byte offsets despite the documentation stating they are DLword offsets. See "Address Translation Investigation" section below.
 
 === NativeAligned4FromLAddr
 
 Translates to 4-byte aligned native address:
 
-[`function NativeAligned4FromLAddr(lisp_address`]:
+#codeblock(lang: "pseudocode", [
+function NativeAligned4FromLAddr(lisp_address):
     // Check alignment
     if lisp_address & 1:
         Error("Misaligned pointer")
 
     // CRITICAL: lisp_address is a DLword offset from Lisp_world, not byte offset!
     // Per maiko/inc/lspglob.h: "Pointers in Cell or any object means DLword offset from Lisp_world"
-    // Lisp_world is DLword pointer, so arithmetic: Lisp_world + lisp_address = lisp_address DLwords = lisp_address × 2 bytes
-    native_ptr = (void)(Lisp_world + lisp_address)
-    return native_ptr  // Already 4-byte aligned if input aligned)
+    // Lisp_world is DLword*, so pointer arithmetic: Lisp_world + lisp_address = lisp_address DLwords = lisp_address * 2 bytes
+    native_ptr = (void *)(Lisp_world + lisp_address)
+    return native_ptr  // Already 4-byte aligned if input aligned
+])
 
-*C Reference*: `maiko/inc/adr68k.h:49-55` - `return (void)(Lisp_world + LAddr);`
+*C Reference*: `maiko/inc/adr68k.h:49-55` - `return (void *)(Lisp_world + LAddr);`
 
-*INVESTIGATION NOTE* (2025-12-12 16:45): There is an ongoing investigation into whether this function should actually use byte addressing: `(char)Lisp_world + lisp_address`. See "Address Translation Investigation" section below.
+*INVESTIGATION NOTE (2025-12-12 16:45)*: There is an ongoing investigation into whether this function should actually use byte addressing: `(char *)Lisp_world + lisp_address`. See "Address Translation Investigation" section below.
 
 === NativeAligned4FromLPage
 
 Translates page base to 4-byte aligned address:
 
-[`function NativeAligned4FromLPage(lisp_page`]:
+#codeblock(lang: "pseudocode", [
+function NativeAligned4FromLPage(lisp_page):
     // Page base is always aligned
     native_ptr = Lisp_world + (lisp_page << 8)
-    return native_ptr)
+    return native_ptr
+])
 
 == Reverse Translation
 
@@ -138,7 +154,8 @@ Translates page base to 4-byte aligned address:
 
 Converts native address back to LispPTR:
 
-[`function LAddrFromNative(native_address`]:
+#codeblock(lang: "pseudocode", [
+function LAddrFromNative(native_address):
     // Check alignment
     if native_address & 1:
         Error("Misaligned pointer")
@@ -146,13 +163,15 @@ Converts native address back to LispPTR:
     // Calculate offset from Lisp_world base
     lisp_address = native_address - Lisp_world
 
-    return lisp_address)
+    return lisp_address
+])
 
 === StackOffsetFromNative
 
 Converts native stack address to stack offset:
 
-[`function StackOffsetFromNative(stack_address`]:
+#codeblock(lang: "pseudocode", [
+function StackOffsetFromNative(stack_address):
     // Calculate offset from stack base
     offset = stack_address - Stackspace
 
@@ -160,7 +179,8 @@ Converts native stack address to stack offset:
     if offset > 0xFFFF or offset < 0:
         Error("Stack offset out of range")
 
-    return offset)
+    return offset
+])
 
 == Address Construction
 
@@ -168,18 +188,22 @@ Converts native stack address to stack offset:
 
 Constructs LispPTR from segment and offset:
 
-[`function VAG2(high_bits, low_bits`]:
+#codeblock(lang: "pseudocode", [
+function VAG2(high_bits, low_bits):
     // Combine high and low bits
     lisp_address = (high_bits << 16) | low_bits
-    return lisp_address)
+    return lisp_address
+])
 
 === ADDBASE
 
 Adds word offset to address:
 
-[`function ADDBASE(pointer, word_offset`]:
+#codeblock(lang: "pseudocode", [
+function ADDBASE(pointer, word_offset):
     // Add offset (in words, converted to bytes)
-    return + (word_offset × 2))
+    return pointer + (word_offset * 2)
+])
 
 == Alignment Requirements
 
@@ -199,7 +223,8 @@ Adds word offset to address:
 
 === Valid Address Check
 
-[`function IsValidAddress(lisp_address`]:
+#codeblock(lang: "pseudocode", [
+function IsValidAddress(lisp_address):
     // Check range
     if lisp_address < MIN_ADDRESS:
         return false
@@ -210,11 +235,13 @@ Adds word offset to address:
     if requires_alignment and (lisp_address & alignment_mask):
         return false
 
-    return true)
+    return true
+])
 
 === Page Validation
 
-[`function IsValidPage(virtual_page`]:
+#codeblock(lang: "pseudocode", [
+function IsValidPage(virtual_page):
     // Check if page is allocated
     if not IsPageAllocated(virtual_page):
         return false
@@ -223,7 +250,8 @@ Adds word offset to address:
     if IsPageLocked(virtual_page):
         return true  // Locked pages are valid
 
-    return true)
+    return true
+])
 
 == Performance Considerations
 
@@ -240,12 +268,17 @@ Some implementations may cache translations:
 For contiguous memory:
 
 - Direct offset calculation
-- No lookup required - Fastest translation method
+- No lookup required
+- Fastest translation method
 
-== Address Translation Investigation pointerDate: 2025-12-12 16:45
+== Address Translation Investigation
+
+*Date*: 2025-12-12 16:45
 *Status*: Investigation in progress
 
-=== Hypothesis pointerAll addresses should be bytes everywhere (makes sense since instructions are single bytes). This contradicts the documentation which states LispPTR is a DLword offset.
+=== Hypothesis
+
+*All addresses should be bytes everywhere* (makes sense since instructions are single bytes). This contradicts the documentation which states LispPTR is a DLword offset.
 
 === Key Observation
 
@@ -254,24 +287,36 @@ From C emulator execution log:
 - FX_FNHEADER: `0x307864`
 - Difference: `0x34` = 52 bytes = `104/2`
 
+This suggests: *PC = FX_FNHEADER + (CURRENTFX->pc / 2)*
 
-=== Pattern in C Code pointerWhen converting FROM native TO LispPTR (dividing by 2):
+=== Pattern in C Code
+
+*When converting FROM native pointer TO LispPTR* (dividing by 2):
 - `maiko/src/xc.c:546`: `pc_dlword_offset = (LispPTR)(pc_byte_offset / 2);`
-- `maiko/src/xc.c:704`: `stack_ptr_offset = (LispPTR)((char)CurrentStackPTR - (char)Stackspace) / 2;`
-- `maiko/src/xc.c:743`: `currentfx_offset = (LispPTR)((char)CURRENTFX - (char)Stackspace) / 2;`
+- `maiko/src/xc.c:704`: `stack_ptr_offset = (LispPTR)((char *)CurrentStackPTR - (char *)Stackspace) / 2;`
+- `maiko/src/xc.c:743`: `currentfx_offset = (LispPTR)((char *)CURRENTFX - (char *)Stackspace) / 2;`
 
 *Pattern*: When converting native pointers to LispPTR, they:
-1. Cast to `char pointer` to get byte offset
-2. Divide by 2 to convert to DLword offset pointerWhen converting FROM LispPTR TO native: - `maiko/inc/adr68k.h:46`: `return (Lisp_world + LAddr);` - Uses DLword arithmetic
-- `maiko/inc/adr68k.h:58`: `return (void)(Lisp_world + LAddr);` - Uses DLword arithmetic pointerPattern: When converting LispPTR to native pointers, they use DLword arithmetic (no cast to `char pointer`).
+1. Cast to `char *` to get byte offset
+2. Divide by 2 to convert to DLword offset
 
-=== Hypothesis pointerMaybe LispPTR values are actually stored as byte offsets, not DLword offsets pointer, despite the documentation. The `NativeAligned4FromLAddr` function might need to cast to `char pointer` first:
+*When converting FROM LispPTR TO native pointer*:
+- `maiko/inc/adr68k.h:46`: `return (Lisp_world + LAddr);` - Uses DLword arithmetic
+- `maiko/inc/adr68k.h:58`: `return (void *)(Lisp_world + LAddr);` - Uses DLword arithmetic
 
-[`// Current (documented`]:
-return (void)(Lisp_world + LAddr);  // DLword arithmetic
+*Pattern*: When converting LispPTR to native pointers, they use DLword pointer arithmetic (no cast to `char *`).
+
+=== Hypothesis
+
+*Maybe LispPTR values are actually stored as byte offsets, not DLword offsets*, despite the documentation. The `NativeAligned4FromLAddr` function might need to cast to `char *` first:
+
+#codeblock(lang: "c", [
+// Current (documented):
+return (void *)(Lisp_world + LAddr);  // DLword arithmetic
 
 // Should be (if byte addressing):
-return (void)((char)Lisp_world + LAddr);  // Byte arithmetic)
+return (void *)((char *)Lisp_world + LAddr);  // Byte arithmetic
+])
 
 === Testing Status
 
@@ -282,7 +327,8 @@ return (void)((char)Lisp_world + LAddr);  // Byte arithmetic)
 === Next Steps
 
 1. Run C emulator with modified byte addressing to see actual behavior
-2. Verify if `NativeAligned4FromLAddr` should cast to `char pointer` first
+2. Verify if `NativeAligned4FromLAddr` should cast to `char *` first
+3. Check if CURRENTFX->pc is actually stored as 52 (bytes) or 104 (DLwords)
 4. Update this documentation based on findings
 
 == Related Documentation

@@ -1,5 +1,6 @@
 = VM Core Specification
 
+*Navigation*: README | Index | Instruction Set
 
 Complete specification of the VM core execution engine, including dispatch loop, stack management, function calls, and interrupt handling.
 
@@ -9,13 +10,18 @@ The VM Core is the execution engine that interprets Lisp bytecode. It manages th
 
 == Documentation Structure
 
-- *Execution Model* - Dispatch loop and instruction execution- *Stack Management* - Stack frames and operations- *Function Calls* - Call/return mechanisms- *Interrupt Handling* - Interrupt processing
+- *Execution Model* - Dispatch loop and instruction execution
+- *Execution Trace* - Execution trace format for debugging and validation
+- *Stack Management* - Stack frames and operations
+- *Function Calls* - Call/return mechanisms
+- *Type Checking* - Type table access, type predicates, and type checking
+- *Interrupt Handling* - Interrupt processing
 
 == Core Components
 
 === Execution Engine
 
-The dispatch loop (`dispatch()`) is the heart of the VM*:
+The dispatch loop (`dispatch()`) is the heart of the VM:
 
 - Fetches bytecode instructions
 - Decodes opcodes and operands
@@ -47,6 +53,16 @@ Function calls involve:
 
 See Function Calls for complete specification.
 
+=== Type Checking System
+
+Type checking validates object types:
+
+- Type table (MDStypetbl) lookup
+- Type predicates (LISTP, NUMBERP, etc.)
+- Address range heuristics (when type table unavailable)
+
+See Type Checking for complete specification.
+
 === Interrupt System
 
 Interrupts are processed between instructions:
@@ -60,7 +76,8 @@ See Interrupt Handling for complete specification.
 == Execution State
 
 The VM maintains execution state:
-- *Program Counter* (PC): Current instruction
+
+- *Program Counter (PC)*: Current instruction pointer
 - *Stack Pointer*: Current stack position
 - *Current Frame*: Active function frame
 - *Function Object*: Current function metadata

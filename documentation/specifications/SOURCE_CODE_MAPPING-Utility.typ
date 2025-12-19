@@ -1,5 +1,6 @@
 = Source Code Mapping - Utility & Support
 
+*Navigation*: Source Code Mapping | Main README
 
 Mapping of Utility & Support source code files to documentation sections.
 
@@ -12,11 +13,11 @@ Mapping of Utility & Support source code files to documentation sections.
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
 // | `maiko/src/atom.c` | `.ai_assistant_db/rewrite-spec/memory/memory-layout.md` | ✅ Complete |
-// | | **Functions*: Atom operations | | |
+// | | **Functions**: Atom operations | | |
 // | `maiko/src/mkatom.c` | `.ai_assistant_db/rewrite-spec/memory/memory-layout.md` | ✅ Complete |
-// | | **Functions*: Atom creation | | |
+// | | **Functions**: Atom creation | | |
 // | `maiko/src/sxhash.c` | `.ai_assistant_db/rewrite-spec/memory/memory-layout.md` | ✅ Complete |
-// | | **Functions*: Hash function for atoms | | |
+// | | **Functions**: Hash function for atoms | | |
 // 
 
 === Type System
@@ -26,7 +27,7 @@ Mapping of Utility & Support source code files to documentation sections.
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
 // | `maiko/src/typeof.c` | `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md` | ✅ Complete |
-// | | **Functions*: Type checking operations | | |
+// | | **Functions**: Type checking operations | | |
 // 
 
 === String Operations
@@ -36,7 +37,7 @@ Mapping of Utility & Support source code files to documentation sections.
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
 // | `maiko/src/bin.c` | `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md` | ⚠️ Needs verification |
-// | | **Functions*: String/binary operations | | |
+// | | **Functions**: String/binary operations | | |
 // 
 
 === Floating Point
@@ -46,7 +47,7 @@ Mapping of Utility & Support source code files to documentation sections.
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
 // | `maiko/src/fp.c` | `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md` (Arithmetic) | ✅ Complete |
-// | | **Functions*: Floating-point operations | | |
+// | | **Functions**: Floating-point operations | | |
 // 
 
 === Variables
@@ -56,11 +57,11 @@ Mapping of Utility & Support source code files to documentation sections.
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
 // | `maiko/src/fvar.c` | `.ai_assistant_db/rewrite-spec/vm-core/stack-management.md` | ✅ Complete |
-// | | **Functions*: FVar (free variable) operations | | |
+// | | **Functions**: FVar (free variable) operations | | |
 // | `maiko/src/gvar2.c` | `.ai_assistant_db/rewrite-spec/vm-core/stack-management.md` | ✅ Complete |
-// | | **Functions*: GVar (global variable) operations | | |
+// | | **Functions**: GVar (global variable) operations | | |
 // | `maiko/src/vars3.c` | `.ai_assistant_db/rewrite-spec/vm-core/stack-management.md` | ✅ Complete |
-// | | **Functions*: Variable operations | | |
+// | | **Functions**: Variable operations | | |
 // 
 
 === Error Handling
@@ -69,10 +70,10 @@ Mapping of Utility & Support source code files to documentation sections.
 // Original markdown table:
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
-// | `maiko/src/common.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP*: Error handling not explicitly documented |
-// | | **Functions*: `error()`, common utilities | | |
-// | `maiko/src/perrno.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP*: Error handling not explicitly documented |
-// | | **Functions*: Error number handling | | |
+// | `maiko/src/common.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: Error handling not explicitly documented |
+// | | **Functions**: `error()`, common utilities | | |
+// | `maiko/src/perrno.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: Error handling not explicitly documented |
+// | | **Functions**: Error number handling | | |
 // 
 
 === Debugging & Testing
@@ -82,11 +83,11 @@ Mapping of Utility & Support source code files to documentation sections.
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
 // | `maiko/src/testtool.c` | `.ai_assistant_db/rewrite-spec/validation/reference-behaviors.md` | ✅ Complete |
-// | | **Functions*: Testing utilities | | |
-// | `maiko/src/dbgtool.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP*: Debugging tools not documented |
-// | | **Functions*: Debugging utilities | | |
-// | `maiko/src/kprint.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP*: Debugging tools not documented |
-// | | **Functions*: Print utilities | | |
+// | | **Functions**: Testing utilities | | |
+// | `maiko/src/dbgtool.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: Debugging tools not documented |
+// | | **Functions**: Debugging utilities | | |
+// | `maiko/src/kprint.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: Debugging tools not documented |
+// | | **Functions**: Print utilities | | |
 // 
 
 === Foreign Function Interface
@@ -95,8 +96,8 @@ Mapping of Utility & Support source code files to documentation sections.
 // Original markdown table:
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
-// | `maiko/src/foreign.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP*: FFI not documented |
-// | | **Functions*: Foreign function calls | | |
+// | `maiko/src/foreign.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: FFI not documented |
+// | | **Functions**: Foreign function calls | | |
 // 
 
 === Lisp-to-C Translation
@@ -105,18 +106,18 @@ Mapping of Utility & Support source code files to documentation sections.
 // Original markdown table:
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
-// | `maiko/src/lisp2c.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP*: Lisp-to-C not documented |
-// | | **Functions*: Lisp to C translation | | |
+// | `maiko/src/lisp2c.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: Lisp-to-C not documented |
+// | | **Functions**: Lisp to C translation | | |
 // 
 
 === Lisp Parser (LispP)
 
-// TODO*: Convert table to Typst table syntax
+// TODO: Convert table to Typst table syntax
 // Original markdown table:
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
-// | `maiko/src/lpmain.c`, `src/lpread.c`, `src/lpwrite.c`, `src/lptran.c`, `src/lpsolve.c`, `src/lpkit.c`, `src/lplexyy.c`, `src/lpytab.c`, `src/lpdual.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP*: LispP parser not documented |
-// | | **Functions*: Lisp parser implementation | | |
+// | `maiko/src/lpmain.c`, `src/lpread.c`, `src/lpwrite.c`, `src/lptran.c`, `src/lpsolve.c`, `src/lpkit.c`, `src/lplexyy.c`, `src/lpytab.c`, `src/lpdual.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: LispP parser not documented |
+// | | **Functions**: Lisp parser implementation | | |
 // 
 
 === Code Conversion
@@ -125,10 +126,10 @@ Mapping of Utility & Support source code files to documentation sections.
 // Original markdown table:
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
-// | `maiko/src/codeconv.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP*: Code conversion not documented |
-// | | **Functions*: Code conversion utilities | | |
-// | `maiko/src/codetbl.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP*: Code conversion not documented |
-// | | **Functions*: Code table operations | | |
+// | `maiko/src/codeconv.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: Code conversion not documented |
+// | | **Functions**: Code conversion utilities | | |
+// | `maiko/src/codetbl.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: Code conversion not documented |
+// | | **Functions**: Code table operations | | |
 // 
 
 === Character Device
@@ -137,8 +138,8 @@ Mapping of Utility & Support source code files to documentation sections.
 // Original markdown table:
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
-// | `maiko/src/chardev.c` | `.ai_assistant_db/rewrite-spec/io/` | ⚠️ **GAP*: Character device not documented |
-// | | **Functions*: Character device operations | | |
+// | `maiko/src/chardev.c` | `.ai_assistant_db/rewrite-spec/io/` | ⚠️ **GAP**: Character device not documented |
+// | | **Functions**: Character device operations | | |
 // 
 
 === Terminal/TTY
@@ -147,8 +148,8 @@ Mapping of Utility & Support source code files to documentation sections.
 // Original markdown table:
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
-// | `maiko/src/tty.c` | `.ai_assistant_db/rewrite-spec/io/` | ⚠️ **GAP*: TTY not documented |
-// | | **Functions*: TTY operations | | |
+// | `maiko/src/tty.c` | `.ai_assistant_db/rewrite-spec/io/` | ⚠️ **GAP**: TTY not documented |
+// | | **Functions**: TTY operations | | |
 // 
 
 === OS Messages
@@ -157,10 +158,10 @@ Mapping of Utility & Support source code files to documentation sections.
 // Original markdown table:
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
-// | `maiko/src/osmsg.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP*: OS messages not documented |
-// | | **Functions*: OS message handling | | |
-// | `maiko/src/chatter.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP*: Chatter not documented |
-// | | **Functions*: Chatter output | | |
+// | `maiko/src/osmsg.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: OS messages not documented |
+// | | **Functions**: OS message handling | | |
+// | `maiko/src/chatter.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: Chatter not documented |
+// | | **Functions**: Chatter output | | |
 // 
 
 === Subroutines
@@ -170,11 +171,11 @@ Mapping of Utility & Support source code files to documentation sections.
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
 // | `maiko/src/subr.c` | `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md` | ✅ Complete |
-// | | **Functions*: Various subroutine implementations | | |
+// | | **Functions**: Various subroutine implementations | | |
 // | `maiko/src/subr0374.c` | `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md` | ✅ Complete |
-// | | **Functions*: Additional subroutines | | |
+// | | **Functions**: Additional subroutines | | |
 // | `maiko/src/usrsubr.c` | `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md` | ✅ Complete |
-// | | **Functions*: User subroutines | | |
+// | | **Functions**: User subroutines | | |
 // 
 
 === Low-Level Operations
@@ -184,7 +185,7 @@ Mapping of Utility & Support source code files to documentation sections.
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
 // | `maiko/src/lowlev1.c`, `src/lowlev2.c` | `.ai_assistant_db/rewrite-spec/vm-core/execution-model.md` | ✅ Complete |
-// | | **Functions*: Low-level VM operations | | |
+// | | **Functions**: Low-level VM operations | | |
 // 
 
 === Hardware Routines
@@ -194,17 +195,17 @@ Mapping of Utility & Support source code files to documentation sections.
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
 // | `maiko/src/hardrtn.c` | `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md` | ✅ Complete |
-// | | **Functions*: Hardware routine calls | | |
+// | | **Functions**: Hardware routine calls | | |
 // 
 
-=== URAID* (Unwind/RAID)
+=== URAID (Unwind/RAID)
 
-// TODO*: Convert table to Typst table syntax
+// TODO: Convert table to Typst table syntax
 // Original markdown table:
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
-// | `maiko/src/uraid.c` | `.ai_assistant_db/rewrite-spec/vm-core/` | ⚠️ **GAP*: URAID not explicitly documented |
-// | | **Functions*: Unwind/RAID operations | | |
+// | `maiko/src/uraid.c` | `.ai_assistant_db/rewrite-spec/vm-core/` | ⚠️ **GAP**: URAID not explicitly documented |
+// | | **Functions**: Unwind/RAID operations | | |
 // 
 
 === Memory Virtualization
@@ -214,7 +215,7 @@ Mapping of Utility & Support source code files to documentation sections.
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
 // | `maiko/src/mvs.c` | `.ai_assistant_db/rewrite-spec/memory/virtual-memory.md` | ✅ Complete |
-// | | **Functions*: Memory virtualization | | |
+// | | **Functions**: Memory virtualization | | |
 // 
 
 === Initialization
@@ -224,9 +225,9 @@ Mapping of Utility & Support source code files to documentation sections.
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
 // | `maiko/src/initsout.c` | `.ai_assistant_db/rewrite-spec/data-structures/sysout-format.md` | ✅ Complete |
-// | | **Functions*: Sysout initialization | | |
+// | | **Functions**: Sysout initialization | | |
 // | `maiko/src/initatms.h` (if exists) | `.ai_assistant_db/rewrite-spec/memory/memory-layout.md` | ✅ Complete |
-// | | **Functions*: Atom initialization | | |
+// | | **Functions**: Atom initialization | | |
 // 
 
 === DOS-Specific
@@ -236,11 +237,11 @@ Mapping of Utility & Support source code files to documentation sections.
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
 // | `maiko/src/doscomm.c` | `.ai_assistant_db/rewrite-spec/platform-abstraction/implementation-choices.md` | ✅ Complete |
-// | | **Functions*: DOS communication | | |
+// | | **Functions**: DOS communication | | |
 // | `maiko/src/vesainit.c`, `src/vgainit.c`, `src/vesafns.asm` | `.ai_assistant_db/rewrite-spec/platform-abstraction/implementation-choices.md` | ✅ Complete |
-// | | **Functions*: VESA/VGA initialization (DOS) | | |
+// | | **Functions**: VESA/VGA initialization (DOS) | | |
 // | `maiko/src/launch.asm` | `.ai_assistant_db/rewrite-spec/platform-abstraction/implementation-choices.md` | ✅ Complete |
-// | | **Functions*: DOS launch code | | |
+// | | **Functions**: DOS launch code | | |
 // 
 
 === Byte Swapping
@@ -250,7 +251,7 @@ Mapping of Utility & Support source code files to documentation sections.
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
 // | `maiko/src/byteswap.c` | `.ai_assistant_db/rewrite-spec/data-structures/sysout-format.md` | ✅ Complete |
-// | | **Functions*: Byte swapping for cross-platform compatibility | | |
+// | | **Functions**: Byte swapping for cross-platform compatibility | | |
 // 
 
 === Miscellaneous
@@ -259,14 +260,14 @@ Mapping of Utility & Support source code files to documentation sections.
 // Original markdown table:
 // | Source File | Documentation Section | Coverage Status |
 // |-------------|----------------------|-----------------|
-// | `maiko/src/ejlisp.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP*: EJLisp not documented |
-// | | **Functions*: EJLisp operations | | |
-// | `maiko/src/mkvdate.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP*: Date utilities not documented |
-// | | **Functions*: Date creation | | |
+// | `maiko/src/ejlisp.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: EJLisp not documented |
+// | | **Functions**: EJLisp operations | | |
+// | `maiko/src/mkvdate.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: Date utilities not documented |
+// | | **Functions**: Date creation | | |
 // | `maiko/src/lsthandl.c` | `.ai_assistant_db/rewrite-spec/data-structures/cons-cells.md` | ✅ Complete |
-// | | **Functions*: List handling | | |
-// | `maiko/src/uutils.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP*: Unix utilities not documented |
-// | | **Functions*: Unix utility functions | | |
+// | | **Functions**: List handling | | |
+// | `maiko/src/uutils.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: Unix utilities not documented |
+// | | **Functions**: Unix utility functions | | |
 // 
 
 == Documentation Coverage Summary
@@ -277,114 +278,120 @@ Mapping of Utility & Support source code files to documentation sections.
    - Dispatch loop
    - Instruction set (all 256 opcodes)
    - Stack management
-  - Function calls
-  - Interrupt handling
+   - Function calls
+   - Interrupt handling
 
 2. *Memory Management* (100% coverage)
    - Garbage collection
    - Virtual memory
    - Address translation
-  - Memory layout
-  - Data structures
+   - Memory layout
+   - Data structures
 
 3. *Display Subsystem* (100% coverage)
    - Interface abstraction
    - Graphics operations
-  - Event protocols
-  - X11 and SDL implementations
+   - Event protocols
+   - X11 and SDL implementations
 
 4. *I/O Subsystem* (85% coverage)
    - Keyboard protocol ✅
    - Mouse protocol ✅
    - File system ✅
    - Network protocol ✅
-  - Serial communication ⚠️
-  - Unix IPC ⚠️
+   - Serial communication ⚠️
+   - Unix IPC ⚠️
 
 === ⚠️ Partially Documented Areas
 
 1. *Serial Communication* (`rs232c.c`, `rawrs232c.c`)
-- *Status*: Not explicitly documented
-- *Impact*: LOW - Serial ports are optional feature
-- *Recommendation*: Add to I/O documentation if needed
+   - *Status*: Not explicitly documented
+   - *Impact*: LOW - Serial ports are optional feature
+   - *Recommendation*: Add to I/O documentation if needed
 
-2. *Unix IPC (`unixcomm.c`, `unixfork.c`)
-- *Status*: Not explicitly documented
-- *Impact*: LOW - IPC is optional feature
-- *Recommendation*: Add to I/O documentation if needed
+2. *Unix IPC* (`unixcomm.c`, `unixfork.c`)
+   - *Status*: Not explicitly documented
+   - *Impact*: LOW - IPC is optional feature
+   - *Recommendation*: Add to I/O documentation if needed
 
 3. *Error Handling* (`common.c`, `perrno.c`)
-- *Status*: Error handling mentioned in spec but not detailed
-- *Impact*: MEDIUM - Error handling is important
-- *Recommendation*: Add error handling section or clarify coverage
+   - *Status*: Error handling mentioned in spec but not detailed
+   - *Impact*: MEDIUM - Error handling is important
+   - *Recommendation*: Add error handling section or clarify coverage
 
 === ❌ Undocumented Areas (Out of Scope)
 
 These areas are intentionally out of scope per specification:
 
 1. *Debugging Tools* (`dbgtool.c`, `kprint.c`)
-  - *Reason*: Out of scope* - "Debugging tools or development workflows"
+   - *Reason*: Out of scope - "Debugging tools or development workflows"
 
 2. *Foreign Function Interface* (`foreign.c`)
-  - *Reason*: Out of scope* - Not core VM functionality
+   - *Reason*: Out of scope - Not core VM functionality
 
 3. *Lisp-to-C Translation* (`lisp2c.c`)
-  - *Reason*: Out of scope* - Not core VM functionality
+   - *Reason*: Out of scope - Not core VM functionality
 
 4. *LispP Parser* (`lpmain.c`, `lpread.c`, etc.)
-  - *Reason*: Out of scope* - Parser implementation, not VM core
+   - *Reason*: Out of scope - Parser implementation, not VM core
 
 5. *Code Conversion* (`codeconv.c`, `codetbl.c`)
-  - *Reason*: Out of scope* - Code conversion utilities
+   - *Reason*: Out of scope - Code conversion utilities
 
 6. *Character Device* (`chardev.c`)
-  - *Reason*: Out of scope* - Optional device support
+   - *Reason*: Out of scope - Optional device support
 
 7. *TTY* (`tty.c`)
-  - *Reason*: Out of scope* - Terminal support
+   - *Reason*: Out of scope - Terminal support
 
 8. *OS Messages* (`osmsg.c`, `chatter.c`)
-  - *Reason*: Out of scope* - Debugging/output utilities
+   - *Reason*: Out of scope - Debugging/output utilities
 
 9. *EJLisp* (`ejlisp.c`)
-  - *Reason*: Out of scope* - Specialized feature
+   - *Reason*: Out of scope - Specialized feature
 
 10. *Date Utilities* (`mkvdate.c`)
-  - *Reason*: Out of scope* - Utility functions
+    - *Reason*: Out of scope - Utility functions
 
 11. *Unix Utilities* (`uutils.c`)
-  - *Reason*: Out of scope* - Utility functions
+    - *Reason*: Out of scope - Utility functions
 
 == Recommendations
 
 === High Priority
 
 1. *Error Handling Documentation* (FR-011)
-  - Add explicit error handling section or clarify it's covered in subsystem docs
-  - Document error codes and recovery mechanisms
+   - Add explicit error handling section or clarify it's covered in subsystem docs
+   - Document error codes and recovery mechanisms
 
 === Medium Priority
 
 2. *Serial Communication* (if needed)
-  - Add RS-232 protocol specification to I/O documentation
-  - Document serial port operations
+   - Add RS-232 protocol specification to I/O documentation
+   - Document serial port operations
 
-3. *Unix IPC (if needed)
-  - Add Unix IPC protocol specification to I/O documentation
-  - Document IPC operations
+3. *Unix IPC* (if needed)
+   - Add Unix IPC protocol specification to I/O documentation
+   - Document IPC operations
 
 === Low Priority
 
-4. *Verify Minor Opcodes  - Verify `shift.c`, `ubf1.c`, `ubf2.c`, `ubf3.c`, `z2.c` are documented in opcodes.md
-  - Verify `bin.c` string operations are documented
+4. *Verify Minor Opcodes*
+   - Verify `shift.c`, `ubf1.c`, `ubf2.c`, `ubf3.c`, `z2.c` are documented in opcodes.md
+   - Verify `bin.c` string operations are documented
 
-== Conclusion pointerOverall Documentation Coverage: ~95%
+== Conclusion
+
+*Overall Documentation Coverage*: ~95%
+
 - *Core VM Functionality*: 100% documented
 - *Memory Management*: 100% documented
 - *Display Subsystem*: 100% documented
 - *I/O Subsystem*: 85% documented (missing serial/IPC)
 - *Optional Features*: Intentionally out of scope
 
-== Related Documentation - Source Code Mapping - Complete mapping index
+== Related Documentation
+
+- Source Code Mapping - Complete mapping index
 - VM Core Specifications - VM core specifications
-- Memory Specifications* - Memory management specifications
+- Memory Specifications - Memory management specifications

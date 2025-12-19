@@ -1,5 +1,6 @@
 = Command-Line Interface
 
+*Navigation*: Medley README | Medley Index | Interface Overview
 
 == Overview
 
@@ -17,7 +18,10 @@ Medley scripts transform arguments in this order:
 2. *Command-Line*: Process command-line arguments (override config)
 3. *Validation*: Validate argument combinations
 4. *Transformation*: Transform Medley flags to Maiko flags
-5. *Invocation*: Invoke Maiko with transformed arguments pointerSource Code Reference: medley/scripts/medley/medley_args.sh - argument parsing pointerSource Code Reference: medley/scripts/medley/medley_run.sh - Maiko invocation
+5. *Invocation*: Invoke Maiko with transformed arguments
+
+*Source Code Reference*: medley/scripts/medley/medley_args.sh - argument parsing
+*Source Code Reference*: medley/scripts/medley/medley_run.sh - Maiko invocation
 
 == Complete Flag Mapping
 
@@ -31,7 +35,7 @@ Medley scripts transform arguments in this order:
 // | `-l, --lisp` | sysout argument | `MEDLEYDIR/loadups/lisp.sysout` | Use lisp.sysout |
 // | `-a, --apps` | sysout argument | `MEDLEYDIR/loadups/apps.sysout` | Use apps.sysout |
 // | `-y FILE, --sysout FILE` | sysout argument | Specified file path | Use specified sysout |
-// | `-u,* --continue` | sysout argument | Vmem file (if present) or full.sysout | Continue from vmem |
+// | `-u, --continue` | sysout argument | Vmem file (if present) or full.sysout | Continue from vmem |
 // | Explicit sysout argument | sysout argument | Specified file path | Use specified sysout |
 // 
 
@@ -45,15 +49,18 @@ Medley scripts transform arguments in this order:
 // |------------|------------|---------------|-------------|
 // | `-g WxH, --geometry WxH` | `-g WxH` | Direct pass-through | Window geometry |
 // | `-sc WxH, --screensize WxH` | `-sc WxH` | Direct pass-through | Virtual screen size |
-// | `-d :N, --display :N` | `-d:N` | Direct pass-through | X display (or "SDL") |
+// | `-d :N, --display :N` | `-d :N` | Direct pass-through | X display (or "SDL") |
 // | `-ps N, --pixelscale N` | `-ps N` | Direct pass-through | Pixel scale (SDL only) |
 // | `-bw N, --borderwidth N` | `-bw N` | Direct pass-through | Border width |
 // | `-ns, --noscroll` | `-ns` | Direct pass-through | Disable scroll bars |
 // | `-t STRING, --title STRING` | `-title STRING` | Direct pass-through | Window title |
 // 
 
-*Platform Notes*: - `-ps, --pixelscale`: Only applicable when display is SDL-based (Windows/Cygwin)
-- `-d, --display`: Set to "SDL" to select SDL instead of X11 - `-t, --title`: Ignored when `--vnc` flag is set
+*Platform Notes*:
+
+- `-ps, --pixelscale`: Only applicable when display is SDL-based (Windows/Cygwin)
+- `-d, --display`: Set to "SDL" to select SDL instead of X11
+- `-t, --title`: Ignored when `--vnc` flag is set
 
 === Memory Flags
 
@@ -126,7 +133,8 @@ These flags are handled by Medley scripts and not passed to Maiko:
 - `-am, --automation`: Automation mode (script handles, WSL/VNC only)
 - `-br BRANCH, --branch BRANCH`: Branch specification (script handles)
 - `-prog EXE, --maikoprog EXE`: Maiko executable name (script handles)
-- `--maikodir DIR`: Maiko directory (script handles, testing only) - `-v [+|-], --vnc [+|-]`: VNC mode (script handles, WSL only)
+- `--maikodir DIR`: Maiko directory (script handles, testing only)
+- `-v [+|-], --vnc [+|-]`: VNC mode (script handles, WSL only)
 
 == Maiko Invocation Pattern
 
@@ -134,21 +142,23 @@ These flags are handled by Medley scripts and not passed to Maiko:
 
 Scripts invoke Maiko using the `start_maiko()` function:
 
-[`"${maiko}" "${src_sysout}" \`]
-[`           -id "${run_id}" \`]
-[`           -title "${title}" \`]
-[`           -g "${geometry}" \`]
-[`           -sc "${screensize}" \`]
-[`           ${borderwidth_flag} ${borderwidth_value} \`]
-[`           ${pixelscale_flag} ${pixelscale_value} \`]
-[`           ${noscroll_arg} \`]
-[`           ${mem_flag} ${mem_value} \`]
-[`           ${nh_host_flag} ${nh_host_value} \`]
-[`           ${nh_port_flag} ${nh_port_value} \`]
-[`           ${nh_mac_flag} ${nh_mac_value} \`]
-[`           ${nh_debug_flag} ${nh_debug_value} \`]
-[`           ${nofork_arg} \`]
-[`           "$@"`]
+#codeblock(lang: "bash", [
+"${maiko}" "${src_sysout}" \
+           -id "${run_id}" \
+           -title "${title}" \
+           -g "${geometry}" \
+           -sc "${screensize}" \
+           ${borderwidth_flag} ${borderwidth_value} \
+           ${pixelscale_flag} ${pixelscale_value} \
+           ${noscroll_arg} \
+           ${mem_flag} ${mem_value} \
+           ${nh_host_flag} ${nh_host_value} \
+           ${nh_port_flag} ${nh_port_value} \
+           ${nh_mac_flag} ${nh_mac_value} \
+           ${nh_debug_flag} ${nh_debug_value} \
+           ${nofork_arg} \
+           "$@"
+])
 
 *Source Code Reference*: medley/scripts/medley/medley_run.sh - `start_maiko()` function
 
@@ -170,13 +180,17 @@ Before invoking Maiko, scripts set these environment variables:
 - `LDESOURCESYSOUT`: Source sysout file path
 - `LDEDESTSYSOUT`: Destination vmem file path
 - `LDEINIT`: Greet file path
-- `LDEREMCM`: REM.CM file path pointerSee: Environment Variables for complete environment variable documentation
+- `LDEREMCM`: REM.CM file path
+
+*See*: Environment Variables for complete environment variable documentation
 
 == Pass-Through Arguments
 
 Arguments after `--` are passed directly to Maiko without transformation:
 
-[`medley -f -- -some-maiko-flag maiko-value`]
+#codeblock(lang: "bash", [
+medley -f -- -some-maiko-flag maiko-value
+])
 
 This allows direct access to Maiko flags not exposed by Medley scripts.
 
@@ -256,41 +270,63 @@ Based on `medley.1` man page:
 
 === Basic Invocation
 
-[`medley -f`]
-[`# Transforms to:`]
-[`# maiko MEDLEYDIR/loadups/full.sysout -id default -title "Medley Interlisp %i" -g 1440x900 -sc 1440x900 -m 256`]
+#codeblock(lang: "bash", [
+medley -f
+# Transforms to:
+# maiko MEDLEYDIR/loadups/full.sysout -id default -title "Medley Interlisp %i" -g 1440x900 -sc 1440x900 -m 256
+])
 
 === Custom Geometry
 
-[`medley -f -g 1024x768`]
-[`# Transforms to:`]
-[`# maiko MEDLEYDIR/loadups/full.sysout -id default -title "Medley Interlisp %i" -g 1024x768 -sc 1024x768 -m 256`]
+#codeblock(lang: "bash", [
+medley -f -g 1024x768
+# Transforms to:
+# maiko MEDLEYDIR/loadups/full.sysout -id default -title "Medley Interlisp %i" -g 1024x768 -sc 1024x768 -m 256
+])
 
 === With Pass-Through Arguments
 
-[`medley -f -- -some-maiko-flag value`]
-[`# Transforms to:`]
-[`# maiko MEDLEYDIR/loadups/full.sysout -id default ... -some-maiko-flag value`]
+#codeblock(lang: "bash", [
+medley -f -- -some-maiko-flag value
+# Transforms to:
+# maiko MEDLEYDIR/loadups/full.sysout -id default ... -some-maiko-flag value
+])
 
 === Session Continuation
 
-[`medley -i work`]
-[`# Transforms to:`]
-[`# maiko LOGINDIR/vmem/lisp_work.virtualmem -id work ... (if vmem exists)`]
-[`# or`]
-[`# maiko MEDLEYDIR/loadups/full.sysout -id work ... (if no vmem)`]
+#codeblock(lang: "bash", [
+medley -i work
+# Transforms to:
+# maiko LOGINDIR/vmem/lisp_work.virtualmem -id work ... (if vmem exists)
+# or
+# maiko MEDLEYDIR/loadups/full.sysout -id work ... (if no vmem)
+])
 
 == Argument Transformation Diagram
 
-#figure(
-  caption: [Diagram],
-  [Diagram: See original documentation for visual representation.],
-)
+#codeblock(lang: "mermaid", [
+graph LR
+    subgraph Medley["Medley Scripts"]
+        UserArgs["User Arguments"]
+        ConfigArgs["Config File Args"]
+        Parse["Argument Parser"]
+        Transform["Argument Transformer"]
+    end
 
-  )
-)
+    subgraph Maiko["Maiko Emulator"]
+        MaikoArgs["Maiko Arguments"]
+        MaikoExec["Maiko Execution"]
+    end
+
+    UserArgs --> Parse
+    ConfigArgs --> Parse
+    Parse --> Transform
+    Transform --> MaikoArgs
+    MaikoArgs --> MaikoExec
+])
 
 == Related Documentation
+
 - *Scripts Component*: Scripts Component - Script system and argument parsing
 - *Environment Variables*: Environment Variables - Environment variable communication
 - *File Formats*: File Formats - File format specifications

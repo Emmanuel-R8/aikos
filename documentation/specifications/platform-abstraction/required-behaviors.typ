@@ -1,5 +1,6 @@
 = Required Behaviors Specification
 
+*Navigation*: README | Implementation Choices
 
 Complete specification of behaviors that MUST match exactly for compatibility. These are non-negotiable requirements.
 
@@ -15,7 +16,8 @@ Required behaviors are aspects of the VM that must match exactly to maintain com
 
 - Opcode execution semantics (all 256 opcodes)
 - Stack effects of each opcode
-- Error conditions and error handling - Program counter advancement rules
+- Error conditions and error handling
+- Program counter advancement rules
 
 *Rationale*: Bytecode execution must be identical for programs to run correctly.
 
@@ -25,7 +27,8 @@ Required behaviors are aspects of the VM that must match exactly to maintain com
 
 - Frame structure (FX format)
 - Field offsets and sizes
-- Activation link structure - Name table layout
+- Activation link structure
+- Name table layout
 
 *Rationale*: Stack frames must be compatible for function calls to work.
 
@@ -35,7 +38,8 @@ Required behaviors are aspects of the VM that must match exactly to maintain com
 
 - LispPTR format (32-bit virtual address)
 - Address component extraction (segment, page, offset)
-- Translation algorithm (FPtoVP mapping) - Alignment requirements
+- Translation algorithm (FPtoVP mapping)
+- Alignment requirements
 
 *Rationale*: Memory addresses must translate correctly for memory access.
 
@@ -47,7 +51,8 @@ Required behaviors are aspects of the VM that must match exactly to maintain com
 
 - Reference counting algorithm
 - Hash table structure (HTmain, HTcoll)
-- Reference count overflow handling - Reclamation phases
+- Reference count overflow handling
+- Reclamation phases
 
 *Rationale*: GC must behave identically for memory management correctness.
 
@@ -57,7 +62,8 @@ Required behaviors are aspects of the VM that must match exactly to maintain com
 
 - Memory region offsets (STK_OFFSET, MDS_OFFSET, etc.)
 - Page size (256 bytes)
-- Data structure formats (cons cells, arrays, etc.) - Sysout file format
+- Data structure formats (cons cells, arrays, etc.)
+- Sysout file format
 
 *Rationale*: Memory layout must match for sysout compatibility.
 
@@ -67,7 +73,8 @@ Required behaviors are aspects of the VM that must match exactly to maintain com
 
 - Cons cell format (8 bytes, CDR coding)
 - Array header format
-- Function header format - All structure field offsets
+- Function header format
+- All structure field offsets
 
 *Rationale*: Data structures must match for correct data access.
 
@@ -78,7 +85,8 @@ Required behaviors are aspects of the VM that must match exactly to maintain com
 *MUST MATCH*:
 
 - OS keycode → Lisp keycode mapping
-- Modifier key encoding - Special key codes (function keys, arrows, etc.)
+- Modifier key encoding
+- Special key codes (function keys, arrows, etc.)
 
 *Rationale*: Keyboard input must translate correctly for user interaction.
 
@@ -88,7 +96,8 @@ Required behaviors are aspects of the VM that must match exactly to maintain com
 
 - BitBLT operation semantics (COPY, XOR, AND, OR, etc.)
 - Coordinate system (top-left origin, Y increases downward)
-- Display region memory layout - Pixel format encoding
+- Display region memory layout
+- Pixel format encoding
 
 *Rationale*: Graphics must render identically for visual compatibility.
 
@@ -98,7 +107,8 @@ Required behaviors are aspects of the VM that must match exactly to maintain com
 
 - Origin at top-left (0, 0)
 - X increases rightward
-- Y increases downward - Coordinate units (pixels)
+- Y increases downward
+- Coordinate units (pixels)
 
 *Rationale*: Event coordinates must match for input handling.
 
@@ -110,7 +120,8 @@ Required behaviors are aspects of the VM that must match exactly to maintain com
 
 - Lisp pathname format parsing
 - Platform pathname conversion rules
-- Special character quoting rules - Version number handling
+- Special character quoting rules
+- Version number handling
 
 *Rationale*: File operations must work with existing pathnames.
 
@@ -120,7 +131,8 @@ Required behaviors are aspects of the VM that must match exactly to maintain com
 
 - File open modes and recognition types
 - Read/write byte order (if applicable)
-- Error code mapping - File attribute semantics
+- Error code mapping
+- File attribute semantics
 
 *Rationale*: File I/O must behave identically for data compatibility.
 
@@ -130,7 +142,8 @@ Required behaviors are aspects of the VM that must match exactly to maintain com
 
 - Ethernet packet structure
 - Checksum calculation algorithm
-- TCP/IP protocol semantics - Packet header formats
+- TCP/IP protocol semantics
+- Packet header formats
 
 *Rationale*: Network communication must use compatible protocols.
 
@@ -142,7 +155,8 @@ Required behaviors are aspects of the VM that must match exactly to maintain com
 
 - Sysout file format
 - IFPAGE structure
-- FPtoVP table format - Page loading algorithm
+- FPtoVP table format
+- Page loading algorithm
 
 *Rationale*: Must load and run existing sysout files.
 
@@ -152,7 +166,8 @@ Required behaviors are aspects of the VM that must match exactly to maintain com
 
 - All 256 opcode values
 - Instruction encoding
-- Operand formats - Execution semantics
+- Operand formats
+- Execution semantics
 
 *Rationale*: Must execute existing bytecode correctly.
 
@@ -162,7 +177,8 @@ Required behaviors are aspects of the VM that must match exactly to maintain com
 
 - All data structure formats
 - Field layouts
-- Encoding schemes (CDR coding, etc.) - Alignment requirements
+- Encoding schemes (CDR coding, etc.)
+- Alignment requirements
 
 *Rationale*: Must access data structures correctly.
 

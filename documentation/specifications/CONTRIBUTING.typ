@@ -1,5 +1,6 @@
 = Contributing to Rewrite Specifications
 
+*Navigation*: README | Index
 
 Guidelines for creating and maintaining rewrite specification documentation.
 
@@ -24,6 +25,7 @@ All specifications MUST:
 === Specification Completeness
 
 Each specification MUST include:
+
 - *Purpose*: What this specification describes
 - *Algorithm/Format*: Complete description in pseudocode or formal notation
 - *Inputs/Outputs*: Clear input and output specifications
@@ -35,39 +37,47 @@ Each specification MUST include:
 
 Each opcode specification MUST include:
 
-[`### Opcode Name (Value: 0xXX`]
+#codeblock(lang: "markdown", [
+### Opcode Name (Value: 0xXX)
 
-**Operand Format*: [description]
-**Stack Effects*: [how stack changes]
-**Execution Semantics*:
+**Operand Format**: [description]
+**Stack Effects**: [how stack changes]
+**Execution Semantics**:
   [pseudocode description]
-**Side Effects*: [any side effects]
-**Error Conditions*: [when it fails])
+**Side Effects**: [any side effects]
+**Error Conditions**: [when it fails]
+])
 
 == Data Structure Documentation Format
 
 Each data structure specification MUST include:
 
-[`### Structure Name`]
-[`**Layout*:`]
-[`  - Field1: Type, offset, description`]
-[`  - Field2: Type, offset, description`]
-[`**Size*: X bytes`]
-[`**Alignment*: X-byte alignment`]
-[`**Encoding*: [special encoding rules]`]
-[`**Invariants*: [constraints that must hold]`]
+#codeblock(lang: "markdown", [
+### Structure Name
+
+**Layout**:
+  - Field1: Type, offset, description
+  - Field2: Type, offset, description
+**Size**: X bytes
+**Alignment**: X-byte alignment
+**Encoding**: [special encoding rules]
+**Invariants**: [constraints that must hold]
+])
 
 == Algorithm Documentation Format
 
 Each algorithm specification MUST include:
 
-[`### Algorithm Name`]
-[`**Purpose*: [what it does]`]
-[`**Inputs*: [input parameters]`]
-[`**Outputs*: [return values and side effects]`]
-[`**Algorithm*:`]
-[`  [step-by-step pseudocode]`]
-[`**Complexity*: [time/space if relevant]`]
+#codeblock(lang: "markdown", [
+### Algorithm Name
+
+**Purpose**: [what it does]
+**Inputs**: [input parameters]
+**Outputs**: [return values and side effects]
+**Algorithm**:
+  [step-by-step pseudocode]
+**Complexity**: [time/space if relevant]
+])
 
 == Cross-References
 
@@ -87,7 +97,8 @@ Before marking a specification complete:
 == Platform Abstraction
 
 - Clearly mark required behaviors (must match exactly)
-- Clearly mark implementation choices (may differ) - Distinguish platform-independent from platform-specific
+- Clearly mark implementation choices (may differ)
+- Distinguish platform-independent from platform-specific
 
 == Review Process
 

@@ -1,5 +1,6 @@
 = Validation and Testing
 
+*Navigation*: README | Index
 
 This section provides reference test cases and compatibility criteria for validating emulator rewrite implementations.
 

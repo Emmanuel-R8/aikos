@@ -1,5 +1,6 @@
 = I/O Subsystem Specification
 
+*Navigation*: README | Index | Display | Platform Abstraction
 
 Complete specification of I/O subsystems, including keyboard, mouse, file system, and network protocols.
 
@@ -8,13 +9,18 @@ Complete specification of I/O subsystems, including keyboard, mouse, file system
 The I/O subsystem handles all input/output operations, abstracting platform-specific I/O APIs behind consistent interfaces.
 
 == Documentation Structure
-- *Keyboard Protocol* - Key event translation and handling- *Mouse Protocol* - Mouse event handling- *File System* - File I/O and pathname handling- *Network Protocol - Ethernet and Internet protocols
+
+- *Keyboard Protocol* - Key event translation and handling
+- *Mouse Protocol* - Mouse event handling
+- *File System* - File I/O and pathname handling
+- *Network Protocol* - Ethernet and Internet protocols
 
 == Key Concepts
 
 === I/O Interfaces
 
 Platform-specific I/O is abstracted through interfaces:
+
 - *Keyboard Interface*: Key event translation
 - *Mouse Interface*: Mouse event handling
 - *File Interface*: File system operations
@@ -23,6 +29,7 @@ Platform-specific I/O is abstracted through interfaces:
 === Event Translation
 
 Platform events are translated to Lisp formats:
+
 - *Keycodes*: OS keycodes → Lisp keycodes
 - *Mouse Events*: Platform mouse events → Lisp mouse events
 - *File Paths*: Platform paths → Lisp pathnames
@@ -30,6 +37,7 @@ Platform events are translated to Lisp formats:
 === Platform Abstraction
 
 I/O operations abstract platform differences:
+
 - *File Systems*: Different path separators, case sensitivity
 - *Network*: Different socket APIs
 - *Serial Ports*: Different serial port interfaces
@@ -38,4 +46,4 @@ I/O operations abstract platform differences:
 
 - Display - Display events
 - Platform Abstraction - Required vs optional behaviors
-- VM Core* - I/O interrupt handling
+- VM Core - I/O interrupt handling

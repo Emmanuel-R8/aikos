@@ -1,4 +1,9 @@
-= Common Lisp Implementation: Maiko Emulator pointerFeature: 002-lisp-implementation pointerDate: 2025-12-04
+= Common Lisp Implementation: Maiko Emulator
+
+*Navigation*: README | Index | Architecture
+
+*Feature*: 002-lisp-implementation
+*Date*: 2025-12-04
 *Status*: ✅ Complete (77/78 tasks, 98.7%)
 
 == Overview
@@ -6,6 +11,7 @@
 Complete implementation of the Maiko emulator in Common Lisp (SBCL), following the rewrite specifications in `.ai_assistant_db/rewrite-spec/`. The implementation maintains exact compatibility with the C implementation while leveraging Common Lisp's strengths.
 
 == Implementation Statistics
+
 - *Source Files*: 24 Lisp files
 - *Test Files*: 11 test files
 - *Opcodes Implemented*: 189 of 256 (73.8%)
@@ -17,67 +23,71 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL), following t
 
 === Project Structure
 
-[`alternatives/lisp/`]
-[`├── maiko-lisp.asd`]
-[`├── build.sh`]
-[`├── run.sh`]
-[`├── README.md`]
-[`├── src/`]
-[`│   ├── package.lisp`]
-[`│   ├── main.lisp`]
-[`│   ├── vm/`]
-[`│   │   ├── dispatch.lisp`]
-[`│   │   ├── opcodes.lisp`]
-[`│   │   ├── stack.lisp`]
-[`│   │   ├── function.lisp`]
-[`│   │   └── interrupt.lisp`]
-[`│   ├── memory/`]
-[`│   │   ├── storage.lisp`]
-[`│   │   ├── gc.lisp`]
-[`│   │   ├── virtual.lisp`]
-[`│   │   └── layout.lisp`]
-[`│   ├── data/`]
-[`│   │   ├── cons.lisp`]
-[`│   │   ├── array.lisp`]
-[`│   │   ├── function-header.lisp`]
-[`│   │   └── sysout.lisp`]
-[`│   ├── display/`]
-[`│   │   ├── sdl-backend.lisp`]
-[`│   │   ├── graphics.lisp`]
-[`│   │   └── events.lisp`]
-[`│   ├── io/`]
-[`│   │   ├── keyboard.lisp`]
-[`│   │   ├── mouse.lisp`]
-[`│   │   └── filesystem.lisp`]
-[`│   └── utils/`]
-[`│       ├── types.lisp`]
-[`│       ├── errors.lisp`]
-[`│       └── address.lisp`]
-[`├── tests/`]
-[`│   ├── test-suite.lisp`]
-[`│   ├── opcodes.lisp`]
-[`│   ├── stack.lisp`]
-[`│   ├── dispatch.lisp`]
-[`│   ├── memory.lisp`]
-[`│   ├── gc.lisp`]
-[`│   ├── sysout.lisp`]
-[`│   ├── keyboard.lisp`]
-[`│   ├── mouse.lisp`]
-[`│   ├── display.lisp`]
-[`│   ├── filesystem.lisp`]
-[`│   └── compatibility.lisp`]
-[`└── docs/`]
-[`    └── IMPLEMENTATION.md`]
+#codeblock(lang: "text", [
+alternatives/lisp/
+├── maiko-lisp.asd          # ASDF system definition
+├── build.sh                 # Build script
+├── run.sh                   # Run script
+├── README.md                # Project README
+├── src/
+│   ├── package.lisp         # Package definitions
+│   ├── main.lisp            # Entry point
+│   ├── vm/                  # VM core
+│   │   ├── dispatch.lisp   # Dispatch loop (462 lines)
+│   │   ├── opcodes.lisp    # Opcode definitions
+│   │   ├── stack.lisp      # Stack management
+│   │   ├── function.lisp   # Function calls
+│   │   └── interrupt.lisp  # Interrupt handling
+│   ├── memory/              # Memory management
+│   │   ├── storage.lisp    # Heap allocation
+│   │   ├── gc.lisp         # Garbage collection
+│   │   ├── virtual.lisp    # Virtual memory/FPtoVP
+│   │   └── layout.lisp     # Memory layout
+│   ├── data/                # Data structures
+│   │   ├── cons.lisp       # Cons cells
+│   │   ├── array.lisp      # Arrays
+│   │   ├── function-header.lisp
+│   │   └── sysout.lisp     # Sysout loading
+│   ├── display/             # Display subsystem
+│   │   ├── sdl-backend.lisp
+│   │   ├── graphics.lisp   # BitBLT operations
+│   │   └── events.lisp     # Event handling
+│   ├── io/                  # I/O subsystem
+│   │   ├── keyboard.lisp
+│   │   ├── mouse.lisp
+│   │   └── filesystem.lisp
+│   └── utils/               # Utilities
+│       ├── types.lisp      # Type definitions
+│       ├── errors.lisp     # Error conditions
+│       └── address.lisp    # Address translation
+├── tests/                    # Test suite
+│   ├── test-suite.lisp
+│   ├── opcodes.lisp
+│   ├── stack.lisp
+│   ├── dispatch.lisp
+│   ├── memory.lisp
+│   ├── gc.lisp
+│   ├── sysout.lisp
+│   ├── keyboard.lisp
+│   ├── mouse.lisp
+│   ├── display.lisp
+│   ├── filesystem.lisp
+│   └── compatibility.lisp
+└── docs/
+    └── IMPLEMENTATION.md    # Implementation notes
+])
 
 == Key Implementation Decisions
 
 === Build System
+
 - *ASDF*: Standard Common Lisp build system
 - *Dependencies*: Made `uiop` and `alexandria` optional (conditional on `:sb-thread` feature)
 - *SBCL*: Primary target implementation
 - *SDL3*: Target display backend (via `cl-sdl3` or CFFI)
 
 === Memory Management
+
 - *Storage Allocation*: Heap-based allocation with free list management
 - *GC Coordination*: Uses `sb-sys:with-pinned-objects` to prevent Common Lisp GC from moving Maiko-managed objects
 - *Reference Counting*: Maiko's reference-counting GC implemented as separate system on top of Common Lisp memory
@@ -85,25 +95,31 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL), following t
 - *Sysout Loading*: Endianness-aware sysout file loading with version validation
 
 === VM Core
+
 - *Dispatch Loop*: Variable-length instruction handling with operand fetching
 - *Stack Management*: Frame-based stack with proper allocation/deallocation
 - *Opcode Handlers*: 189 opcodes implemented with correct semantics
 - *Interrupt Handling*: Structure in place for I/O, timer, and system interrupts
 
 === Display Backend
+
 - *SDL3*: Target backend (no X11 requirement)
 - *Fallback*: When `cl-sdl3` unavailable, display structure created but SDL operations stubbed
 - *Graphics*: BitBLT operations implemented with COPY and XOR modes
 - *Events*: Polling-based event handling
 
 === I/O Subsystem
+
 - *Keyboard*: Event queue with OS keycode to Lisp keycode translation
 - *Mouse*: Position tracking and event translation
 - *Filesystem*: Pathname translation for platform compatibility (Unix/Windows)
 
 == Implementation Details
 
-=== Opcode Implementation pointerImplemented Categories: - Constants (NIL, T, CONST_0, CONST_1, SIC, SNIC, SICX, ACONST)
+=== Opcode Implementation
+
+*Implemented Categories*:
+- Constants (NIL, T, CONST_0, CONST_1, SIC, SNIC, SICX, ACONST)
 - List operations (CAR, CDR, CONS, LIST, APPEND)
 - Arithmetic (IPLUS2, IDIFFERENCE, ITIMES2, IQUO, IREM, IADD1, ISUB1)
 - Comparison (EQ, EQL, EQUAL, ILESSP, IGREATERP)
@@ -118,41 +134,68 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL), following t
 - Global variables (GETGLOBAL, SETGLOBAL)
 - GC operations (MARK, SWEEP)
 - Cell creation (MAKECELL, FREECELL)
-- Base address operations (GETBASE, SETBASE) - Address manipulation (ADDBASE, SUBBASE)
+- Base address operations (GETBASE, SETBASE)
+- Address manipulation (ADDBASE, SUBBASE)
 
 *Remaining*: 67 opcodes (mostly specialized operations, can be added incrementally)
 
-=== Memory Management pointerStorage: - Heap allocation with DLword-aligned blocks
+=== Memory Management
+
+*Storage*:
+- Heap allocation with DLword-aligned blocks
 - Free list management for efficient allocation
-- Storage full detection pointerGarbage Collection: - Hash table-based reference counting
+- Storage full detection
+
+*Garbage Collection*:
+- Hash table-based reference counting
 - Stack reference marking
 - GC enable/disable control
-- Reclaim countdown mechanism pointerVirtual Memory: - FPtoVP (File Page to Virtual Page) mapping
+- Reclaim countdown mechanism
+
+*Virtual Memory*:
+- FPtoVP (File Page to Virtual Page) mapping
 - Page-based address translation
-- Support for sysout file page mapping pointerSysout Loading: - Endianness-aware reading (little-endian)
+- Support for sysout file page mapping
+
+*Sysout Loading*:
+- Endianness-aware reading (little-endian)
 - IFPAGE structure parsing
 - Version compatibility checking
 - Keyval validation
 
-=== Error Handling pointerError Conditions: - `vm-error`: VM execution errors
+=== Error Handling
+
+*Error Conditions*:
+- `vm-error`: VM execution errors
 - `memory-error`: Memory allocation/access errors
 - `display-error`: Display initialization/rendering errors
 - `io-error`: I/O operation errors
 - `sysout-load-failed`: Sysout file loading errors
-- `invalid-address`: Address translation errors pointerEdge Cases Handled: - Sysout version mismatch
+- `invalid-address`: Address translation errors
+
+*Edge Cases Handled*:
+- Sysout version mismatch
 - Memory allocation failures
 - SDL initialization failures
 - Invalid address access
 - End-of-file during sysout reading
 
-=== Platform Support pointerEndianness: - Platform-specific detection via `sb-sys:machine-type`
-- Little-endian byte order for sysout files - Word size handling (32-bit LispPTR, 16-bit DLword)
+=== Platform Support
 
-*Pathname Translation*: - Unix-style paths (forward slashes)
+*Endianness*:
+- Platform-specific detection via `sb-sys:machine-type`
+- Little-endian byte order for sysout files
+- Word size handling (32-bit LispPTR, 16-bit DLword)
+
+*Pathname Translation*:
+- Unix-style paths (forward slashes)
 - Windows-style paths (backslashes, drive letters)
 - Platform-agnostic pathname handling
 
-== Testing pointerTest Coverage: - Opcode execution tests
+== Testing
+
+*Test Coverage*:
+- Opcode execution tests
 - Stack management tests
 - Dispatch loop tests
 - Memory allocation tests
@@ -161,9 +204,12 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL), following t
 - Keyboard/mouse event tests
 - Display operation tests
 - Filesystem operation tests
-- Compatibility tests pointerTest Framework: FiveAM
+- Compatibility tests
+
+*Test Framework*: FiveAM
 
 == Performance Considerations
+
 - *Correctness First*: Implementation prioritizes correctness over performance
 - *Type Declarations*: Used throughout for SBCL optimization hints
 - *Profiling*: Performance profiling deferred until correctness verified (T077)
@@ -207,6 +253,7 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL), following t
 5. *Performance Optimization*: Profile and optimize after correctness verification
 
 == References
+
 - *Specification*: `specs/002-lisp-implementation/spec.md`
 - *Plan*: `specs/002-lisp-implementation/plan.md`
 - *Tasks*: `specs/002-lisp-implementation/tasks.md`
@@ -219,4 +266,4 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL), following t
 - Memory Management - GC and memory layout
 - Display - Display subsystem architecture
 - I/O - I/O subsystem architecture
-- *Instruction Set* - Opcode specifications
+- Instruction Set - Opcode specifications

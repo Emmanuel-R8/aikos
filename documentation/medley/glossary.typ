@@ -1,8 +1,10 @@
 = Medley Glossary
 
+*Navigation*: README | Index | Architecture | Components | Interface | Platform
 
 Terminology and concepts used throughout Medley documentation.
 
+*Related Documentation*:
 
 - Components Documentation - Component-specific terms
 - Interface Documentation - Interface-related terms
@@ -45,9 +47,10 @@ Identifier for a Medley session instance. Used to distinguish multiple Medley in
 === Sysout File
 
 Binary file containing a complete Lisp system state. Created by the loadup process and loaded by Maiko to start a Medley session. Standard types:
+
 - *lisp.sysout*: Minimal Interlisp and Common Lisp environment
-- *full.sysout: Complete Interlisp and Common Lisp with development tools
-- *apps.sysout: Full sysout plus Medley applications (Notecards, Rooms, CLOS)
+- *full.sysout*: Complete Interlisp and Common Lisp with development tools
+- *apps.sysout*: Full sysout plus Medley applications (Notecards, Rooms, CLOS)
 
 *See also*: Sysout Files, Loadup Workflow
 
@@ -80,9 +83,12 @@ Lisp file executed after greet files, typically used for loadup operations. Can 
 === Medley Script
 
 Main entry point script that parses arguments, sets up environment, and invokes Maiko. Platform-specific variants:
-- *medley_run.sh: Linux/macOS shell script
-- *medley.command: macOS application bundle script
-- *medley.ps1*: Windows PowerShell script pointerSee also: Scripts, Platform Documentation
+
+- *medley_run.sh*: Linux/macOS shell script
+- *medley.command*: macOS application bundle script
+- *medley.ps1*: Windows PowerShell script
+
+*See also*: Scripts, Platform Documentation
 
 === Argument Parsing
 
@@ -127,21 +133,27 @@ Communication patterns and protocols used during Medley execution, including scr
 === MEDLEYDIR Structure
 
 Standard Medley installation directory structure:
+
 - *scripts/*: Medley scripts
 - *sources/*: Lisp source code
 - *library/*: Supported packages
 - *lispusers/*: User-contributed packages
 - *loadups/*: Sysout files and build artifacts
 - *greetfiles/*: Greet files
-- *docs/*: Documentation files pointerSee also: Directory Structure
+- *docs/*: Documentation files
+
+*See also*: Directory Structure
 
 === LOGINDIR Structure
 
 User-specific directory structure:
-- *lisp.virtualmem: Default vmem file
-- *{run-id}.virtualmem: Run-specific vmem files
+
+- *lisp.virtualmem*: Default vmem file
+- *{run-id}.virtualmem*: Run-specific vmem files
 - *INIT.LISP*: User-specific greet file
-- *.medley_config: User-specific config file pointerSee also: Directory Structure
+- *.medley_config*: User-specific config file
+
+*See also*: Directory Structure
 
 == Loadup Terms
 
@@ -159,17 +171,21 @@ Sequential stages of the loadup process:
 2. *Mid*: Create init-mid.sysout
 3. *Lisp*: Create lisp.sysout
 4. *Full*: Create full.sysout
-5. *Apps*: Create apps.sysout pointerSee also: Loadup Workflow
+5. *Apps*: Create apps.sysout
+
+*See also*: Loadup Workflow
 
 == Platform Terms
 
 === Platform Detection
 
-Process by which Medley scripts detect the host platform (Linux, macOS, Windows, WSL) and select appropriate script variants and behaviors. -See also: Platform Documentation
+Process by which Medley scripts detect the host platform (Linux, macOS, Windows, WSL) and select appropriate script variants and behaviors.
+
+*See also*: Platform Documentation
 
 === Display Backend
 
-Graphics output subsystem used by Maiko. Options include X11, SDL, and VNC* (for WSL).
+Graphics output subsystem used by Maiko. Options include X11, SDL, and VNC (for WSL).
 
 *See also*: Platform Documentation, Maiko Display Documentation
 
@@ -178,8 +194,11 @@ Graphics output subsystem used by Maiko. Options include X11, SDL, and VNC* (for
 For Maiko-specific terminology, see the Maiko Glossary.
 
 Key Maiko terms relevant to Medley:
+
 - *Maiko*: The emulator that executes Lisp bytecode
-- *LispPTR*: Virtual address in Lisp address space
+- *LispPTR*: Virtual address pointer in Lisp address space
 - *ByteCode*: Single byte representing a Lisp bytecode instruction
-- *Dispatch Loop*: Main execution loop in Maiko pointerSee also: Maiko Documentation
+- *Dispatch Loop*: Main execution loop in Maiko
+
+*See also*: Maiko Documentation
 

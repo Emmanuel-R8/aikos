@@ -1,5 +1,6 @@
 = Execution Model Specification
 
+*Navigation*: README | Stack Management | Function Calls | Interrupt Handling
 
 Complete specification of the VM execution model, including the dispatch loop algorithm, instruction fetch/decode/execute cycle, and program counter management.
 
@@ -11,17 +12,27 @@ The execution model defines how the VM executes bytecode instructions. The core 
 
 === High-Level Algorithm
 
-#figure(
-  caption: [Dispatch Loop Algorithm],
-  [Diagram: See original documentation for visual representation.],
-)
-    
-  )
-)
+#codeblock(lang: "mermaid", [
+graph TD
+    Start[Start VM] --> Init[Initialize Stack]
+    Init --> Enter[Enter Dispatch Loop]
+    Enter --> Fetch[Fetch Instruction]
+    Fetch --> Decode[Decode Opcode]
+    Decode --> Execute[Execute Handler]
+    Execute --> Update[Update PC]
+    Update --> CheckIRQ{Check Interrupts}
+    CheckIRQ -->|Pending| HandleIRQ[Handle Interrupt]
+    CheckIRQ -->|None| Fetch
+    HandleIRQ --> Fetch
+    Fetch -->|Error| Error[Error Handler]
+    Error -->|Recover| Fetch
+    Error -->|Fatal| Exit[Exit VM]
+])
 
 === Pseudocode Implementation
 
-[`function dispatch(`]:
+#codeblock(lang: "pseudocode", [
+function dispatch():
     // Initialize execution state
     PC = FunctionObject.code_start
     CurrentFrame = InitialFrame
@@ -30,6 +41,7 @@ The execution model defines how the VM executes bytecode instructions. The core 
     // CRITICAL: Stack must be initialized with at least one value (NIL = 0)
     // before entering dispatch loop. This ensures conditional jumps (FJUMP/TJUMP)
     // have a value to pop from the stack.
+    // C: start_lisp() -> TopOfStack = 0;
     TopOfStack = 0  // Initialize with NIL
 
     // Main dispatch loop
@@ -54,13 +66,15 @@ The execution model defines how the VM executes bytecode instructions. The core 
 
         // Check interrupts after execution
         if CheckInterrupts():
-            HandleInterrupts())
+            HandleInterrupts()
+])
 
 == Instruction Fetch
 
 === Fetch Algorithm
 
-[`function FetchInstruction(`]:
+#codeblock(lang: "pseudocode", [
+function FetchInstruction():
     // Read opcode byte
     opcode = ReadByte(PC)
 
@@ -77,7 +91,8 @@ The execution model defines how the VM executes bytecode instructions. The core 
     for i = 1 to length - 1:
         operands.append(ReadByte(PC + i))
 
-    return Instruction(opcode, operands, length))
+    return Instruction(opcode, operands, length)
+])
 
 === Program Counter Management
 
@@ -92,8 +107,9 @@ The program counter (PC) tracks the current instruction:
 
 When loading a sysout file, the PC must be initialized from the saved VM state:
 
-[`function InitializePCFromSysout(ifpage, virtual_memory`]:
-    // Get current frame from IFPAGE
+#codeblock(lang: "pseudocode", [
+function InitializePCFromSysout(ifpage, virtual_memory):
+    // Get current frame pointer from IFPAGE
     currentfxp = ifpage.currentfxp
 
     // Read frame structure (FX) from virtual memory
@@ -105,7 +121,9 @@ When loading a sysout file, the PC must be initialized from the saved VM state:
     fnheader_addr = frame.fnheader
 
     // CRITICAL: PC initialization uses FastRetCALL logic
+    // C: FastRetCALL macro calculates PC = FuncObj + CURRENTFX->pc
     // Where FuncObj comes from FX_FNHEADER (translated fnheader_addr)
+    // And CURRENTFX->pc is the pc field from the frame (byte offset from FuncObj)
     // This is DIFFERENT from using function header's startpc field!
     
     if fnheader_addr != 0:
@@ -117,8 +135,10 @@ When loading a sysout file, the PC must be initialized from the saved VM state:
         fnheader_offset = TranslateLispPTRToOffset(fnheader_addr)
         FuncObj = virtual_memory + fnheader_offset
         
+        // Get PC offset from frame (CURRENTFX->pc)
         frame_pc = frame.pc  // Byte offset from FuncObj
         
+        // Calculate PC: FuncObj + CURRENTFX->pc
         PC = FuncObj + frame_pc
         
         // Validate PC points to valid bytecode
@@ -131,7 +151,8 @@ When loading a sysout file, the PC must be initialized from the saved VM state:
         // Use fallback entry point or initialize frame first
         PC = FindEntryPoint()  // Fallback mechanism
 
-    return PC)
+    return PC
+])
 
 *CRITICAL*: Frame and function header fields must be byte-swapped when reading from sysout files on little-endian machines. The sysout format stores all multi-byte values in big-endian format.
 
@@ -141,7 +162,8 @@ When loading a sysout file, the PC must be initialized from the saved VM state:
 
 === Decode Algorithm
 
-[`function DecodeInstruction(opcode_byte, operand_bytes`]:
+#codeblock(lang: "pseudocode", [
+function DecodeInstruction(opcode_byte, operand_bytes):
     // Get opcode metadata
     opcode_info = opcode_table[opcode_byte]
 
@@ -154,7 +176,7 @@ When loading a sysout file, the PC must be initialized from the saved VM state:
             break
 
         case SINGLE_BYTE:
-            decoded_operands.append(operand_bytes[0)
+            decoded_operands.append(operand_bytes[0])
             break
 
         case ATOM_INDEX:
@@ -184,7 +206,8 @@ When loading a sysout file, the PC must be initialized from the saved VM state:
 
 === Execution Framework
 
-[`function ExecuteOpcode(opcode, operands`]:
+#codeblock(lang: "pseudocode", [
+function ExecuteOpcode(opcode, operands):
     // Lookup opcode handler
     handler = opcode_handler_table[opcode]
 
@@ -204,7 +227,8 @@ When loading a sysout file, the PC must be initialized from the saved VM state:
         UpdateExecutionState(result)
 
     except Error as e:
-        HandleExecutionError(e, opcode, operands))
+        HandleExecutionError(e, opcode, operands)
+])
 
 === Handler Execution
 
@@ -220,14 +244,19 @@ Each opcode handler:
 
 === Mechanism 1: Computed Goto (OPDISP)
 
-*When Available*: GCC compiler with computed goto support pointerImplementation: [`function dispatch_computed_goto(`]:
+*When Available*: GCC compiler with computed goto support
+
+*Implementation*:
+
+#codeblock(lang: "pseudocode", [
+function dispatch_computed_goto():
     // Jump table with labels
     static label_table[256] = {
         &&case_000, &&case_001, &&case_002, ...
     }
 
     opcode = ReadByte(PC)
-    goto label_table[opcode]
+    goto *label_table[opcode]
 
 case_001:
     ExecuteCAR()
@@ -241,12 +270,23 @@ case_002:
 
 next_instruction:
     PC = PC + instruction_length
-    goto dispatch_computed_goto)
+    goto dispatch_computed_goto
+])
 
-*Advantages*: - Fastest dispatch method
-- Minimal overhead per instruction - Direct jump to handler
+*Advantages*:
 
-=== Mechanism 2: Switch Statement pointerWhen Used: Compilers without computed goto support pointerImplementation: [`function dispatch_switch(`]:
+- Fastest dispatch method
+- Minimal overhead per instruction
+- Direct jump to handler
+
+=== Mechanism 2: Switch Statement
+
+*When Used*: Compilers without computed goto support
+
+*Implementation*:
+
+#codeblock(lang: "pseudocode", [
+function dispatch_switch():
     while not ErrorExit:
         opcode = ReadByte(PC)
 
@@ -262,10 +302,14 @@ next_instruction:
                 HandleInvalidOpcode(opcode)
 
         PC = PC + instruction_length
-        CheckInterrupts())
+        CheckInterrupts()
+])
 
-*Advantages*: - Portable across compilers
-- Standard C construct - Slightly slower but acceptable
+*Advantages*:
+
+- Portable across compilers
+- Standard C construct
+- Slightly slower but acceptable
 
 == Interrupt Handling
 
@@ -279,7 +323,8 @@ Interrupts are checked:
 
 === Interrupt Check Algorithm
 
-[`function CheckInterrupts(`]:
+#codeblock(lang: "pseudocode", [
+function CheckInterrupts():
     interrupt_state = GetInterruptState()
 
     if interrupt_state.waitinginterrupt:
@@ -296,46 +341,73 @@ Interrupts are checked:
 
         return true
 
-    return false)
+    return false
+])
 
 == Execution State Management
 
 === State Structure
 
-[`struct ExecutionState:`]
-[`    PC: ByteCode // Program counter`]
-[`    CurrentFrame: Frame // Current stack frame`]
-[`    FunctionObject: Function // Current function`]
-[`    TopOfStack: LispPTR        // Top of stack value`]
-[`    StackPointer: DLword // Current stack pointer`]
-[`    EndOfStack: DLword // End of stack`]
-[`    ErrorExit: boolean         // Error exit flag`]
+#codeblock(lang: "pseudocode", [
+struct ExecutionState:
+    PC: ByteCode*              // Program counter
+    CurrentFrame: Frame*       // Current stack frame
+    FunctionObject: Function*  // Current function
+    TopOfStack: LispPTR        // Top of stack value
+    StackPointer: DLword*      // Current stack pointer
+    EndOfStack: DLword*        // End of stack
+    ErrorExit: boolean         // Error exit flag
+])
 
 === State Transitions
 
-#figure(
-  caption: [Diagram],
-  [Diagram: See original markdown documentation for visual representation.],
-)
+#codeblock(lang: "mermaid", [
+stateDiagram-v2
+    [*] --> Initialized: VM Start
+    Initialized --> Running: Enter Dispatch
+    Running --> Running: Execute Instruction
+    Running --> Interrupted: Interrupt Pending
+    Interrupted --> Running: Handle Interrupt
+    Running --> Error: Execution Error
+    Error --> Running: Error Recovery
+    Error --> Terminated: Fatal Error
+    Running --> Terminated: Normal Exit
+    Terminated --> [*]
+])
 
 == Performance Optimizations
 
 === PC Caching
 
-[`// Cache PC in register/local variable`]
-[`pccache = PC`]
-[`while not ErrorExit:`]
-[`    opcode = ReadByte(pccache`]
+*CRITICAL*: The `pccache` variable must be initialized at the start of the dispatch loop before any use of `PCMAC` (which is `pccache - 1`). This is essential because `PCMAC` is used immediately for instruction fetching and logging.
+
+#codeblock(lang: "pseudocode", [
+// Cache PC in register/local variable
+// CRITICAL: Initialize pccache from PC at start of dispatch loop
+// PCMAC = pccache - 1, so pccache = PC + 1
+pccache = PC + 1
+
+while not ErrorExit:
+    // PCMAC = pccache - 1 points to current instruction
+    opcode = ReadByte(PCMAC)  // or ReadByte(pccache - 1)
     // ... execute ...
+    // After instruction execution, update pccache
     pccache = pccache + instruction_length
-PC = pccache  // Update global PC periodically)
+    // Continue loop (pccache now points one byte ahead again)
+    
+PC = pccache - 1  // Update global PC periodically (if needed)
+])
+
+*Implementation Note*: In the C implementation, `pccache` is a local variable in `dispatch()` that must be initialized at the `nextopcode:` label. The original code had a bug where `pccache` was uninitialized when `PCMAC` was first used, causing undefined behavior. The fix is to add `pccache = PC + 1;` at the very start of the `nextopcode:` label, before any code that uses `PCMAC`.
 
 === Stack Pointer Caching
 
-[`// Cache stack pointer`]
-[`cspcache = CurrentStackPTR`]
-[`// Use cached for stack operations`]
-[`// Update global periodically`]
+#codeblock(lang: "pseudocode", [
+// Cache stack pointer
+cspcache = CurrentStackPTR
+// Use cached pointer for stack operations
+// Update global pointer periodically
+])
 
 === Instruction Prefetch
 
@@ -350,6 +422,7 @@ Some implementations may prefetch next instruction:
 === Error Detection
 
 Errors detected during execution:
+
 - *Type Errors*: Wrong type for operation
 - *Memory Errors*: Invalid address
 - *Arithmetic Errors*: Overflow, division by zero
@@ -357,7 +430,8 @@ Errors detected during execution:
 
 === Error Recovery
 
-[`function HandleExecutionError(error, opcode, operands`]:
+#codeblock(lang: "pseudocode", [
+function HandleExecutionError(error, opcode, operands):
     // Save error context
     error_context = {
         opcode: opcode,
@@ -372,7 +446,8 @@ Errors detected during execution:
     else:
         ErrorExit = true
         UnwindStack()
-        ReportError(error, error_context))
+        ReportError(error, error_context)
+])
 
 === Unknown Opcode Handling
 
@@ -382,7 +457,8 @@ When encountering an unknown opcode (not in the opcode table), the VM should:
 2. *Check for UFN*: Unknown opcodes may be UFNs (Undefined Function Names) that require lookup
 3. *Continue or halt*: Depending on implementation, either continue execution (skipping the opcode) or halt with an error
 
-[`function HandleUnknownOpcode(opcode_byte, PC`]:
+#codeblock(lang: "pseudocode", [
+function HandleUnknownOpcode(opcode_byte, PC):
     // Log for debugging
     Log("Unknown opcode 0x%02X at PC=0x%X", opcode_byte, PC)
 
@@ -398,7 +474,10 @@ When encountering an unknown opcode (not in the opcode table), the VM should:
         continue
     else:
         ErrorExit = true
-        ReportError("Unknown opcode", opcode_byte, PC)) -C Reference: `maiko/src/xc.c:249-258` - `op_ufn` handler for unknown opcodes that are UFNs
+        ReportError("Unknown opcode", opcode_byte, PC)
+])
+
+*C Reference*: `maiko/src/xc.c:249-258` - `op_ufn` handler for unknown opcodes that are UFNs
 
 == Related Documentation
 

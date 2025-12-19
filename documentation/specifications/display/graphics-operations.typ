@@ -1,5 +1,6 @@
 = Graphics Operations Specification
 
+*Navigation*: README | Interface Abstraction | Event Protocols
 
 Complete specification of graphics operations, including BitBLT, line drawing, and rendering semantics.
 
@@ -13,8 +14,9 @@ Graphics operations manipulate the display region memory and update the screen. 
 
 BitBLT copies a rectangular region from source to destination with a specified operation:
 
-[`function BitBLT(source_base, dest_base, source_x, dest_x, width, height,`]
-[`                source_bpl, dest_bpl, backward_flag, source_type, operation`]:
+#codeblock(lang: "pseudocode", [
+function BitBLT(source_base, dest_base, source_x, dest_x, width, height,
+                source_bpl, dest_bpl, backward_flag, source_type, operation):
     // Copy rectangular region with operation
     // source_base: Base address of source bitmap
     // dest_base: Base address of destination bitmap
@@ -23,27 +25,35 @@ BitBLT copies a rectangular region from source to destination with a specified o
     // source_bpl, dest_bpl: Bytes per line
     // backward_flag: Copy backward (for overlapping regions)
     // source_type: Source type (INPUT, TEXTURE, etc.)
-    // operation: Operation (COPY, XOR, AND, OR, etc.))
+    // operation: Operation (COPY, XOR, AND, OR, etc.)
+])
 
-=== BitBLT Parameters pointerPILOTBBT Structure: [`struct PILOTBBT:`]
-[`    pbtwidth: int           // Width in pixels/bits`]
-[`    pbtheight: int          // Height in pixels/bits`]
-[`    pbtsourcehi: uint       // Source high address bits`]
-[`    pbtsourcelo: uint       // Source low address bits`]
-[`    pbtdesthi: uint         // Destination high address bits`]
-[`    pbtdestlo: uint         // Destination low address bits`]
-[`    pbtsourcebit: int       // Source X bit offset`]
-[`    pbtdestbit: int         // Destination X bit offset`]
-[`    pbtsourcebpl: int       // Source bytes per line`]
-[`    pbtdestbpl: int         // Destination bytes per line`]
-[`    pbtsourcetype: int      // Source type code`]
-[`    pbtoperation: int       // Operation code`]
-[`    pbtbackward: int        // Backward copy flag`]
-[`    pbtusegray: int         // Use gray pattern flag`]
+=== BitBLT Parameters
+
+*PILOTBBT Structure*:
+
+#codeblock(lang: "pseudocode", [
+struct PILOTBBT:
+    pbtwidth: int           // Width in pixels/bits
+    pbtheight: int          // Height in pixels/bits
+    pbtsourcehi: uint       // Source high address bits
+    pbtsourcelo: uint       // Source low address bits
+    pbtdesthi: uint         // Destination high address bits
+    pbtdestlo: uint         // Destination low address bits
+    pbtsourcebit: int       // Source X bit offset
+    pbtdestbit: int         // Destination X bit offset
+    pbtsourcebpl: int       // Source bytes per line
+    pbtdestbpl: int         // Destination bytes per line
+    pbtsourcetype: int      // Source type code
+    pbtoperation: int       // Operation code
+    pbtbackward: int        // Backward copy flag
+    pbtusegray: int         // Use gray pattern flag
+])
 
 === BitBLT Algorithm
 
-[`function ExecuteBitBLT(pilot_bbt`]:
+#codeblock(lang: "pseudocode", [
+function ExecuteBitBLT(pilot_bbt):
     // Extract parameters
     width = pilot_bbt.pbtwidth
     height = pilot_bbt.pbtheight
@@ -77,42 +87,61 @@ BitBLT copies a rectangular region from source to destination with a specified o
     if CursorWasHidden():
         ShowCursor()
 
-    UnlockScreen())
+    UnlockScreen()
+])
 
 == Graphics Operations
 
-=== Operation Types pointerCOPY (REPLACE):
+=== Operation Types
 
-[`function OperationCOPY(source, destination`]:
-    destination = source)
+*COPY (REPLACE)*:
+
+#codeblock(lang: "pseudocode", [
+function OperationCOPY(source, destination):
+    destination = source
+])
 
 *XOR*:
 
-[`function OperationXOR(source, destination`]:
-    destination = source XOR destination)
+#codeblock(lang: "pseudocode", [
+function OperationXOR(source, destination):
+    destination = source XOR destination
+])
 
 *AND*:
 
-[`function OperationAND(source, destination`]:
-    destination = source AND destination)
+#codeblock(lang: "pseudocode", [
+function OperationAND(source, destination):
+    destination = source AND destination
+])
 
 *OR*:
 
-[`function OperationOR(source, destination`]:
-    destination = source OR destination)
+#codeblock(lang: "pseudocode", [
+function OperationOR(source, destination):
+    destination = source OR destination
+])
 
 *NOT*:
 
-[`function OperationNOT(source, destination`]:
-    destination = NOT source)
+#codeblock(lang: "pseudocode", [
+function OperationNOT(source, destination):
+    destination = NOT source
+])
 
-=== Source Types pointerINPUT: Source is input bitmap pointerTEXTURE: Source is texture pattern pointerMERGE: Source is merge pattern pointerGRAY: Source uses gray pattern
+=== Source Types
+
+*INPUT*: Source is input bitmap
+*TEXTURE*: Source is texture pattern
+*MERGE*: Source is merge pattern
+*GRAY*: Source uses gray pattern
 
 == Line Drawing
 
 === Line Drawing Algorithm
 
-[`function DrawLine(x1, y1, x2, y2, operation`]:
+#codeblock(lang: "pseudocode", [
+function DrawLine(x1, y1, x2, y2, operation):
     // Bresenham's line algorithm
     dx = abs(x2 - x1)
     dy = abs(y2 - y1)
@@ -129,18 +158,20 @@ BitBLT copies a rectangular region from source to destination with a specified o
             break
 
         e2 = 2 * err
-        if e2 >* -dy:
+        if e2 > -dy:
             err -= dy
             x += sx
         if e2 < dx:
             err += dx
-            y += sy)
+            y += sy
+])
 
 == Character Rendering
 
 === Character BitBLT
 
-[`function RenderCharacter(char_code, x, y`]:
+#codeblock(lang: "pseudocode", [
+function RenderCharacter(char_code, x, y):
     // Get character bitmap
     char_bitmap = GetCharacterBitmap(char_code)
 
@@ -157,13 +188,15 @@ BitBLT copies a rectangular region from source to destination with a specified o
            char_bitmap.bpl, DisplayBytesPerLine, false, INPUT, COPY)
 
     // Flush display
-    FlushDisplayRegion(x, y, width, height))
+    FlushDisplayRegion(x, y, width, height)
+])
 
 == Display Flushing
 
 === Flush Display Region
 
-[`function FlushDisplayRegion(x, y, width, height`]:
+#codeblock(lang: "pseudocode", [
+function FlushDisplayRegion(x, y, width, height):
     // Check if region is in display
     if not InDisplayRegion(x, y, width, height):
         return
@@ -172,32 +205,43 @@ BitBLT copies a rectangular region from source to destination with a specified o
     backend = GetDisplayBackend()
 
     // Flush region to screen
-    backend.FlushRegion(x, y, width, height))
+    backend.FlushRegion(x, y, width, height)
+])
 
-=== Platform-Specific Flushing pointerX11: [`function X11FlushRegion(x, y, width, height`]:
+=== Platform-Specific Flushing
+
+*X11*:
+
+#codeblock(lang: "pseudocode", [
+function X11FlushRegion(x, y, width, height):
     // Copy from display region to XImage
     XPutImage(display, window, gc, ximage, x, y, x, y, width, height)
-    XFlush(display))
+    XFlush(display)
+])
 
 *SDL*:
 
-[`function SDLFlushRegion(x, y, width, height`]:
+#codeblock(lang: "pseudocode", [
+function SDLFlushRegion(x, y, width, height):
     // Update texture from display region
     SDL_UpdateTexture(texture, rect, pixels, pitch)
     SDL_RenderCopy(renderer, texture, NULL, NULL)
-    SDL_RenderPresent(renderer))
+    SDL_RenderPresent(renderer)
+])
 
 == Screen Locking
 
 === Lock/Unlock Screen
 
-[`function LockScreen(`]:
+#codeblock(lang: "pseudocode", [
+function LockScreen():
     ScreenLocked = true
     // Prevent concurrent access to display
 
 function UnlockScreen():
     ScreenLocked = false
-    // Allow display access)
+    // Allow display access
+])
 
 *Purpose*: Prevent race conditions during graphics operations
 
@@ -205,7 +249,8 @@ function UnlockScreen():
 
 === Hide/Show Cursor
 
-[`function HideCursor(`]:
+#codeblock(lang: "pseudocode", [
+function HideCursor():
     if CursorVisible:
         SaveCursorArea()
         HideCursorOnScreen()
@@ -215,11 +260,13 @@ function ShowCursor():
     if not CursorVisible:
         RestoreCursorArea()
         ShowCursorOnScreen()
-        CursorVisible = true)
+        CursorVisible = true
+])
 
 *Purpose*: Hide cursor during BitBLT to prevent flicker
 
 == Related Documentation
 
 - Interface Abstraction - Display interface contract
-- Event Protocols - Input event handling - Platform Abstraction - Platform-specific details
+- Event Protocols - Input event handling
+- Platform Abstraction - Platform-specific details

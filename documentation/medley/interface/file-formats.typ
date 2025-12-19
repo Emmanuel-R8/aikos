@@ -1,5 +1,6 @@
 = File Format Specifications
 
+*Navigation*: Medley README | Medley Index | Interface Overview
 
 == Overview
 
@@ -11,20 +12,27 @@ This document provides complete specifications for all file formats used in Medl
 
 Sysout files are binary files containing a complete Lisp system state. They are created by the loadup process and loaded by Maiko to initialize Medley sessions.
 
-*See*: Sysout Files Component for sysout file usage and purpose pointerRelated Maiko Documentation: - `../rewrite-spec/data-structures/sysout-format.md` - Complete sysout format specification
-- `../components/memory-management.md` - Memory management and sysout loading - `../architecture.md` - Maiko system architecture
+*See*: Sysout Files Component for sysout file usage and purpose
+
+*Related Maiko Documentation*:
+
+- `../rewrite-spec/data-structures/sysout-format.md` - Complete sysout format specification
+- `../components/memory-management.md` - Memory management and sysout loading
+- `../architecture.md` - Maiko system architecture
 
 === File Structure
 
 Sysout files are organized as:
+
 - *Page-based*: File organized into 256-byte pages
 - *Sparse*: Not all pages present (FPtoVP table indicates which)
 - *Mapped*: FPtoVP table maps file pages to virtual pages
 
 === File Layout
 
-[`Sysout File`]
-[`├── Interface Page (IFPAGE`]
+#codeblock(lang: "text", [
+Sysout File
+├── Interface Page (IFPAGE)
 │   ├── Validation key (IFPAGE_KEYVAL)
 │   ├── Lisp version
 │   ├── Bytecode version
@@ -35,7 +43,8 @@ Sysout files are organized as:
 ├── FPtoVP Table
 │   └── Maps file pages to virtual pages
 └── Memory Pages
-    └── Actual page data mapped by FPtoVP)
+    └── Actual page data mapped by FPtoVP
+])
 
 === Interface Page (IFPAGE)
 
@@ -49,7 +58,10 @@ Located at fixed address: `IFPAGE_ADDRESS`
 - `process_size`: Process size in MB
 - `nactivepages`: Number of active pages
 - `fptovpstart`: FPtoVP table start offset
-- `stackbase`, `endofstack`, `currentfxp`: Stack state - Other VM state fields pointerValidation: Maiko validates IFPAGE key and version compatibility before loading.
+- `stackbase`, `endofstack`, `currentfxp`: Stack state
+- Other VM state fields
+
+*Validation*: Maiko validates IFPAGE key and version compatibility before loading.
 
 *Related Maiko Documentation*: `../rewrite-spec/data-structures/sysout-format.md#interface-page-ifpage` - IFPAGE structure details
 
@@ -60,24 +72,40 @@ Maps file page numbers to virtual page numbers.
 *Structure*:
 
 - Array of virtual page numbers
-- Special value `0177777` (0xFFFF): Page not present in file - Other values: Virtual page number pointerLocation: Offset `ifpage.fptovpstart`, size `nactivepages` entries pointerRelated Maiko Documentation: `../rewrite-spec/data-structures/sysout-format.md#fptovp-table` - FPtoVP table details
+- Special value `0177777` (0xFFFF): Page not present in file
+- Other values: Virtual page number
+
+*Location*: Offset `ifpage.fptovpstart`, size `nactivepages` entries
+
+*Related Maiko Documentation*: `../rewrite-spec/data-structures/sysout-format.md#fptovp-table` - FPtoVP table details
 
 === Memory Regions
 
 Sysout files contain these memory regions:
+
 - *Stack Space*: Stack frames and data
 - *Atom Space*: Symbol table
-- *Heap Space* (MDS): Cons cells, arrays, code
-- *Interface Page*: VM state pointerRelated Maiko Documentation: `../rewrite-spec/data-structures/sysout-format.md#memory-regions-in-sysout` - Memory region details
+- *Heap Space (MDS)*: Cons cells, arrays, code
+- *Interface Page*: VM state
+
+*Related Maiko Documentation*: `../rewrite-spec/data-structures/sysout-format.md#memory-regions-in-sysout` - Memory region details
 
 === Byte Order
+
 - *Byte order*: Little-endian
 - *Word order*: 16-bit words in little-endian
-- *Byte swapping*: Maiko handles byte swapping if host byte order differs from file byte order pointerRelated Maiko Documentation: `../rewrite-spec/data-structures/sysout-format.md#byte-swapping` - Byte swapping details
+- *Byte swapping*: Maiko handles byte swapping if host byte order differs from file byte order
+
+*Related Maiko Documentation*: `../rewrite-spec/data-structures/sysout-format.md#byte-swapping` - Byte swapping details
 
 === Version Compatibility
 
-Sysout files include version information: - *Lisp version*: Must be compatible with Maiko - *Bytecode version*: Must be supported by Maiko pointerRelated Maiko Documentation: `../rewrite-spec/data-structures/sysout-format.md#version-compatibility` - Version checking details
+Sysout files include version information:
+
+- *Lisp version*: Must be compatible with Maiko
+- *Bytecode version*: Must be supported by Maiko
+
+*Related Maiko Documentation*: `../rewrite-spec/data-structures/sysout-format.md#version-compatibility` - Version checking details
 
 == Vmem File Format
 
@@ -90,12 +118,14 @@ Vmem files are binary files storing persistent session state. They enable sessio
 === File Structure
 
 Vmem files contain:
+
 - *Virtual Memory Image*: Complete Lisp heap state
 - *Memory Layout*: Virtual memory page mappings
 - *System State*: System variables and configuration
 - *Session State*: Session-specific state
 
 === Format Characteristics
+
 - *Binary format*: Platform-specific binary format
 - *Platform-specific*: Vmem files are not portable across platforms
 - *Writeable*: Must be writeable by user running Medley
@@ -110,7 +140,12 @@ Default location: `LOGINDIR/vmem/lisp_{run-id}.virtualmem` or `LOGINDIR/vmem/lis
 
 1. *Creation*: Created when Medley exits (if session state changed)
 2. *Loading*: Loaded on next startup (if present and no sysout specified)
-3. *Update*: Updated on each Medley exit pointerRelated Maiko Documentation: - `../components/memory-management.md` - Virtual memory management - `../rewrite-spec/memory/virtual-memory.md` - Virtual memory specification
+3. *Update*: Updated on each Medley exit
+
+*Related Maiko Documentation*:
+
+- `../components/memory-management.md` - Virtual memory management
+- `../rewrite-spec/memory/virtual-memory.md` - Virtual memory specification
 
 == Config File Format
 
@@ -120,27 +155,40 @@ Config files are text files containing default command-line arguments for Medley
 
 *See*: Configuration Files Component for config file usage and purpose
 
-=== File Format pointerText Format: Plain text file, one argument per line pointerLine Format: - *Single token*: Flag without value (e.g., `-f`, `--full`, `-ns`) - *Two tokens*: Flag with value (e.g., `-g 1024x768`, `--geometry 1024x768`, `-i myid`)
+=== File Format
+
+*Text Format*: Plain text file, one argument per line
+
+*Line Format*:
+
+- *Single token*: Flag without value (e.g., `-f`, `--full`, `-ns`)
+- *Two tokens*: Flag with value (e.g., `-g 1024x768`, `--geometry 1024x768`, `-i myid`)
 
 *Value Quoting*: Values can be quoted with double quotes if they contain spaces:
 
-[`-t "My Medley Window"`]
+#codeblock(lang: "text", [
+-t "My Medley Window"
+])
 
 Quotes are stripped during parsing.
 
 === Example Config File
 
-[`-f`]
-[`-g 1024x768`]
-[`-i work`]
-[`-t "Medley Work Session"`]
-[`-m 512`]
+#codeblock(lang: "text", [
+-f
+-g 1024x768
+-i work
+-t "Medley Work Session"
+-m 512
+])
 
 === File Locations
 
 1. *User config*: `~/.medley_config` (user home directory)
 2. *Medley config*: `MEDLEYDIR/.medley_config` (Medley installation directory)
-3. *Custom*: Specified with `-c FILE, --config FILE` flag pointerSee: Configuration Files Component for location details
+3. *Custom*: Specified with `-c FILE, --config FILE` flag
+
+*See*: Configuration Files Component for location details
 
 === Parsing
 
@@ -161,16 +209,25 @@ Greet files are Lisp source files executed during Medley startup.
 
 *See*: Greet Files Component for greet file usage and purpose
 
-=== File Format pointerText Format: Plain text file containing Lisp source code pointerFormat:
+=== File Format
+
+*Text Format*: Plain text file containing Lisp source code
+
+*Format*:
+
 - *File Format*: Plain text, Lisp source code
 - *Encoding*: Platform-specific (typically UTF-8 or platform default)
 - *Line Endings*: Platform-specific (LF on Unix, CRLF on Windows)
 
 === Example Greet File
 
-[`(SETQ INTERLISPMODE T) (LOAD 'MYINIT)`]
+#codeblock(lang: "lisp", [
+(SETQ INTERLISPMODE T)
+(LOAD 'MYINIT)
+])
 
 === File Locations
+
 - *Default*: `MEDLEYDIR/greetfiles/MEDLEYDIR-INIT` (or `APPS-INIT` for apps sysout)
 - *Custom*: Specified with `-r FILE, --greet FILE` flag
 - *User-specific*: `LOGINDIR/INIT.LISP` (if present)
@@ -180,9 +237,12 @@ Greet files are Lisp source files executed during Medley startup.
 === Execution
 
 Greet files are executed:
+
 - *Before*: Main Lisp system initialization
 - *Context*: Early Lisp environment
-- *Purpose*: Initialize environment before main system starts pointerSee: Greet Files Component for execution details
+- *Purpose*: Initialize environment before main system starts
+
+*See*: Greet Files Component for execution details
 
 == REM.CM File Format
 
@@ -192,11 +252,14 @@ REM.CM files are Lisp source files executed after greet files, typically used fo
 
 *See*: Greet Files Component for REM.CM file details
 
-=== File Format pointerText Format: Plain text file containing Lisp source code (same as greet files)
+=== File Format
+
+*Text Format*: Plain text file containing Lisp source code (same as greet files)
 
 *Format*: Same as greet file format
 
 === File Location
+
 - *Specification*: `-cm FILE, --rem.cm FILE` flag (must be absolute path)
 - *Environment Variable*: `LDEREMCM` environment variable
 - *No Default*: No default REM.CM file
@@ -204,6 +267,7 @@ REM.CM files are Lisp source files executed after greet files, typically used fo
 === Execution
 
 REM.CM files are executed:
+
 - *After*: Greet files
 - *Before*: Main Lisp system
 - *Purpose*: Loadup operations and maintenance tasks
@@ -214,14 +278,15 @@ REM.CM files are executed:
 // Original markdown table:
 // | File Type | Format | Purpose | Platform-Specific |
 // |-----------|--------|---------|-------------------|
-// | **Sysout | Binary | Complete Lisp system state | No (byte order handled) |
-// | **Vmem | Binary | Session persistence | Yes |
-// | **Config | Text | Default arguments | No |
-// | **Greet | Text (Lisp) | Startup initialization | No |
-// | **REM.CM | Text (Lisp) | Loadup operations | No |
+// | **Sysout** | Binary | Complete Lisp system state | No (byte order handled) |
+// | **Vmem** | Binary | Session persistence | Yes |
+// | **Config** | Text | Default arguments | No |
+// | **Greet** | Text (Lisp) | Startup initialization | No |
+// | **REM.CM** | Text (Lisp) | Loadup operations | No |
 // 
 
 == Related Documentation
+
 - *Sysout Files*: Sysout Files Component - Sysout file usage
 - *Virtual Memory Files*: Virtual Memory Files Component - Vmem file usage
 - *Configuration Files*: Configuration Files Component - Config file usage

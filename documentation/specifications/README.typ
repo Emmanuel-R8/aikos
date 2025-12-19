@@ -1,5 +1,7 @@
 = Maiko Emulator Rewrite Specification
 
+*Navigation*: Index | Quickstart | Contributing
+
 This directory contains comprehensive, language-agnostic specifications sufficient for rewriting the Maiko emulator in any programming language. These specifications describe complete algorithms, data structures, protocols, and interfaces without relying on C implementation details.
 
 == Purpose
@@ -13,7 +15,7 @@ This documentation enables developers to:
 
 == Documentation Structure
 
-=== Instruction Set
+=== [Instruction Set](instruction-set/)
 
 Complete bytecode instruction specifications:
 
@@ -21,7 +23,7 @@ Complete bytecode instruction specifications:
 - Instruction Format - Bytecode encoding
 - Execution Semantics - Instruction execution behavior
 
-=== VM Core
+=== [VM Core](vm-core/)
 
 Execution engine specifications:
 
@@ -30,7 +32,7 @@ Execution engine specifications:
 - Function Calls - Call/return mechanisms
 - Interrupt Handling - Interrupt processing
 
-=== Memory Management
+=== [Memory Management](memory/)
 
 Memory and garbage collection specifications:
 
@@ -39,7 +41,7 @@ Memory and garbage collection specifications:
 - Memory Layout - Memory regions and organization
 - Address Translation - LispPTR to native address conversion
 
-=== Data Structures
+=== [Data Structures](data-structures/)
 
 VM data structure formats:
 
@@ -48,7 +50,7 @@ VM data structure formats:
 - Function Headers - Function metadata
 - Sysout Format - Sysout file structure
 
-=== Display
+=== [Display](display/)
 
 Display interface specifications:
 
@@ -56,7 +58,7 @@ Display interface specifications:
 - Graphics Operations - BitBLT and rendering
 - Event Protocols - Keyboard/mouse event handling
 
-=== I/O
+=== [I/O](io/)
 
 Input/output specifications:
 
@@ -65,14 +67,14 @@ Input/output specifications:
 - File System - File I/O and pathname handling
 - Network Protocol - Network communication
 
-=== Platform Abstraction
+=== [Platform Abstraction](platform-abstraction/)
 
 Platform requirements:
 
 - Required Behaviors - Must-match behaviors
 - Implementation Choices - May-differ choices
 
-=== Validation
+=== [Validation](validation/)
 
 Test cases and compatibility:
 
@@ -94,6 +96,12 @@ Test cases and compatibility:
 4. *Incremental*: Documentation organized for incremental implementation
 5. *Validation*: Reference test cases enable correctness verification
 
+== Related Documentation
+
+- Existing Maiko Documentation - Source code documentation
+- Architecture Overview - System architecture
+- Component Documentation - Detailed component docs
+
 == Success Criteria
 
 A successful rewrite implementation:
@@ -101,4 +109,9 @@ A successful rewrite implementation:
 - ✅ Executes bytecode correctly (matches Maiko behavior)
 - ✅ Loads and runs existing sysout files
 - ✅ Handles I/O and display correctly
-- ✅ Passes validation test cases - ✅ Maintains compatibility with Medley Interlisp
+- ✅ Passes validation test cases
+- ✅ Maintains compatibility with Medley Interlisp
+
+== Last Updated
+
+Documentation created: 2025-12-04

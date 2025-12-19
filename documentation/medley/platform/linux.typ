@@ -1,5 +1,6 @@
 = Linux Platform Documentation
 
+*Navigation*: Medley README | Medley Index | Platform Overview
 
 == Overview
 
@@ -7,24 +8,33 @@ Linux is the standard Unix platform for Medley. Medley scripts on Linux use stan
 
 == Script System
 
-=== Script Used pointerPrimary Script: `medley_run.sh`
+=== Script Used
+
+*Primary Script*: `medley_run.sh`
 
 *Location*: `medley/scripts/medley/medley_run.sh`
 
-*Characteristics*: - Bash/shell script
-- Standard Unix behavior - Handles X11 and SDL display backends pointerSource Code Reference: medley/scripts/medley/medley_run.sh
+*Characteristics*:
+
+- Bash/shell script
+- Standard Unix behavior
+- Handles X11 and SDL display backends
+
+*Source Code Reference*: medley/scripts/medley/medley_run.sh
 
 == Platform Detection
 
 Scripts detect Linux using:
 
-[`if [ "$(uname)" ] != "Darwin" ] && \
+#codeblock(lang: "bash", [
+if [ "$(uname)" != "Darwin" ] && \
    [ "$(uname -s | head --bytes 6)" != "CYGWIN" ] && \
-      [ ! -e "/proc/version" ] || ! grep --ignore-case --quiet Microsoft /proc/version`]
+   [ ! -e "/proc/version" ] || ! grep --ignore-case --quiet Microsoft /proc/version
 then
   linux=true
   platform=linux
-fi)
+fi
+])
 
 *Source Code Reference*: medley/scripts/medley/medley_main.sh - Linux detection
 
@@ -34,13 +44,15 @@ fi)
 
 Default display backend on Linux.
 
-*Usage*: Standard X11 display pointerSelection: Default, or specify with `-d :N,* --display:N`
+*Usage*: Standard X11 display
+
+*Selection*: Default, or specify with `-d :N, --display :N`
 
 === SDL
 
 Alternative display backend.
 
-*Usage*: Specify with `-d SDL,* --display SDL`
+*Usage*: Specify with `-d SDL, --display SDL`
 
 *Platform Support*: Available on Linux
 
@@ -49,6 +61,7 @@ Alternative display backend.
 === Standard Unix Paths
 
 Linux uses standard Unix path conventions:
+
 - *Absolute paths*: `/path/to/file`
 - *Home directory*: `~` or `$HOME`
 - *Path separators*: `/`
@@ -66,6 +79,7 @@ LOGINDIR defaults to `HOME/il` or can be specified with `-x DIR, --logindir DIR`
 === Standard Unix File System
 
 Linux uses standard Unix file system:
+
 - *File permissions*: Standard Unix permissions
 - *Symbolic links*: Supported
 - *Case sensitivity*: Case-sensitive file system
@@ -75,6 +89,7 @@ Linux uses standard Unix file system:
 === Standard Behavior
 
 Linux scripts follow standard Unix behavior:
+
 - *Argument parsing*: Standard shell argument parsing
 - *Environment variables*: Standard Unix environment
 - *Process management*: Standard Unix process management
@@ -90,9 +105,12 @@ Scripts locate Maiko executable in this order:
 1. `MAIKODIR` environment variable: `<MAIKODIR>/linux.x86_64/lde`
 2. `MEDLEYDIR/../maiko/`: `<MEDLEYDIR>/../maiko/linux.x86_64/lde`
 3. `MEDLEYDIR/maiko/`: `<MEDLEYDIR>/maiko/linux.x86_64/lde`
-4. PATH: `lde` on PATH pointerPlatform Identifier: `linux.x86_64` (or architecture-specific)
+4. PATH: `lde` on PATH
+
+*Platform Identifier*: `linux.x86_64` (or architecture-specific)
 
 == Related Documentation
+
 - *Platform Overview*: Platform Overview - Platform documentation overview
 - *Scripts Component*: Scripts Component - Script system
 - *Interface Documentation*: Interface Documentation - Interface mechanisms

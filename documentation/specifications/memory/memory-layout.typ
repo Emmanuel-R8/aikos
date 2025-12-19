@@ -1,5 +1,6 @@
 = Memory Layout Specification
 
+*Navigation*: README | Virtual Memory | Garbage Collection
 
 Complete specification of memory regions, their organization, and memory layout.
 
@@ -11,92 +12,204 @@ Maiko memory is organized into distinct regions, each serving a specific purpose
 
 === Memory Layout Diagram
 
-#figure(
-  caption: [Diagram],
-  [Diagram: See original documentation for visual representation.],
-)
+#codeblock(lang: "mermaid", [
+graph TD
+    subgraph VM["Virtual Memory Space"]
+        IFPage["Interface Page<br/>(IFPAGE_OFFSET)"]
+        Stack["Stack Space<br/>(STK_OFFSET)"]
+        AtomHT["Atom Hash Table<br/>(ATMHT_OFFSET)"]
+        AtomSpace["Atom Space<br/>(ATOMS_OFFSET)"]
+        Plist["Property List<br/>(PLIS_OFFSET)"]
+        DTD["DTD Space<br/>(DTD_OFFSET)"]
+        MDS["MDS Space<br/>(MDS_OFFSET)"]
+        DefSpace["Definition Space<br/>(DEFS_OFFSET)"]
+        ValSpace["Value Space<br/>(VALS_OFFSET)"]
+        Display["Display Region<br/>(DISPLAY_OFFSET)"]
+    end
 
-  )
-)
+    IFPage -->|System State| Control["Control Structures"]
+    Stack -->|Frames| Frames["Stack Frames"]
+    AtomSpace -->|Symbols| Symbols["Symbol Table"]
+    MDS -->|Objects| Heap["Heap Objects"]
+])
 
 == Region Specifications
 
 === Interface Page (IFPAGE)
 
-*Offset*: IFPAGE_OFFSET pointerSize: 1 page (256 bytes)
-*Purpose*: VM state and control structures pointerContents: - Execution state
+*Offset*: IFPAGE_OFFSET
+*Size*: 1 page (256 bytes)
+*Purpose*: VM state and control structures
+
+*Contents*:
+
+- Execution state
 - Stack pointers
 - GC state
-- Interrupt state - Storage state
+- Interrupt state
+- Storage state
 
 === Stack Space (STK)
 
-*Offset*: STK_OFFSET pointerSize: Variable (grows as needed)
-*Purpose*: Function activation frames pointerOrganization: - Stack frames (FX)
+*Offset*: STK_OFFSET
+*Size*: Variable (grows as needed)
+*Purpose*: Function activation frames
+
+*Organization*:
+
+- Stack frames (FX)
 - Binding frames (BF)
-- Free stack blocks (FSB) - Guard blocks pointerGrowth: Grows downward (toward lower addresses)
+- Free stack blocks (FSB)
+- Guard blocks
+
+*Growth*: Grows downward (toward lower addresses)
 
 === Atom Space (ATOMS)
 
-*Offset*: ATOMS_OFFSET pointerSize: Variable pointerPurpose: Symbol table pointerOrganization: - Atom structures
+*Offset*: ATOMS_OFFSET
+*Size*: Variable
+*Purpose*: Symbol table
+
+*Organization*:
+
+- Atom structures
 - Print names
 - Value cells
-- Definition cells - Property lists
+- Definition cells
+- Property lists
 
 === Atom Hash Table (ATMHT)
 
-*Offset*: ATMHT_OFFSET pointerSize: Fixed pointerPurpose: Atom lookup table pointerOrganization: - Hash table entries
-- Collision chains - Atom indices
+*Offset*: ATMHT_OFFSET
+*Size*: Fixed
+*Purpose*: Atom lookup table
+
+*Organization*:
+
+- Hash table entries
+- Collision chains
+- Atom indices
 
 === Property List Space (PLIS)
 
-*Offset*: PLIS_OFFSET pointerSize: Variable pointerPurpose: Property lists pointerOrganization: - Property list cells - Property values
+*Offset*: PLIS_OFFSET
+*Size*: Variable
+*Purpose*: Property lists
+
+*Organization*:
+
+- Property list cells
+- Property values
 
 === DTD Space (DTD)
 
-*Offset*: DTD_OFFSET pointerSize: Variable pointerPurpose: Data type descriptors pointerOrganization: - DTD structures - Type information
+*Offset*: DTD_OFFSET
+*Size*: Variable
+*Purpose*: Data type descriptors
+
+*Organization*:
+
+- DTD structures
+- Type information
 
 === MDS Space (Memory Data Structure)
 
-*Offset*: MDS_OFFSET pointerSize: Variable (grows as needed)
-*Purpose*: Heap objects pointerOrganization: - Cons cells
+*Offset*: MDS_OFFSET
+*Size*: Variable (grows as needed)
+*Purpose*: Heap objects
+
+*Organization*:
+
+- Cons cells
 - Arrays
-- Code blocks - Other heap objects pointerGrowth: Grows upward (toward higher addresses)
+- Code blocks
+- Other heap objects
+
+*Growth*: Grows upward (toward higher addresses)
 
 === Definition Space (DEFS)
 
-*Offset*: DEFS_OFFSET pointerSize: Variable pointerPurpose: Function definitions pointerOrganization: - Definition cells
-- Function headers - Code blocks
+*Offset*: DEFS_OFFSET
+*Size*: Variable
+*Purpose*: Function definitions
+
+*Organization*:
+
+- Definition cells
+- Function headers
+- Code blocks
 
 === Value Space (VALS)
 
-*Offset*: VALS_OFFSET pointerSize: Variable pointerPurpose: Global values pointerOrganization: - Value cells - Global bindings
+*Offset*: VALS_OFFSET
+*Size*: Variable
+*Purpose*: Global values
+
+*Organization*:
+
+- Value cells
+- Global bindings
 
 === Display Region (DISPLAY)
 
-*Offset*: DISPLAY_OFFSET pointerSize: Variable pointerPurpose: Display buffer pointerOrganization: - Display memory
+*Offset*: DISPLAY_OFFSET
+*Size*: Variable
+*Purpose*: Display buffer
+
+*Organization*:
+
+- Display memory
 - Bitmap data
 - Graphics buffers
 
 == GC Hash Tables
 
-=== HTmain pointerOffset: HTMAIN_OFFSET pointerSize: Fixed pointerPurpose: Main GC hash table pointerOrganization: - Hash entries
+=== HTmain
+
+*Offset*: HTMAIN_OFFSET
+*Size*: Fixed
+*Purpose*: Main GC hash table
+
+*Organization*:
+
+- Hash entries
 - Reference counts
 - Collision flags
 
-=== HTcoll pointerOffset: HTCOLL_OFFSET pointerSize: Variable pointerPurpose: GC collision table pointerOrganization: - Collision entries
+=== HTcoll
+
+*Offset*: HTCOLL_OFFSET
+*Size*: Variable
+*Purpose*: GC collision table
+
+*Organization*:
+
+- Collision entries
 - Linked chains
 
-=== HTbigcount pointerOffset: HTBIG_OFFSET pointerSize: Variable pointerPurpose: Overflow reference counts pointerOrganization: - Overflow entries
+=== HTbigcount
+
+*Offset*: HTBIG_OFFSET
+*Size*: Variable
+*Purpose*: Overflow reference counts
+
+*Organization*:
+
+- Overflow entries
 - Large counts
 
-=== HToverflow pointerOffset: HTOVERFLOW_OFFSET pointerSize: Variable pointerPurpose: Additional overflow
+=== HToverflow
+
+*Offset*: HTOVERFLOW_OFFSET
+*Size*: Variable
+*Purpose*: Additional overflow
 
 == Memory Allocation
 
 === Cons Cell Allocation
 
-[`function AllocateConsCell(`]:
+#codeblock(lang: "pseudocode", [
+function AllocateConsCell():
     // Find free cons cell
     cons_page = FindFreeConsPage()
     cell = GetFreeCell(cons_page)
@@ -105,11 +218,13 @@ Maiko memory is organized into distinct regions, each serving a specific purpose
     cell.car_field = NIL
     cell.cdr_code = CDR_NIL
 
-    return LispAddressOf(cell))
+    return LispAddressOf(cell)
+])
 
 === Array Allocation
 
-[`function AllocateArray(size, type`]:
+#codeblock(lang: "pseudocode", [
+function AllocateArray(size, type):
     // Calculate required space
     array_size = CalculateArraySize(size, type)
 
@@ -121,11 +236,13 @@ Maiko memory is organized into distinct regions, each serving a specific purpose
     array_header.size = size
     array_header.type = type
 
-    return LispAddressOf(array_block))
+    return LispAddressOf(array_block)
+])
 
 === Code Allocation
 
-[`function AllocateCodeBlock(size`]:
+#codeblock(lang: "pseudocode", [
+function AllocateCodeBlock(size):
     // Allocate code block
     code_block = AllocateMDSBlock(size)
 
@@ -133,13 +250,15 @@ Maiko memory is organized into distinct regions, each serving a specific purpose
     code_header = GetCodeHeader(code_block)
     code_header.size = size
 
-    return LispAddressOf(code_block))
+    return LispAddressOf(code_block)
+])
 
 == Memory Organization
 
 === Page-Based Organization
 
 Memory is organized into 256-byte pages:
+
 - *Page Number*: High bits of address
 - *Page Offset*: Low 8 bits
 - *Page Base*: Address with offset cleared
@@ -147,6 +266,7 @@ Memory is organized into 256-byte pages:
 === Segment Organization
 
 Address space divided into segments:
+
 - *Segment Number*: High bits (8-12 bits)
 - *Segment Base*: Address with page/offset cleared
 - *Segment Size*: Multiple pages
@@ -156,6 +276,7 @@ Address space divided into segments:
 === Primary Space
 
 Initial memory allocation:
+
 - *Base*: MDS_OFFSET
 - *Limit*: Next_MDSpage_word
 - *Purpose*: Primary heap allocation
@@ -163,11 +284,13 @@ Initial memory allocation:
 === Secondary Space
 
 Extended memory when primary exhausted:
+
 - *Base*: SecondMDSPage_word
 - *Limit*: Process size limit
 - *Purpose*: Extended heap allocation
 
 === Storage States
+
 - *SFS_NOTSWITCHABLE*: Cannot use secondary space
 - *SFS_SWITCHABLE*: Can switch to secondary space
 - *SFS_ARRAYSWITCHED*: Array space switched

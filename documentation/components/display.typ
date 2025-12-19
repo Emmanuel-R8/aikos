@@ -1,22 +1,44 @@
 = Display Component
 
+*Navigation*: README | Index | Architecture | VM Core | Memory Management | I/O | Glossary
 
 The Display component provides graphics output abstraction across X11 and SDL subsystems.
 
-*Related Components*: - VM Core - Uses display for output
+*Related Components*:
+
+- VM Core - Uses display for output
 - I/O Systems - Keyboard and mouse events from display
 
 == Overview
 
-#figure(
-  caption: [Diagram],
-  [Diagram: See original documentation for visual representation.],
-)
+#codeblock(lang: "mermaid", [
+graph TB
+    subgraph VM["VM Core"]
+        DisplayIF["Display Interface<br/>(dspif.c)"]
+    end
 
-  )
-)
+    subgraph Backends["Display Backends"]
+        X11["X11 Backend<br/>(xinit.c, xbbt.c)"]
+        SDL["SDL Backend<br/>(sdl.c)"]
+    end
+
+    subgraph OS["Operating System"]
+        XServer["X Server"]
+        SDLLib["SDL Library"]
+    end
+
+    DisplayIF -->|Abstract Interface| X11
+    DisplayIF -->|Abstract Interface| SDL
+    X11 --> XServer
+    SDL --> SDLLib
+
+    style DisplayIF fill:#e1f5ff
+    style X11 fill:#fff4e1
+    style SDL fill:#e1ffe1
+])
 
 Maiko supports multiple display backends:
+
 - *X11*: X Window System integration (primary) (see X11 Implementation)
 - *SDL*: Simple DirectMedia Layer (alternative) (see SDL Implementation)
 
@@ -24,71 +46,100 @@ Both backends provide the same interface to the VM core through the display inte
 
 == Key Files
 
-=== X11 Implementation - `src/xinit.c`: X11 initialization and window management
+=== X11 Implementation
+
+- *`src/xinit.c`*: X11 initialization and window management
   - `Open_Display()`: Open X11 display connection
   - `X_init()`: Initialize X11 subsystem
   - `init_Xevent()`: Initialize X event handling
   - `lisp_Xexit()`: Cleanup X11 resources
   - `Xevent_before_raid()`: Disable events before URAID
-  - `Xevent_after_raid()`: Re-enable events after URAID - `src/xlspwin.c`: Lisp window creation
+  - `Xevent_after_raid()`: Re-enable events after URAID
+
+- *`src/xlspwin.c`*: Lisp window creation
   - `Create_LispWindow()`: Create main Lisp window
-  - Window configuration - `src/xbbt.c`: X11 BitBLT operations
+  - Window configuration
+
+- *`src/xbbt.c`*: X11 BitBLT operations
   - `clipping_Xbitblt()`: Bit-block transfer with clipping
-  - Graphics rendering - `src/xcursor.c`: Cursor management
+  - Graphics rendering
+
+- *`src/xcursor.c`*: Cursor management
   - Cursor creation and manipulation
-  - Hotspot handling - `src/xwinman.c`: Window management
+  - Hotspot handling
+
+- *`src/xwinman.c`*: Window management
   - Window operations
-  - Event handling - `src/xscroll.c`: Scrollbar management
+  - Event handling
+
+- *`src/xscroll.c`*: Scrollbar management
   - Scrollbar creation
-  - Scrollbar events - `src/xmkicon.c`: Icon management
+  - Scrollbar events
+
+- *`src/xmkicon.c`*: Icon management
   - Icon creation
-  - Icon display - `src/xrdopt.c`: X resource options
+  - Icon display
+
+- *`src/xrdopt.c`*: X resource options
   - X resource parsing
   - Configuration
 
-=== SDL Implementation - `src/sdl.c`: SDL initialization and rendering
+=== SDL Implementation
+
+- *`src/sdl.c`*: SDL initialization and rendering
   - `init_SDL()`: Initialize SDL subsystem
   - SDL window creation
   - SDL rendering (texture-based or surface-based)
   - Event handling
   - Key mapping
 
-=== Display Interface Abstraction - `src/dspif.c`: Display interface abstraction
+=== Display Interface Abstraction
+
+- *`src/dspif.c`*: Display interface abstraction
   - Generic display interface
-  - Backend abstraction - `src/initdsp.c`: Display initialization
+  - Backend abstraction
+
+- *`src/initdsp.c`*: Display initialization
   - Display subsystem selection
-  - Initialization coordination - `src/dspsubrs.c`: Display subroutines
+  - Initialization coordination
+
+- *`src/dspsubrs.c`*: Display subroutines
   - Lisp-callable display functions
 
 === BitBLT Operations
-- `src/bitblt.c`: Generic BitBLT implementation
-- `src/blt.c`: Bit-block transfer core
-- `src/xbbt.c`: X11-specific BitBLT
-- `src/lineblt8.c`: Line drawing operations
-- `src/draw.c`: Drawing primitives
-- `src/picture.c`: Picture rendering
+
+- *`src/bitblt.c`*: Generic BitBLT implementation
+- *`src/blt.c`*: Bit-block transfer core
+- *`src/xbbt.c`*: X11-specific BitBLT
+- *`src/lineblt8.c`*: Line drawing operations
+- *`src/draw.c`*: Drawing primitives
+- *`src/picture.c`*: Picture rendering
 
 === Color Management
-- `src/llcolor.c`: Low-level color operations
-- `src/rawcolor.c`: Raw color handling
-- `src/truecolor.c`: True color support
+
+- *`src/llcolor.c`*: Low-level color operations
+- *`src/rawcolor.c`*: Raw color handling
+- *`src/truecolor.c`*: True color support
 
 == Display Architecture
 
 === Display Interface Structure
 
-[`typedef struct dspinterface {`]
-[`    Display pointerdisplay_id;        // X11 display (X11`] or SDL window (SDL)
+#codeblock(lang: "c", [
+typedef struct dspinterface {
+    Display *display_id;        // X11 display (X11) or SDL window (SDL)
     Window LispWindow;           // Main Lisp window
     Window DisplayWindow;        // Display area
     // ... scrollbars, gravity windows ...
     unsigned EnableEventMask;     // Event mask
     // ... other fields ...
-} DspInterface;)
+} DspInterface;
+])
 
 === Display Region
 
 The display region (`DisplayRegion68k`) is a memory-mapped area that represents the screen:
+
 - *Memory Layout*: Pixel data stored in Lisp memory
 - *Update Mechanism*: BitBLT operations copy from memory to screen
 - *Format*: Depends on display mode (monochrome, color, true color)
@@ -107,6 +158,7 @@ The display region (`DisplayRegion68k`) is a memory-mapped area that represents 
 BitBLT (Bit-Block Transfer) is the primary graphics operation:
 
 === BitBLT Parameters
+
 - *Source*: Source rectangle in display memory
 - *Destination*: Destination rectangle on screen
 - *Operation*: Logical operation (copy, XOR, etc.)
@@ -121,6 +173,7 @@ BitBLT (Bit-Block Transfer) is the primary graphics operation:
 == Event Handling
 
 === X11 Events
+
 - *Key Events*: Keyboard input
 - *Button Events*: Mouse button presses
 - *Motion Events*: Mouse movement
@@ -128,6 +181,7 @@ BitBLT (Bit-Block Transfer) is the primary graphics operation:
 - *Configure Events*: Window resize/move
 
 === SDL Events
+
 - *SDL_KeyboardEvent*: Keyboard input
 - *SDL_MouseButtonEvent*: Mouse button presses
 - *SDL_MouseMotionEvent*: Mouse movement
@@ -145,12 +199,14 @@ Events are processed in the main loop:
 == Window Management
 
 === Window Structure
+
 - *LispWindow*: Outer window (title bar, borders)
 - *DisplayWindow*: Inner window (actual display area)
 - *ScrollBars*: Horizontal and vertical scrollbars
 - *Gravity Windows*: Corner resize handles
 
 === Window Operations
+
 - *Create*: Create new window
 - *Resize*: Change window size
 - *Move*: Change window position
@@ -160,11 +216,13 @@ Events are processed in the main loop:
 == Cursor Management
 
 === Cursor Types
+
 - *Text Cursor*: Text editing cursor
-- *Mouse Cursor*: Mouse
+- *Mouse Cursor*: Mouse pointer
 - *Custom Cursors*: Application-defined cursors
 
 === Cursor Operations
+
 - *Create*: Create cursor from bitmap
 - *Set*: Set active cursor
 - *Hide/Show*: Toggle cursor visibility
@@ -173,11 +231,13 @@ Events are processed in the main loop:
 == Color Management
 
 === Color Models
+
 - *Monochrome*: 1-bit (black/white)
 - *Indexed Color*: Color palette (8-bit, 16-bit)
 - *True Color*: Direct color (24-bit, 32-bit)
 
 === Color Operations
+
 - *Allocate Color*: Allocate color in colormap
 - *Set Foreground*: Set foreground color
 - *Set Background*: Set background color
@@ -186,11 +246,13 @@ Events are processed in the main loop:
 == Display Modes
 
 === Resolution
+
 - *Default*: 1024x768 (configurable)
 - *Scalable*: Pixel scaling support
 - *Fullscreen*: Optional fullscreen mode
 
 === Pixel Formats
+
 - *1-bit*: Monochrome
 - *8-bit*: Indexed color (256 colors)
 - *16-bit*: High color (65536 colors)
@@ -200,6 +262,7 @@ Events are processed in the main loop:
 == Threading and Locking
 
 === X11 Locking
+
 - *XLOCK*: Lock X11 operations
 - *XUNLOCK*: Unlock X11 operations
 - *XLocked*: Lock state flag

@@ -1,11 +1,12 @@
 = Alternative Implementations
 
+*Navigation*: Main README | Index
 
 This directory contains documentation for alternative implementations of the Maiko emulator.
 
 == Implementations
 
-=== Common Lisp Implementation
+=== [Common Lisp Implementation](lisp-implementation.md)
 
 Complete implementation of the Maiko emulator in Common Lisp (SBCL).
 
@@ -15,7 +16,11 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL).
 - *Display Backend*: SDL3
 - *Opcodes*: 189 of 256 implemented (73.8%)
 - *Source Files*: 24 Lisp files
-- *Test Files*: 11 test files Key Features: - Complete VM core with dispatch loop
+- *Test Files*: 11 test files
+
+*Key Features*:
+
+- Complete VM core with dispatch loop
 - Memory management (storage, GC, virtual memory)
 - Display subsystem (SDL3 backend)
 - I/O subsystem (keyboard, mouse, filesystem)
@@ -23,21 +28,30 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL).
 - Comprehensive error handling
 - Platform-specific support (endianness, pathnames)
 
-=== Zig Implementation
+=== [Zig Implementation](zig-implementation.md)
 
 Implementation of the Maiko emulator in Zig programming language.
+
 - *Status*: 🔄 In Progress - Completion Phase
 - *Location*: `alternatives/zig/`
 - *Build System*: Zig build system (`build.zig`)
-- *Display Backend*: SDL2* (linked, integration pending)
+- *Display Backend*: SDL2 (linked, integration pending)
 - *Opcodes*: ~50 of 256 implemented (essential set pending)
 - *Source Files*: Multiple Zig modules
-- *Test Files*: Test suite structure Key Features: - Complete framework structure
+- *Test Files*: Test suite structure
+
+*Key Features*:
+
+- Complete framework structure
 - VM core framework (dispatch loop structure)
 - Memory management framework (GC, storage, virtual memory)
 - Display subsystem framework (SDL2 backend)
 - I/O subsystem framework (keyboard, mouse, filesystem)
-- Comprehensive opcode enumeration pointerCritical Blockers: - Sysout loading fails (wrong IFPAGE_KEYVAL*: 0x12345678 vs 0x15e3)
+- Comprehensive opcode enumeration
+
+*Critical Blockers*:
+
+- Sysout loading fails (wrong IFPAGE_KEYVAL: 0x12345678 vs 0x15e3)
 - Incomplete IFPAGE structure
 - FPtoVP table loading not implemented
 - Page loading algorithm not implemented
