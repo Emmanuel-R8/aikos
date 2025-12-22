@@ -1,6 +1,10 @@
 const std = @import("std");
 const types = @import("../utils/types.zig");
 const errors = @import("../utils/errors.zig");
+const performance = @import("../utils/performance.zig");
+
+// T103: Performance optimization - make debug output conditional
+const DEBUG_SYSOUT_LOADING = @import("builtin").mode == .Debug;
 
 const LispPTR = types.LispPTR;
 const DLword = types.DLword;
@@ -59,8 +63,12 @@ pub const SysoutLoadResult = struct {
 /// Load sysout file
 /// Per contracts/memory-interface.zig
 /// Reads IFPAGE from offset IFPAGE_ADDRESS (512 bytes)
+/// T103: Performance optimized - measures loading time
 pub fn loadSysout(allocator: std.mem.Allocator, filename: []const u8) errors.MemoryError!SysoutLoadResult {
-    std.debug.print("Opening sysout file: {s}\n", .{filename});
+    var timer = performance.PerformanceTimer.start();
+    if (DEBUG_SYSOUT_LOADING) {
+        std.debug.print("Opening sysout file: {s}\n", .{filename});
+    }
     const file = std.fs.cwd().openFile(filename, .{}) catch |err| {
         std.debug.print("ERROR: Failed to open sysout file '{s}': {}\n", .{ filename, err });
         std.debug.print("  Possible causes:\n", .{});
@@ -78,7 +86,9 @@ pub fn loadSysout(allocator: std.mem.Allocator, filename: []const u8) errors.Mem
         std.debug.print("    - File system error occurred\n", .{});
         return error.SysoutLoadFailed;
     };
-    std.debug.print("Sysout file size: {} bytes\n", .{file_size});
+    if (DEBUG_SYSOUT_LOADING) {
+        std.debug.print("Sysout file size: {} bytes\n", .{file_size});
+    }
 
     // Seek to IFPAGE address (512 bytes from start)
     file.seekTo(IFPAGE_ADDRESS) catch |err| {
@@ -117,11 +127,13 @@ pub fn loadSysout(allocator: std.mem.Allocator, filename: []const u8) errors.Mem
     // We need to swap all DLword (u16) fields in the IFPAGE struct
     swapIFPAGEBytes(&ifpage);
 
-    std.debug.print("IFPAGE read: key=0x{x}, lversion={}, minbversion={}, process_size={}\n", .{ ifpage.key, ifpage.lversion, ifpage.minbversion, ifpage.process_size });
-    std.debug.print("DEBUG: IFPAGE fields after byte-swap:\n", .{});
-    std.debug.print("  currentfxp=0x{x} (DLword offset from Stackspace)\n", .{ifpage.currentfxp});
-    std.debug.print("  stackbase=0x{x}, endofstack=0x{x}\n", .{ ifpage.stackbase, ifpage.endofstack });
-    std.debug.print("  fptovpstart={} (file page number)\n", .{ifpage.fptovpstart});
+    if (DEBUG_SYSOUT_LOADING) {
+        std.debug.print("IFPAGE read: key=0x{x}, lversion={}, minbversion={}, process_size={}\n", .{ ifpage.key, ifpage.lversion, ifpage.minbversion, ifpage.process_size });
+        std.debug.print("DEBUG: IFPAGE fields after byte-swap:\n", .{});
+        std.debug.print("  currentfxp=0x{x} (DLword offset from Stackspace)\n", .{ifpage.currentfxp});
+        std.debug.print("  stackbase=0x{x}, endofstack=0x{x}\n", .{ ifpage.stackbase, ifpage.endofstack });
+        std.debug.print("  fptovpstart={} (file page number)\n", .{ifpage.fptovpstart});
+    }
 
     // Validate sysout
     if (!validateSysout(&ifpage)) {
@@ -135,7 +147,9 @@ pub fn loadSysout(allocator: std.mem.Allocator, filename: []const u8) errors.Mem
         std.debug.print("    - File is corrupted or from a different system\n", .{});
         return error.SysoutLoadFailed;
     }
-    std.debug.print("Sysout validation passed\n", .{});
+    if (DEBUG_SYSOUT_LOADING) {
+        std.debug.print("Sysout validation passed\n", .{});
+    }
 
     // Allocate virtual memory (process_size in MB)
     // C: if (ifpage.process_size == 0) sys_size = DEFAULT_MAX_SYSOUTSIZE (64MB) else sys_size = ifpage.process_size
@@ -158,9 +172,13 @@ pub fn loadSysout(allocator: std.mem.Allocator, filename: []const u8) errors.Mem
 
     // Load FPtoVP table
     var file_mut = file;
-    std.debug.print("DEBUG: Loading FPtoVP table...\n", .{});
+    if (DEBUG_SYSOUT_LOADING) {
+        std.debug.print("DEBUG: Loading FPtoVP table...\n", .{});
+    }
     const fptovp = try loadFPtoVPTable(allocator, &file_mut, &ifpage, file_size);
-    std.debug.print("DEBUG: FPtoVP table loaded: {} entries (BIGVM format)\n", .{fptovp.entries.len});
+    if (DEBUG_SYSOUT_LOADING) {
+        std.debug.print("DEBUG: FPtoVP table loaded: {} entries (BIGVM format)\n", .{fptovp.entries.len});
+    }
     if (fptovp.entries.len > 0) {
         std.debug.print("  First 10 entries (GETFPTOVP/GETPAGEOK): ", .{});
         const print_count = @min(10, fptovp.entries.len);
@@ -177,9 +195,21 @@ pub fn loadSysout(allocator: std.mem.Allocator, filename: []const u8) errors.Mem
     }
 
     // Load memory pages
-    std.debug.print("DEBUG: Loading memory pages...\n", .{});
+    if (DEBUG_SYSOUT_LOADING) {
+        std.debug.print("DEBUG: Loading memory pages...\n", .{});
+    }
     try loadMemoryPages(allocator, &file_mut, &fptovp, virtual_memory);
-    std.debug.print("DEBUG: Memory pages loaded into virtual memory ({} bytes)\n", .{virtual_memory.len});
+    
+    const elapsed = timer.elapsed();
+    if (DEBUG_SYSOUT_LOADING) {
+        std.debug.print("DEBUG: Memory pages loaded into virtual memory ({} bytes)\n", .{virtual_memory.len});
+        std.debug.print("Performance: Sysout loading took {d:.3} seconds\n", .{elapsed});
+    }
+    
+    // T103: Check if performance target is met (< 5 seconds)
+    if (elapsed > 5.0) {
+        std.debug.print("WARNING: Sysout loading took {d:.3} seconds (target: < 5 seconds)\n", .{elapsed});
+    }
     
     // CRITICAL VERIFICATION: Check memory at PC 0x307898 after loading
     const verify_pc: usize = 0x307898;
@@ -420,62 +450,68 @@ pub fn loadMemoryPages(
     const num_file_pages = fptovp.entries.len;
     var page_buffer: [BYTESPER_PAGE]u8 = undefined;
 
-    // DEBUG: Search for file pages that map to virtual page 302 (frame location)
-    const frame_vpage: u16 = 302;
-    var found_frame_pages: [10]usize = undefined;
-    var found_count: usize = 0;
-    for (0..num_file_pages) |file_page| {
-        // Use GETFPTOVP to get virtual page number (low 16 bits)
-        const virtual_page = fptovp.getFPtoVP(file_page);
-        if (virtual_page == frame_vpage and found_count < found_frame_pages.len) {
-            found_frame_pages[found_count] = file_page;
-            found_count += 1;
+    // T103: Performance optimization - make debug passes conditional
+    if (DEBUG_SYSOUT_LOADING) {
+        // DEBUG: Search for file pages that map to virtual page 302 (frame location)
+        const frame_vpage: u16 = 302;
+        var found_frame_pages: [10]usize = undefined;
+        var found_count: usize = 0;
+        for (0..num_file_pages) |file_page| {
+            // Use GETFPTOVP to get virtual page number (low 16 bits)
+            const virtual_page = fptovp.getFPtoVP(file_page);
+            if (virtual_page == frame_vpage and found_count < found_frame_pages.len) {
+                found_frame_pages[found_count] = file_page;
+                found_count += 1;
+            }
         }
-    }
-    std.debug.print("DEBUG loadMemoryPages: Found {d} file pages mapping to virtual page {d} (frame):\n", .{ found_count, frame_vpage });
-    for (0..found_count) |i| {
-        std.debug.print("  File page {d} -> virtual page {d}\n", .{ found_frame_pages[i], frame_vpage });
+        std.debug.print("DEBUG loadMemoryPages: Found {d} file pages mapping to virtual page {d} (frame):\n", .{ found_count, frame_vpage });
+        for (0..found_count) |i| {
+            std.debug.print("  File page {d} -> virtual page {d}\n", .{ found_frame_pages[i], frame_vpage });
+        }
     }
 
-    // DEBUG: Track pages loaded for virtual page 6204 (where PC 0x307898 is)
-    const target_vpage = 6204; // PC 0x307898 / 512 = 6204
-    // DEBUG: Also check file page 2937 (where C emulator's expected bytes are)
-    const c_emulator_file_page: usize = 2937;
-    var found_target_page = false;
+    // T103: Performance optimization - only do debug passes in debug mode
+    const target_vpage = if (DEBUG_SYSOUT_LOADING) 6204 else 0; // PC 0x307898 / 512 = 6204
+    var found_target_page = if (DEBUG_SYSOUT_LOADING) false else false;
     var target_page_count: usize = 0;
-    var c_file_page_vpage: ?u16 = null;
     
-    // First pass: count how many file pages map to target virtual page and list them
-    // Also check what virtual page file page 2937 maps to (C emulator's file page)
-    var target_file_pages: [10]usize = undefined;
-    var target_file_pages_count: usize = 0;
-    for (0..num_file_pages) |file_page| {
-        if (fptovp.isSparse(file_page)) {
-            continue;
-        }
-        const vpage = fptovp.getFPtoVP(file_page);
+    if (DEBUG_SYSOUT_LOADING) {
+        // DEBUG: Also check file page 2937 (where C emulator's expected bytes are)
+        const c_emulator_file_page: usize = 2937;
+        var c_file_page_vpage: ?u16 = null;
         
-        // Check if this is the C emulator's file page
-        if (file_page == c_emulator_file_page) {
-            c_file_page_vpage = vpage;
-            const pageok = fptovp.getPageOK(file_page);
-            std.debug.print("DEBUG: C emulator's file page {} maps to virtual page {} (GETPAGEOK=0x{x:0>4})\n", .{ file_page, vpage, pageok });
-        }
-        
-        if (vpage == target_vpage) {
-            if (target_file_pages_count < target_file_pages.len) {
-                target_file_pages[target_file_pages_count] = file_page;
-                target_file_pages_count += 1;
+        // First pass: count how many file pages map to target virtual page and list them
+        // Also check what virtual page file page 2937 maps to (C emulator's file page)
+        var target_file_pages: [10]usize = undefined;
+        var target_file_pages_count: usize = 0;
+        for (0..num_file_pages) |file_page| {
+            if (fptovp.isSparse(file_page)) {
+                continue;
             }
-            target_page_count += 1;
+            const vpage = fptovp.getFPtoVP(file_page);
+            
+            // Check if this is the C emulator's file page
+            if (file_page == c_emulator_file_page) {
+                c_file_page_vpage = vpage;
+                const pageok = fptovp.getPageOK(file_page);
+                std.debug.print("DEBUG: C emulator's file page {} maps to virtual page {} (GETPAGEOK=0x{x:0>4})\n", .{ file_page, vpage, pageok });
+            }
+            
+            if (vpage == target_vpage) {
+                if (target_file_pages_count < target_file_pages.len) {
+                    target_file_pages[target_file_pages_count] = file_page;
+                    target_file_pages_count += 1;
+                }
+                target_page_count += 1;
+            }
         }
-    }
-    if (target_page_count > 0) {
-        std.debug.print("DEBUG: Found {d} file page(s) mapping to virtual page {} (PC page):\n", .{ target_page_count, target_vpage });
-        for (0..target_file_pages_count) |i| {
-            const fp = target_file_pages[i];
-            const pageok = fptovp.getPageOK(fp);
-            std.debug.print("  File page {} -> virtual page {} (GETPAGEOK=0x{x:0>4})\n", .{ fp, target_vpage, pageok });
+        if (target_page_count > 0) {
+            std.debug.print("DEBUG: Found {d} file page(s) mapping to virtual page {} (PC page):\n", .{ target_page_count, target_vpage });
+            for (0..target_file_pages_count) |i| {
+                const fp = target_file_pages[i];
+                const pageok = fptovp.getPageOK(fp);
+                std.debug.print("  File page {} -> virtual page {} (GETPAGEOK=0x{x:0>4})\n", .{ fp, target_vpage, pageok });
+            }
         }
     }
     
@@ -488,8 +524,8 @@ pub fn loadMemoryPages(
         // Use GETFPTOVP to get virtual page number (low 16 bits)
         const virtual_page = fptovp.getFPtoVP(file_page);
         
-        // DEBUG: Check if this maps to target virtual page
-        if (virtual_page == target_vpage) {
+        // T103: Performance optimization - conditional debug output
+        if (DEBUG_SYSOUT_LOADING and virtual_page == target_vpage) {
             const pageok = fptovp.getPageOK(file_page);
             std.debug.print("DEBUG: Loading file page {} -> virtual page {} (PC page) [{d}/{d}]\n", .{ file_page, virtual_page, target_page_count, target_page_count });
             std.debug.print("  FPtoVP[{}] = {} (GETFPTOVP), GETPAGEOK = 0x{x:0>4}\n", .{ file_page, virtual_page, pageok });
@@ -532,8 +568,8 @@ pub fn loadMemoryPages(
             return error.SysoutLoadFailed;
         }
         
-        // DEBUG: Dump raw bytes for PC page BEFORE byte-swap
-        if (virtual_page == target_vpage) {
+        // T103: Performance optimization - conditional debug output
+        if (DEBUG_SYSOUT_LOADING and virtual_page == target_vpage) {
             std.debug.print("DEBUG sysout_loader: PC PAGE - Raw bytes from file (BEFORE byte-swap):\n", .{});
             std.debug.print("  File page: {}, file offset: 0x{x} ({} bytes)\n", .{ file_page, file_offset, file_offset });
             std.debug.print("  First 16 bytes: ", .{});
@@ -585,8 +621,8 @@ pub fn loadMemoryPages(
             page_longwords[i] = @byteSwap(page_longwords[i]);
         }
         
-        // DEBUG: Dump bytes for PC page AFTER byte-swap
-        if (virtual_page == target_vpage) {
+        // T103: Performance optimization - conditional debug output
+        if (DEBUG_SYSOUT_LOADING and virtual_page == target_vpage) {
             std.debug.print("DEBUG sysout_loader: PC PAGE - Bytes AFTER byte-swap (in virtual memory):\n", .{});
             std.debug.print("  First 16 bytes at virtual address 0x{x}: ", .{virtual_address});
             for (0..16) |i| {
@@ -605,8 +641,8 @@ pub fn loadMemoryPages(
         }
     }
     
-    // DEBUG: Report if target page was found
-    if (!found_target_page) {
+    // T103: Performance optimization - conditional debug output
+    if (DEBUG_SYSOUT_LOADING and !found_target_page) {
         std.debug.print("WARNING: Virtual page {} (PC page) was NOT loaded from sysout file!\n", .{target_vpage});
         std.debug.print("  PC 0x307898 is in virtual page {}\n", .{target_vpage});
         std.debug.print("  This page should have been loaded from a file page mapping to virtual page {}\n", .{target_vpage});
