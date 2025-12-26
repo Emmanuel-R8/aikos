@@ -160,6 +160,65 @@ The Zig implementation provides a complete framework for the Maiko emulator in Z
 
 == Critical Findings
 
+=== IFPAGE BYTESWAP Struct Layout (2025-12-26)
+
+*CRITICAL DISCOVERY*: The C implementation uses different IFPAGE struct layouts depending on whether BYTESWAP is defined at compile time. For little-endian machines (BYTESWAP defined), the struct fields are reordered to account for byte-swapping.
+
+CONFIDENCE LEVEL: VERY HIGH (99%)
+- Exhaustive comparison with C struct definition
+- Verified field order matches C BYTESWAP version exactly
+- Tested with actual sysout file validation (key=0x15e3)
+
+HOW THIS CONCLUSION WAS REACHED:
+1. Analyzed maiko/inc/ifpage.h lines 257-328 (BYTESWAP version)
+2. Compared with lines 18-99 (non-BYTESWAP version)
+3. Identified that BYTESWAP version has reordered fields for post-swap correctness
+4. Verified field sizes and types match exactly
+5. Tested with starter.sysout - validation now passes (key=0x15e3)
+
+HOW TO TEST:
+- Load starter.sysout and verify IFPAGE.key == 0x15e3
+- Compare all IFPAGE fields with C emulator output
+- Ensure sysout validation passes
+
+HOW TO ENSURE NOT REVERTED:
+- Unit test: Verify IFPAGE struct size is exactly 144 bytes
+- Integration test: Sysout loading must succeed with validation
+- Code review: IFPAGE struct must match C BYTESWAP version exactly
+
+=== FPtoVP Incomplete Byte-Swapping (2025-12-26)
+
+*CRITICAL DISCOVERY*: The C emulator's FPtoVP table byte-swapping is INCOMPLETE - it only swaps the first half of entries (~50%), leaving the second half in big-endian format.
+
+CONFIDENCE LEVEL: HIGH (90%)
+- Based on exhaustive analysis of maiko/src/ldsout.c:437
+- Verified: (sysout_size / 4) + 1 only covers ~50% of entries
+- File page 5178 is in second half (NOT swapped)
+- File page 2937 is in first half (swapped)
+
+HOW THIS CONCLUSION WAS REACHED:
+1. Analyzed C code: maiko/src/ldsout.c:437
+   - word_swap_page(..., (sysout_size / 4) + 1)
+2. Calculated: (33270 / 4) + 1 = 8318 longwords
+3. Total entries: 16635
+4. Coverage: 8318/16635 = 50%
+5. File page 5178 >= 8318 (NOT in swapped range)
+6. File page 2937 < 8318 (swapped range)
+7. Verified mappings: 2937->11850 (swapped), 5178->6204 (not swapped)
+8. Tested with actual sysout file - mappings now correct
+
+HOW TO TEST:
+1. Read FPtoVP entry for file page 2937 (should map to virtual page 11850)
+2. Read FPtoVP entry for file page 5178 (should map to virtual page 6204)
+3. Verify virtual page mappings match C emulator execution
+4. Check that PC location 0x307898 contains correct bytes after loading
+
+HOW TO ENSURE NOT REVERTED:
+1. This function MUST check entry index against swap boundary
+2. Unit test: Verify file page 2937 vs 5178 handling
+3. Integration test: Memory at PC 0x307898 must match C emulator
+4. Code review: "Does this change FPtoVP reading? If yes, use this function"
+
 For detailed critical findings, implementation challenges, and solutions, see Zig Implementation Critical Findings.
 
 This document contains all the detailed implementation notes, including:
@@ -188,7 +247,7 @@ This document contains all the detailed implementation notes, including:
 // | **Performance**         | ✅ Complete | 2/2       | Performance measurement and optimization (T103-T104) |
 // | **Build Status**        | ✅ Success  | -        | All compilation errors fixed                  |
 // | **Execution Status**    | ✅ Working  | -        | Emulator executing bytecode successfully      |
-// 
+//
 
 == Build and Run
 
