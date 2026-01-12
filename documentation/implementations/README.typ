@@ -43,8 +43,11 @@ Reference implementation of the Maiko emulator in C.
 
 - [Memory Loading Analysis](c-emulator-memory-loading-analysis.typ) - FPtoVP table, page loading, byte-swapping
 - [PC Calculation Logic](c-emulator-pc-calculation.typ) - Program counter calculation from frame data
+- [PC Advancement Fix](c-emulator-pc-advancement-fix.typ) - Critical bug fix for PC synchronization (2026-01-12)
 - [Byte-Swapping Logic](c-emulator-byte-swapping.typ) - FPtoVP and page content byte-swapping
 - [Execution Byte Mismatch](c-emulator-execution-byte-mismatch.typ) - Investigation of execution vs loading bytes
+- [Unified Logging Format](unified-logging-format.typ) - Execution log format for C/Zig comparison
+- [Execution Comparison Results](execution-comparison-results.typ) - C vs Zig execution comparison results
 
 *Verified Logic* (2025-01-27):
 
