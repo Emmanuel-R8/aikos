@@ -9,7 +9,7 @@ Quick reference guide to all Medley documentation files.
 == Documentation Structure
 
 #codeblock(lang: "text", [
-.ai_assistant_db/medley/
+documentation/medley/
 ├── README.md                    # Overview and navigation
 ├── INDEX.md                      # This file - quick reference
 ├── architecture.md               # System architecture overview

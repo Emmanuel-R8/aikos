@@ -9,10 +9,10 @@ This guide helps developers understand how to navigate and use the Medley docume
 
 ## Documentation Location
 
-All Medley documentation is located in `.ai_assistant_db/medley/` directory, organized as follows:
+All Medley documentation is located in `documentation/medley/` directory, organized as follows:
 
 ```
-.ai_assistant_db/medley/
+documentation/medley/
 ├── README.md              # Start here - overview and navigation
 ├── INDEX.md               # Quick reference index
 ├── architecture.md        # System architecture
@@ -29,7 +29,7 @@ All Medley documentation is located in `.ai_assistant_db/medley/` directory, org
 1. **Start with Architecture**: Read `architecture.md` to understand overall system design
 2. **Understand Interface**: Read `interface/README.md` to understand Medley-Maiko communication
 3. **Study Components**: Explore `components/` to understand individual parts
-4. **Reference Maiko Docs**: Use Maiko documentation in `.ai_assistant_db/` for emulator details
+4. **Reference Maiko Docs**: Use Maiko documentation in `documentation/` for emulator details
 
 ### For Maintainers
 
@@ -113,7 +113,7 @@ INDEX.md provides quick reference to all documentation organized by topic:
 ### Following Cross-References
 
 - Internal links use relative paths within Medley documentation
-- External links to Maiko docs use paths to `.ai_assistant_db/` Maiko documentation
+- External links to Maiko docs use paths to `documentation/` Maiko documentation
 - Source code references link to repository files
 
 ### Finding Implementation Details

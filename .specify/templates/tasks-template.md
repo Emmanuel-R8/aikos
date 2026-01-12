@@ -5,7 +5,7 @@ description: "Task list template for feature implementation"
 
 # Tasks: [FEATURE NAME]
 
-**Input**: Design documents from `specs/[###-feature-name]/`
+**Input**: Design documents from `/specs/[###-feature-name]/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
 **Tests**: The examples below include test tasks. Tests are OPTIONAL - only include them if explicitly requested in the feature specification.
@@ -20,26 +20,26 @@ description: "Task list template for feature implementation"
 
 ## Path Conventions
 
-- **Single project**: `maiko/src/`, `tests/` at repository root
+- **Single project**: `src/`, `tests/` at repository root
 - **Web app**: `backend/src/`, `frontend/src/`
 - **Mobile**: `api/src/`, `ios/src/` or `android/src/`
 - Paths shown below assume single project - adjust based on plan.md structure
 
-<!--
+<!-- 
   ============================================================================
   IMPORTANT: The tasks below are SAMPLE TASKS for illustration purposes only.
-
+  
   The /speckit.tasks command MUST replace these with actual tasks based on:
   - User stories from spec.md (with their priorities P1, P2, P3...)
   - Feature requirements from plan.md
   - Entities from data-model.md
   - Endpoints from contracts/
-
+  
   Tasks MUST be organized by user story so each story can be:
   - Implemented independently
   - Tested independently
   - Delivered as an MVP increment
-
+  
   DO NOT keep these sample tasks in the generated tasks.md file.
   ============================================================================
 -->
@@ -88,10 +88,10 @@ Examples of foundational tasks (adjust based on your project):
 
 ### Implementation for User Story 1
 
-- [ ] T012 [P] [US1] Create [Entity1] model in maiko/src/models/[entity1].py
-- [ ] T013 [P] [US1] Create [Entity2] model in maiko/src/models/[entity2].py
-- [ ] T014 [US1] Implement [Service] in maiko/src/services/[service].py (depends on T012, T013)
-- [ ] T015 [US1] Implement [endpoint/feature] in maiko/src/[location]/[file].py
+- [ ] T012 [P] [US1] Create [Entity1] model in src/models/[entity1].py
+- [ ] T013 [P] [US1] Create [Entity2] model in src/models/[entity2].py
+- [ ] T014 [US1] Implement [Service] in src/services/[service].py (depends on T012, T013)
+- [ ] T015 [US1] Implement [endpoint/feature] in src/[location]/[file].py
 - [ ] T016 [US1] Add validation and error handling
 - [ ] T017 [US1] Add logging for user story 1 operations
 
@@ -112,9 +112,9 @@ Examples of foundational tasks (adjust based on your project):
 
 ### Implementation for User Story 2
 
-- [ ] T020 [P] [US2] Create [Entity] model in maiko/src/models/[entity].py
-- [ ] T021 [US2] Implement [Service] in maiko/src/services/[service].py
-- [ ] T022 [US2] Implement [endpoint/feature] in maiko/src/[location]/[file].py
+- [ ] T020 [P] [US2] Create [Entity] model in src/models/[entity].py
+- [ ] T021 [US2] Implement [Service] in src/services/[service].py
+- [ ] T022 [US2] Implement [endpoint/feature] in src/[location]/[file].py
 - [ ] T023 [US2] Integrate with User Story 1 components (if needed)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
@@ -134,9 +134,9 @@ Examples of foundational tasks (adjust based on your project):
 
 ### Implementation for User Story 3
 
-- [ ] T026 [P] [US3] Create [Entity] model in maiko/src/models/[entity].py
-- [ ] T027 [US3] Implement [Service] in maiko/src/services/[service].py
-- [ ] T028 [US3] Implement [endpoint/feature] in maiko/src/[location]/[file].py
+- [ ] T026 [P] [US3] Create [Entity] model in src/models/[entity].py
+- [ ] T027 [US3] Implement [Service] in src/services/[service].py
+- [ ] T028 [US3] Implement [endpoint/feature] in src/[location]/[file].py
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -203,8 +203,8 @@ Task: "Contract test for [endpoint] in tests/contract/test_[name].py"
 Task: "Integration test for [user journey] in tests/integration/test_[name].py"
 
 # Launch all models for User Story 1 together:
-Task: "Create [Entity1] model in maiko/src/models/[entity1].py"
-Task: "Create [Entity2] model in maiko/src/models/[entity2].py"
+Task: "Create [Entity1] model in src/models/[entity1].py"
+Task: "Create [Entity2] model in src/models/[entity2].py"
 ```
 
 ---

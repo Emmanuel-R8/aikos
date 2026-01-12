@@ -21,4 +21,4 @@ These files are kept for:
 
 ## Structure
 
-The directory structure mirrors the original `.ai_assistant_db/` structure for easy reference.
+The directory structure mirrors the original `documentation/` structure for easy reference.

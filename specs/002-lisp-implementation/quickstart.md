@@ -207,6 +207,6 @@ brew install sdl3
 
 ## Getting Help
 
-- Review rewrite documentation in `.ai_assistant_db/rewrite-spec/`
+- Review rewrite documentation in `documentation/rewrite-spec/`
 - Check test cases in `tests/` directory
 - Compare with C implementation in `maiko/src/` directory

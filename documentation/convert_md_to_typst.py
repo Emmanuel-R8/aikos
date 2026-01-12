@@ -168,7 +168,7 @@ def convert_file(md_path: Path, typ_path: Path) -> None:
 
 def get_output_path(md_path: Path, base_dir: Path) -> Path:
     """Determine output path based on source path."""
-    # Map .ai_assistant_db structure to documentation structure
+    # Map documentation structure to documentation structure
     rel_path = md_path.relative_to(base_dir)
     
     # Remove .md extension
@@ -231,7 +231,7 @@ def main():
     if len(sys.argv) > 1:
         source_dir = Path(sys.argv[1])
     else:
-        source_dir = Path(__file__).parent.parent / '.ai_assistant_db'
+        source_dir = Path(__file__).parent.parent / 'documentation'
     
     if not source_dir.exists():
         print(f"Error: {source_dir} does not exist")

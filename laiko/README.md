@@ -1,6 +1,6 @@
 # Maiko Emulator Implementation in Common Lisp
 
-This directory contains a complete implementation of the Maiko emulator in Common Lisp (SBCL), following the rewrite documentation specifications in `.ai_assistant_db/rewrite-spec/`.
+This directory contains a complete implementation of the Maiko emulator in Common Lisp (SBCL), following the rewrite documentation specifications in `documentation/rewrite-spec/`.
 
 ## Overview
 

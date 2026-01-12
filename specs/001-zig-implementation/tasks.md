@@ -66,14 +66,14 @@
 - [x] T014 [P] [US1] Create stack frame structure `alternatives/zig/src/vm/stack.zig` with FX struct per data-model.md
 - [x] T015 [US1] Implement stack allocation functions in `alternatives/zig/src/vm/stack.zig` (allocateStackFrame, freeStackFrame, extendStack) per contracts/vm-core-interface.zig
 - [x] T016 [US1] Create dispatch loop module `alternatives/zig/src/vm/dispatch.zig` with fetchInstruction, decodeOpcode, executeOpcode per contracts/vm-core-interface.zig
-- [x] T017 [US1] Implement main dispatch function in `alternatives/zig/src/vm/dispatch.zig` per `.ai_assistant_db/rewrite-spec/vm-core/execution-model.md`
+- [x] T017 [US1] Implement main dispatch function in `alternatives/zig/src/vm/dispatch.zig` per `documentation/rewrite-spec/vm-core/execution-model.md`
 - [x] T018 [P] [US1] Create opcode handlers module `alternatives/zig/src/vm/opcodes.zig` with opcode handler function signatures
-- [x] T019 [US1] Implement arithmetic opcodes (IPLUS2, IDIFFERENCE, ITIMES2, IQUO, IREM) in `alternatives/zig/src/vm/opcodes.zig` per `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md`
+- [x] T019 [US1] Implement arithmetic opcodes (IPLUS2, IDIFFERENCE, ITIMES2, IQUO, IREM) in `alternatives/zig/src/vm/opcodes.zig` per `documentation/rewrite-spec/instruction-set/opcodes.md`
 - [x] T020 [US1] Implement stack manipulation opcodes (PUSH, POP, STKSCAN) in `alternatives/zig/src/vm/opcodes.zig` per rewrite documentation
 - [x] T021 [US1] Create function call module `alternatives/zig/src/vm/function.zig` with callFunction, returnFromFunction per contracts/vm-core-interface.zig
 - [x] T022 [US1] Implement function call opcodes (CALL, CALLN, RET) in `alternatives/zig/src/vm/opcodes.zig` per rewrite documentation
 - [x] T023 [US1] Create interrupt handling module `alternatives/zig/src/vm/interrupt.zig` with checkInterrupts, handleInterrupt per contracts/vm-core-interface.zig
-- [x] T024 [US1] Integrate interrupt checking into dispatch loop in `alternatives/zig/src/vm/dispatch.zig` per `.ai_assistant_db/rewrite-spec/vm-core/interrupt-handling.md`
+- [x] T024 [US1] Integrate interrupt checking into dispatch loop in `alternatives/zig/src/vm/dispatch.zig` per `documentation/rewrite-spec/vm-core/interrupt-handling.md`
 - [x] T025 [US1] Implement address translation functions (translateAddress2, translateAddress4) in `alternatives/zig/src/utils/address.zig` per contracts/vm-core-interface.zig
 
 **Checkpoint**: At this point, User Story 1 should enable basic bytecode execution with arithmetic and stack operations
@@ -95,16 +95,16 @@
 ### Implementation for User Story 2
 
 - [x] T029 [P] [US2] Create cons cell structure `alternatives/zig/src/data/cons.zig` with ConsCell packed struct per data-model.md
-- [x] T030 [US2] Implement CDR coding functions in `alternatives/zig/src/data/cons.zig` per `.ai_assistant_db/rewrite-spec/data-structures/cons-cells.md`
+- [x] T030 [US2] Implement CDR coding functions in `alternatives/zig/src/data/cons.zig` per `documentation/rewrite-spec/data-structures/cons-cells.md`
 - [x] T031 [P] [US2] Create array structures `alternatives/zig/src/data/array.zig` with array type definitions per data-model.md
 - [x] T032 [P] [US2] Create function header structure `alternatives/zig/src/data/function_header.zig` with FunctionHeader packed struct per data-model.md
 - [x] T033 [US2] Create virtual memory module `alternatives/zig/src/memory/virtual.zig` with page mapping and address translation per contracts/memory-interface.zig
-- [x] T034 [US2] Implement FPtoVP mapping in `alternatives/zig/src/memory/virtual.zig` per `.ai_assistant_db/rewrite-spec/memory/address-translation.md`
+- [x] T034 [US2] Implement FPtoVP mapping in `alternatives/zig/src/memory/virtual.zig` per `documentation/rewrite-spec/memory/address-translation.md`
 - [x] T035 [US2] Create memory layout module `alternatives/zig/src/memory/layout.zig` with memory region offsets per data-model.md
 - [x] T036 [US2] Create GC module `alternatives/zig/src/memory/gc.zig` with HashEntry structure and hash table per data-model.md
 - [x] T037 [US2] Implement addReference and deleteReference functions in `alternatives/zig/src/memory/gc.zig` per contracts/memory-interface.zig
 - [x] T038 [US2] Implement markStackReference function in `alternatives/zig/src/memory/gc.zig` per contracts/memory-interface.zig
-- [x] T039 [US2] Implement findInHashTable function in `alternatives/zig/src/memory/gc.zig` per `.ai_assistant_db/rewrite-spec/memory/garbage-collection.md`
+- [x] T039 [US2] Implement findInHashTable function in `alternatives/zig/src/memory/gc.zig` per `documentation/rewrite-spec/memory/garbage-collection.md`
 - [x] T040 [US2] Implement runGC function in `alternatives/zig/src/memory/gc.zig` per rewrite documentation
 - [x] T041 [US2] Create storage allocation module `alternatives/zig/src/memory/storage.zig` with allocateConsCell, allocateArray per contracts/memory-interface.zig
 - [x] T042 [US2] Implement checkStorageFull function in `alternatives/zig/src/memory/storage.zig` per contracts/memory-interface.zig
@@ -136,7 +136,7 @@
 - [x] T052 [US3] Implement initDisplay function in `alternatives/zig/src/display/sdl_backend.zig` per contracts/display-interface.zig
 - [x] T053 [US3] Implement destroyDisplay function in `alternatives/zig/src/display/sdl_backend.zig` per contracts/display-interface.zig
 - [x] T054 [US3] Create graphics operations module `alternatives/zig/src/display/graphics.zig` with renderRegion function per contracts/display-interface.zig
-- [x] T055 [US3] Implement BitBLT operation in `alternatives/zig/src/display/graphics.zig` per `.ai_assistant_db/rewrite-spec/display/graphics-operations.md`
+- [x] T055 [US3] Implement BitBLT operation in `alternatives/zig/src/display/graphics.zig` per `documentation/rewrite-spec/display/graphics-operations.md`
 - [x] T056 [US3] Implement flushDisplayRegion function in `alternatives/zig/src/display/graphics.zig` per contracts/display-interface.zig
 - [x] T057 [US3] Create event handling module `alternatives/zig/src/display/events.zig` with pollEvents function per contracts/display-interface.zig
 - [x] T058 [US3] Create keyboard module `alternatives/zig/src/io/keyboard.zig` with KeyboardEvent struct per data-model.md
@@ -146,7 +146,7 @@
 - [x] T062 [US3] Implement translateMouseEvent function in `alternatives/zig/src/io/mouse.zig` per contracts/io-interface.zig
 - [x] T063 [US3] Implement updateMousePosition and getMousePosition functions in `alternatives/zig/src/io/mouse.zig` per contracts/io-interface.zig
 - [x] T064 [US3] Create filesystem module `alternatives/zig/src/io/filesystem.zig` with pathname translation functions per contracts/io-interface.zig
-- [x] T065 [US3] Implement lispToPlatformPathname and platformToLispPathname functions in `alternatives/zig/src/io/filesystem.zig` per `.ai_assistant_db/rewrite-spec/io/file-system.md`
+- [x] T065 [US3] Implement lispToPlatformPathname and platformToLispPathname functions in `alternatives/zig/src/io/filesystem.zig` per `documentation/rewrite-spec/io/file-system.md`
 - [x] T066 [US3] Implement file I/O functions (openFile, readFile, writeFile, closeFile) in `alternatives/zig/src/io/filesystem.zig` per contracts/io-interface.zig
 - [x] T067 [US3] Integrate SDL event loop into main.zig to handle keyboard and mouse events
 - [x] T068 [US3] Integrate display rendering into VM interrupt handling to update display during execution
@@ -165,7 +165,7 @@
 - [x] T072 [P] Implement comparison opcodes (EQ, EQL, LESSP, GREATERP, etc.) in `alternatives/zig/src/vm/opcodes.zig` per rewrite documentation
 - [x] T073 [P] Implement type checking opcodes (TYPEP, FIXP, SMALLP, etc.) in `alternatives/zig/src/vm/opcodes.zig` per rewrite documentation
 - [x] T074 [P] Implement string/character opcodes (CHARCODE, CHARN, etc.) in `alternatives/zig/src/vm/opcodes.zig` per rewrite documentation
-- [x] T075 [P] Implement remaining opcodes to complete all 256 opcodes in `alternatives/zig/src/vm/opcodes.zig` per `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md`
+- [x] T075 [P] Implement remaining opcodes to complete all 256 opcodes in `alternatives/zig/src/vm/opcodes.zig` per `documentation/rewrite-spec/instruction-set/opcodes.md`
 
 ---
 
@@ -186,7 +186,7 @@
 - [x] T086 [P] Verify all 256 bytecode opcodes are implemented: Create opcode coverage test `alternatives/zig/tests/opcode_coverage.zig` that enumerates all 256 opcodes and verifies each has a handler implementation per FR-001
 - [x] T087 [P] Validate SC-001: Create integration test `alternatives/zig/tests/sysout_loading_validation.zig` that loads and executes at least 3 different existing sysout files without errors per SC-001
 - [x] T088 [P] Validate SC-002: Create test coverage validation script that verifies at least 50 test cases covering all opcode categories produce identical results to Maiko C implementation per SC-002
-- [x] T089 [P] Validate SC-004: Create reference behavior test suite `alternatives/zig/tests/reference_behaviors.zig` that runs test cases from `.ai_assistant_db/rewrite-spec/validation/reference-behaviors.md` and verifies at least 80% pass per SC-004
+- [x] T089 [P] Validate SC-004: Create reference behavior test suite `alternatives/zig/tests/reference_behaviors.zig` that runs test cases from `documentation/rewrite-spec/validation/reference-behaviors.md` and verifies at least 80% pass per SC-004
 - [ ] T090 [P] Validate SC-003: Create integration test `alternatives/zig/tests/interactive_session_validation.zig` that verifies an interactive Lisp session runs with SDL display, keyboard input, and mouse input working correctly per SC-003
 - [ ] T091 [P] Validate SC-005: Create build validation script `alternatives/zig/scripts/validate_build.sh` that verifies the implementation compiles successfully on Linux and macOS using Zig 0.15.1 compiler per SC-005
 - [ ] T092 [P] Validate SC-006: Create memory safety analysis document `alternatives/zig/docs/memory_safety_analysis.md` that documents memory safety improvements (e.g., no use-after-free, bounds checking) compared to C implementation while maintaining compatibility per SC-006
@@ -292,7 +292,7 @@ With multiple developers:
 - Verify tests fail before implementing
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
-- Follow rewrite documentation in `.ai_assistant_db/rewrite-spec/` for implementation details
+- Follow rewrite documentation in `documentation/rewrite-spec/` for implementation details
 - Maintain exact compatibility with C implementation for sysout files
 - Use Zig's memory safety features while maintaining compatibility
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence

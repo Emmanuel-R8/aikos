@@ -28,15 +28,41 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL).
 - Comprehensive error handling
 - Platform-specific support (endianness, pathnames)
 
-=== [Zig Implementation](zig-implementation.md)
+=== [C Implementation (Reference)](c-emulator-memory-loading-analysis.typ)
+
+Reference implementation of the Maiko emulator in C.
+
+- *Status*: ✅ Complete (Reference Implementation)
+- *Location*: `maiko/src/`
+- *Build System*: CMake / Make
+- *Display Backend*: X11 / SDL2
+- *Opcodes*: All 256 implemented
+- *Source Files*: Complete C implementation
+
+*Key Documentation*:
+
+- [Memory Loading Analysis](c-emulator-memory-loading-analysis.typ) - FPtoVP table, page loading, byte-swapping
+- [PC Calculation Logic](c-emulator-pc-calculation.typ) - Program counter calculation from frame data
+- [Byte-Swapping Logic](c-emulator-byte-swapping.typ) - FPtoVP and page content byte-swapping
+- [Execution Byte Mismatch](c-emulator-execution-byte-mismatch.typ) - Investigation of execution vs loading bytes
+
+*Verified Logic* (2025-01-27):
+
+- ✅ FPtoVP mapping: File page 5178 → Virtual page 6204
+- ✅ Address conversion: DLword offset → byte offset (multiply by 2)
+- ✅ PC calculation: `PC = Lisp_world + (FX_FNHEADER * 2) + CURRENTFX->pc`
+- ✅ Byte-swapping: `ntohl()` for FPtoVP, 32-bit swap for page content
+- ⚠️ Execution byte mismatch: Needs investigation (doesn't affect core logic)
+
+=== [Zig Implementation](zig-implementation.typ)
 
 Implementation of the Maiko emulator in Zig programming language.
 
-- *Status*: 🔄 In Progress - Completion Phase
-- *Location*: `alternatives/zig/`
+- *Status*: ⚠️ Execution Debugging Required - Critical discrepancies found
+- *Location*: `zaiko/`
 - *Build System*: Zig build system (`build.zig`)
-- *Display Backend*: SDL2 (linked, integration pending)
-- *Opcodes*: ~50 of 256 implemented (essential set pending)
+- *Display Backend*: SDL2 (linked, integration complete)
+- *Opcodes*: ~100 of 256 implemented
 - *Source Files*: Multiple Zig modules
 - *Test Files*: Test suite structure
 
@@ -48,15 +74,18 @@ Implementation of the Maiko emulator in Zig programming language.
 - Display subsystem framework (SDL2 backend)
 - I/O subsystem framework (keyboard, mouse, filesystem)
 - Comprehensive opcode enumeration
+- SDL2 display integration complete
 
-*Critical Blockers*:
+*Critical Issues* (2025-12-22):
 
-- Sysout loading fails (wrong IFPAGE_KEYVAL: 0x12345678 vs 0x15e3)
-- Incomplete IFPAGE structure
-- FPtoVP table loading not implemented
-- Page loading algorithm not implemented
-- VM dispatch loop not activated
-- Essential opcodes need implementation
+- ⚠️ Memory loading failure - wrong content at PC 0x307898
+- ⚠️ FuncObj offset calculation wrong (+4687768 vs +104)
+- ⚠️ PC progression wrong (always increments vs can stay same)
+- ⚠️ Frame header reading wrong (0x780030 vs 0x307864)
+- ⚠️ TOS values wrong (all zeros vs actual values)
+- ⚠️ Execution stops early (30 lines vs 1000+)
+
+*See*: Execution Debugging for detailed investigation and fixes
 
 == Implementation Status
 

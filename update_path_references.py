@@ -34,7 +34,7 @@ def main():
     ]
     
     # Files to update (exclude certain directories)
-    exclude_dirs = {'.git', 'maiko', 'deprecated', 'zaiko', 'laiko', '__pycache__', '.ai_assistant_db'}
+    exclude_dirs = {'.git', 'maiko', 'deprecated', 'zaiko', 'laiko', '__pycache__', 'documentation'}
     exclude_extensions = {'.pdf', '.png', '.jpg', '.jpeg', '.gif', '.zip', '.tar', '.gz'}
     
     updated_count = 0

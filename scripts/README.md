@@ -54,5 +54,5 @@ Verify endianness handling in sysout loading.
 
 ## Related Documentation
 
-- [Execution Trace Format](../../.ai_assistant_db/rewrite-spec/vm-core/execution-trace.md) - Trace format specification
-- [Zig Implementation](../../.ai_assistant_db/implementations/zig-implementation.md) - Zig-specific debugging notes
+- [Execution Trace Format](../../documentation/rewrite-spec/vm-core/execution-trace.md) - Trace format specification
+- [Zig Implementation](../../documentation/implementations/zig-implementation.md) - Zig-specific debugging notes

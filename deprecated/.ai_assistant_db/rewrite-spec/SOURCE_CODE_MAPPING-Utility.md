@@ -19,195 +19,195 @@ Mapping of Utility & Support source code files to documentation sections.
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/atom.c` | `.ai_assistant_db/rewrite-spec/memory/memory-layout.md` | ✅ Complete |
+| `maiko/src/atom.c` | `documentation/rewrite-spec/memory/memory-layout.md` | ✅ Complete |
 | | **Functions**: Atom operations | | |
-| `maiko/src/mkatom.c` | `.ai_assistant_db/rewrite-spec/memory/memory-layout.md` | ✅ Complete |
+| `maiko/src/mkatom.c` | `documentation/rewrite-spec/memory/memory-layout.md` | ✅ Complete |
 | | **Functions**: Atom creation | | |
-| `maiko/src/sxhash.c` | `.ai_assistant_db/rewrite-spec/memory/memory-layout.md` | ✅ Complete |
+| `maiko/src/sxhash.c` | `documentation/rewrite-spec/memory/memory-layout.md` | ✅ Complete |
 | | **Functions**: Hash function for atoms | | |
 
 ### Type System
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/typeof.c` | `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md` | ✅ Complete |
+| `maiko/src/typeof.c` | `documentation/rewrite-spec/instruction-set/opcodes.md` | ✅ Complete |
 | | **Functions**: Type checking operations | | |
 
 ### String Operations
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/bin.c` | `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md` | ⚠️ Needs verification |
+| `maiko/src/bin.c` | `documentation/rewrite-spec/instruction-set/opcodes.md` | ⚠️ Needs verification |
 | | **Functions**: String/binary operations | | |
 
 ### Floating Point
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/fp.c` | `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md` (Arithmetic) | ✅ Complete |
+| `maiko/src/fp.c` | `documentation/rewrite-spec/instruction-set/opcodes.md` (Arithmetic) | ✅ Complete |
 | | **Functions**: Floating-point operations | | |
 
 ### Variables
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/fvar.c` | `.ai_assistant_db/rewrite-spec/vm-core/stack-management.md` | ✅ Complete |
+| `maiko/src/fvar.c` | `documentation/rewrite-spec/vm-core/stack-management.md` | ✅ Complete |
 | | **Functions**: FVar (free variable) operations | | |
-| `maiko/src/gvar2.c` | `.ai_assistant_db/rewrite-spec/vm-core/stack-management.md` | ✅ Complete |
+| `maiko/src/gvar2.c` | `documentation/rewrite-spec/vm-core/stack-management.md` | ✅ Complete |
 | | **Functions**: GVar (global variable) operations | | |
-| `maiko/src/vars3.c` | `.ai_assistant_db/rewrite-spec/vm-core/stack-management.md` | ✅ Complete |
+| `maiko/src/vars3.c` | `documentation/rewrite-spec/vm-core/stack-management.md` | ✅ Complete |
 | | **Functions**: Variable operations | | |
 
 ### Error Handling
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/common.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: Error handling not explicitly documented |
+| `maiko/src/common.c` | `documentation/rewrite-spec/` | ⚠️ **GAP**: Error handling not explicitly documented |
 | | **Functions**: `error()`, common utilities | | |
-| `maiko/src/perrno.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: Error handling not explicitly documented |
+| `maiko/src/perrno.c` | `documentation/rewrite-spec/` | ⚠️ **GAP**: Error handling not explicitly documented |
 | | **Functions**: Error number handling | | |
 
 ### Debugging & Testing
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/testtool.c` | `.ai_assistant_db/rewrite-spec/validation/reference-behaviors.md` | ✅ Complete |
+| `maiko/src/testtool.c` | `documentation/rewrite-spec/validation/reference-behaviors.md` | ✅ Complete |
 | | **Functions**: Testing utilities | | |
-| `maiko/src/dbgtool.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: Debugging tools not documented |
+| `maiko/src/dbgtool.c` | `documentation/rewrite-spec/` | ⚠️ **GAP**: Debugging tools not documented |
 | | **Functions**: Debugging utilities | | |
-| `maiko/src/kprint.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: Debugging tools not documented |
+| `maiko/src/kprint.c` | `documentation/rewrite-spec/` | ⚠️ **GAP**: Debugging tools not documented |
 | | **Functions**: Print utilities | | |
 
 ### Foreign Function Interface
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/foreign.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: FFI not documented |
+| `maiko/src/foreign.c` | `documentation/rewrite-spec/` | ⚠️ **GAP**: FFI not documented |
 | | **Functions**: Foreign function calls | | |
 
 ### Lisp-to-C Translation
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/lisp2c.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: Lisp-to-C not documented |
+| `maiko/src/lisp2c.c` | `documentation/rewrite-spec/` | ⚠️ **GAP**: Lisp-to-C not documented |
 | | **Functions**: Lisp to C translation | | |
 
 ### Lisp Parser (LispP)
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/lpmain.c`, `src/lpread.c`, `src/lpwrite.c`, `src/lptran.c`, `src/lpsolve.c`, `src/lpkit.c`, `src/lplexyy.c`, `src/lpytab.c`, `src/lpdual.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: LispP parser not documented |
+| `maiko/src/lpmain.c`, `src/lpread.c`, `src/lpwrite.c`, `src/lptran.c`, `src/lpsolve.c`, `src/lpkit.c`, `src/lplexyy.c`, `src/lpytab.c`, `src/lpdual.c` | `documentation/rewrite-spec/` | ⚠️ **GAP**: LispP parser not documented |
 | | **Functions**: Lisp parser implementation | | |
 
 ### Code Conversion
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/codeconv.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: Code conversion not documented |
+| `maiko/src/codeconv.c` | `documentation/rewrite-spec/` | ⚠️ **GAP**: Code conversion not documented |
 | | **Functions**: Code conversion utilities | | |
-| `maiko/src/codetbl.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: Code conversion not documented |
+| `maiko/src/codetbl.c` | `documentation/rewrite-spec/` | ⚠️ **GAP**: Code conversion not documented |
 | | **Functions**: Code table operations | | |
 
 ### Character Device
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/chardev.c` | `.ai_assistant_db/rewrite-spec/io/` | ⚠️ **GAP**: Character device not documented |
+| `maiko/src/chardev.c` | `documentation/rewrite-spec/io/` | ⚠️ **GAP**: Character device not documented |
 | | **Functions**: Character device operations | | |
 
 ### Terminal/TTY
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/tty.c` | `.ai_assistant_db/rewrite-spec/io/` | ⚠️ **GAP**: TTY not documented |
+| `maiko/src/tty.c` | `documentation/rewrite-spec/io/` | ⚠️ **GAP**: TTY not documented |
 | | **Functions**: TTY operations | | |
 
 ### OS Messages
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/osmsg.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: OS messages not documented |
+| `maiko/src/osmsg.c` | `documentation/rewrite-spec/` | ⚠️ **GAP**: OS messages not documented |
 | | **Functions**: OS message handling | | |
-| `maiko/src/chatter.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: Chatter not documented |
+| `maiko/src/chatter.c` | `documentation/rewrite-spec/` | ⚠️ **GAP**: Chatter not documented |
 | | **Functions**: Chatter output | | |
 
 ### Subroutines
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/subr.c` | `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md` | ✅ Complete |
+| `maiko/src/subr.c` | `documentation/rewrite-spec/instruction-set/opcodes.md` | ✅ Complete |
 | | **Functions**: Various subroutine implementations | | |
-| `maiko/src/subr0374.c` | `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md` | ✅ Complete |
+| `maiko/src/subr0374.c` | `documentation/rewrite-spec/instruction-set/opcodes.md` | ✅ Complete |
 | | **Functions**: Additional subroutines | | |
-| `maiko/src/usrsubr.c` | `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md` | ✅ Complete |
+| `maiko/src/usrsubr.c` | `documentation/rewrite-spec/instruction-set/opcodes.md` | ✅ Complete |
 | | **Functions**: User subroutines | | |
 
 ### Low-Level Operations
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/lowlev1.c`, `src/lowlev2.c` | `.ai_assistant_db/rewrite-spec/vm-core/execution-model.md` | ✅ Complete |
+| `maiko/src/lowlev1.c`, `src/lowlev2.c` | `documentation/rewrite-spec/vm-core/execution-model.md` | ✅ Complete |
 | | **Functions**: Low-level VM operations | | |
 
 ### Hardware Routines
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/hardrtn.c` | `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md` | ✅ Complete |
+| `maiko/src/hardrtn.c` | `documentation/rewrite-spec/instruction-set/opcodes.md` | ✅ Complete |
 | | **Functions**: Hardware routine calls | | |
 
 ### URAID (Unwind/RAID)
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/uraid.c` | `.ai_assistant_db/rewrite-spec/vm-core/` | ⚠️ **GAP**: URAID not explicitly documented |
+| `maiko/src/uraid.c` | `documentation/rewrite-spec/vm-core/` | ⚠️ **GAP**: URAID not explicitly documented |
 | | **Functions**: Unwind/RAID operations | | |
 
 ### Memory Virtualization
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/mvs.c` | `.ai_assistant_db/rewrite-spec/memory/virtual-memory.md` | ✅ Complete |
+| `maiko/src/mvs.c` | `documentation/rewrite-spec/memory/virtual-memory.md` | ✅ Complete |
 | | **Functions**: Memory virtualization | | |
 
 ### Initialization
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/initsout.c` | `.ai_assistant_db/rewrite-spec/data-structures/sysout-format.md` | ✅ Complete |
+| `maiko/src/initsout.c` | `documentation/rewrite-spec/data-structures/sysout-format.md` | ✅ Complete |
 | | **Functions**: Sysout initialization | | |
-| `maiko/src/initatms.h` (if exists) | `.ai_assistant_db/rewrite-spec/memory/memory-layout.md` | ✅ Complete |
+| `maiko/src/initatms.h` (if exists) | `documentation/rewrite-spec/memory/memory-layout.md` | ✅ Complete |
 | | **Functions**: Atom initialization | | |
 
 ### DOS-Specific
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/doscomm.c` | `.ai_assistant_db/rewrite-spec/platform-abstraction/implementation-choices.md` | ✅ Complete |
+| `maiko/src/doscomm.c` | `documentation/rewrite-spec/platform-abstraction/implementation-choices.md` | ✅ Complete |
 | | **Functions**: DOS communication | | |
-| `maiko/src/vesainit.c`, `src/vgainit.c`, `src/vesafns.asm` | `.ai_assistant_db/rewrite-spec/platform-abstraction/implementation-choices.md` | ✅ Complete |
+| `maiko/src/vesainit.c`, `src/vgainit.c`, `src/vesafns.asm` | `documentation/rewrite-spec/platform-abstraction/implementation-choices.md` | ✅ Complete |
 | | **Functions**: VESA/VGA initialization (DOS) | | |
-| `maiko/src/launch.asm` | `.ai_assistant_db/rewrite-spec/platform-abstraction/implementation-choices.md` | ✅ Complete |
+| `maiko/src/launch.asm` | `documentation/rewrite-spec/platform-abstraction/implementation-choices.md` | ✅ Complete |
 | | **Functions**: DOS launch code | | |
 
 ### Byte Swapping
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/byteswap.c` | `.ai_assistant_db/rewrite-spec/data-structures/sysout-format.md` | ✅ Complete |
+| `maiko/src/byteswap.c` | `documentation/rewrite-spec/data-structures/sysout-format.md` | ✅ Complete |
 | | **Functions**: Byte swapping for cross-platform compatibility | | |
 
 ### Miscellaneous
 
 | Source File | Documentation Section | Coverage Status |
 |-------------|----------------------|-----------------|
-| `maiko/src/ejlisp.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: EJLisp not documented |
+| `maiko/src/ejlisp.c` | `documentation/rewrite-spec/` | ⚠️ **GAP**: EJLisp not documented |
 | | **Functions**: EJLisp operations | | |
-| `maiko/src/mkvdate.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: Date utilities not documented |
+| `maiko/src/mkvdate.c` | `documentation/rewrite-spec/` | ⚠️ **GAP**: Date utilities not documented |
 | | **Functions**: Date creation | | |
-| `maiko/src/lsthandl.c` | `.ai_assistant_db/rewrite-spec/data-structures/cons-cells.md` | ✅ Complete |
+| `maiko/src/lsthandl.c` | `documentation/rewrite-spec/data-structures/cons-cells.md` | ✅ Complete |
 | | **Functions**: List handling | | |
-| `maiko/src/uutils.c` | `.ai_assistant_db/rewrite-spec/` | ⚠️ **GAP**: Unix utilities not documented |
+| `maiko/src/uutils.c` | `documentation/rewrite-spec/` | ⚠️ **GAP**: Unix utilities not documented |
 | | **Functions**: Unix utility functions | | |
 
 ## Documentation Coverage Summary

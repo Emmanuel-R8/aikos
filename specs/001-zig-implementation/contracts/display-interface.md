@@ -104,5 +104,5 @@ pub const DisplayError = error{
 
 ## Related Documentation
 
-- `.ai_assistant_db/rewrite-spec/display/interface-abstraction.md` - Display interface specification
-- `.ai_assistant_db/rewrite-spec/display/graphics-operations.md` - Graphics operations
+- `documentation/rewrite-spec/display/interface-abstraction.md` - Display interface specification
+- `documentation/rewrite-spec/display/graphics-operations.md` - Graphics operations

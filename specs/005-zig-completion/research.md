@@ -59,7 +59,7 @@ Determine the exact implementation details needed to complete the Zig emulator, 
 - Simplified page loading: Would break sparse page handling
 - Different table format: Would break sysout compatibility
 
-**Source**: `maiko/src/ldsout.c:197-250`, `.ai_assistant_db/rewrite-spec/data-structures/sysout-format.md`
+**Source**: `maiko/src/ldsout.c:197-250`, `documentation/rewrite-spec/data-structures/sysout-format.md`
 
 ---
 
@@ -88,7 +88,7 @@ Determine the exact implementation details needed to complete the Zig emulator, 
 - Memory-mapped files: Zig doesn't have direct mmap equivalent, allocator approach is portable
 - Different page size: Would break compatibility
 
-**Source**: `maiko/src/ldsout.c:250-350`, `.ai_assistant_db/rewrite-spec/data-structures/sysout-format.md:119-148`
+**Source**: `maiko/src/ldsout.c:250-350`, `documentation/rewrite-spec/data-structures/sysout-format.md:119-148`
 
 ---
 
@@ -126,7 +126,7 @@ Determine the exact implementation details needed to complete the Zig emulator, 
 - Implement all 256 opcodes first: Too large scope, essential set enables Medley startup
 - Different opcode order: Function calls must come first, others can follow
 
-**Source**: `zaiko/src/vm/opcodes.zig`, `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md`
+**Source**: `zaiko/src/vm/opcodes.zig`, `documentation/rewrite-spec/instruction-set/opcodes.md`
 
 ---
 
@@ -152,7 +152,7 @@ Determine the exact implementation details needed to complete the Zig emulator, 
 - Simplified GC: Would break memory management correctness
 - Different hash implementation: Must match C behavior for compatibility
 
-**Source**: `.ai_assistant_db/rewrite-spec/memory/garbage-collection.md`, `maiko/src/gc*.c`
+**Source**: `documentation/rewrite-spec/memory/garbage-collection.md`, `maiko/src/gc*.c`
 
 ---
 
@@ -213,7 +213,7 @@ Determine the exact implementation details needed to complete the Zig emulator, 
 
 ### Task 8: Knowledge Base Documentation Updates
 
-**Research Question**: What new insights should be documented in `.ai_assistant_db/`?
+**Research Question**: What new insights should be documented in `documentation/`?
 
 **Findings**:
 
@@ -224,7 +224,7 @@ Determine the exact implementation details needed to complete the Zig emulator, 
 - **Essential Opcodes**: List of opcodes needed for Medley startup
 - **Zig Implementation Status**: Update with completion progress and known issues
 
-**Decision**: Update `.ai_assistant_db/rewrite-spec/data-structures/sysout-format.md` with correct IFPAGE details. Create/update `.ai_assistant_db/implementations/zig-implementation.md` with completion status. Document FPtoVP and page loading algorithms with exact details.
+**Decision**: Update `documentation/rewrite-spec/data-structures/sysout-format.md` with correct IFPAGE details. Create/update `documentation/implementations/zig-implementation.md` with completion status. Document FPtoVP and page loading algorithms with exact details.
 
 **Rationale**: Knowledge base must be accurate and complete. Future implementations benefit from correct documentation. Critical for maintaining project knowledge.
 
@@ -232,7 +232,7 @@ Determine the exact implementation details needed to complete the Zig emulator, 
 - No documentation updates: Violates FR-015 requirement
 - Minimal documentation: Insufficient for future reference
 
-**Source**: `.ai_assistant_db/` directory structure, existing documentation patterns
+**Source**: `documentation/` directory structure, existing documentation patterns
 
 ---
 
@@ -247,7 +247,7 @@ Determine the exact implementation details needed to complete the Zig emulator, 
 | Essential Opcodes | Function calls, cons cells, variables first | Enables Medley startup |
 | GC Operations | Match C hash table implementation | Required for memory management |
 | SDL2 Integration | Texture-based rendering, event polling | Matches C implementation pattern |
-| Documentation | Update .ai_assistant_db/ with all findings | Required by FR-015, improves project knowledge |
+| Documentation | Update documentation/ with all findings | Required by FR-015, improves project knowledge |
 
 ## Unresolved Questions
 

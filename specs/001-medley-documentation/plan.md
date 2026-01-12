@@ -7,17 +7,17 @@
 
 ## Summary
 
-Create comprehensive documentation for Medley Interlisp system covering all components, architecture, and the complete Medley-Maiko interface. Documentation will be organized in `.ai_assistant_db` directory following the structure of existing Maiko documentation, enabling both new implementors and maintainers to understand Medley's complete system.
+Create comprehensive documentation for Medley Interlisp system covering all components, architecture, and the complete Medley-Maiko interface. Documentation will be organized in `documentation` directory following the structure of existing Maiko documentation, enabling both new implementors and maintainers to understand Medley's complete system.
 
 ## Technical Context
 
 **Language/Version**: Markdown documentation with Mermaid diagrams
 **Primary Dependencies**:
-- Existing Maiko documentation in `.ai_assistant_db` for structure reference
+- Existing Maiko documentation in `documentation` for structure reference
 - Medley source code for implementation details
 - medley.1 man page for command-line interface specification
 
-**Storage**: Markdown files in `.ai_assistant_db/medley/` directory structure
+**Storage**: Markdown files in `documentation/medley/` directory structure
 **Testing**: Documentation review and validation against source code and man page
 **Target Platform**: Documentation accessible on all platforms (web, local filesystem)
 **Project Type**: Documentation project - no code implementation
@@ -78,7 +78,7 @@ specs/001-medley-documentation/
 ### Documentation Output Structure
 
 ```text
-.ai_assistant_db/
+documentation/
 ├── medley/                    # New Medley documentation directory
 │   ├── README.md             # Medley documentation overview and navigation
 │   ├── INDEX.md              # Quick reference index
@@ -140,7 +140,7 @@ See [research.md](research.md) for complete details.
 
 **Design Decisions**:
 
-- ✅ Documentation organized in `.ai_assistant_db/medley/` directory
+- ✅ Documentation organized in `documentation/medley/` directory
 - ✅ Structure mirrors Maiko documentation for consistency
 - ✅ Separate `interface/` directory for Medley-Maiko interface documentation
 - ✅ Component-based organization for Medley components

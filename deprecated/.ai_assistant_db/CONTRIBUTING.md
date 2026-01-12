@@ -15,7 +15,7 @@ This file is kept for reference only. All updates should be made to the Typst fi
 
 ### CRITICAL: Emulator-Independent Documentation
 
-**All improvements to `.ai_assistant_db` documentation MUST be emulator-independent** so that any implementor in any language benefits from the knowledge.
+**All improvements to `documentation` documentation MUST be emulator-independent** so that any implementor in any language benefits from the knowledge.
 
 #### General Principles
 
@@ -28,12 +28,12 @@ This file is kept for reference only. All updates should be made to the Typst fi
 
 #### Documentation Structure
 
-- **`.ai_assistant_db/rewrite-spec/`**: Contains emulator-independent specifications
+- **`documentation/rewrite-spec/`**: Contains emulator-independent specifications
   - All opcodes, data structures, algorithms, and behaviors documented here
   - No language-specific implementation details
   - Focus on "what" and "why", not "how" in a specific language
 
-- **`.ai_assistant_db/implementations/`**: Contains language-specific implementation notes
+- **`documentation/implementations/`**: Contains language-specific implementation notes
   - Document challenges, workarounds, and solutions specific to each language
   - Reference general documentation in `rewrite-spec/` for concepts
   - Focus on "how" in that specific language

@@ -278,7 +278,7 @@ Zaiko will be considered **100% complete** when:
 
 1. **Extended testing** - Run Medley for extended periods
 2. **Performance validation** - Compare with C emulator under various workloads
-3. **Documentation** - Ensure all findings are documented in `.ai_assistant_db/`
+3. **Documentation** - Ensure all findings are documented in `documentation/`
 
 ## Conclusion
 

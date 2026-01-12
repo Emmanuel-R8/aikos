@@ -15,7 +15,7 @@
 
 - **Zig Implementation**: `zaiko/src/`
 - **Tests**: `zaiko/tests/`
-- **Documentation**: `.ai_assistant_db/`
+- **Documentation**: `documentation/`
 
 ---
 
@@ -184,11 +184,11 @@
 
 **Purpose**: Improvements that affect multiple user stories and final documentation.
 
-- [X] T097 [P] Update .ai_assistant_db/rewrite-spec/data-structures/sysout-format.md with complete IFPAGE structure details (per FR-015: document insights)
-- [X] T098 [P] Update .ai_assistant_db/implementations/zig-implementation.md with completion status and final statistics
-- [X] T099 [P] Document FPtoVP table loading algorithm with exact byte offset calculations in .ai_assistant_db/rewrite-spec/data-structures/sysout-format.md
-- [X] T100 [P] Document page loading algorithm with byte swapping details in .ai_assistant_db/rewrite-spec/data-structures/sysout-format.md
-- [X] T101 [P] Document essential opcodes list for Medley startup in .ai_assistant_db/implementations/zig-implementation.md
+- [X] T097 [P] Update documentation/rewrite-spec/data-structures/sysout-format.md with complete IFPAGE structure details (per FR-015: document insights)
+- [X] T098 [P] Update documentation/implementations/zig-implementation.md with completion status and final statistics
+- [X] T099 [P] Document FPtoVP table loading algorithm with exact byte offset calculations in documentation/rewrite-spec/data-structures/sysout-format.md
+- [X] T100 [P] Document page loading algorithm with byte swapping details in documentation/rewrite-spec/data-structures/sysout-format.md
+- [X] T101 [P] Document essential opcodes list for Medley startup in documentation/implementations/zig-implementation.md
 - [X] T102 [P] Code cleanup and refactoring across all modified files
   - ✅ Split opcodes.zig into 13 modular files (2025-01-27)
   - ✅ Split dispatch.zig into 3 modular files (2025-01-27)
@@ -339,7 +339,7 @@ With multiple developers:
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
 - All file paths are relative to repository root
 - Reference C implementation in `maiko/src/` for correct behavior
-- Document all new insights in `.ai_assistant_db/` as work progresses
+- Document all new insights in `documentation/` as work progresses
 
 ---
 

@@ -215,10 +215,10 @@ Compare execution results, memory usage, and behavior.
 
 After completing each step, update knowledge base:
 
-1. **IFPAGE Structure**: Update `.ai_assistant_db/rewrite-spec/data-structures/sysout-format.md` with correct IFPAGE details
+1. **IFPAGE Structure**: Update `documentation/rewrite-spec/data-structures/sysout-format.md` with correct IFPAGE details
 2. **FPtoVP Algorithm**: Document exact algorithm with byte offset calculations
 3. **Page Loading**: Document complete algorithm with byte swapping
-4. **Zig Implementation Status**: Update `.ai_assistant_db/implementations/zig-implementation.md` with completion status
+4. **Zig Implementation Status**: Update `documentation/implementations/zig-implementation.md` with completion status
 
 ---
 
@@ -238,7 +238,7 @@ After completing each step, update knowledge base:
 - ✅ SDL2 display integrated
 - ✅ Medley reaches Lisp prompt
 - ✅ Can run interactive sessions
-- ✅ All knowledge documented in `.ai_assistant_db/`
+- ✅ All knowledge documented in `documentation/`
 
 ---
 
@@ -258,9 +258,9 @@ After completing this quickstart:
 
 - **C Implementation Reference**: `maiko/src/ldsout.c`, `maiko/src/main.c`
 - **IFPAGE Structure**: `maiko/inc/ifpage.h`
-- **Rewrite Documentation**: `.ai_assistant_db/rewrite-spec/`
+- **Rewrite Documentation**: `documentation/rewrite-spec/`
 - **Zig Implementation**: `zaiko/`
-- **Medley Documentation**: `.ai_assistant_db/medley/`
+- **Medley Documentation**: `documentation/medley/`
 
 ---
 

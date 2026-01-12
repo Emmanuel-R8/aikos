@@ -18,7 +18,7 @@ Quick reference guide to all documentation files.
 ## Documentation Structure
 
 ```
-.ai_assistant_db/
+documentation/
 ├── INDEX.md                     # This file - quick reference
 ├── README.md                    # Overview and navigation
 ├── CRITICAL_MEMORY.md           # CRITICAL: Documentation Improvement Memory

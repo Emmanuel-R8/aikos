@@ -118,7 +118,7 @@ A developer wants to implement the display and I/O subsystems for a different pl
 - Existing source code analysis to extract specifications
 - Access to test cases or reference implementations for validation
 - Understanding of Medley Interlisp bytecode format and sysout file structure
-- Knowledge of existing documentation in `.ai_assistant_db/` directory
+- Knowledge of existing documentation in `documentation/` directory
 
 ## Out of Scope
 

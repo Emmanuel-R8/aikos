@@ -79,6 +79,6 @@ Using calculated PC=0x307898 (opcode=0x0e)
 ## Related Files
 - `maiko/alternatives/zig/src/vm/vm_initialization.zig` - Frame reading and PC initialization
 - `maiko/alternatives/zig/src/vm/stack.zig` - Frame structure definition
-- `.ai_assistant_db/rewrite-spec/vm-core/stack-management.md` - Frame structure documentation (general knowledge)
-- `.ai_assistant_db/rewrite-spec/memory/address-translation.md` - Address translation investigation (general knowledge)
-- `.ai_assistant_db/rewrite-spec/data-structures/sysout-byte-swapping.md` - Endianness documentation
+- `documentation/rewrite-spec/vm-core/stack-management.md` - Frame structure documentation (general knowledge)
+- `documentation/rewrite-spec/memory/address-translation.md` - Address translation investigation (general knowledge)
+- `documentation/rewrite-spec/data-structures/sysout-byte-swapping.md` - Endianness documentation

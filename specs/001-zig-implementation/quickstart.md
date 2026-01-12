@@ -11,7 +11,7 @@ This guide helps developers get started with the Zig implementation of Maiko emu
 
 - Zig compiler 0.15.1 installed
 - SDL3 development libraries
-- Access to rewrite documentation in `.ai_assistant_db/rewrite-spec/`
+- Access to rewrite documentation in `documentation/rewrite-spec/`
 - Test sysout files for validation
 
 ## Installation
@@ -94,8 +94,8 @@ zig-out/bin/zaiko path/to/sysout.sysout
 
 ### Phase 1: VM Core (MVP)
 
-1. **Read**: `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md`
-2. **Read**: `.ai_assistant_db/rewrite-spec/vm-core/execution-model.md`
+1. **Read**: `documentation/rewrite-spec/instruction-set/opcodes.md`
+2. **Read**: `documentation/rewrite-spec/vm-core/execution-model.md`
 3. **Implement**: Basic dispatch loop with 10-20 opcodes
 4. **Test**: Execute simple arithmetic operations
 
@@ -103,8 +103,8 @@ zig-out/bin/zaiko path/to/sysout.sysout
 
 ### Phase 2: Memory Management
 
-1. **Read**: `.ai_assistant_db/rewrite-spec/memory/garbage-collection.md`
-2. **Read**: `.ai_assistant_db/rewrite-spec/memory/address-translation.md`
+1. **Read**: `documentation/rewrite-spec/memory/garbage-collection.md`
+2. **Read**: `documentation/rewrite-spec/memory/address-translation.md`
 3. **Implement**: GC and memory allocation
 4. **Test**: Load simple sysout file
 
@@ -112,7 +112,7 @@ zig-out/bin/zaiko path/to/sysout.sysout
 
 ### Phase 3: Complete Instruction Set
 
-1. **Read**: `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md` (all opcodes)
+1. **Read**: `documentation/rewrite-spec/instruction-set/opcodes.md` (all opcodes)
 2. **Implement**: Remaining opcodes incrementally
 3. **Test**: Execute complex Lisp programs
 
@@ -120,8 +120,8 @@ zig-out/bin/zaiko path/to/sysout.sysout
 
 ### Phase 4: I/O and Display
 
-1. **Read**: `.ai_assistant_db/rewrite-spec/io/keyboard-protocol.md`
-2. **Read**: `.ai_assistant_db/rewrite-spec/display/interface-abstraction.md`
+1. **Read**: `documentation/rewrite-spec/io/keyboard-protocol.md`
+2. **Read**: `documentation/rewrite-spec/display/interface-abstraction.md`
 3. **Implement**: SDL display backend, keyboard/mouse handling
 4. **Test**: Interactive Lisp session
 
@@ -164,12 +164,12 @@ test "opcode execution" {
 **Problem**: Sysout file won't load
 
 - **Solution**: Verify memory layout matches specification
-- **Check**: `.ai_assistant_db/rewrite-spec/data-structures/sysout-format.md`
+- **Check**: `documentation/rewrite-spec/data-structures/sysout-format.md`
 
 **Problem**: Opcode produces wrong result
 
 - **Solution**: Check execution semantics in rewrite documentation
-- **Check**: `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md`
+- **Check**: `documentation/rewrite-spec/instruction-set/opcodes.md`
 
 ## Next Steps
 
@@ -182,6 +182,6 @@ After MVP:
 
 ## Related Documentation
 
-- [Rewrite Documentation](../../.ai_assistant_db/rewrite-spec/) - Complete specifications
-- [Source Code Mapping](../../.ai_assistant_db/rewrite-spec/SOURCE_CODE_MAPPING.md) - Code to docs mapping
-- [Quickstart Guide](../../.ai_assistant_db/rewrite-spec/quickstart.md) - General implementation guide
+- [Rewrite Documentation](../../documentation/rewrite-spec/) - Complete specifications
+- [Source Code Mapping](../../documentation/rewrite-spec/SOURCE_CODE_MAPPING.md) - Code to docs mapping
+- [Quickstart Guide](../../documentation/rewrite-spec/quickstart.md) - General implementation guide

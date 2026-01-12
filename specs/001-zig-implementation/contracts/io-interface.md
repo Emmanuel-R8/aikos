@@ -90,6 +90,6 @@ pub const IOError = error{
 
 ## Related Documentation
 
-- `.ai_assistant_db/rewrite-spec/io/keyboard-protocol.md` - Keyboard protocol
-- `.ai_assistant_db/rewrite-spec/io/mouse-protocol.md` - Mouse protocol
-- `.ai_assistant_db/rewrite-spec/io/file-system.md` - File system interface
+- `documentation/rewrite-spec/io/keyboard-protocol.md` - Keyboard protocol
+- `documentation/rewrite-spec/io/mouse-protocol.md` - Mouse protocol
+- `documentation/rewrite-spec/io/file-system.md` - File system interface

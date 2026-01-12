@@ -128,5 +128,5 @@ pub const VMError = error{
 
 ## Related Documentation
 
-- `.ai_assistant_db/rewrite-spec/vm-core/` - VM core specifications
-- `.ai_assistant_db/rewrite-spec/memory/address-translation.md` - Address translation details
+- `documentation/rewrite-spec/vm-core/` - VM core specifications
+- `documentation/rewrite-spec/memory/address-translation.md` - Address translation details

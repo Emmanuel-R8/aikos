@@ -3,7 +3,7 @@
 **Feature Branch**: `005-zig-completion`
 **Created**: 2025-12-07
 **Status**: Draft
-**Input**: User description: "Make sure that the Zig implementation is the next key priority. We need to bring it on par with the C one in terms of functionalities. CRITICAL: any new insights or knowledge must be documented and improve the knowledge in @.ai_assistant_db"
+**Input**: User description: "Make sure that the Zig implementation is the next key priority. We need to bring it on par with the C one in terms of functionalities. CRITICAL: any new insights or knowledge must be documented and improve the knowledge in @documentation"
 
 ## Context
 
@@ -146,7 +146,7 @@ A developer wants the Zig emulator to display graphics and handle input via SDL2
 - **FR-012**: Implementation MUST integrate SDL2 event handling for keyboard and mouse input
 - **FR-013**: Implementation MUST handle byte swapping for cross-platform compatibility
 - **FR-014**: Implementation MUST validate sysout version compatibility (lversion, minbversion checks)
-- **FR-015**: Implementation MUST document all new insights and knowledge in `.ai_assistant_db/`
+- **FR-015**: Implementation MUST document all new insights and knowledge in `documentation/`
 - **FR-016**: Implementation MUST maintain exact memory layout compatibility with C implementation
 
 ### Key Entities
@@ -167,7 +167,7 @@ A developer wants the Zig emulator to display graphics and handle input via SDL2
 - **SC-003**: Zig emulator can start Medley Interlisp and reach the Lisp prompt successfully
 - **SC-004**: Zig emulator can run Medley for at least 10 minutes without memory leaks or crashes
 - **SC-005**: Zig emulator displays graphics correctly in SDL2 window matching C emulator output
-- **SC-006**: All new knowledge and insights are documented in `.ai_assistant_db/` with cross-references
+- **SC-006**: All new knowledge and insights are documented in `documentation/` with cross-references
 
 ## Assumptions
 
@@ -175,13 +175,13 @@ A developer wants the Zig emulator to display graphics and handle input via SDL2
 - SDL2 2.32.58+ is available (already verified and linked)
 - Existing sysout files from C emulator are available for testing
 - C emulator implementation serves as reference for correct behavior
-- Rewrite documentation in `.ai_assistant_db/rewrite-spec/` is accurate and complete
+- Rewrite documentation in `documentation/rewrite-spec/` is accurate and complete
 
 ## Dependencies
 
 - **Spec 001 (Zig Implementation)**: Existing framework and structure
 - **C Emulator**: Reference implementation for correct behavior
-- **Rewrite Documentation**: `.ai_assistant_db/rewrite-spec/` for specifications
+- **Rewrite Documentation**: `documentation/rewrite-spec/` for specifications
 - **Unified Build System (Spec 003)**: For building and testing
 
 ## Out of Scope

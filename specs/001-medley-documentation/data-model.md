@@ -10,7 +10,7 @@
 **Purpose**: Individual documentation file in the Medley documentation set
 
 **Attributes**:
-- **Path**: Relative path within `.ai_assistant_db/medley/` directory
+- **Path**: Relative path within `documentation/medley/` directory
 - **Title**: Document title/heading
 - **Content**: Markdown content with optional Mermaid diagrams
 - **Type**: Overview, Component, Interface, Platform, Glossary, Index

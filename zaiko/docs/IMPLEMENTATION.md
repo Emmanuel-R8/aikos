@@ -209,6 +209,6 @@ zig-out/bin/maiko-zig <sysout_file>
 
 ## Related Documentation
 
-- [Rewrite Documentation](../../.ai_assistant_db/rewrite-spec/) - Complete specifications
+- [Rewrite Documentation](../../documentation/rewrite-spec/) - Complete specifications
 - [Implementation Plan](../../specs/001-zig-implementation/plan.md) - Technical plan
 - [Tasks](../../specs/001-zig-implementation/tasks.md) - Implementation tasks

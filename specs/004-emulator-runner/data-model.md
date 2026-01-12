@@ -1,126 +1,107 @@
-# Data Model: Emulator Runner Scripts for Interlisp
+# Data Model: Emulator Runner Scripts
 
-**Date**: 2025-01-27
-**Feature**: Emulator Runner Scripts
-**Phase**: Phase 1 - Design & Contracts
+**Date**: 2026-01-12
+**Feature**: 004-emulator-runner
+
+## Overview
+
+The emulator runner feature manages the selection and execution of Interlisp emulators. The data model focuses on configuration and validation rather than persistent storage.
 
 ## Entities
 
 ### EmulatorSelection
 
-Represents the user's choice of emulator with precedence rules.
+Represents the user's choice of emulator implementation.
 
 **Attributes**:
-- `emulator_type`: String - One of "c", "zig", "lisp"
-- `source`: String - How selection was made: "command-line", "environment", "default"
-- `precedence`: Integer - Selection priority (1 = command-line, 2 = environment, 3 = default)
+
+- `emulator_type`: Enum (c, zig, lisp) - The selected emulator
+- `source`: Enum (command_line, environment, default) - How the selection was made
+- `precedence`: Integer - Priority order (command_line > environment > default)
 
 **Validation Rules**:
-- `emulator_type` MUST be one of: "c", "zig", "lisp"
-- `source` MUST be one of: "command-line", "environment", "default"
-- Command-line selection has highest precedence (1)
-- Environment variable has medium precedence (2)
-- Default has lowest precedence (3)
 
-**State Transitions**:
-- Initial: No selection
-- Command-line provided → `source="command-line"`, `precedence=1`
-- Environment variable set (no command-line) → `source="environment"`, `precedence=2`
-- No selection → `source="default"`, `precedence=3`, `emulator_type="c"`
+- Must be one of: c, zig, lisp
+- Case insensitive input, normalized to lowercase
+- Invalid values trigger error with user-friendly message
 
----
+**Relationships**:
+
+- 1:1 with RunConfiguration
 
 ### EmulatorExecutable
 
-Represents the emulator executable to be invoked, with location resolution logic.
+Represents the actual emulator binary to be executed.
 
 **Attributes**:
-- `emulator_type`: String - Emulator type ("c", "zig", "lisp")
-- `executable_name`: String - Name of executable (e.g., "lde", "zaiko", "laiko")
-- `platform`: String - Platform identifier (e.g., "linux.x86_64")
+
 - `path`: String - Full path to executable
-- `location_source`: String - Where executable was found: "unified-build", "maikodir", "path", "not-found"
+- `emulator_type`: Enum (c, zig, lisp) - Type of emulator
+- `exists`: Boolean - Whether file exists
+- `executable`: Boolean - Whether file has execute permission
+- `size`: Integer - File size in bytes
+- `header_valid`: Boolean - Whether file header matches expected format
 
 **Validation Rules**:
-- `executable_name` MUST match expected name for emulator type:
-  - C: "lde", "ldeinit", "ldex", or "ldesdl"
-  - Zig: "zaiko"
-  - Lisp: "laiko"
-- `path` MUST be absolute path if `location_source != "not-found"`
-- `path` MUST point to executable file (permissions checked)
-- Location resolution order: unified-build → maikodir → path → not-found
 
-**State Transitions**:
-- Search unified build location → If found: `location_source="unified-build"`
-- Search MAIKODIR → If found: `location_source="maikodir"`
-- Search PATH → If found: `location_source="path"`
-- Not found → `location_source="not-found"`, `path=""`
+- Path must exist
+- File must be executable
+- Size > 0
+- Header validation for executable format
 
----
+**Relationships**:
+
+- 1:1 with EmulatorSelection
 
 ### RunConfiguration
 
-Represents the complete runtime configuration for running Interlisp.
+Represents the complete runtime configuration for starting Interlisp.
 
 **Attributes**:
-- `emulator_selection`: EmulatorSelection - Selected emulator
-- `emulator_executable`: EmulatorExecutable - Executable to invoke
-- `sysout_file`: String - Path to sysout file (optional, may use default)
-- `display_backend`: String - Display backend (X11, SDL2, SDL3) - inferred from emulator
-- `memory_settings`: Object - Memory configuration (size, etc.)
-- `display_settings`: Object - Display configuration (geometry, screen size, etc.)
-- `other_options`: Array - Additional Medley options passed through
+
+- `emulator_selection`: EmulatorSelection - Chosen emulator
+- `sysout_file`: String - Path to sysout file
+- `display_options`: Map<String, String> - Display settings
+- `memory_settings`: Map<String, String> - Memory configuration
+- `other_args`: List<String> - Additional command-line arguments
 
 **Validation Rules**:
-- `emulator_selection` MUST be valid EmulatorSelection
-- `emulator_executable` MUST be valid EmulatorExecutable with `location_source != "not-found"`
-- `sysout_file` MUST exist if specified
-- All existing Medley run script options MUST be preserved
 
-**State Transitions**:
-- Configuration created → Validate all attributes
-- Invalid configuration → Error state, do not proceed
-- Valid configuration → Ready to execute
+- Sysout file must exist and be readable
+- Display options must be valid for selected emulator
+- Memory settings within platform limits
 
----
+**Relationships**:
 
-### RunLock
+- 1:1 with EmulatorSelection
+- 1:1 with EmulatorExecutable
 
-Represents the lock mechanism preventing concurrent Interlisp runs.
+## Data Flow
 
-**Attributes**:
-- `lock_file_path`: String - Path to lock file
-- `process_id`: Integer - PID of process holding lock
-- `lock_age`: Integer - Age of lock in seconds
-- `is_stale`: Boolean - Whether lock is considered stale (>5 minutes or process dead)
+1. User provides emulator selection (command-line or environment)
+2. System resolves EmulatorSelection with precedence rules
+3. System locates EmulatorExecutable using unified build paths
+4. System validates EmulatorExecutable properties
+5. System constructs RunConfiguration with all settings
+6. System executes with locking mechanism
 
-**Validation Rules**:
-- `lock_file_path` MUST be in accessible directory ($HOME/.medley/ or $TMPDIR/medley/)
-- `process_id` MUST be valid PID if lock exists
-- `is_stale` is true if `lock_age > 300` (5 minutes) OR process with `process_id` does not exist
-- Lock MUST be released when script exits (trap handler)
+## State Transitions
 
-**State Transitions**:
-- No lock → Check for existing lock file
-- Lock exists → Check if stale
-- Stale lock → Remove lock file, proceed
-- Active lock → Block or error (unless --override-lock)
-- Lock acquired → Create lock file with current PID
-- Script exit → Release lock (trap handler)
+### Emulator Selection States
 
----
+- `unselected` → `selected` (via command-line, environment, or default)
+- `selected` → `validated` (emulator exists and is executable)
+- `validated` → `ready` (all configuration complete)
 
-## Relationships
+### Lock States
 
-- **EmulatorSelection** → **EmulatorExecutable**: One selection resolves to one executable (1:1)
-- **RunConfiguration** → **EmulatorSelection**: Contains one selection (1:1)
-- **RunConfiguration** → **EmulatorExecutable**: Contains one executable (1:1)
-- **RunConfiguration** → **RunLock**: May have one active lock (1:0..1)
+- `unlocked` → `locked` (when Interlisp starts)
+- `locked` → `unlocked` (when Interlisp exits normally)
+- `locked` → `stale` (detected via timeout, auto-cleanup)
 
-## Validation Rules Summary
+## Constraints
 
-1. Emulator type validation: MUST be "c", "zig", or "lisp"
-2. Executable existence: MUST exist and be executable before invocation
-3. Platform detection: MUST succeed or provide clear error
-4. Lock validation: MUST check for stale locks before blocking
-5. Configuration completeness: All required attributes MUST be set before execution
+- Only one emulator selection per run
+- Lock files prevent concurrent runs per user
+- Backward compatibility with existing run-medley arguments
+- Platform-specific emulator availability

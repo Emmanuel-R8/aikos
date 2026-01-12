@@ -51,6 +51,50 @@ pub const ExecutionTrace = struct {
             return;
         }
         
+        // ENHANCED TRACING: Match C emulator's first instruction tracing
+        const ENHANCED_TRACING = @import("builtin").mode == .Debug;
+        if (ENHANCED_TRACING and self.instruction_count == 0) {
+            std.debug.print("\n=== ENHANCED TRACING: First Instruction ===\n", .{});
+            std.debug.print("DEBUG: PC byte offset = 0x{x}\n", .{vm.pc});
+            
+            // Log FuncObj and PC calculation
+            if (vm.current_frame) |frame| {
+                if (vm.virtual_memory) |vmem| {
+                    const frame_addr = @intFromPtr(frame);
+                    const vmem_addr = @intFromPtr(vmem.ptr);
+                    if (frame_addr >= vmem_addr and frame_addr < vmem_addr + vmem.len) {
+                        const frame_offset_in_vmem = frame_addr - vmem_addr;
+                        const frame_bytes = vmem[frame_offset_in_vmem..][0..12];
+                        
+                        // Read FX_FNHEADER (BIGVM: 32-bit at offset 4-7)
+                        const fx_fnheader = std.mem.readInt(LispPTR, frame_bytes[4..8], .little);
+                        const frame_pc = std.mem.readInt(DLword, frame_bytes[8..10], .little);
+                        
+                        const funcobj_offset = (fx_fnheader & 0xFFFFFF) * 2;
+                        const expected_pc = funcobj_offset + frame_pc;
+                        
+                        std.debug.print("DEBUG: FX_FNHEADER = 0x{x:0>6} (DLword offset)\n", .{fx_fnheader & 0xFFFFFF});
+                        std.debug.print("DEBUG: CURRENTFX->pc = {} bytes\n", .{frame_pc});
+                        std.debug.print("DEBUG: FuncObj byte offset = 0x{x}\n", .{funcobj_offset});
+                        std.debug.print("DEBUG: Expected PC = FuncObj + CURRENTFX->pc = 0x{x} + {} = 0x{x}\n", .{ funcobj_offset, frame_pc, expected_pc });
+                        std.debug.print("DEBUG: Actual PC = 0x{x}\n", .{vm.pc});
+                        const match = (vm.pc == expected_pc);
+                        std.debug.print("DEBUG: Match check: actual_pc == expected_pc? {s}\n", .{if (match) "YES" else "NO"});
+                        
+                        // Log bytes at PC
+                        if (vm.pc < vmem.len and vm.pc + 8 <= vmem.len) {
+                            std.debug.print("DEBUG: Bytes at PC (offset 0x{x}): ", .{vm.pc});
+                            for (0..8) |i| {
+                                std.debug.print("0x{x:0>2} ", .{vmem[vm.pc + i]});
+                            }
+                            std.debug.print("\n", .{});
+                        }
+                    }
+                }
+            }
+            std.debug.print("=== END ENHANCED TRACING: First Instruction ===\n\n", .{});
+        }
+        
         // DEBUG: Log first few writes
         if (self.instruction_count < 3) {
             std.debug.print("DEBUG execution_trace: Writing instruction {} to log\n", .{self.instruction_count + 1});
@@ -110,12 +154,17 @@ pub const ExecutionTrace = struct {
         pos = pc_field_end; // Ensure we're at column 69
 
         // Column 69-88: Instruction bytes (20 characters: 8 bytes hex + 4 spaces)
-        // DEBUG: Log actual memory read to verify we're reading from correct location
+        // CRITICAL: C emulator log shows bytes read DIRECTLY from PCMAC (no XOR addressing)
+        // C: xc.c:584: *((unsigned char *)PCMAC + i) - direct memory access, no XOR
+        // But opcode decoding uses Get_BYTE_PCMAC0 which applies XOR addressing
+        // So we show bytes WITHOUT XOR to match C log format
         const bytes_to_show = @min(8, inst.length);
         if (vm.virtual_memory) |vmem| {
             var i: usize = 0;
             while (i < bytes_to_show and vm.pc + i < vmem.len) : (i += 1) {
-                const byte_value = vmem[vm.pc + i];
+                // Read directly from memory (no XOR) to match C log format
+                // C: *((unsigned char *)PCMAC + i) - direct access
+                const byte_value = vmem[@as(usize, @intCast(vm.pc)) + i];
                 try append(&buffer, &pos, "{x:0>2}", .{byte_value});
             }
             // Pad to 8 bytes if needed
@@ -524,17 +573,18 @@ pub const ExecutionTrace = struct {
 
     fn getStackPtrOffset(self: *ExecutionTrace, vm: *VM) usize {
         _ = self;
-        // C: stack_ptr_offset = (CurrentStackPTR - Stackspace) / 2
+        // C: xc.c:745: LispPTR stack_ptr_offset = (LispPTR)((char *)CurrentStackPTR - (char *)Stackspace) / 2;
         // Stackspace is the base (lower address), CurrentStackPTR is current top (higher address when stack has data)
         // Stack grows down, but CurrentStackPTR > Stackspace when stack has data
+        // C uses byte addresses and divides by 2 to get DLword offset
         const stack_base_ptr = @intFromPtr(vm.stack_base);
         const stack_ptr = @intFromPtr(vm.stack_ptr);
-        // Offset = (ptr - base) / 2 (in DLwords)
+        // Offset = (ptr - base) / 2 (in DLwords) - matches C exactly
         const diff = if (stack_ptr >= stack_base_ptr)
             stack_ptr - stack_base_ptr
         else
             0;
-        return @as(usize, @intCast(diff / 2)); // Divide by 2 to get DLwords
+        return @as(usize, @intCast(diff / 2)); // Divide by 2 to get DLword offset (matches C)
     }
 
     fn getNextStackValues(self: *ExecutionTrace, vm: *VM, count: usize) [4]LispPTR {

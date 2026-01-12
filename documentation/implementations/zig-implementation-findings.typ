@@ -16,6 +16,7 @@ For the main implementation status, see Zig Implementation Status.
 - Sysout Loading Findings - IFPAGE, FPtoVP table, page loading, version constants, opcode conflicts
 - VM Execution Findings - TopOfStack, stack byte-order, PC initialization, stack operations, frame structure
 - Opcode Implementation Findings - All opcode implementation details
+- Execution Debugging - Critical execution discrepancies and debugging plan (2025-12-22)
 
 == Quick Reference
 

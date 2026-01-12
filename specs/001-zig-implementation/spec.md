@@ -84,7 +84,7 @@ A developer wants to implement the I/O and display subsystems in Zig using SDL, 
 - **FR-010**: Implementation MUST implement BitBLT graphics operations rendering correctly to SDL display
 - **FR-011**: Implementation MUST handle interrupts (I/O, timer, system) correctly between bytecode instructions
 - **FR-012**: Implementation MUST support incremental development (VM core → memory → I/O → display) with clear dependencies
-- **FR-013**: Implementation MUST follow rewrite documentation specifications in `.ai_assistant_db/rewrite-spec/`
+- **FR-013**: Implementation MUST follow rewrite documentation specifications in `documentation/rewrite-spec/`
 - **FR-014**: Implementation MUST use Zig's memory safety features where possible while maintaining compatibility
 - **FR-015**: Implementation MUST support at least Linux and macOS platforms (Windows optional)
 
@@ -104,7 +104,7 @@ A developer wants to implement the I/O and display subsystems in Zig using SDL, 
 - **SC-001**: Zig implementation can load and execute at least 3 different existing sysout files without errors
 - **SC-002**: Zig implementation executes bytecode producing identical results to Maiko C implementation for at least 50 test cases covering all opcode categories
 - **SC-003**: Zig implementation successfully runs an interactive Lisp session with SDL display, keyboard input, and mouse input working correctly
-- **SC-004**: Zig implementation passes at least 80% of reference behavior test cases from `.ai_assistant_db/rewrite-spec/validation/reference-behaviors.md`
+- **SC-004**: Zig implementation passes at least 80% of reference behavior test cases from `documentation/rewrite-spec/validation/reference-behaviors.md`
 - **SC-005**: Zig implementation compiles successfully on Linux and macOS using Zig 0.15.1 compiler
 - **SC-006**: Zig implementation demonstrates memory safety improvements (e.g., no use-after-free, bounds checking) compared to C implementation while maintaining compatibility
 - **SC-007**: Zig implementation can be built and run by a developer unfamiliar with Maiko C code using only the rewrite documentation within 1 week
@@ -113,7 +113,7 @@ A developer wants to implement the I/O and display subsystems in Zig using SDL, 
 ## Assumptions
 
 - Target audience has Zig programming language knowledge (Zig 0.15.1)
-- Developers have access to rewrite documentation in `.ai_assistant_db/rewrite-spec/`
+- Developers have access to rewrite documentation in `documentation/rewrite-spec/`
 - SDL3 libraries are available on target platforms
 - Zig standard library and package manager can be used for dependencies
 - Implementation will be organized in `alternatives/zig/` directory separate from C codebase
@@ -122,7 +122,7 @@ A developer wants to implement the I/O and display subsystems in Zig using SDL, 
 
 ## Dependencies
 
-- Rewrite documentation in `.ai_assistant_db/rewrite-spec/` (already complete)
+- Rewrite documentation in `documentation/rewrite-spec/` (already complete)
 - Zig compiler (0.15.1)
 - SDL3 development libraries
 - Access to test sysout files for validation

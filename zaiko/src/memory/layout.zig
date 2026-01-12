@@ -27,16 +27,16 @@ pub const MemoryOffsets = struct {
     pub const LS_OFFSET: u32 = 0x00F00000;
 };
 
-/// Page size constants
-pub const PAGE_SIZE: u32 = 0x10000; // 64KB
+/// Page size constants (matches BYTESPER_PAGE = 512 bytes)
+pub const PAGE_SIZE: u32 = 512; // 512 bytes per page
 pub const PAGE_MASK: u32 = PAGE_SIZE - 1;
 
-/// Get page number from address
+/// Get page number from address (high 15 bits of LispPTR)
 pub fn getPageNumber(addr: LispPTR) u32 {
-    return addr / PAGE_SIZE;
+    return addr >> 9; // 512 = 2^9
 }
 
-/// Get offset within page
+/// Get offset within page (low 9 bits of LispPTR)
 pub fn getPageOffset(addr: LispPTR) u32 {
     return addr & PAGE_MASK;
 }

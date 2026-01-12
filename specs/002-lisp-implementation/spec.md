@@ -85,7 +85,7 @@ A developer wants to implement the I/O and display subsystems in Common Lisp usi
 - **FR-010**: Implementation MUST implement BitBLT graphics operations rendering correctly to SDL display
 - **FR-011**: Implementation MUST handle interrupts (I/O, timer, system) correctly between bytecode instructions
 - **FR-012**: Implementation MUST support incremental development (VM core → memory → I/O → display) with clear dependencies
-- **FR-013**: Implementation MUST follow rewrite documentation specifications in `.ai_assistant_db/rewrite-spec/`
+- **FR-013**: Implementation MUST follow rewrite documentation specifications in `documentation/rewrite-spec/`
 - **FR-014**: Implementation MUST leverage Common Lisp's type system and memory safety features while maintaining compatibility
 - **FR-015**: Implementation MUST support at least Linux and macOS platforms (Windows optional)
 - **FR-016**: Implementation MUST use SBCL (Steel Bank Common Lisp) as the primary implementation
@@ -106,7 +106,7 @@ A developer wants to implement the I/O and display subsystems in Common Lisp usi
 - **SC-001**: Common Lisp implementation can load and execute at least 3 different existing sysout files without errors
 - **SC-002**: Common Lisp implementation executes bytecode producing identical results to Maiko C implementation for at least 50 test cases covering all opcode categories
 - **SC-003**: Common Lisp implementation successfully runs an interactive Lisp session with SDL display, keyboard input, and mouse input working correctly
-- **SC-004**: Common Lisp implementation passes at least 80% of reference behavior test cases from `.ai_assistant_db/rewrite-spec/validation/reference-behaviors.md`
+- **SC-004**: Common Lisp implementation passes at least 80% of reference behavior test cases from `documentation/rewrite-spec/validation/reference-behaviors.md`
 - **SC-005**: Common Lisp implementation compiles successfully on Linux and macOS using SBCL
 - **SC-006**: Common Lisp implementation demonstrates type safety and memory safety improvements compared to C implementation while maintaining compatibility
 - **SC-007**: Common Lisp implementation can be built and run by a developer unfamiliar with Maiko C code using only the rewrite documentation within 1 week
@@ -115,7 +115,7 @@ A developer wants to implement the I/O and display subsystems in Common Lisp usi
 ## Assumptions
 
 - Target audience has Common Lisp programming language knowledge (SBCL)
-- Developers have access to rewrite documentation in `.ai_assistant_db/rewrite-spec/`
+- Developers have access to rewrite documentation in `documentation/rewrite-spec/`
 - SDL3 libraries are available on target platforms
 - Common Lisp libraries (ASDF, cl-sdl3 or similar) can be used for dependencies
 - Implementation will be organized in `alternatives/lisp/` directory separate from C codebase
@@ -125,7 +125,7 @@ A developer wants to implement the I/O and display subsystems in Common Lisp usi
 
 ## Dependencies
 
-- Rewrite documentation in `.ai_assistant_db/rewrite-spec/` (already complete)
+- Rewrite documentation in `documentation/rewrite-spec/` (already complete)
 - SBCL (Steel Bank Common Lisp)
 - SDL3 development libraries
 - ASDF (included with SBCL)

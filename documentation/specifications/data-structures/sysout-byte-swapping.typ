@@ -215,3 +215,6 @@ function ReadFrame(virtual_memory, frame_offset):
 - Sysout Format - Complete sysout file format specification
 - Stack Management - Frame structure details
 - Memory Layout - Memory organization
+- Execution Debugging - Memory loading investigation (2025-12-22)
+- Endianness Findings - Complete endianness analysis (1,893 lines)
+- XOR Addressing Implementation - XOR addressing details for BYTESWAP mode

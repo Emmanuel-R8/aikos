@@ -67,14 +67,14 @@
 - [X] T015 [P] [US1] Create stack frame structure `alternatives/lisp/src/vm/stack.lisp` with FX struct per data-model.md
 - [X] T016 [US1] Implement stack allocation functions in `alternatives/lisp/src/vm/stack.lisp` (allocateStackFrame, freeStackFrame, extendStack) per contracts/vm-core-interface.lisp
 - [X] T017 [US1] Create dispatch loop module `alternatives/lisp/src/vm/dispatch.lisp` with fetchInstruction, decodeOpcode, executeOpcode per contracts/vm-core-interface.lisp
-- [X] T018 [US1] Implement main dispatch function in `alternatives/lisp/src/vm/dispatch.lisp` per `.ai_assistant_db/rewrite-spec/vm-core/execution-model.md`
+- [X] T018 [US1] Implement main dispatch function in `alternatives/lisp/src/vm/dispatch.lisp` per `documentation/rewrite-spec/vm-core/execution-model.md`
 - [X] T019 [P] [US1] Create opcode handlers module `alternatives/lisp/src/vm/opcodes.lisp` with opcode handler function signatures
-- [X] T020 [US1] Implement arithmetic opcodes (IPLUS2, IDIFFERENCE, ITIMES2, IQUO, IREM) in `alternatives/lisp/src/vm/opcodes.lisp` per `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md`
+- [X] T020 [US1] Implement arithmetic opcodes (IPLUS2, IDIFFERENCE, ITIMES2, IQUO, IREM) in `alternatives/lisp/src/vm/opcodes.lisp` per `documentation/rewrite-spec/instruction-set/opcodes.md`
 - [X] T021 [US1] Implement stack manipulation opcodes (PUSH, POP, STKSCAN) in `alternatives/lisp/src/vm/opcodes.lisp` per rewrite documentation
 - [X] T022 [US1] Create function call module `alternatives/lisp/src/vm/function.lisp` with callFunction, returnFromFunction per contracts/vm-core-interface.lisp
 - [X] T023 [US1] Implement function call opcodes (FN0, FN1, FN2, FN3, FN4, FNX) in `alternatives/lisp/src/vm/opcodes.lisp` per rewrite documentation
 - [X] T024 [US1] Create interrupt handling module `alternatives/lisp/src/vm/interrupt.lisp` with checkInterrupts, handleInterrupt per contracts/vm-core-interface.lisp
-- [X] T025 [US1] Integrate interrupt checking into dispatch loop in `alternatives/lisp/src/vm/dispatch.lisp` per `.ai_assistant_db/rewrite-spec/vm-core/interrupt-handling.md`
+- [X] T025 [US1] Integrate interrupt checking into dispatch loop in `alternatives/lisp/src/vm/dispatch.lisp` per `documentation/rewrite-spec/vm-core/interrupt-handling.md`
 - [X] T026 [US1] Implement address translation functions (translateAddress2, translateAddress4) in `alternatives/lisp/src/utils/address.lisp` per contracts/vm-core-interface.lisp
 
 **Checkpoint**: At this point, User Story 1 should enable basic bytecode execution with arithmetic and stack operations
@@ -96,16 +96,16 @@
 ### Implementation for User Story 2
 
 - [X] T030 [P] [US2] Create cons cell structure `alternatives/lisp/src/data/cons.lisp` with ConsCell struct per data-model.md
-- [X] T031 [US2] Implement CDR coding functions in `alternatives/lisp/src/data/cons.lisp` per `.ai_assistant_db/rewrite-spec/data-structures/cons-cells.md`
+- [X] T031 [US2] Implement CDR coding functions in `alternatives/lisp/src/data/cons.lisp` per `documentation/rewrite-spec/data-structures/cons-cells.md`
 - [X] T032 [P] [US2] Create array structures `alternatives/lisp/src/data/array.lisp` with array type definitions per data-model.md
 - [X] T033 [P] [US2] Create function header structure `alternatives/lisp/src/data/function-header.lisp` with FunctionHeader struct per data-model.md
 - [X] T034 [US2] Create virtual memory module `alternatives/lisp/src/memory/virtual.lisp` with page mapping and address translation per contracts/memory-interface.lisp
-- [X] T035 [US2] Implement FPtoVP mapping in `alternatives/lisp/src/memory/virtual.lisp` per `.ai_assistant_db/rewrite-spec/memory/address-translation.md`
+- [X] T035 [US2] Implement FPtoVP mapping in `alternatives/lisp/src/memory/virtual.lisp` per `documentation/rewrite-spec/memory/address-translation.md`
 - [X] T036 [US2] Create memory layout module `alternatives/lisp/src/memory/layout.lisp` with memory region offsets per data-model.md
 - [X] T037 [US2] Create GC module `alternatives/lisp/src/memory/gc.lisp` with HashEntry structure and hash table per data-model.md
 - [X] T038 [US2] Implement addReference and deleteReference functions in `alternatives/lisp/src/memory/gc.lisp` per contracts/memory-interface.lisp
 - [X] T039 [US2] Implement markStackReference function in `alternatives/lisp/src/memory/gc.lisp` per contracts/memory-interface.lisp
-- [X] T040 [US2] Implement findInHashTable function in `alternatives/lisp/src/memory/gc.lisp` per `.ai_assistant_db/rewrite-spec/memory/garbage-collection.md`
+- [X] T040 [US2] Implement findInHashTable function in `alternatives/lisp/src/memory/gc.lisp` per `documentation/rewrite-spec/memory/garbage-collection.md`
 - [X] T041 [US2] Implement runGC function in `alternatives/lisp/src/memory/gc.lisp` per rewrite documentation
 - [X] T042 [US2] Implement GC coordination with Common Lisp's GC in `alternatives/lisp/src/memory/gc.lisp` per contracts/memory-interface.lisp
 - [X] T043 [US2] Create storage allocation module `alternatives/lisp/src/memory/storage.lisp` with allocateConsCell, allocateArray per contracts/memory-interface.lisp
@@ -138,7 +138,7 @@
 - [X] T054 [US3] Implement initDisplay function in `alternatives/lisp/src/display/sdl-backend.lisp` per contracts/display-interface.lisp
 - [X] T055 [US3] Implement destroyDisplay function in `alternatives/lisp/src/display/sdl-backend.lisp` per contracts/display-interface.lisp
 - [X] T056 [US3] Create graphics operations module `alternatives/lisp/src/display/graphics.lisp` with renderRegion function per contracts/display-interface.lisp
-- [X] T057 [US3] Implement BitBLT operation in `alternatives/lisp/src/display/graphics.lisp` per `.ai_assistant_db/rewrite-spec/display/graphics-operations.md`
+- [X] T057 [US3] Implement BitBLT operation in `alternatives/lisp/src/display/graphics.lisp` per `documentation/rewrite-spec/display/graphics-operations.md`
 - [X] T058 [US3] Implement flushDisplayRegion function in `alternatives/lisp/src/display/graphics.lisp` per contracts/display-interface.lisp
 - [X] T059 [US3] Create event handling module `alternatives/lisp/src/display/events.lisp` with pollEvents function per contracts/display-interface.lisp
 - [X] T060 [US3] Create keyboard module `alternatives/lisp/src/io/keyboard.lisp` with KeyboardEvent struct per data-model.md
@@ -160,7 +160,7 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [X] T070 [P] Implement remaining opcodes (all 256) in `alternatives/lisp/src/vm/opcodes.lisp` per `.ai_assistant_db/rewrite-spec/instruction-set/opcodes.md` (189 handlers implemented, remaining can be added incrementally)
+- [X] T070 [P] Implement remaining opcodes (all 256) in `alternatives/lisp/src/vm/opcodes.lisp` per `documentation/rewrite-spec/instruction-set/opcodes.md` (189 handlers implemented, remaining can be added incrementally)
 - [X] T071 [P] Add comprehensive error handling and recovery across all modules (error conditions defined, handlers in place)
 - [X] T072 [P] Implement edge case handling (sysout version mismatch, memory allocation failures, SDL init failures) per spec.md edge cases
 - [X] T073 [P] Add platform-specific handling (endianness, word size) in `alternatives/lisp/src/utils/address.lisp`
@@ -280,5 +280,5 @@ With multiple developers:
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
-- Follow rewrite documentation in `.ai_assistant_db/rewrite-spec/` for implementation details
+- Follow rewrite documentation in `documentation/rewrite-spec/` for implementation details
 - Maintain exact compatibility with C implementation per spec.md requirements

@@ -395,10 +395,19 @@ pub fn setTopOfStack(vm: *VM, value: LispPTR) void {
 /// Returns 0 if stack is empty
 /// C: Stack depth = (CurrentStackPTR - Stackspace) / 2
 /// Stackspace is the BASE (lowest address), CurrentStackPTR is the current top (higher address when stack has data)
-/// CRITICAL: In C, CurrentStackPTR and Stackspace are DLword* pointers.
+/// CRITICAL FIX: C code uses DLword* pointer arithmetic
+/// C: xc.c:747: int stack_depth = (CurrentStackPTR - Stackspace) / 2;
 /// When you subtract two DLword* pointers, you get the difference in DLwords (pointer arithmetic).
-/// But the C code divides by 2 anyway, which suggests the subtraction might give 2x the DLwords?
-/// Or maybe there's a different interpretation.
+/// Then dividing by 2 gives half the DLwords (which is the number of LispPTR values, since each LispPTR = 2 DLwords).
+/// In Zig, we use @intFromPtr which gives byte addresses, so:
+///   diff_bytes = stack_ptr_addr - stack_base_addr (in bytes)
+///   diff_dlwords = diff_bytes / 2 (convert bytes to DLwords)
+///   depth = diff_dlwords / 2 (divide by 2 to match C's division)
+///   This simplifies to: depth = diff_bytes / 4
+/// But wait - C shows stack_depth = 5956 when stack_ptr_offset = 11912
+///   If stack_ptr_offset is in DLwords, then depth = 11912 / 2 = 5956 ✓
+/// So C's formula is: depth = (stack_ptr_offset_in_dlwords) / 2
+/// We calculate stack_ptr_offset in DLwords, then divide by 2
 pub fn getStackDepth(vm: *const VM) usize {
     const stack_base_addr = @intFromPtr(vm.stack_base);
     const stack_ptr_addr = @intFromPtr(vm.stack_ptr);
@@ -410,21 +419,20 @@ pub fn getStackDepth(vm: *const VM) usize {
         return 0; // Stack is empty
     }
 
-    // CRITICAL: In C, CurrentStackPTR and Stackspace are DLword* pointers.
-    // When you subtract two DLword* pointers, you get the difference in DLwords (pointer arithmetic).
-    // C code: stack_depth = (CurrentStackPTR - Stackspace) / 2
-    // 
-    // Analysis: If ptr_diff = CurrentStackPTR - Stackspace gives DLwords,
-    // then dividing by 2 would give half the DLwords. But C shows 5956,
-    // which matches (nextblock - 2) / 2 = (11914 - 2) / 2 = 5956.
-    //
-    // In Zig, we use @intFromPtr which gives byte addresses.
-    // So: diff_bytes = stack_ptr_addr - stack_base_addr (in bytes)
-    // To match C's behavior, we need to divide by 4:
-    //   - diff_bytes / 2 = DLwords (if we just convert bytes to DLwords)
-    //   - But C divides pointer diff (in DLwords) by 2, so we need diff_bytes / 4
-    //   - This gives: (11912 DLwords * 2 bytes) / 4 = 5956 DLwords ✓
+    // CRITICAL FIX: Match C's calculation exactly
+    // C: xc.c:745: LispPTR stack_ptr_offset = (LispPTR)((char *)CurrentStackPTR - (char *)Stackspace) / 2;
+    // C: xc.c:747: int stack_depth = (CurrentStackPTR - Stackspace) / 2;
+    // In C, CurrentStackPTR and Stackspace are DLword* pointers.
+    // Pointer subtraction gives difference in DLwords (not bytes).
+    // Then dividing by 2 gives number of LispPTR values (each LispPTR = 2 DLwords).
+    // In Zig, we have byte addresses, so:
+    //   diff_bytes = stack_ptr_addr - stack_base_addr
+    //   diff_dlwords = diff_bytes / 2
+    //   depth = diff_dlwords / 2 = diff_bytes / 4
+    // But C log shows: stack_ptr_offset = 11912, stack_depth = 5956
+    //   This matches: depth = offset / 2 = 11912 / 2 = 5956 ✓
     const diff_bytes = stack_ptr_addr - stack_base_addr;
-    const depth = diff_bytes / 4; // Divide by 4 to match C's (ptr_diff / 2) behavior
+    const diff_dlwords = diff_bytes / 2; // Convert bytes to DLwords
+    const depth = diff_dlwords / 2; // Divide by 2 to get number of LispPTR values
     return @as(usize, @intCast(depth));
 }

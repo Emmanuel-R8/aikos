@@ -12,6 +12,11 @@
 - Q: If the selected emulator fails to start (e.g., crashes, can't load sysout, display error), should the system attempt automatic fallback to another emulator, or fail with an error? → A: Fail with clear error message (no fallback)
 - Q: Should the system proactively detect corrupted/non-executable emulator files before attempting to run, or let the emulator fail naturally when invoked? → A: Proactively detect (check permissions, basic validation) and show clear error
 - Q: Should the system allow or prevent multiple Interlisp instances running simultaneously with different emulators? → A: Prevent concurrent runs (implement locking mechanism)
+- Q: When the locking mechanism detects an existing lock file, how should the system handle potentially stale locks (e.g., from a crashed previous run)? → A: Auto-remove stale locks (older than 1 minute) with warning message
+- Q: When the system displays error messages, what level of technical detail should be included? → A: Technical details with user-friendly summary (include file paths, error codes, but lead with plain-language explanation)
+- Q: When an Interlisp session ends (normal exit, user interrupt, or crash), how should the lock file be handled? → A: Always remove lock file on normal exit; rely on stale lock detection for crash cleanup
+- Q: Where should the lock file be created and what information should it contain? → A: User-specific lock file in Medley root directory (e.g., `medley/.medley-<username>.lock`) containing PID and timestamp
+- Q: For FR-015's "basic validation" of emulator files, what specific checks should be performed before attempting to run? → A: Check executable bit, file exists, file size > 0, and verify file header/magic bytes match expected executable format
 
 ## User Scenarios & Testing
 
@@ -69,8 +74,10 @@ A developer wants to run Interlisp with a specific emulator, and if that emulato
 - How does the system handle invalid emulator names (e.g., `--emulator invalid`)?
 - What happens when multiple emulators are available but the selected one fails to start? → System fails with clear error message (no automatic fallback)
 - How does the system handle platform-specific emulator availability (e.g., Lisp emulator not available on certain platforms)?
-- What happens when the emulator executable exists but is corrupted or not executable? → System proactively detects (checks permissions, basic validation) and shows clear error before attempting to run
-- How does the system handle concurrent runs with different emulators? → System prevents concurrent runs using a locking mechanism
+- What happens when the emulator executable exists but is corrupted or not executable? → System proactively detects (checks executable bit, file exists, file size > 0, and verifies file header/magic bytes match expected executable format) and shows clear error before attempting to run
+- How does the system handle concurrent runs with different emulators? → System prevents concurrent runs per user using a user-specific lock file in Medley root directory (`medley/.medley-<username>.lock` containing PID and timestamp)
+- What happens when a lock file exists from a previous run? → System automatically removes stale locks older than 1 minute with a warning message; fails immediately if lock is less than 1 minute old (active session)
+- What happens to the lock file when Interlisp exits normally? → System removes lock file on normal exit; crashed sessions leave stale locks that are cleaned up by stale lock detection (FR-017)
 - What happens when the unified build location exists but contains stale or incomplete builds? → Stale builds (executables exist but outdated) are handled by build system; incomplete builds are detected by proactive validation (FR-015) or fail when executed
 
 ## Requirements
@@ -81,18 +88,20 @@ A developer wants to run Interlisp with a specific emulator, and if that emulato
 - **FR-002**: System MUST support setting default emulator via `MEDLEY_EMULATOR` environment variable
 - **FR-003**: System MUST prioritize command-line arguments over environment variables when both are specified
 - **FR-004**: System MUST use C emulator as default when no emulator is specified via command-line or environment variable
-- **FR-005**: System MUST validate emulator selection and display clear error messages for invalid emulator names
+- **FR-005**: System MUST validate emulator selection and display clear error messages for invalid emulator names (user-friendly summary with technical details)
 - **FR-006**: System MUST locate emulator executables in the unified build location (`maiko/build/<emulator>/<os>.<arch>/`) first
 - **FR-007**: System MUST fall back to existing Maiko location resolution if emulator not found in unified build location (backward compatibility)
 - **FR-008**: System MUST support automatic emulator building via `--auto-build` flag when emulator is missing
-- **FR-009**: System MUST display clear error messages when emulator is missing and `--auto-build` is not specified
+- **FR-009**: System MUST display clear error messages when emulator is missing and `--auto-build` is not specified (user-friendly summary with technical details including file paths)
 - **FR-010**: System MUST preserve all existing run-medley script functionality (sysout selection, display options, memory settings, etc.)
 - **FR-011**: System MUST work with all existing Medley run scripts (run-medley, medley.command, medley_run.sh)
 - **FR-012**: System MUST handle platform-specific emulator availability gracefully (e.g., inform user if emulator not available for current platform)
 - **FR-013**: System MUST maintain executable naming conventions expected by Medley scripts (lde, ldeinit, ldex, ldesdl, zaiko, laiko)
-- **FR-014**: System MUST fail with clear error message when selected emulator fails to start (no automatic fallback to other emulators)
-- **FR-015**: System MUST proactively detect corrupted or non-executable emulator files (check permissions, basic validation) and display clear error messages before attempting to run
-- **FR-016**: System MUST prevent concurrent runs using a locking mechanism (e.g., lock file) to ensure only one Interlisp instance runs at a time
+- **FR-014**: System MUST fail with clear error message when selected emulator fails to start (no automatic fallback to other emulators; user-friendly summary with technical details)
+- **FR-015**: System MUST proactively detect corrupted or non-executable emulator files (check executable bit, file exists, file size > 0, and verify file header/magic bytes match expected executable format) and display clear error messages before attempting to run (user-friendly summary with technical details including file paths and permission/validation issues)
+- **FR-016**: System MUST prevent concurrent runs using a locking mechanism (user-specific lock file in Medley root directory: `medley/.medley-<username>.lock` containing PID and timestamp) to ensure only one Interlisp instance runs at a time per user
+- **FR-017**: System MUST automatically remove stale lock files older than 1 minute and display a warning message when doing so (user-friendly summary with technical details)
+- **FR-018**: System MUST remove lock file on normal exit of Interlisp session; crash cleanup relies on stale lock detection (FR-017)
 
 ### Key Entities
 

@@ -5,7 +5,7 @@
 
 ## Summary
 
-Complete the Zig emulator implementation to achieve functional parity with the C emulator, enabling it to successfully load and run Medley Interlisp. The implementation will fix critical blockers (sysout loading, VM activation, essential opcodes) and complete missing functionality (GC operations, SDL2 display integration). All new insights and knowledge will be documented in `.ai_assistant_db/` to improve project knowledge.
+Complete the Zig emulator implementation to achieve functional parity with the C emulator, enabling it to successfully load and run Medley Interlisp. The implementation will fix critical blockers (sysout loading, VM activation, essential opcodes) and complete missing functionality (GC operations, SDL2 display integration). All new insights and knowledge will be documented in `documentation/` to improve project knowledge.
 
 **Technical Approach**: Fix sysout loading by implementing correct IFPAGE structure and validation, FPtoVP table loading, and page mapping algorithm. Activate VM dispatch loop and implement essential opcodes for Medley startup. Complete GC hash table operations and integrate SDL2 display rendering. Document all findings and improvements in knowledge base.
 
@@ -30,14 +30,14 @@ Complete the Zig emulator implementation to achieve functional parity with the C
 - Must maintain exact compatibility with C emulator behavior
 - Must load existing sysout files without modification
 - Must preserve all existing Zig implementation structure and patterns
-- Must document all new insights in `.ai_assistant_db/`
+- Must document all new insights in `documentation/`
 
 **Scale/Scope**:
 - Complete IFPAGE structure (~100 fields matching C implementation)
 - Implement essential opcode set (~80-100 opcodes for Medley startup)
 - Complete GC hash table operations (ADDREF, DELREF, reclamation)
 - SDL2 display integration (window creation, BitBLT, event handling)
-- Documentation updates across multiple `.ai_assistant_db/` files
+- Documentation updates across multiple `documentation/` files
 
 ## Constitution Check
 
@@ -130,7 +130,7 @@ zaiko/
 │   └── io/              # I/O subsystems (framework ready)
 └── tests/               # Test suite (needs sysout loading tests)
 
-.ai_assistant_db/        # Knowledge base (needs updates with new insights)
+documentation/        # Knowledge base (needs updates with new insights)
 ├── rewrite-spec/
 │   └── data-structures/
 │       └── sysout-format.md  # May need updates with actual IFPAGE details
@@ -142,7 +142,7 @@ zaiko/
 - **opcodes.zig split** (2025-01-27): Split 2,820-line monolithic file into 13 modular files in `vm/opcodes/` directory, each under 500 lines for better maintainability
 - **dispatch.zig split** (2025-01-27): Split 1,150-line file into 3 modules in `vm/dispatch/` directory for better separation of concerns
 - All handlers remain accessible via re-export files maintaining backward compatibility
-- Knowledge base updates will be made to `.ai_assistant_db/` with new insights and corrections
+- Knowledge base updates will be made to `documentation/` with new insights and corrections
 
 ## Complexity Tracking
 
@@ -176,9 +176,9 @@ No violations - all constitution principles satisfied.
 - `quickstart.md` - Step-by-step completion guide
 
 **Knowledge Base Updates**:
-- Updated `.ai_assistant_db/rewrite-spec/data-structures/sysout-format.md` with IFPAGE_KEYVAL correction
-- Created `.ai_assistant_db/implementations/zig-implementation.md` with completion status
-- Updated `.ai_assistant_db/implementations/README.md` with Zig implementation entry
+- Updated `documentation/rewrite-spec/data-structures/sysout-format.md` with IFPAGE_KEYVAL correction
+- Created `documentation/implementations/zig-implementation.md` with completion status
+- Updated `documentation/implementations/README.md` with Zig implementation entry
 
 ## Summary
 
@@ -194,9 +194,9 @@ No violations - all constitution principles satisfied.
 - ✅ `specs/005-zig-completion/quickstart.md` - Completion quickstart guide
 
 **Knowledge Base Updates**:
-- ✅ `.ai_assistant_db/rewrite-spec/data-structures/sysout-format.md` - IFPAGE_KEYVAL correction
-- ✅ `.ai_assistant_db/implementations/zig-implementation.md` - Zig implementation status
-- ✅ `.ai_assistant_db/implementations/README.md` - Updated with Zig entry
+- ✅ `documentation/rewrite-spec/data-structures/sysout-format.md` - IFPAGE_KEYVAL correction
+- ✅ `documentation/implementations/zig-implementation.md` - Zig implementation status
+- ✅ `documentation/implementations/README.md` - Updated with Zig entry
 
 **Code Organization**:
 - ✅ `opcodes.zig` split into 13 modular files (2025-01-27)

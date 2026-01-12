@@ -1,51 +1,50 @@
-<!--
-Sync Impact Report:
-Version change: [none] → 1.0.0
-Modified principles: N/A (initial creation)
-Added sections: Core Principles (5), Platform Requirements, Development Standards, Governance
-Removed sections: N/A
-Templates requiring updates:
-  ✅ .specify/templates/plan-template.md - Constitution Check section aligns with principles
-  ✅ .specify/templates/spec-template.md - No changes needed (generic template)
-  ✅ .specify/templates/tasks-template.md - No changes needed (generic template)
-Follow-up TODOs: None
--->
-
-# Maiko Constitution
+# [PROJECT_NAME] Constitution
+<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
 
 ## Core Principles
 
-### I. Platform Portability
-Maiko MUST support multiple operating systems and processor architectures. The codebase MUST abstract platform-specific functionality behind consistent interfaces. Supported platforms include macOS, FreeBSD, Linux, Solaris, and Windows. Supported architectures include i386, x86_64, arm64, arm7l, and SPARC. Platform detection MUST be automatic during build. Rationale: Maiko serves a diverse user base across different systems; portability ensures broad accessibility.
+### [PRINCIPLE_1_NAME]
+<!-- Example: I. Library-First -->
+[PRINCIPLE_1_DESCRIPTION]
+<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
 
-### II. Build System Flexibility
-Maiko MUST support both CMake and make build systems. Both build systems MUST produce equivalent binaries. Build configuration options MUST be consistent across both systems (e.g., display subsystem selection, network type). Rationale: Different developers and deployment environments prefer different build tools; supporting both maximizes developer productivity and deployment flexibility.
+### [PRINCIPLE_2_NAME]
+<!-- Example: II. CLI Interface -->
+[PRINCIPLE_2_DESCRIPTION]
+<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
 
-### III. Display Abstraction
-Maiko MUST support multiple display subsystems (X11 and SDL). Display subsystem selection MUST be configurable at build time. The display interface MUST be abstracted to allow adding new subsystems without modifying core VM code. Rationale: Different platforms and use cases require different display technologies; abstraction enables flexibility while maintaining a single codebase.
+### [PRINCIPLE_3_NAME]
+<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
+[PRINCIPLE_3_DESCRIPTION]
+<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
 
-### IV. Code Quality & Memory Safety
-All C code MUST follow consistent coding standards (see `maiko/.clang-format`). Memory management MUST be explicit and safe; use of unsafe memory operations MUST be justified. Assembly code MUST be clearly documented with platform-specific notes. Rationale: Maiko is a virtual machine requiring high reliability; memory safety and code quality are critical for stability and maintainability.
+### [PRINCIPLE_4_NAME]
+<!-- Example: IV. Integration Testing -->
+[PRINCIPLE_4_DESCRIPTION]
+<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
 
-### V. Testing & Validation
-Critical VM operations MUST have test coverage. Platform-specific code paths MUST be validated on their target platforms. Build system changes MUST be tested with both CMake and make. Rationale: VM correctness is essential; comprehensive testing prevents regressions across diverse platforms and build configurations.
+### [PRINCIPLE_5_NAME]
+<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
+[PRINCIPLE_5_DESCRIPTION]
+<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
 
-## Platform Requirements
+## [SECTION_2_NAME]
+<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
 
-Maiko MUST maintain compatibility with the Medley Interlisp byte-coded instruction set. Network subsystem support MUST be configurable (NONE, SUN_DLPI, SUN_NIT, NETHUB). Display subsystem selection MUST not affect VM core functionality. Version compatibility MUST be maintained per `maiko/inc/version.h` release numbering.
+[SECTION_2_CONTENT]
+<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
 
-## Development Standards
+## [SECTION_3_NAME]
+<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
 
-Code contributions MUST follow the existing code style and structure. Platform-specific implementations MUST be isolated in clearly marked sections or files. Build scripts MUST handle platform detection automatically. Documentation MUST be updated when adding new platforms or architectures. All PRs MUST verify build success on at least one target platform.
+[SECTION_3_CONTENT]
+<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
 
 ## Governance
+<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-This constitution supersedes all other development practices. Amendments require:
-- Documentation of the rationale for change
-- Impact assessment on existing platforms/build systems
-- Update to this constitution file with version increment
-- Review and approval by maintainers
+[GOVERNANCE_RULES]
+<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
 
-All PRs and code reviews MUST verify compliance with these principles. Complexity additions (e.g., new platforms, build systems) MUST be justified with clear use cases. Use `.specify/templates/plan-template.md` for feature planning and constitution compliance checks.
-
-**Version**: 1.0.0 | **Ratified**: 2025-12-04 | **Last Amended**: 2025-12-04
+**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
+<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->

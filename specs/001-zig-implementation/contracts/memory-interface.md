@@ -109,5 +109,5 @@ pub const MemoryError = error{
 
 ## Related Documentation
 
-- `.ai_assistant_db/rewrite-spec/memory/` - Memory management specifications
-- `.ai_assistant_db/rewrite-spec/data-structures/sysout-format.md` - Sysout format
+- `documentation/rewrite-spec/memory/` - Memory management specifications
+- `documentation/rewrite-spec/data-structures/sysout-format.md` - Sysout format

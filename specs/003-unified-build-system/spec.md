@@ -3,7 +3,7 @@
 **Feature Branch**: `003-unified-build-system`
 **Created**: 2025-01-27
 **Status**: Draft
-**Input**: User description: "We are going to create a new set of build files for the Medley environment. The build files should be able to accommodate the 3 different Maiko emulators in @maiko and @maiko/alternatives. Keep in mind that you have created a full set of information in @.ai_assistant_db. If at any point that documentation feels incomplete, the C version of the emulator and the original Medley are your reference to improve your notes."
+**Input**: User description: "We are going to create a new set of build files for the Medley environment. The build files should be able to accommodate the 3 different Maiko emulators in @maiko and @maiko/alternatives. Keep in mind that you have created a full set of information in @documentation. If at any point that documentation feels incomplete, the C version of the emulator and the original Medley are your reference to improve your notes."
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -154,7 +154,7 @@ A developer wants to build emulators on different operating systems and architec
 - Native build tools for each emulator (CMake/Make, Zig compiler, SBCL with ASDF)
 - Platform detection utilities (`osversion`, `machinetype` from Maiko)
 - Existing Medley loadup scripts and their expected interfaces
-- Documentation in `.ai_assistant_db/` for reference and validation
+- Documentation in `documentation/` for reference and validation
 
 ## Out of Scope
 

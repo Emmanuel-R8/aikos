@@ -3,7 +3,7 @@
 **Feature Branch**: `001-medley-documentation`
 **Created**: 2025-01-27
 **Status**: Draft
-**Input**: User description: "We are starting a documentation project in a new branch. We will document the contents of @medley/docs/man-page/medley.1 The contents of the documentation will be stored in @.ai_assistant_db which already contains the documentation of maiko. The documentation you will create should contain everything that a new implementor of medley should know. You should also thoroughly document the interface between medley and maiko."
+**Input**: User description: "We are starting a documentation project in a new branch. We will document the contents of @medley/docs/man-page/medley.1 The contents of the documentation will be stored in @documentation which already contains the documentation of maiko. The documentation you will create should contain everything that a new implementor of medley should know. You should also thoroughly document the interface between medley and maiko."
 
 ## User Scenarios & Testing
 
@@ -74,7 +74,7 @@ A developer maintaining or extending Medley needs detailed documentation of impl
 - **FR-001**: Documentation MUST cover all Medley components including scripts, Lisp source code, configuration files, greet files, sysout files, and directory structure
 - **FR-002**: Documentation MUST comprehensively document the Medley-Maiko interface including all command-line arguments, environment variables, file formats, and communication protocols
 - **FR-003**: Documentation MUST explain Medley's architecture and how all components interact
-- **FR-004**: Documentation MUST be organized in `.ai_assistant_db` directory following a structure similar to existing Maiko documentation
+- **FR-004**: Documentation MUST be organized in `documentation` directory following a structure similar to existing Maiko documentation
 - **FR-005**: Documentation MUST include detailed information about sysout file format, structure, and loading process
 - **FR-006**: Documentation MUST explain virtual memory (vmem) file format, usage, and coordination between Medley and Maiko
 - **FR-007**: Documentation MUST document all command-line flags and options from the medley.1 man page with implementation context
@@ -115,7 +115,7 @@ A developer maintaining or extending Medley needs detailed documentation of impl
 
 ## Assumptions
 
-- Documentation will be written in Markdown format consistent with existing `.ai_assistant_db` documentation
+- Documentation will be written in Markdown format consistent with existing `documentation` documentation
 - Documentation will include Mermaid diagrams where helpful for illustrating architecture and flows
 - Existing Maiko documentation structure provides a good template for Medley documentation organization
 - Source code analysis will be required to document implementation details not covered in the man page
@@ -131,5 +131,5 @@ A developer maintaining or extending Medley needs detailed documentation of impl
 ## Dependencies
 
 - Access to Medley source code for implementation details
-- Existing Maiko documentation in `.ai_assistant_db` for interface context
+- Existing Maiko documentation in `documentation` for interface context
 - medley.1 man page as primary reference for command-line interface

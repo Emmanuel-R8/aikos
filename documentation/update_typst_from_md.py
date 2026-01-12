@@ -131,33 +131,33 @@ def get_typst_path(md_path: Path) -> Path:
     
     # Handle special cases
     if 'rewrite-spec' in md_str:
-        typ_str = md_str.replace('.ai_assistant_db/rewrite-spec', 'documentation/specifications')
+        typ_str = md_str.replace('documentation/rewrite-spec', 'documentation/specifications')
     elif 'api' in md_str:
-        typ_str = md_str.replace('.ai_assistant_db/api', 'documentation/reference')
+        typ_str = md_str.replace('documentation/api', 'documentation/reference')
     elif 'components' in md_str:
-        typ_str = md_str.replace('.ai_assistant_db/components', 'documentation/components')
+        typ_str = md_str.replace('documentation/components', 'documentation/components')
     elif 'medley' in md_str:
-        typ_str = md_str.replace('.ai_assistant_db/medley', 'documentation/medley')
+        typ_str = md_str.replace('documentation/medley', 'documentation/medley')
     elif 'implementations' in md_str:
-        typ_str = md_str.replace('.ai_assistant_db/implementations', 'documentation/implementations')
-    elif md_str == '.ai_assistant_db/architecture.md':
+        typ_str = md_str.replace('documentation/implementations', 'documentation/implementations')
+    elif md_str == 'documentation/architecture.md':
         typ_str = 'documentation/core/architecture.typ'
-    elif md_str == '.ai_assistant_db/build-system.md':
+    elif md_str == 'documentation/build-system.md':
         typ_str = 'documentation/core/build-system.typ'
-    elif md_str == '.ai_assistant_db/glossary.md':
+    elif md_str == 'documentation/glossary.md':
         typ_str = 'documentation/reference/glossary.typ'
-    elif md_str == '.ai_assistant_db/INDEX.md':
+    elif md_str == 'documentation/INDEX.md':
         typ_str = 'documentation/core/index.typ'
-    elif md_str == '.ai_assistant_db/README.md':
+    elif md_str == 'documentation/README.md':
         typ_str = 'documentation/core/readme.typ'
-    elif md_str == '.ai_assistant_db/CONTRIBUTING.md':
+    elif md_str == 'documentation/CONTRIBUTING.md':
         typ_str = 'documentation/core/contributing.typ'
-    elif md_str == '.ai_assistant_db/CRITICAL_MEMORY.md':
+    elif md_str == 'documentation/CRITICAL_MEMORY.md':
         typ_str = 'documentation/core/critical-memory.typ'
-    elif md_str == '.ai_assistant_db/CRITICAL_DEBUGGING_TECHNIQUE.md':
+    elif md_str == 'documentation/CRITICAL_DEBUGGING_TECHNIQUE.md':
         typ_str = 'documentation/core/critical-debugging-technique.typ'
     else:
-        typ_str = md_str.replace('.ai_assistant_db', 'documentation')
+        typ_str = md_str.replace('documentation', 'documentation')
     
     return Path(typ_str.replace('.md', '.typ'))
 

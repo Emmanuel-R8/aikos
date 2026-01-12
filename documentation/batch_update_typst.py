@@ -8,9 +8,9 @@ import sys
 from pathlib import Path
 
 def get_all_md_files():
-    """Get all markdown files from .ai_assistant_db."""
+    """Get all markdown files from documentation."""
     md_files = []
-    for md_path in Path('.ai_assistant_db').rglob('*.md'):
+    for md_path in Path('documentation').rglob('*.md'):
         md_files.append(md_path)
     return sorted(md_files)
 

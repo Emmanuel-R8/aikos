@@ -47,9 +47,11 @@ pub const VirtualMemory = struct {
 
 /// Translate LispPTR to native pointer using FPtoVP mapping
 /// Per rewrite documentation memory/address-translation.md
-/// alignment: alignment requirement in bytes (1, 2, 4, 8, etc.)
+/// virtual_memory: the virtual memory array
+/// lisp_addr: LispPTR address to translate
 /// fptovp_table: FPtoVP table (BIGVM format - 32-bit entries)
-pub fn translateAddress(lisp_addr: LispPTR, fptovp_table: *const @import("../data/sysout.zig").FPtoVPTable, alignment: u8) errors.MemoryError![*]u8 {
+/// alignment: alignment requirement in bytes (1, 2, 4, 8, etc.)
+pub fn translateAddress(virtual_memory: []const u8, lisp_addr: LispPTR, fptovp_table: *const @import("../data/sysout.zig").FPtoVPTable, alignment: u8) errors.MemoryError![*]u8 {
     const page_num = layout.getPageNumber(lisp_addr);
     const page_offset = layout.getPageOffset(lisp_addr);
 
@@ -79,18 +81,37 @@ pub fn translateAddress(lisp_addr: LispPTR, fptovp_table: *const @import("../dat
         return error.PageMappingFailed;
     }
 
-    const native_page: [*]u8 = @as([*]u8, @ptrFromInt(@as(usize, virtual_page)));
-    const native_addr = native_page + page_offset;
+    // Calculate byte offset in virtual memory
+    const BYTESPER_PAGE = @import("../utils/types.zig").BYTESPER_PAGE;
+    const byte_offset = @as(usize, virtual_page) * BYTESPER_PAGE + @as(usize, page_offset);
+
+    if (byte_offset >= virtual_memory.len) {
+        std.debug.print("ERROR: Address translation exceeds virtual memory bounds\n", .{});
+        std.debug.print("  LispPTR: 0x{x}\n", .{lisp_addr});
+        std.debug.print("  Virtual page: {}\n", .{virtual_page});
+        std.debug.print("  Page offset: {} bytes\n", .{page_offset});
+        std.debug.print("  Byte offset: {} (0x{x})\n", .{byte_offset, byte_offset});
+        std.debug.print("  Virtual memory size: {} bytes\n", .{virtual_memory.len});
+        std.debug.print("  Possible causes:\n", .{});
+        std.debug.print("    - Invalid virtual page number\n", .{});
+        std.debug.print("    - Page offset too large\n", .{});
+        std.debug.print("    - Virtual memory allocation too small\n", .{});
+        return error.InvalidAddress;
+    }
+
+    var native_addr = virtual_memory.ptr + byte_offset;
 
     // Align if needed
     if (alignment == 2) {
         // 2-byte alignment
-        const aligned_addr = @as(usize, @intFromPtr(native_addr)) & ~@as(usize, 1);
-        return @as([*]u8, @ptrFromInt(aligned_addr));
+        const addr_int = @intFromPtr(native_addr);
+        const aligned_addr = addr_int & ~@as(usize, 1);
+        native_addr = @as([*]u8, @ptrFromInt(aligned_addr));
     } else if (alignment == 4) {
         // 4-byte alignment
-        const aligned_addr = @as(usize, @intFromPtr(native_addr)) & ~@as(usize, 3);
-        return @as([*]u8, @ptrFromInt(aligned_addr));
+        const addr_int = @intFromPtr(native_addr);
+        const aligned_addr = addr_int & ~@as(usize, 3);
+        native_addr = @as([*]u8, @ptrFromInt(aligned_addr));
     }
 
     return native_addr;

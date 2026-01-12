@@ -331,22 +331,49 @@ pub fn initializeVMState(
     // NOTE: This is different from function calls which use FuncObj->startpc!
     // FastRetCALL is for returns, which use the saved PC in the frame.
 
+    // ENHANCED TRACING: Match C emulator's FastRetCALL tracing
+    const ENHANCED_TRACING = @import("builtin").mode == .Debug;
+    if (ENHANCED_TRACING) {
+        std.debug.print("\n=== ENHANCED TRACING: Before FastRetCALL ===\n", .{});
+        std.debug.print("DEBUG: FX_FNHEADER = 0x{x} (LispPTR, DLword offset)\n", .{fnheader_addr});
+        std.debug.print("DEBUG: CURRENTFX->pc = {} (0x{x}) bytes\n", .{ frame_pc, frame_pc });
+        std.debug.print("DEBUG: Expected FuncObj byte offset = FX_FNHEADER * 2 = 0x{x} * 2 = 0x{x}\n", .{ fnheader_addr, fnheader_addr * 2 });
+        std.debug.print("DEBUG: Expected PC byte offset = FuncObj + CURRENTFX->pc = 0x{x} + {} = 0x{x}\n", .{ fnheader_addr * 2, frame_pc, fnheader_addr * 2 + frame_pc });
+        
+        // Log bytes at expected FuncObj location
+        const expected_funcobj_offset = fnheader_addr * 2;
+        if (expected_funcobj_offset < virtual_memory.len and expected_funcobj_offset + 8 <= virtual_memory.len) {
+            std.debug.print("DEBUG: Bytes at expected FuncObj (offset 0x{x}): ", .{expected_funcobj_offset});
+            for (0..8) |i| {
+                std.debug.print("0x{x:0>2} ", .{virtual_memory[expected_funcobj_offset + i]});
+            }
+            std.debug.print("\n", .{});
+        }
+        
+        // Log bytes at expected PC location
+        const expected_pc_offset = fnheader_addr * 2 + frame_pc;
+        if (expected_pc_offset < virtual_memory.len and expected_pc_offset + 8 <= virtual_memory.len) {
+            std.debug.print("DEBUG: Bytes at expected PC (offset 0x{x}): ", .{expected_pc_offset});
+            for (0..8) |i| {
+                std.debug.print("0x{x:0>2} ", .{virtual_memory[expected_pc_offset + i]});
+            }
+            std.debug.print("\n", .{});
+        }
+        std.debug.print("=== END Before FastRetCALL ===\n\n", .{});
+    }
+
     // Translate fnheader_addr (LispPTR) to virtual_memory offset
     // C: NativeAligned4FromLAddr(FX_FNHEADER) = (void *)(Lisp_world + FX_FNHEADER)
-    // CRITICAL FIX: FX_FNHEADER appears to point 52 bytes after FuncObj start
-    // C log shows: PC = 0x307898, FuncObj+104 bytes
-    // So FuncObj = 0x307898 - 104 = 0x307830
-    // But FX_FNHEADER = 0x307864
-    // Difference: 0x307864 - 0x307830 = 52 bytes
-    // So: FuncObj = FX_FNHEADER - 52
-    const funcobj_offset_calc: usize = @as(usize, @intCast(fnheader_addr)) - 52; // Adjust by -52 bytes
+    // CRITICAL: FX_FNHEADER is a DLword offset, multiply by 2 for byte offset
+    // C: FuncObj = Lisp_world + (FX_FNHEADER * 2)
+    const funcobj_offset_calc: usize = @as(usize, @intCast(fnheader_addr)) * 2; // DLword offset * 2 = byte offset
     const funcobj_offset_opt: ?usize = if (funcobj_offset_calc < virtual_memory.len) funcobj_offset_calc else null;
 
     if (funcobj_offset_opt) |funcobj_byte_offset| {
         std.debug.print("DEBUG: FastRetCALL simulation:\n", .{});
-        std.debug.print("  FX_FNHEADER=0x{x}\n", .{fnheader_addr});
-        std.debug.print("  FuncObj offset=0x{x} (translated from FX_FNHEADER, byte addressing)\n", .{funcobj_byte_offset});
-        std.debug.print("  CURRENTFX->pc={} (value from frame)\n", .{frame_pc});
+        std.debug.print("  FX_FNHEADER=0x{x} (DLword offset)\n", .{fnheader_addr});
+        std.debug.print("  FuncObj byte offset=0x{x} (FX_FNHEADER * 2)\n", .{funcobj_byte_offset});
+        std.debug.print("  CURRENTFX->pc={} (byte offset from FuncObj)\n", .{frame_pc});
         // CRITICAL: C code shows: PC = (ByteCode *)FuncObj + CURRENTFX->pc;
         // This means CURRENTFX->pc is treated as a BYTE offset, not DLword offset
         // The comment in stack.zig says "byte offset from FuncObj" which confirms this
@@ -403,6 +430,19 @@ pub fn initializeVMState(
             } else {
                 vm.pc = @as(LispPTR, @intCast(calculated_pc));
                 std.debug.print("  Using calculated PC=0x{x} (XOR-addressed opcode=0x{x:0>2})\n", .{ calculated_pc, first_opcode_xor });
+                
+                // ENHANCED TRACING: Match C emulator's after FastRetCALL verification
+                if (ENHANCED_TRACING) {
+                    std.debug.print("\n=== ENHANCED TRACING: After FastRetCALL Verification ===\n", .{});
+                    std.debug.print("DEBUG: Actual FuncObj byte offset = 0x{x}\n", .{funcobj_byte_offset});
+                    std.debug.print("DEBUG: Actual PC byte offset = 0x{x}\n", .{calculated_pc});
+                    std.debug.print("DEBUG: FX_FNHEADER = 0x{x} (DLword offset)\n", .{fnheader_addr});
+                    std.debug.print("DEBUG: CURRENTFX->pc = {} (0x{x}) bytes\n", .{ frame_pc, frame_pc });
+                    std.debug.print("DEBUG: FX_FNHEADER * 2 + CURRENTFX->pc = 0x{x} * 2 + {} = 0x{x}\n", .{ fnheader_addr, frame_pc, fnheader_addr * 2 + frame_pc });
+                    const match = (calculated_pc == fnheader_addr * 2 + frame_pc);
+                    std.debug.print("DEBUG: Match check: actual_pc_offset == FX_FNHEADER * 2 + CURRENTFX->pc? {s}\n", .{if (match) "YES" else "NO"});
+                    std.debug.print("=== END After FastRetCALL Verification ===\n\n", .{});
+                }
                 return;
             }
         }
@@ -410,6 +450,14 @@ pub fn initializeVMState(
         // If validation failed, use calculated PC anyway (might still work)
         vm.pc = @as(LispPTR, @intCast(calculated_pc));
         std.debug.print("  Using calculated PC=0x{x} (validation incomplete)\n", .{calculated_pc});
+        
+        // ENHANCED TRACING: Even if validation incomplete
+        if (ENHANCED_TRACING) {
+            std.debug.print("\n=== ENHANCED TRACING: After FastRetCALL (validation incomplete) ===\n", .{});
+            std.debug.print("DEBUG: Actual FuncObj byte offset = 0x{x}\n", .{funcobj_byte_offset});
+            std.debug.print("DEBUG: Actual PC byte offset = 0x{x}\n", .{calculated_pc});
+            std.debug.print("=== END After FastRetCALL ===\n\n", .{});
+        }
         return;
     } else {
         // Address translation failed - try using frame->pc or default

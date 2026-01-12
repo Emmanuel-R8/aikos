@@ -29,7 +29,7 @@ For EACH value, consider:
 2. The value divided by 2 (decimal and hexadecimal)
 3. The value multiplied by 2 (decimal and hexadecimal)
 
-**See**: `.ai_assistant_db/CRITICAL_DEBUGGING_TECHNIQUE.md` for full details and examples.
+**See**: `documentation/CRITICAL_DEBUGGING_TECHNIQUE.md` for full details and examples.
 
 This technique helps identify:
 - Byte vs DLword confusion (values off by factors of 2)
@@ -39,7 +39,7 @@ This technique helps identify:
 
 ## CRITICAL RULE: Emulator-Independent Documentation
 
-**ALL improvements to `.ai_assistant_db` documentation MUST be emulator-independent** inpriority so that any implementor in any language benefits from the knowledge.
+**ALL improvements to `documentation` documentation MUST be emulator-independent** inpriority so that any implementor in any language benefits from the knowledge.
 
 ### General Principles
 
@@ -52,12 +52,12 @@ This technique helps identify:
 
 ### Documentation Structure
 
-- **`.ai_assistant_db/rewrite-spec/`**: Contains emulator-independent specifications
+- **`documentation/rewrite-spec/`**: Contains emulator-independent specifications
   - All opcodes, data structures, algorithms, and behaviors documented here
   - No language-specific implementation details
   - Focus on "what" and "why", not "how" in a specific language
 
-- **`.ai_assistant_db/implementations/`**: Contains language-specific implementation notes
+- **`documentation/implementations/`**: Contains language-specific implementation notes
   - Document challenges, workarounds, and solutions specific to each language
   - Reference general documentation in `rewrite-spec/` for concepts
   - Focus on "how" in that specific language

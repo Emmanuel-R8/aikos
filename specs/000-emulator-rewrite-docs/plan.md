@@ -17,9 +17,9 @@ Create comprehensive, language-agnostic documentation sufficient for developers 
 - Existing source code analysis tools
 - Mermaid diagram syntax for visual specifications
 - Markdown documentation format
-- Existing documentation in `.ai_assistant_db/` directory
+- Existing documentation in `documentation/` directory
 
-**Storage**: Markdown files in `.ai_assistant_db/rewrite-spec/` directory structure
+**Storage**: Markdown files in `documentation/rewrite-spec/` directory structure
 **Testing**: Documentation review, completeness validation, test case generation for verification
 **Target Platform**: Documentation accessible via web/GitHub, readable by developers on any platform
 **Project Type**: Documentation project - structured specification documents
@@ -87,7 +87,7 @@ specs/001-emulator-rewrite-docs/
 ### Documentation Output Structure
 
 ```text
-.ai_assistant_db/rewrite-spec/
+documentation/rewrite-spec/
 ├── README.md                    # Overview and navigation
 ├── instruction-set/              # Bytecode instruction specifications
 │   ├── opcodes.md              # Complete opcode reference

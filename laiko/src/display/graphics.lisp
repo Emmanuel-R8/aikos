@@ -37,7 +37,7 @@
 
 (defun bitblt (display src-x src-y width height dst-x dst-y operation)
   "Perform BitBLT operation per contracts/display-interface.lisp
-   Per .ai_assistant_db/rewrite-spec/display/graphics-operations.md"
+   Per documentation/rewrite-spec/display/graphics-operations.md"
   (declare (type display-interface display)
            (type (integer 0 *) src-x src-y width height dst-x dst-y)
            (type (unsigned-byte 8) operation))

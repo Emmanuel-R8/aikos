@@ -16,7 +16,7 @@
 - Medley documentation should follow similar structure but organized by Medley-specific concerns
 - Interface documentation should be prominent given the critical Medley-Maiko relationship
 
-**Decision**: Organize Medley documentation in `.ai_assistant_db/medley/` with:
+**Decision**: Organize Medley documentation in `documentation/medley/` with:
 - Top-level overview files (README.md, INDEX.md, architecture.md)
 - `components/` directory for Medley components (scripts, sysout, vmem, etc.)
 - `interface/` directory specifically for Medley-Maiko interface documentation
@@ -143,7 +143,7 @@
 ## Dependencies Identified
 
 - Access to Medley source code (available in repository)
-- Existing Maiko documentation for interface context (available in `.ai_assistant_db`)
+- Existing Maiko documentation for interface context (available in `documentation`)
 - medley.1 man page for command-line reference (available in `medley/docs/man-page/`)
 - Understanding of Maiko command-line interface (documented in Maiko docs)
 

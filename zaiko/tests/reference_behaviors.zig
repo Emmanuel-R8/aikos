@@ -9,7 +9,7 @@ const types = @import("../src/utils/types.zig");
 
 /// Reference behavior test suite
 /// Per SC-004: Zig implementation passes at least 80% of reference behavior test cases
-/// from `.ai_assistant_db/rewrite-spec/validation/reference-behaviors.md`
+/// from `documentation/rewrite-spec/validation/reference-behaviors.md`
 test "reference behaviors: CAR operation" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();

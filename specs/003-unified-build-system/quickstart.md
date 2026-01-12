@@ -231,4 +231,4 @@ The unified build system is designed to be backward compatible:
 
 - [Feature Specification](spec.md) - Complete feature requirements
 - [Implementation Plan](plan.md) - Technical implementation plan
-- [Maiko Build System Documentation](../../.ai_assistant_db/build-system.md) - Existing build system docs
+- [Maiko Build System Documentation](../../documentation/build-system.md) - Existing build system docs

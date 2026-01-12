@@ -2,7 +2,7 @@
 
 ## Summary
 
-All 94 markdown files from `.ai_assistant_db` have been converted to Typst format. The conversion is complete but requires some manual fixes for formatting issues.
+All 94 markdown files from `documentation` have been converted to Typst format. The conversion is complete but requires some manual fixes for formatting issues.
 
 ## Completed
 

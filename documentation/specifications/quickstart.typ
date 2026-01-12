@@ -20,7 +20,7 @@ This guide helps developers use the rewrite documentation to implement a Maiko-c
 
 === Documentation Structure
 
-The rewrite documentation is organized in `.ai_assistant_db/rewrite-spec/`:
+The rewrite documentation is organized in `documentation/rewrite-spec/`:
 
 #codeblock(lang: "text", [
 rewrite-spec/

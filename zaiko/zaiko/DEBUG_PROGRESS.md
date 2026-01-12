@@ -125,7 +125,7 @@ Fixed critical bugs and added comprehensive debug output to enable sysout loadin
 1. **Opcode Implementation**: Implement any missing opcodes discovered during testing
 2. **Performance**: Optimize byte swapping (could cache swapped values)
 3. **Testing**: Create unit tests for sysout loading with mock files
-4. **Documentation**: Update `.ai_assistant_db/` with findings
+4. **Documentation**: Update `documentation/` with findings
 
 ## Debug Output Guide
 
