@@ -225,17 +225,11 @@ pub fn handleGETBASEPTR_N(vm: *VM, index: u8) errors.VMError!void {
         return errors_module.VMError.InvalidAddress;
     };
 
-    // Read LispPTR (4 bytes, big-endian from sysout)
-    const byte_offset = @intFromPtr(native_ptr) - @intFromPtr(virtual_memory.ptr);
-    if (byte_offset + 4 > virtual_memory.len) {
-        return errors_module.VMError.InvalidAddress;
-    }
-
-    const ptr_bytes = virtual_memory[byte_offset..][0..4];
-    const ptr_value: LispPTR = (@as(LispPTR, ptr_bytes[0]) << 24) |
-                               (@as(LispPTR, ptr_bytes[1]) << 16) |
-                               (@as(LispPTR, ptr_bytes[2]) << 8) |
-                               (@as(LispPTR, ptr_bytes[3]));
+    // Read LispPTR (4 bytes) directly from native pointer in native byte order
+    // C: *((LispPTR *)NativeAligned4FromLAddr(...)) reads in native byte order (little-endian on x86_64)
+    // The native_ptr points to memory that has already been byte-swapped during page loading
+    const native_lispptr_ptr: [*]const LispPTR = @ptrCast(@alignCast(native_ptr));
+    const ptr_value = native_lispptr_ptr[0]; // Read directly in native byte order
 
     // Push as POINTERMASK & ptr_value
     const result = types.POINTERMASK & ptr_value;
