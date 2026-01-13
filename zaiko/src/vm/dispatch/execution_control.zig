@@ -212,22 +212,26 @@ pub fn handleControlFlow(vm: *VM, opcode: Opcode, instruction: Instruction) erro
         // Note: No generic TJUMP opcode - use TJUMPX or TJUMP0-TJUMP15
         // Optimized true jump variants
         // C: TJUMPMACRO(x): if (TOPOFSTACK == 0) { POP; nextop1; } else { CHECK_INTERRUPT; POP; PCMACL += (x); nextop0; }
-        .TJUMP0 => return handleTJUMPWithOffset(vm, 0),
-        .TJUMP1 => return handleTJUMPWithOffset(vm, 1),
-        .TJUMP2 => return handleTJUMPWithOffset(vm, 2),
-        .TJUMP3 => return handleTJUMPWithOffset(vm, 3),
-        .TJUMP4 => return handleTJUMPWithOffset(vm, 4),
-        .TJUMP5 => return handleTJUMPWithOffset(vm, 5),
-        .TJUMP6 => return handleTJUMPWithOffset(vm, 6),
-        .TJUMP7 => return handleTJUMPWithOffset(vm, 7),
-        .TJUMP8 => return handleTJUMPWithOffset(vm, 8),
-        .TJUMP9 => return handleTJUMPWithOffset(vm, 9),
-        .TJUMP10 => return handleTJUMPWithOffset(vm, 10),
-        .TJUMP11 => return handleTJUMPWithOffset(vm, 11),
-        .TJUMP12 => return handleTJUMPWithOffset(vm, 12),
-        .TJUMP13 => return handleTJUMPWithOffset(vm, 13),
-        .TJUMP14 => return handleTJUMPWithOffset(vm, 14),
-        .TJUMP15 => return handleTJUMPWithOffset(vm, 15),
+        // C: TJUMP0 = case 0240: TJUMPMACRO(2)
+        //    TJUMP1 = case 0241: TJUMPMACRO(3)
+        //    TJUMP2 = case 0242: TJUMPMACRO(4)
+        //    etc. - offset is opcode_number + 2
+        .TJUMP0 => return handleTJUMPWithOffset(vm, 2),
+        .TJUMP1 => return handleTJUMPWithOffset(vm, 3),
+        .TJUMP2 => return handleTJUMPWithOffset(vm, 4),
+        .TJUMP3 => return handleTJUMPWithOffset(vm, 5),
+        .TJUMP4 => return handleTJUMPWithOffset(vm, 6),
+        .TJUMP5 => return handleTJUMPWithOffset(vm, 7),
+        .TJUMP6 => return handleTJUMPWithOffset(vm, 8),
+        .TJUMP7 => return handleTJUMPWithOffset(vm, 9),
+        .TJUMP8 => return handleTJUMPWithOffset(vm, 10),
+        .TJUMP9 => return handleTJUMPWithOffset(vm, 11),
+        .TJUMP10 => return handleTJUMPWithOffset(vm, 12),
+        .TJUMP11 => return handleTJUMPWithOffset(vm, 13),
+        .TJUMP12 => return handleTJUMPWithOffset(vm, 14),
+        .TJUMP13 => return handleTJUMPWithOffset(vm, 15),
+        .TJUMP14 => return handleTJUMPWithOffset(vm, 16),
+        .TJUMP15 => return handleTJUMPWithOffset(vm, 17),
         .JUMPX => {
             try opcodes.handleJUMPX(vm);
             return @as(i64, instruction.getSignedWordOperand(0));

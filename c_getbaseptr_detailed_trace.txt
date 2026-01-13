@@ -1,9 +1,9 @@
 === DETAILED GETBASEPTR_N TRACING (Instruction #4) ===
 
-PC (byte pointer): 0x7f01e060f137
+PC (byte pointer): 0x7f0b3060f137
 PC offset from Lisp_world: 0x60f137 bytes (0x30789b DLwords)
-pccache: 0x7f01e060f138
-PCMAC = pccache - 1: 0x7f01e060f137
+pccache: 0x7f0b3060f138
+PCMAC = pccache - 1: 0x7f0b3060f137
 
 === Operand Byte ===
   Get_BYTE_PCMAC1 = Get_BYTE(PC + 1) = 0x36 (54)
@@ -18,11 +18,11 @@ PCMAC = pccache - 1: 0x7f01e060f137
   target_addr = base_ptr + operand_byte = 0x00000036
 
 === Native Pointer Translation ===
-  NativeAligned4FromLAddr(0x00000036) = 0x7f01e000006c
+  NativeAligned4FromLAddr(0x00000036) = 0x7f0b3000006c
   Native pointer offset from Lisp_world: 0x6c bytes
 
 === Pointer Value Read ===
-  GetLongWord(0x7f01e000006c) = 0x00000000
+  GetLongWord(0x7f0b3000006c) = 0x00000000
   Bytes: 0x00 0x00 0x00 0x00
 
 === Raw Memory at target_addr ===

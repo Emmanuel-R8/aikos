@@ -118,6 +118,7 @@ The trace captures:
 - **TJUMP1 opcode**: `0xA1` (161 decimal, `0241` octal)
 - **Jump offset**: 3 bytes (not 1 - the "1" in TJUMP1 refers to the opcode variant, not the offset)
 - **Case statement**: `case 0241: { TJUMPMACRO(3); }`
+- **Pattern**: TJUMPN uses offset (N + 2), so TJUMP0=2, TJUMP1=3, TJUMP2=4, etc.
 
 ### PC Advancement
 
