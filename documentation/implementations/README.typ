@@ -55,6 +55,7 @@ Reference implementation of the Maiko emulator in C.
 - [UNBIND Opcode Tracing](c-emulator-unbind-tracing.typ) - Stack unwinding and variable unbinding
 - [GETBASEPTR_N Opcode Tracing](c-emulator-getbaseptr-tracing.typ) - Base pointer access and memory reading
 - [COPY Opcode Tracing](c-emulator-copy-tracing.typ) - Stack duplication mechanism
+- [TJUMP1 Opcode Tracing](c-emulator-tjump1-tracing.typ) - Conditional jump mechanism (true jump)
 
 *Verified Logic* (2025-01-27):
 
