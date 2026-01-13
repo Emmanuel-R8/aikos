@@ -546,20 +546,60 @@ pub fn handleCOPY(vm: *VM) errors.VMError!void {
 }
 
 /// MYARGCOUNT: My argument count
-/// Per rewrite documentation instruction-set/opcodes.md
+/// C: MYARGCOUNT macro in maiko/inc/inlineC.h:641-650
 /// Gets argument count for current function
+/// C: PUSH((DLword)((arg_num - (UNSIGNED)IVar) >> 2) | S_POSITIVE);
 pub fn handleMYARGCOUNT(vm: *VM) errors.VMError!void {
     const stack_module = @import("../stack.zig");
+    const types_module = @import("../../utils/types.zig");
 
-    // MYARGCOUNT requires:
-    // 1. Get argument count from current frame
+    // Get current frame
+    const frame = vm.current_frame orelse {
+        return errors.VMError.InvalidAddress; // No current frame
+    };
 
-    // TODO: Proper implementation needs:
-    // 1. Access function header
-    // 2. Get argument count
+    // C: MYARGCOUNT calculation:
+    //   UNSIGNED arg_num;
+    //   if ((CURRENTFX->alink & 1) == 0)
+    //     arg_num = (UNSIGNED)((LispPTR *)(CURRENTFX) - 1);
+    //   else
+    //     arg_num = (UNSIGNED)(Stackspace + CURRENTFX->blink);
+    //   PUSH((DLword)((arg_num - (UNSIGNED)IVar) >> 2) | S_POSITIVE);
 
-    // Placeholder: return 0
-    try stack_module.pushStack(vm, 0);
+    const alink = stack_module.getAlink(frame);
+    const arg_num: usize = if ((alink & 1) == 0) blk: {
+        // Normal frame: arguments start at (CURRENTFX) - 1
+        // C: arg_num = (UNSIGNED)((LispPTR *)(CURRENTFX) - 1);
+        const frame_addr = @intFromPtr(frame);
+        const arg_num_addr = frame_addr - @sizeOf(types.LispPTR); // CURRENTFX - 1 LispPTR
+        break :blk arg_num_addr;
+    } else blk: {
+        // Extended frame: arguments start at Stackspace + blink
+        // C: arg_num = (UNSIGNED)(Stackspace + CURRENTFX->blink);
+        const STK_OFFSET: u32 = 0x00010000; // DLword offset from Lisp_world
+        const stackspace_byte_offset = STK_OFFSET * 2; // Convert DLword offset to byte offset
+        const blink = frame.blink;
+        const arg_num_addr = stackspace_byte_offset + (@as(usize, @intCast(blink)) * 2); // blink is DLword offset
+        break :blk arg_num_addr;
+    };
+
+    // Get IVar address: IVar = Stackspace + nextblock
+    // C: IVAR = NativeAligned2FromStackOffset(CURRENTFX->nextblock) = Stackspace + nextblock
+    const nextblock = stack_module.getNextblock(frame);
+    const STK_OFFSET: u32 = 0x00010000; // DLword offset from Lisp_world
+    const stackspace_byte_offset = STK_OFFSET * 2; // Convert DLword offset to byte offset
+    const ivar_addr = stackspace_byte_offset + (@as(usize, @intCast(nextblock)) * 2); // nextblock is DLword offset
+
+    // Calculate argument count: (arg_num - IVar) >> 2
+    // C: (arg_num - (UNSIGNED)IVar) >> 2
+    // This gives the number of LispPTR words between IVar and arg_num
+    const arg_count_dlwords = if (arg_num >= ivar_addr) (arg_num - ivar_addr) / @sizeOf(types.LispPTR) else 0;
+    const arg_count: types.DLword = @as(types.DLword, @intCast(arg_count_dlwords));
+
+    // Push result with S_POSITIVE tag
+    // C: PUSH((DLword)((arg_num - (UNSIGNED)IVar) >> 2) | S_POSITIVE);
+    const result = types_module.S_POSITIVE | @as(types.LispPTR, arg_count);
+    try stack_module.pushStack(vm, result);
 }
 
 /// MYALINK: My activation link

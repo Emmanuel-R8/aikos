@@ -60,6 +60,7 @@ Reference implementation of the Maiko emulator in C.
 - [CONST_1 Opcode Tracing](c-emulator-const1-tracing.typ) - Constant push mechanism (small positive integer 1)
 - [EQ Opcode Tracing](c-emulator-eq-tracing.typ) - Pointer equality comparison mechanism
 - [FJUMP7 Opcode Tracing](c-emulator-fjump7-tracing.typ) - Conditional false jump mechanism (jump if NIL)
+- [MYARGCOUNT Opcode Tracing](c-emulator-myargcount-tracing.typ) - Argument count calculation from frame (2026-01-13)
 
 *Verified Logic* (2025-01-27):
 
