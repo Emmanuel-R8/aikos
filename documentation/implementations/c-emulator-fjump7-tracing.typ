@@ -1,6 +1,6 @@
 # C Emulator FJUMP7 Opcode Tracing
 
-**Date**: 2025-01-27  
+**Date**: 2025-01-27
 **Status**: ✅ Completed - Analyzed FJUMP7 opcode execution
 
 ## Overview
@@ -93,7 +93,7 @@ This confirms that:
 1. **False Jump**: FJUMP7 jumps if TOS == 0 (NIL/false), opposite of TJUMP
 2. **Stack Consumption**: TOS is always popped, regardless of jump decision
 3. **Jump Offset**: FJUMP7 uses offset 7 bytes
-4. **PC Advancement**: 
+4. **PC Advancement**:
    - If no jump: PC advances by 1 byte
    - If jump: PC advances by 7 bytes (PCMACL += 7)
 5. **Pattern**: FJUMPN uses offset (N + 2), similar to TJUMPN

@@ -48,6 +48,7 @@ Reference implementation of the Maiko emulator in C.
 - [Execution Byte Mismatch](c-emulator-execution-byte-mismatch.typ) - Investigation of execution vs loading bytes
 - [Unified Logging Format](unified-logging-format.typ) - Execution log format for C/Zig comparison
 - [Execution Comparison Results](execution-comparison-results.typ) - C vs Zig execution comparison results
+- [Code Refactoring](c-emulator-refactoring.typ) - Extraction of tracing code to reduce xc.c file size (2026-01-13)
 
 *Opcode Tracing* (2025-01-27):
 
