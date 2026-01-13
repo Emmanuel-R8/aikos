@@ -57,6 +57,7 @@ Reference implementation of the Maiko emulator in C.
 - [COPY Opcode Tracing](c-emulator-copy-tracing.typ) - Stack duplication mechanism
 - [TJUMP1 Opcode Tracing](c-emulator-tjump1-tracing.typ) - Conditional jump mechanism (true jump)
 - [CONST_1 Opcode Tracing](c-emulator-const1-tracing.typ) - Constant push mechanism (small positive integer 1)
+- [EQ Opcode Tracing](c-emulator-eq-tracing.typ) - Pointer equality comparison mechanism
 
 *Verified Logic* (2025-01-27):
 
@@ -107,7 +108,7 @@ Implementation of the Maiko emulator in Zig programming language.
 // | -------------- | ----------- | ------------------ | ------- | ------------- | -------------------------- |
 // | Common Lisp    | SBCL        | ✅ Complete         | 189/256 | 77/78         | `laiko/` |
 // | Zig            | Zig 0.15.2+ | 🔄 Phase 1 Complete | ~50/256 | 22/22 Phase 1 | `zaiko/`  |
-// 
+//
 
 == Related Documentation
 

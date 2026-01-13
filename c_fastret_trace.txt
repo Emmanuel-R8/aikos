@@ -9,8 +9,8 @@ Before FastRetCALL:
   Expected PC offset from Lisp_world (bytes) = 0x60f198
 
 After FastRetCALL:
-  FuncObj = 0x7ff94460f0c8 (Lisp_world+0x60f0c8 bytes, 0x307864 DLwords)
-  PC = 0x7ff94460f130 (Lisp_world+0x60f130 bytes, 0x307898 DLwords)
+  FuncObj = 0x7f670060f0c8 (Lisp_world+0x60f0c8 bytes, 0x307864 DLwords)
+  PC = 0x7f670060f130 (Lisp_world+0x60f130 bytes, 0x307898 DLwords)
   PC from FuncObj = 104 bytes (52 DLwords)
   CURRENTFX->pc = 104 (0x68, 0150)
   Verification: PC == FuncObj + CURRENTFX->pc? YES

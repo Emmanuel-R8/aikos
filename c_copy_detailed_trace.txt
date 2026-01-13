@@ -1,11 +1,11 @@
 === DETAILED COPY TRACING (Instruction #5) ===
 
-PC (byte pointer): 0x7ff94460f139
+PC (byte pointer): 0x7f670060f139
 PC offset from Lisp_world: 0x60f139 bytes (0x30789c DLwords)
 
 === Stack State Before COPY ===
   TopOfStack (TOS): 0x00000000
-  CurrentStackPTR: 0x7ff944025d10
+  CurrentStackPTR: 0x7f6700025d10
   CurrentStackPTR offset from Lisp_world: 0x25d10 bytes
   Stack depth: 11912 entries
 

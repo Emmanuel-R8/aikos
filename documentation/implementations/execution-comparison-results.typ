@@ -1,12 +1,12 @@
 = Execution Comparison Results: C vs Zig Emulators
 
-*Date*: 2026-01-12 20:00
-*Status*: In Progress
-*Purpose*: Document execution comparison results between C and Zig emulators
+*Date*: 2026-01-12 20:00 *Status*: In Progress *Purpose*: Document execution comparison results between C and Zig
+emulators
 
 == Overview
 
-After fixing the C emulator PC advancement bug and implementing GVAR BIGATOMS mode in Zig, both emulators now execute identically for the first 5 instructions. This document tracks the comparison results and identifies remaining issues.
+After fixing the C emulator PC advancement bug and implementing GVAR BIGATOMS mode in Zig, both emulators now execute
+identically for the first 5 instructions. This document tracks the comparison results and identifies remaining issues.
 
 == Comparison Methodology
 
@@ -28,15 +28,11 @@ Both emulators generate execution logs with unified format:
 === First 5 Instructions: ✅ Perfect Match (All Traced and Verified)
 
 | Line | C PC | C Instruction | Zig PC | Zig Instruction | Status |
-|------|------|---------------|--------|----------------|--------|
-| 1 | 0x60f130 | POP | 0x60f130 | POP | ✅ Traced |
-| 2 | 0x60f131 | GVAR | 0x60f131 | GVAR | ✅ Traced, Fixed (BIGATOMS) |
-| 3 | 0x60f136 | UNBIND | 0x60f136 | UNBIND | ✅ Traced, Fixed (offset) |
-| 4 | 0x60f137 | GETBASEPTR_N | 0x60f137 | GETBASEPTR_N | ✅ Traced, Fixed (byte order) |
-| 5 | 0x60f139 | COPY | 0x60f139 | COPY | ✅ Traced, Verified |
-| 6 | 0x60f13a | TJUMP1 | 0x60f13a | TJUMP1 | ✅ Traced, Fixed (offset 3) |
-| 7 | 0x60f13d | COPY | 0x60f13d | COPY | ✅ Traced, Verified |
-| 8 | 0x60f13e | CONST_1 | 0x60f13e | CONST_1 | ✅ Traced |
+|------|------|---------------|--------|----------------|--------| | 1 | 0x60f130 | POP | 0x60f130 | POP | ✅ Traced | |
+2 | 0x60f131 | GVAR | 0x60f131 | GVAR | ✅ Traced, Fixed (BIGATOMS) | | 3 | 0x60f136 | UNBIND | 0x60f136 | UNBIND | ✅
+Traced, Fixed (offset) | | 4 | 0x60f137 | GETBASEPTR_N | 0x60f137 | GETBASEPTR_N | ✅ Traced, Fixed (byte order) | | 5 |
+0x60f139 | COPY | 0x60f139 | COPY | ✅ Traced, Verified | | 6 | 0x60f13a | TJUMP1 | 0x60f13a | TJUMP1 | ✅ Traced, Fixed
+(offset 3) |
 
 **Tracing Documents**:
 - `c-emulator-address-xor-tracing.typ` - GVAR XOR addressing
@@ -57,7 +53,8 @@ Both emulators generate execution logs with unified format:
 
 *Status*: ⚠️ Under Investigation
 
-The Zig emulator crashes after approximately 48 instructions with `error.InvalidAddress`. This occurs after successful execution of the first 5 instructions.
+The Zig emulator crashes after approximately 48 instructions with `error.InvalidAddress`. This occurs after successful
+execution of the first 5 instructions.
 
 *Possible Causes*:
 1. Invalid address calculation in atom lookup
@@ -75,27 +72,23 @@ The Zig emulator crashes after approximately 48 instructions with `error.Invalid
 
 === C Emulator PC Advancement Bug
 
-*Issue*: PC was not being updated from `pccache` after opcode execution
-*Fix*: Added `PC = PCMAC` update before resetting `pccache`
-*Impact*: Enabled proper execution and comparison
+*Issue*: PC was not being updated from `pccache` after opcode execution *Fix*: Added `PC = PCMAC` update before
+resetting `pccache` *Impact*: Enabled proper execution and comparison
 
 === GVAR BIGATOMS Mode
 
-*Issue*: Zig assumed 2-byte atom numbers, C uses 4-byte pointers
-*Fix*: Updated instruction length to 5 bytes and added `getPointerOperand()`
-*Impact*: First 5 instructions now match exactly
+*Issue*: Zig assumed 2-byte atom numbers, C uses 4-byte pointers *Fix*: Updated instruction length to 5 bytes and added
+`getPointerOperand()` *Impact*: First 5 instructions now match exactly
 
 === Unified Logging Format
 
-*Implementation*: Both emulators use identical log format with hex+octal+bit-shifts
-*Benefit*: Enables precise comparison and off-by-one-bit error detection
+*Implementation*: Both emulators use identical log format with hex+octal+bit-shifts *Benefit*: Enables precise
+comparison and off-by-one-bit error detection
 
 == Verification Status
 
-✅ C emulator executes correctly (source of truth)
-✅ First 5 instructions match between C and Zig
-✅ GVAR opcode implementation matches C behavior
-⚠️ Zig crashes after ~48 instructions (investigation needed)
+✅ C emulator executes correctly (source of truth) ✅ First 5 instructions match between C and Zig ✅ GVAR opcode
+implementation matches C behavior ⚠️ Zig crashes after ~48 instructions (investigation needed)
 
 == Next Steps
 
