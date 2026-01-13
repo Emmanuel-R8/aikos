@@ -1,9 +1,9 @@
 === AUTO: DISPATCH ENTRY TRACE (first instruction) ===
-  PCMAC = 0x7fa64060f130
-  Lisp_world = 0x7fa640000000
+  PCMAC = 0x7f71f860f130
+  Lisp_world = 0x7f71f8000000
   PC byte offset = 0x60f130 (6353200)
   PC DLword offset = 0x307898 (3176600)
-  FuncObj = 0x7fa64060f0c8 (Lisp_world+0x60f0c8 bytes)
+  FuncObj = 0x7f71f860f0c8 (Lisp_world+0x60f0c8 bytes)
   PC from FuncObj = 104 bytes
   CURRENTFX->pc = 104 (0x68, 0150)
   Verification: PC == FuncObj + CURRENTFX->pc? YES

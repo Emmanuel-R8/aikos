@@ -1,10 +1,10 @@
 === DETAILED GVAR TRACING (Instruction #2) ===
 
-PC (byte pointer): 0x7fa64060f131
+PC (byte pointer): 0x7f71f860f131
 PC offset from Lisp_world: 0x60f131 bytes (0x307898 DLwords)
-pccache: 0x7fa64060f132
+pccache: 0x7f71f860f132
 pccache offset from Lisp_world: 0x60f132 bytes
-PCMAC = pccache - 1: 0x7fa64060f131
+PCMAC = pccache - 1: 0x7f71f860f131
 PCMAC offset from Lisp_world: 0x60f131 bytes
 
 === Memory Content (Raw Bytes) ===
@@ -21,31 +21,31 @@ PCMAC offset from Lisp_world: 0x60f131 bytes
 
 === XOR Addressing Analysis ===
 Get_Pointer_PCMAC1 = Get_Pointer(PCMAC + 1)
-PCMAC + 1 = 0x7fa64060f132
+PCMAC + 1 = 0x7f71f860f132
 PCMAC + 1 offset: 0x60f132 bytes
 
 Get_Pointer(PCMAC + 1) reads:
   Get_BYTE(base+0):
-    base+0 = 0x7fa64060f132 (offset 0x60f132)
-    XOR address = 3 ^ 0x7fa64060f132 = 0x7fa64060f131
+    base+0 = 0x7f71f860f132 (offset 0x60f132)
+    XOR address = 3 ^ 0x7f71f860f132 = 0x7f71f860f131
     XOR offset from Lisp_world = 0x60f131
     Byte at XOR address = 0x00
     Shift: << 24
   Get_BYTE(base+1):
-    base+1 = 0x7fa64060f133 (offset 0x60f133)
-    XOR address = 3 ^ 0x7fa64060f133 = 0x7fa64060f130
+    base+1 = 0x7f71f860f133 (offset 0x60f133)
+    XOR address = 3 ^ 0x7f71f860f133 = 0x7f71f860f130
     XOR offset from Lisp_world = 0x60f130
     Byte at XOR address = 0x00
     Shift: << 16
   Get_BYTE(base+2):
-    base+2 = 0x7fa64060f134 (offset 0x60f134)
-    XOR address = 3 ^ 0x7fa64060f134 = 0x7fa64060f137
+    base+2 = 0x7f71f860f134 (offset 0x60f134)
+    XOR address = 3 ^ 0x7f71f860f134 = 0x7f71f860f137
     XOR offset from Lisp_world = 0x60f137
     Byte at XOR address = 0x02
     Shift: << 8
   Get_BYTE(base+3):
-    base+3 = 0x7fa64060f135 (offset 0x60f135)
-    XOR address = 3 ^ 0x7fa64060f135 = 0x7fa64060f136
+    base+3 = 0x7f71f860f135 (offset 0x60f135)
+    XOR address = 3 ^ 0x7f71f860f135 = 0x7f71f860f136
     XOR offset from Lisp_world = 0x60f136
     Byte at XOR address = 0x0a
     Shift: << 0

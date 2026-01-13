@@ -82,6 +82,7 @@ pub fn handleUNBIND(vm: *VM) errors.VMError!void {
     const stack_module = @import("../stack.zig");
     const types_module = @import("../../utils/types.zig");
     const errors_module = @import("../../utils/errors.zig");
+    const DLword = types_module.DLword;
     
     // Walk backwards through stack until we find a negative value (marker)
     // C: for (; (((int)*--CSTKPTRL) >= 0););
@@ -106,8 +107,9 @@ pub fn handleUNBIND(vm: *VM) errors.VMError!void {
     const marker = stack_module.getTopOfStack(vm);
     
     // Extract num and offset from marker: num = (~value) >> 16, offset = GetLoWord(value)
+    // C: num = (~value) >> 16; offset = GetLoWord(value) (used directly, not shifted)
     const num = (~marker) >> 16;
-    const offset = types_module.getLoWord(marker) >> 1; // offset was stored as << 1, so >> 1 to get back
+    const offset = types_module.getLoWord(marker); // C uses GetLoWord directly, no shift
     
     // Get current frame
     const frame = vm.current_frame orelse {
@@ -115,14 +117,19 @@ pub fn handleUNBIND(vm: *VM) errors.VMError!void {
     };
     
     // Calculate ppvar: (LispPTR *)((DLword *)PVAR + 2 + offset)
+    // C: ppvar = (LispPTR *)((DLword *)PVAR + 2 + GetLoWord(value))
+    // PVAR is a DLword pointer, so arithmetic is in DLword units
+    // Then cast to LispPTR* (which treats as LispPTR array)
     const frame_addr = @intFromPtr(frame);
     const frame_size = @sizeOf(stack.FX);
     const pvar_base = frame_addr + frame_size;
-    const pvar_lisp_ptr: [*]LispPTR = @ptrFromInt(pvar_base);
     
-    // ppvar = (LispPTR *)((DLword *)PVAR + 2 + offset)
-    // PVAR + 2 DLwords = PVAR + 4 bytes = PVAR + 1 LispPTR
-    const ppvar: [*]LispPTR = pvar_lisp_ptr + 2 + offset;
+    // PVAR is a DLword pointer, so do DLword arithmetic first
+    const pvar_dlword_ptr: [*]DLword = @ptrFromInt(pvar_base);
+    const ppvar_dlword: [*]DLword = pvar_dlword_ptr + 2 + offset;
+    // Then cast to LispPTR* (C does this cast after arithmetic)
+    // Use @alignCast to handle alignment difference (DLword=2, LispPTR=4)
+    const ppvar: [*]LispPTR = @alignCast(@ptrCast(ppvar_dlword));
     
     // Restore num values to 0xffffffff (unbound marker)
     // C: for (i = num; --i >= 0;) { *--ppvar = 0xffffffff; }
@@ -145,6 +152,7 @@ pub fn handleDUNBIND(vm: *VM) errors.VMError!void {
     const stack_module = @import("../stack.zig");
     const types_module = @import("../../utils/types.zig");
     const errors_module = @import("../../utils/errors.zig");
+    const DLword = types_module.DLword;
     
     const tos = stack_module.getTopOfStack(vm);
     
@@ -153,7 +161,7 @@ pub fn handleDUNBIND(vm: *VM) errors.VMError!void {
     if (@as(i32, @bitCast(tos)) < 0) {
         // TOS is the marker - extract num and offset
         const num = (~tos) >> 16;
-        const offset = types_module.getLoWord(tos) >> 1;
+        const offset = types_module.getLoWord(tos); // C uses GetLoWord directly, no shift
         
         if (num != 0) {
             // Get current frame
@@ -161,18 +169,21 @@ pub fn handleDUNBIND(vm: *VM) errors.VMError!void {
                 return errors_module.VMError.InvalidAddress;
             };
             
-            // Calculate ppvar
+            // Calculate ppvar: (LispPTR *)((DLword *)PVAR + 2 + offset)
             const frame_addr = @intFromPtr(frame);
             const frame_size = @sizeOf(stack.FX);
             const pvar_base = frame_addr + frame_size;
-            const pvar_lisp_ptr: [*]LispPTR = @ptrFromInt(pvar_base);
-            const ppvar: [*]LispPTR = pvar_lisp_ptr + 2 + offset;
+            const pvar_dlword_ptr: [*]DLword = @ptrFromInt(pvar_base);
+            const ppvar_dlword: [*]DLword = pvar_dlword_ptr + 2 + offset;
+            const ppvar: [*]LispPTR = @alignCast(@ptrCast(ppvar_dlword));
             
             // Restore num values to unbound
+            // C: for (i = num; --i >= 0;) { *--ppvar = 0xffffffff; }
             var i: u32 = num;
+            var current_ppvar: [*]LispPTR = ppvar;
             while (i > 0) : (i -= 1) {
-                const target_ptr: [*]LispPTR = @ptrFromInt(@intFromPtr(ppvar) - (@as(usize, i) * @sizeOf(LispPTR)));
-                target_ptr[0] = 0xFFFFFFFF;
+                current_ppvar -= 1; // Decrement before assignment
+                current_ppvar[0] = 0xFFFFFFFF;
             }
         }
         
@@ -194,7 +205,7 @@ pub fn handleDUNBIND(vm: *VM) errors.VMError!void {
         
         const marker = stack_module.getTopOfStack(vm);
         const num = (~marker) >> 16;
-        const offset = types_module.getLoWord(marker) >> 1;
+        const offset = types_module.getLoWord(marker); // C uses GetLoWord directly, no shift
         
         if (num != 0) {
             const frame = vm.current_frame orelse {
@@ -204,13 +215,15 @@ pub fn handleDUNBIND(vm: *VM) errors.VMError!void {
             const frame_addr = @intFromPtr(frame);
             const frame_size = @sizeOf(stack.FX);
             const pvar_base = frame_addr + frame_size;
-            const pvar_lisp_ptr: [*]LispPTR = @ptrFromInt(pvar_base);
-            const ppvar: [*]LispPTR = pvar_lisp_ptr + 2 + offset;
+            const pvar_dlword_ptr: [*]DLword = @ptrFromInt(pvar_base);
+            const ppvar_dlword: [*]DLword = pvar_dlword_ptr + 2 + offset;
+            const ppvar: [*]LispPTR = @alignCast(@ptrCast(ppvar_dlword));
             
             var i: u32 = num;
+            var current_ppvar: [*]LispPTR = ppvar;
             while (i > 0) : (i -= 1) {
-                const target_ptr: [*]LispPTR = @ptrFromInt(@intFromPtr(ppvar) - (@as(usize, i) * @sizeOf(LispPTR)));
-                target_ptr[0] = 0xFFFFFFFF;
+                current_ppvar -= 1; // Decrement before assignment
+                current_ppvar[0] = 0xFFFFFFFF;
             }
         }
         
