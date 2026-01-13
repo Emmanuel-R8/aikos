@@ -49,6 +49,13 @@ Reference implementation of the Maiko emulator in C.
 - [Unified Logging Format](unified-logging-format.typ) - Execution log format for C/Zig comparison
 - [Execution Comparison Results](execution-comparison-results.typ) - C vs Zig execution comparison results
 
+*Opcode Tracing* (2025-01-27):
+
+- [GVAR Opcode Tracing](c-emulator-address-xor-tracing.typ) - XOR addressing mechanism for BIGATOMS mode
+- [UNBIND Opcode Tracing](c-emulator-unbind-tracing.typ) - Stack unwinding and variable unbinding
+- [GETBASEPTR_N Opcode Tracing](c-emulator-getbaseptr-tracing.typ) - Base pointer access and memory reading
+- [COPY Opcode Tracing](c-emulator-copy-tracing.typ) - Stack duplication mechanism
+
 *Verified Logic* (2025-01-27):
 
 - ✅ FPtoVP mapping: File page 5178 → Virtual page 6204

@@ -25,15 +25,21 @@ Both emulators generate execution logs with unified format:
 
 == Results Summary
 
-=== First 5 Instructions: ✅ Perfect Match
+=== First 5 Instructions: ✅ Perfect Match (All Traced and Verified)
 
-| Line | C PC | C Instruction | Zig PC | Zig Instruction | Match |
-|------|------|---------------|--------|----------------|-------|
-| 1 | 0x60f130 | POP | 0x60f130 | POP | ✅ |
-| 2 | 0x60f131 | GVAR | 0x60f131 | GVAR | ✅ |
-| 3 | 0x60f136 | UNBIND | 0x60f136 | UNBIND | ✅ |
-| 4 | 0x60f137 | GETBASEPTR_N | 0x60f137 | GETBASEPTR_N | ✅ |
-| 5 | 0x60f139 | COPY | 0x60f139 | COPY | ✅ |
+| Line | C PC | C Instruction | Zig PC | Zig Instruction | Status |
+|------|------|---------------|--------|----------------|--------|
+| 1 | 0x60f130 | POP | 0x60f130 | POP | ✅ Traced |
+| 2 | 0x60f131 | GVAR | 0x60f131 | GVAR | ✅ Traced, Fixed (BIGATOMS) |
+| 3 | 0x60f136 | UNBIND | 0x60f136 | UNBIND | ✅ Traced, Fixed (offset) |
+| 4 | 0x60f137 | GETBASEPTR_N | 0x60f137 | GETBASEPTR_N | ✅ Traced, Fixed (byte order) |
+| 5 | 0x60f139 | COPY | 0x60f139 | COPY | ✅ Traced, Verified |
+
+**Tracing Documents**:
+- `c-emulator-address-xor-tracing.typ` - GVAR XOR addressing
+- `c-emulator-unbind-tracing.typ` - UNBIND stack unwinding
+- `c-emulator-getbaseptr-tracing.typ` - GETBASEPTR_N memory access
+- `c-emulator-copy-tracing.typ` - COPY stack duplication
 
 === GVAR PC Advancement: ✅ Fixed
 
