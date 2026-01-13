@@ -56,6 +56,7 @@ Reference implementation of the Maiko emulator in C.
 - [GETBASEPTR_N Opcode Tracing](c-emulator-getbaseptr-tracing.typ) - Base pointer access and memory reading
 - [COPY Opcode Tracing](c-emulator-copy-tracing.typ) - Stack duplication mechanism
 - [TJUMP1 Opcode Tracing](c-emulator-tjump1-tracing.typ) - Conditional jump mechanism (true jump)
+- [CONST_1 Opcode Tracing](c-emulator-const1-tracing.typ) - Constant push mechanism (small positive integer 1)
 
 *Verified Logic* (2025-01-27):
 

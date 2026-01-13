@@ -1,8 +1,8 @@
 === DETAILED TJUMP1 TRACING (Instruction #6) ===
 
-PC (byte pointer): 0x7f0b3060f13a
+PC (byte pointer): 0x7ff94460f13a
 PC offset from Lisp_world: 0x60f13a bytes (0x30789d DLwords)
-PCMACL (before jump): 811659579
+PCMACL (before jump): 1147203899
 
 === Stack State Before TJUMP1 ===
   TopOfStack (TOS): 0x00000000

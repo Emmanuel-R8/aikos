@@ -35,6 +35,8 @@ Both emulators generate execution logs with unified format:
 | 4 | 0x60f137 | GETBASEPTR_N | 0x60f137 | GETBASEPTR_N | ✅ Traced, Fixed (byte order) |
 | 5 | 0x60f139 | COPY | 0x60f139 | COPY | ✅ Traced, Verified |
 | 6 | 0x60f13a | TJUMP1 | 0x60f13a | TJUMP1 | ✅ Traced, Fixed (offset 3) |
+| 7 | 0x60f13d | COPY | 0x60f13d | COPY | ✅ Traced, Verified |
+| 8 | 0x60f13e | CONST_1 | 0x60f13e | CONST_1 | ✅ Traced |
 
 **Tracing Documents**:
 - `c-emulator-address-xor-tracing.typ` - GVAR XOR addressing
