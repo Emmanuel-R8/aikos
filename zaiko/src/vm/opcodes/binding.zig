@@ -15,30 +15,30 @@ const LispPTR = types.LispPTR;
 pub fn handleBIND(vm: *VM, byte1: u8, byte2: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
     const errors_module = @import("../../utils/errors.zig");
-    
+
     // Parse byte1: n1 (high 4 bits), n2 (low 4 bits)
     const n1 = byte1 >> 4;
     const n2 = byte1 & 0xF;
-    
+
     // Get current frame
     const frame = vm.current_frame orelse {
         return errors_module.VMError.InvalidAddress;
     };
-    
+
     // Calculate ppvar: (LispPTR *)PVAR + 1 + offset
     // PVAR is the parameter variable area in the frame
     // offset is byte2 (second operand)
     const offset = byte2;
-    
+
     // Get PVAR base address (after frame header)
     const frame_addr = @intFromPtr(frame);
     const frame_size = @sizeOf(stack.FX);
     const pvar_base = frame_addr + frame_size;
     const pvar_ptr: [*]LispPTR = @ptrFromInt(pvar_base);
-    
+
     // Calculate ppvar: PVAR + 1 + offset (in LispPTR units, so +1 means +4 bytes)
     const ppvar: [*]LispPTR = pvar_ptr + 1 + offset;
-    
+
     // Push n1 NIL values (going backwards from ppvar)
     // Calculate pointer address for negative indexing
     var i: u8 = 0;
@@ -46,10 +46,10 @@ pub fn handleBIND(vm: *VM, byte1: u8, byte2: u8) errors.VMError!void {
         const target_ptr: [*]LispPTR = @ptrFromInt(@intFromPtr(ppvar) - (@as(usize, i + 1) * @sizeOf(LispPTR)));
         target_ptr[0] = 0; // NIL_PTR
     }
-    
+
     // Get TOS value
     const tos_value = stack_module.getTopOfStack(vm);
-    
+
     if (n2 == 0) {
         // Push TOS onto stack (C: *CSTKPTRL++ = TOPOFSTACK)
         try stack_module.pushStack(vm, tos_value);
@@ -57,7 +57,7 @@ pub fn handleBIND(vm: *VM, byte1: u8, byte2: u8) errors.VMError!void {
         // Push TOS to ppvar, then push n2-1 more values from stack
         const tos_ptr: [*]LispPTR = @ptrFromInt(@intFromPtr(ppvar) - (@as(usize, n1 + 1) * @sizeOf(LispPTR)));
         tos_ptr[0] = tos_value;
-        
+
         // Pop n2-1 values from stack and push to ppvar (going backwards)
         i = 1;
         while (i < n2) : (i += 1) {
@@ -66,7 +66,7 @@ pub fn handleBIND(vm: *VM, byte1: u8, byte2: u8) errors.VMError!void {
             value_ptr[0] = value;
         }
     }
-    
+
     // Set TOS to marker: ((~(n1 + n2)) << 16) | (offset << 1)
     const total = n1 + n2;
     const marker: LispPTR = (@as(LispPTR, ~total) << 16) | (@as(LispPTR, offset) << 1);
@@ -83,7 +83,7 @@ pub fn handleUNBIND(vm: *VM) errors.VMError!void {
     const types_module = @import("../../utils/types.zig");
     const errors_module = @import("../../utils/errors.zig");
     const DLword = types_module.DLword;
-    
+
     // Walk backwards through stack until we find a negative value (marker)
     // C: for (; (((int)*--CSTKPTRL) >= 0););
     // This means: keep popping until we find a value with high bit set (negative when cast to int)
@@ -92,30 +92,30 @@ pub fn handleUNBIND(vm: *VM) errors.VMError!void {
             // Stack is empty - no marker found
             return errors_module.VMError.StackUnderflow;
         }
-        
+
         const value = stack_module.getTopOfStack(vm);
         // Check if value is negative (high bit set) - this is the marker
         if (@as(i32, @bitCast(value)) < 0) {
             break; // Found marker
         }
-        
+
         // Pop and continue searching
         _ = try stack_module.popStack(vm);
     }
-    
+
     // Get marker value
     const marker = stack_module.getTopOfStack(vm);
-    
+
     // Extract num and offset from marker: num = (~value) >> 16, offset = GetLoWord(value)
     // C: num = (~value) >> 16; offset = GetLoWord(value) (used directly, not shifted)
     const num = (~marker) >> 16;
     const offset = types_module.getLoWord(marker); // C uses GetLoWord directly, no shift
-    
+
     // Get current frame
     const frame = vm.current_frame orelse {
         return errors_module.VMError.InvalidAddress;
     };
-    
+
     // Calculate ppvar: (LispPTR *)((DLword *)PVAR + 2 + offset)
     // C: ppvar = (LispPTR *)((DLword *)PVAR + 2 + GetLoWord(value))
     // PVAR is a DLword pointer, so arithmetic is in DLword units
@@ -123,22 +123,25 @@ pub fn handleUNBIND(vm: *VM) errors.VMError!void {
     const frame_addr = @intFromPtr(frame);
     const frame_size = @sizeOf(stack.FX);
     const pvar_base = frame_addr + frame_size;
-    
+
     // PVAR is a DLword pointer, so do DLword arithmetic first
     const pvar_dlword_ptr: [*]DLword = @ptrFromInt(pvar_base);
     const ppvar_dlword: [*]DLword = pvar_dlword_ptr + 2 + offset;
     // Then cast to LispPTR* (C does this cast after arithmetic)
     // Use @alignCast to handle alignment difference (DLword=2, LispPTR=4)
     const ppvar: [*]LispPTR = @alignCast(@ptrCast(ppvar_dlword));
-    
+
     // Restore num values to 0xffffffff (unbound marker)
     // C: for (i = num; --i >= 0;) { *--ppvar = 0xffffffff; }
+    // This decrements ppvar before each assignment, starting from ppvar and going backwards
+    // For num=1: i=1, --i=0 (>=0), --ppvar, then assign
     var i: u32 = num;
+    var current_ppvar: [*]LispPTR = ppvar;
     while (i > 0) : (i -= 1) {
-        const target_ptr: [*]LispPTR = @ptrFromInt(@intFromPtr(ppvar) - (@as(usize, i) * @sizeOf(LispPTR)));
-        target_ptr[0] = 0xFFFFFFFF; // Unbound marker
+        current_ppvar -= 1; // Decrement before assignment (C: *--ppvar)
+        current_ppvar[0] = 0xFFFFFFFF; // Unbound marker
     }
-    
+
     // Pop marker from stack
     _ = try stack_module.popStack(vm);
 }
@@ -153,22 +156,22 @@ pub fn handleDUNBIND(vm: *VM) errors.VMError!void {
     const types_module = @import("../../utils/types.zig");
     const errors_module = @import("../../utils/errors.zig");
     const DLword = types_module.DLword;
-    
+
     const tos = stack_module.getTopOfStack(vm);
-    
+
     // Check if TOS is negative (marker)
     // C: if ((int)TOPOFSTACK < 0)
     if (@as(i32, @bitCast(tos)) < 0) {
         // TOS is the marker - extract num and offset
         const num = (~tos) >> 16;
         const offset = types_module.getLoWord(tos); // C uses GetLoWord directly, no shift
-        
+
         if (num != 0) {
             // Get current frame
             const frame = vm.current_frame orelse {
                 return errors_module.VMError.InvalidAddress;
             };
-            
+
             // Calculate ppvar: (LispPTR *)((DLword *)PVAR + 2 + offset)
             const frame_addr = @intFromPtr(frame);
             const frame_size = @sizeOf(stack.FX);
@@ -176,7 +179,7 @@ pub fn handleDUNBIND(vm: *VM) errors.VMError!void {
             const pvar_dlword_ptr: [*]DLword = @ptrFromInt(pvar_base);
             const ppvar_dlword: [*]DLword = pvar_dlword_ptr + 2 + offset;
             const ppvar: [*]LispPTR = @alignCast(@ptrCast(ppvar_dlword));
-            
+
             // Restore num values to unbound
             // C: for (i = num; --i >= 0;) { *--ppvar = 0xffffffff; }
             var i: u32 = num;
@@ -186,7 +189,7 @@ pub fn handleDUNBIND(vm: *VM) errors.VMError!void {
                 current_ppvar[0] = 0xFFFFFFFF;
             }
         }
-        
+
         // Pop marker
         _ = try stack_module.popStack(vm);
     } else {
@@ -195,30 +198,30 @@ pub fn handleDUNBIND(vm: *VM) errors.VMError!void {
             if (stack_module.getStackDepth(vm) == 0) {
                 return errors_module.VMError.StackUnderflow;
             }
-            
+
             const value = stack_module.getTopOfStack(vm);
             if (@as(i32, @bitCast(value)) < 0) {
                 break; // Found marker
             }
             _ = try stack_module.popStack(vm);
         }
-        
+
         const marker = stack_module.getTopOfStack(vm);
         const num = (~marker) >> 16;
         const offset = types_module.getLoWord(marker); // C uses GetLoWord directly, no shift
-        
+
         if (num != 0) {
             const frame = vm.current_frame orelse {
                 return errors_module.VMError.InvalidAddress;
             };
-            
+
             const frame_addr = @intFromPtr(frame);
             const frame_size = @sizeOf(stack.FX);
             const pvar_base = frame_addr + frame_size;
             const pvar_dlword_ptr: [*]DLword = @ptrFromInt(pvar_base);
             const ppvar_dlword: [*]DLword = pvar_dlword_ptr + 2 + offset;
             const ppvar: [*]LispPTR = @alignCast(@ptrCast(ppvar_dlword));
-            
+
             var i: u32 = num;
             var current_ppvar: [*]LispPTR = ppvar;
             while (i > 0) : (i -= 1) {
@@ -226,7 +229,7 @@ pub fn handleDUNBIND(vm: *VM) errors.VMError!void {
                 current_ppvar[0] = 0xFFFFFFFF;
             }
         }
-        
+
         // Pop marker
         _ = try stack_module.popStack(vm);
     }
