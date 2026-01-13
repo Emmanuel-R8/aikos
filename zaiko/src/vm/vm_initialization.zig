@@ -46,9 +46,10 @@ pub fn initializeVMState(
     std.debug.print("DEBUG: Reading frame at offset 0x{x}\n", .{frame_offset});
     if (frame_offset + 14 > virtual_memory.len) {
         std.debug.print("ERROR: Frame offset exceeds virtual memory bounds\n", .{});
-        std.debug.print("  Frame offset: 0x{x} ({} bytes)\n", .{ frame_offset, frame_offset });
-        std.debug.print("  Virtual memory size: {} bytes (0x{x})\n", .{ virtual_memory.len, virtual_memory.len });
-        std.debug.print("  Required: {} bytes (frame_offset + 14)\n", .{frame_offset + 14});
+        std.debug.print("  Frame offset: 0x{x:0>6} ({o:0>8}o) bytes\n", .{ frame_offset, frame_offset });
+        std.debug.print("  Virtual memory size: 0x{x:0>8} ({o:0>12}o) bytes\n", .{ virtual_memory.len, virtual_memory.len });
+        const required = frame_offset + 14;
+        std.debug.print("  Required: 0x{x:0>6} ({o:0>8}o) bytes (frame_offset + 14)\n", .{ required, required });
         std.debug.print("  IFPAGE currentfxp: 0x{x} (DLword offset from Stackspace)\n", .{ifpage.currentfxp});
         std.debug.print("  Possible causes:\n", .{});
         std.debug.print("    - Invalid currentfxp value in IFPAGE\n", .{});
@@ -99,7 +100,7 @@ pub fn initializeVMState(
     // hi2fnheader = low byte = 0x0030 & 0xFF = 0x30
     const hi2fnheader: u8 = @as(u8, @truncate(hi1fnheader_hi2fnheader & 0xFF));
     const fnheader_be = (@as(LispPTR, hi2fnheader) << 16) | lofnheader;
-    
+
     std.debug.print("DEBUG: Reading frame fields (native little-endian, pages byte-swapped on load):\n", .{});
     std.debug.print("  Frame offset: 0x{x}\n", .{frame_offset});
     std.debug.print("  First 16 bytes of frame: ", .{});
@@ -137,8 +138,8 @@ pub fn initializeVMState(
     // CRITICAL: CURRENTFX->pc is a DLword offset (needs /2 for byte offset from FuncObj)
     // C: PC = (ByteCode *)FuncObj + CURRENTFX->pc;
     const frame_pc = std.mem.readInt(DLword, frame_bytes[8..10], .little);
-    std.debug.print("  pc bytes [8,9]: 0x{x:0>2} 0x{x:0>2} -> {} (0x{x:0>4})\n", .{ virtual_memory[frame_offset + 8], virtual_memory[frame_offset + 9], frame_pc, frame_pc });
-    std.debug.print("DEBUG: CURRENTFX->pc={} (byte offset from FuncObj)\n", .{frame_pc});
+    std.debug.print("  pc bytes [8,9]: 0x{x:0>2} 0x{x:0>2} -> 0x{x:0>4} ({o:0>6}o)\n", .{ virtual_memory[frame_offset + 8], virtual_memory[frame_offset + 9], frame_pc, frame_pc });
+    std.debug.print("DEBUG: CURRENTFX->pc=0x{x:0>4} ({o:0>6}o) (byte offset from FuncObj)\n", .{ frame_pc, frame_pc });
 
     // CRITICAL: Initialize stack pointers to use virtual memory's stack area
     // C: Stackspace = NativeAligned2FromLAddr(STK_OFFSET) = Lisp_world + STK_OFFSET
@@ -168,7 +169,7 @@ pub fn initializeVMState(
     // Update VM stack pointers to point into virtual memory
     vm.stack_base = stackspace_ptr;
     vm.stack_ptr = current_stack_ptr;
-    
+
     // CRITICAL: Initialize current_frame pointer to point to frame in virtual memory
     // The frame is at frame_offset in virtual memory
     // FX is a packed struct, so it can be at any byte offset
@@ -177,7 +178,7 @@ pub fn initializeVMState(
     const frame_ptr: *align(1) stack.FX = @ptrFromInt(frame_addr);
     vm.current_frame = frame_ptr;
     std.debug.print("DEBUG: Initialized current_frame at offset 0x{x}\n", .{frame_offset});
-    
+
     // C: TopOfStack = 0; (initially empty stack)
     // CRITICAL: C code sets TopOfStack = 0 regardless of stack memory contents
     // The stack area may have data from sysout, but TopOfStack cached value starts at 0
@@ -202,7 +203,7 @@ pub fn initializeVMState(
         }
 
         // Read free block size (native little-endian, at offset +2)
-        const block_size_bytes_slice = virtual_memory[freeptr_byte_offset + 2..][0..2];
+        const block_size_bytes_slice = virtual_memory[freeptr_byte_offset + 2 ..][0..2];
         const block_size_dlwords = std.mem.readInt(DLword, block_size_bytes_slice, .little);
         const block_size_bytes = @as(usize, @intCast(block_size_dlwords)) * 2;
 
@@ -217,11 +218,11 @@ pub fn initializeVMState(
 
     const stack_depth = (@intFromPtr(current_stack_ptr) - @intFromPtr(stackspace_ptr)) / 2;
     std.debug.print("DEBUG: Initialized stack pointers into virtual memory:\n", .{});
-    std.debug.print("  Stackspace offset: 0x{x}\n", .{stackspace_byte_offset});
-    std.debug.print("  nextblock: 0x{x} (DLword offset)\n", .{nextblock});
-    std.debug.print("  CurrentStackPTR offset: 0x{x}\n", .{current_stack_ptr_byte_offset});
-    std.debug.print("  EndSTKP offset: 0x{x} (calculated from free stack blocks)\n", .{endstkp_byte_offset});
-    std.debug.print("  Stack depth: {} DLwords\n", .{stack_depth});
+    std.debug.print("  Stackspace offset: 0x{x:0>6} ({o:0>8}o)\n", .{ stackspace_byte_offset, stackspace_byte_offset });
+    std.debug.print("  nextblock: 0x{x:0>4} ({o:0>6}o) (DLword offset)\n", .{ nextblock, nextblock });
+    std.debug.print("  CurrentStackPTR offset: 0x{x:0>6} ({o:0>8}o)\n", .{ current_stack_ptr_byte_offset, current_stack_ptr_byte_offset });
+    std.debug.print("  EndSTKP offset: 0x{x:0>6} ({o:0>8}o) (calculated from free stack blocks)\n", .{ endstkp_byte_offset, endstkp_byte_offset });
+    std.debug.print("  Stack depth: 0x{x:0>4} ({o:0>6}o) DLwords\n", .{ stack_depth, stack_depth });
 
     // C: TopOfStack = 0; (just a cached value, stack area has real data)
     // CRITICAL: The stack area has data from sysout, but TopOfStack should be 0 (NIL) initially
@@ -261,8 +262,8 @@ pub fn initializeVMState(
         // PC = FuncObj + CURRENTFX->pc = 0 + frame_pc
         const calculated_pc = funcobj_offset_zero + @as(usize, @intCast(frame_pc));
         std.debug.print("DEBUG: Simulating FastRetCALL with fnheader=0:\n", .{});
-        std.debug.print("  FuncObj = NativeAligned4FromLAddr(0) = offset 0x{x}\n", .{funcobj_offset_zero});
-        std.debug.print("  PC = FuncObj + CURRENTFX->pc = 0x{x} + {} = 0x{x}\n", .{ funcobj_offset_zero, frame_pc, calculated_pc });
+        std.debug.print("  FuncObj = NativeAligned4FromLAddr(0) = offset 0x{x:0>6} ({o:0>8}o)\n", .{ funcobj_offset_zero, funcobj_offset_zero });
+        std.debug.print("  PC = FuncObj + CURRENTFX->pc = 0x{x:0>6} + 0x{x:0>4} = 0x{x:0>6} ({o:0>8}o)\n", .{ funcobj_offset_zero, frame_pc, calculated_pc, calculated_pc });
 
         // Check if calculated PC has valid code (not all zeros AND first byte is valid opcode)
         if (calculated_pc < virtual_memory.len and calculated_pc + 4 <= virtual_memory.len) {
@@ -335,11 +336,13 @@ pub fn initializeVMState(
     const ENHANCED_TRACING = @import("builtin").mode == .Debug;
     if (ENHANCED_TRACING) {
         std.debug.print("\n=== ENHANCED TRACING: Before FastRetCALL ===\n", .{});
-        std.debug.print("DEBUG: FX_FNHEADER = 0x{x} (LispPTR, DLword offset)\n", .{fnheader_addr});
-        std.debug.print("DEBUG: CURRENTFX->pc = {} (0x{x}) bytes\n", .{ frame_pc, frame_pc });
-        std.debug.print("DEBUG: Expected FuncObj byte offset = FX_FNHEADER * 2 = 0x{x} * 2 = 0x{x}\n", .{ fnheader_addr, fnheader_addr * 2 });
-        std.debug.print("DEBUG: Expected PC byte offset = FuncObj + CURRENTFX->pc = 0x{x} + {} = 0x{x}\n", .{ fnheader_addr * 2, frame_pc, fnheader_addr * 2 + frame_pc });
-        
+        std.debug.print("DEBUG: FX_FNHEADER = 0x{x:0>6} ({o:0>8}o) (LispPTR, DLword offset)\n", .{ fnheader_addr, fnheader_addr });
+        std.debug.print("DEBUG: CURRENTFX->pc = 0x{x:0>4} ({o:0>6}o) bytes\n", .{ frame_pc, frame_pc });
+        const funcobj_offset = fnheader_addr * 2;
+        std.debug.print("DEBUG: Expected FuncObj byte offset = FX_FNHEADER * 2 = 0x{x:0>6} * 2 = 0x{x:0>6} ({o:0>8}o)\n", .{ fnheader_addr, funcobj_offset, funcobj_offset });
+        const expected_pc = funcobj_offset + frame_pc;
+        std.debug.print("DEBUG: Expected PC byte offset = FuncObj + CURRENTFX->pc = 0x{x:0>6} + 0x{x:0>4} = 0x{x:0>6} ({o:0>8}o)\n", .{ funcobj_offset, frame_pc, expected_pc, expected_pc });
+
         // Log bytes at expected FuncObj location
         const expected_funcobj_offset = fnheader_addr * 2;
         if (expected_funcobj_offset < virtual_memory.len and expected_funcobj_offset + 8 <= virtual_memory.len) {
@@ -349,7 +352,7 @@ pub fn initializeVMState(
             }
             std.debug.print("\n", .{});
         }
-        
+
         // Log bytes at expected PC location
         const expected_pc_offset = fnheader_addr * 2 + frame_pc;
         if (expected_pc_offset < virtual_memory.len and expected_pc_offset + 8 <= virtual_memory.len) {
@@ -372,8 +375,8 @@ pub fn initializeVMState(
     if (funcobj_offset_opt) |funcobj_byte_offset| {
         std.debug.print("DEBUG: FastRetCALL simulation:\n", .{});
         std.debug.print("  FX_FNHEADER=0x{x} (DLword offset)\n", .{fnheader_addr});
-        std.debug.print("  FuncObj byte offset=0x{x} (FX_FNHEADER * 2)\n", .{funcobj_byte_offset});
-        std.debug.print("  CURRENTFX->pc={} (byte offset from FuncObj)\n", .{frame_pc});
+        std.debug.print("  FuncObj byte offset=0x{x:0>6} ({o:0>8}o) (FX_FNHEADER * 2)\n", .{ funcobj_byte_offset, funcobj_byte_offset });
+        std.debug.print("  CURRENTFX->pc=0x{x:0>4} ({o:0>6}o) (byte offset from FuncObj)\n", .{ frame_pc, frame_pc });
         // CRITICAL: C code shows: PC = (ByteCode *)FuncObj + CURRENTFX->pc;
         // This means CURRENTFX->pc is treated as a BYTE offset, not DLword offset
         // The comment in stack.zig says "byte offset from FuncObj" which confirms this
@@ -386,16 +389,16 @@ pub fn initializeVMState(
         //
         // Testing: Use frame_pc directly as byte offset (matching C code exactly)
         const frame_pc_bytes = @as(usize, @intCast(frame_pc)); // Use directly as byte offset
-        std.debug.print("  CURRENTFX->pc={} (treating as byte offset from FuncObj)\n", .{frame_pc_bytes});
-        
+        std.debug.print("  CURRENTFX->pc=0x{x:0>4} ({o:0>6}o) (treating as byte offset from FuncObj)\n", .{ frame_pc_bytes, frame_pc_bytes });
+
         // CRITICAL FIX: Use frame_pc directly without division
         // C: PC = (ByteCode *)FuncObj + CURRENTFX->pc;
         // CURRENTFX->pc is already a byte offset (104 bytes)
         // But we need to verify FuncObj calculation matches C
         const calculated_pc = funcobj_byte_offset + frame_pc_bytes;
-        
+
         // DEBUG: Verify calculation
-        std.debug.print("  PC = FuncObj + CURRENTFX->pc = 0x{x} + {} = 0x{x}\n", .{ funcobj_byte_offset, frame_pc_bytes, calculated_pc });
+        std.debug.print("  PC = FuncObj + CURRENTFX->pc = 0x{x:0>6} + 0x{x:0>4} = 0x{x:0>6} ({o:0>8}o)\n", .{ funcobj_byte_offset, frame_pc_bytes, calculated_pc, calculated_pc });
 
         // Validate PC is within virtual memory bounds
         if (calculated_pc >= virtual_memory.len) {
@@ -411,7 +414,7 @@ pub fn initializeVMState(
             const memory_access_module = @import("../utils/memory_access.zig");
             const first_opcode_xor = memory_access_module.getByte(virtual_memory, calculated_pc) catch 0xFF;
             const second_opcode_xor = memory_access_module.getByte(virtual_memory, calculated_pc + 1) catch 0xFF;
-            
+
             // Also show raw bytes for debugging
             const first_bytes = virtual_memory[calculated_pc .. calculated_pc + 4];
             std.debug.print("  PC location 0x{x}: raw bytes = 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2}\n", .{ calculated_pc, first_bytes[0], first_bytes[1], first_bytes[2], first_bytes[3] });
@@ -430,15 +433,16 @@ pub fn initializeVMState(
             } else {
                 vm.pc = @as(LispPTR, @intCast(calculated_pc));
                 std.debug.print("  Using calculated PC=0x{x} (XOR-addressed opcode=0x{x:0>2})\n", .{ calculated_pc, first_opcode_xor });
-                
+
                 // ENHANCED TRACING: Match C emulator's after FastRetCALL verification
                 if (ENHANCED_TRACING) {
                     std.debug.print("\n=== ENHANCED TRACING: After FastRetCALL Verification ===\n", .{});
-                    std.debug.print("DEBUG: Actual FuncObj byte offset = 0x{x}\n", .{funcobj_byte_offset});
-                    std.debug.print("DEBUG: Actual PC byte offset = 0x{x}\n", .{calculated_pc});
-                    std.debug.print("DEBUG: FX_FNHEADER = 0x{x} (DLword offset)\n", .{fnheader_addr});
-                    std.debug.print("DEBUG: CURRENTFX->pc = {} (0x{x}) bytes\n", .{ frame_pc, frame_pc });
-                    std.debug.print("DEBUG: FX_FNHEADER * 2 + CURRENTFX->pc = 0x{x} * 2 + {} = 0x{x}\n", .{ fnheader_addr, frame_pc, fnheader_addr * 2 + frame_pc });
+                    std.debug.print("DEBUG: Actual FuncObj byte offset = 0x{x:0>6} ({o:0>8}o)\n", .{ funcobj_byte_offset, funcobj_byte_offset });
+                    std.debug.print("DEBUG: Actual PC byte offset = 0x{x:0>6} ({o:0>8}o)\n", .{ calculated_pc, calculated_pc });
+                    std.debug.print("DEBUG: FX_FNHEADER = 0x{x:0>6} ({o:0>8}o) (DLword offset)\n", .{ fnheader_addr, fnheader_addr });
+                    std.debug.print("DEBUG: CURRENTFX->pc = 0x{x:0>4} ({o:0>6}o) bytes\n", .{ frame_pc, frame_pc });
+                    const pc_calc = fnheader_addr * 2 + frame_pc;
+                    std.debug.print("DEBUG: FX_FNHEADER * 2 + CURRENTFX->pc = 0x{x:0>6} * 2 + 0x{x:0>4} = 0x{x:0>6} ({o:0>8}o)\n", .{ fnheader_addr, frame_pc, pc_calc, pc_calc });
                     const match = (calculated_pc == fnheader_addr * 2 + frame_pc);
                     std.debug.print("DEBUG: Match check: actual_pc_offset == FX_FNHEADER * 2 + CURRENTFX->pc? {s}\n", .{if (match) "YES" else "NO"});
                     std.debug.print("=== END After FastRetCALL Verification ===\n\n", .{});
@@ -450,12 +454,12 @@ pub fn initializeVMState(
         // If validation failed, use calculated PC anyway (might still work)
         vm.pc = @as(LispPTR, @intCast(calculated_pc));
         std.debug.print("  Using calculated PC=0x{x} (validation incomplete)\n", .{calculated_pc});
-        
+
         // ENHANCED TRACING: Even if validation incomplete
         if (ENHANCED_TRACING) {
             std.debug.print("\n=== ENHANCED TRACING: After FastRetCALL (validation incomplete) ===\n", .{});
-            std.debug.print("DEBUG: Actual FuncObj byte offset = 0x{x}\n", .{funcobj_byte_offset});
-            std.debug.print("DEBUG: Actual PC byte offset = 0x{x}\n", .{calculated_pc});
+            std.debug.print("DEBUG: Actual FuncObj byte offset = 0x{x:0>6} ({o:0>8}o)\n", .{ funcobj_byte_offset, funcobj_byte_offset });
+            std.debug.print("DEBUG: Actual PC byte offset = 0x{x:0>6} ({o:0>8}o)\n", .{ calculated_pc, calculated_pc });
             std.debug.print("=== END After FastRetCALL ===\n\n", .{});
         }
         return;
@@ -464,7 +468,7 @@ pub fn initializeVMState(
         std.debug.print("WARNING: Could not translate fnheader_addr=0x{x}, trying frame->pc\n", .{fnheader_addr});
         if (frame_pc > 0 and frame_pc < virtual_memory.len) {
             vm.pc = frame_pc;
-            std.debug.print("Using frame->pc={} as PC\n", .{frame_pc});
+            std.debug.print("Using frame->pc=0x{x:0>4} ({o:0>6}o) as PC\n", .{ frame_pc, frame_pc });
         } else {
             // Last resort: try to find a reasonable starting point
             // For now, start at a small offset to avoid immediate errors

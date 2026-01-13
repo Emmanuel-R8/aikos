@@ -52,8 +52,8 @@ fn handleFN(vm: *VM, instruction: *const @import("../dispatch.zig").Instruction,
     // Read DLword operand (little-endian, pages already byte-swapped on load)
     const atom_index_raw: u16 = instruction.getWordOperand(0); // DLword (2 bytes)
     const atom_index: LispPTR = @as(LispPTR, atom_index_raw);
-    
-    std.debug.print("DEBUG handleFN: atom_index_raw=0x{x:0>4} ({d}), atom_index=0x{x} ({d})\n", 
+
+    std.debug.print("DEBUG handleFN: atom_index_raw=0x{x:0>4} ({d}), atom_index=0x{x} ({d})\n",
         .{ atom_index_raw, atom_index_raw, atom_index, atom_index });
     std.debug.print("  atom_index / 2: {d} (0x{x})\n", .{ atom_index / 2, atom_index / 2 });
     std.debug.print("  atom_index * 2: {d} (0x{x})\n", .{ atom_index * 2, atom_index * 2 });
@@ -67,7 +67,7 @@ fn handleFN(vm: *VM, instruction: *const @import("../dispatch.zig").Instruction,
         std.debug.print("  atom_index=0x{x} ({d})\n", .{ atom_index, atom_index });
         return err;
     };
-    
+
     // Check if C code (ccodep flag)
     // C: if (!(fn_defcell->ccodep)) { /* it's not a CCODEP */ }
     if (defcell_module.isCCode(defcell)) {
@@ -75,11 +75,11 @@ fn handleFN(vm: *VM, instruction: *const @import("../dispatch.zig").Instruction,
         // For now, return error (C functions not yet supported)
         return errors.VMError.InvalidOpcode;
     }
-    
+
     // Lisp function - get function header from defpointer
     // C: LOCFNCELL = (struct fnhead *)NativeAligned4FromLAddr((defcell_word &= POINTERMASK))
     const fnheader_ptr = defcell_module.getFunctionHeader(defcell);
-    
+
     // CRITICAL: Check if defpointer is valid (not 0/NIL)
     // C: op_fn_common checks GetTypeNumber(defcell->defpointer) == TYPE_COMPILED_CLOSURE
     // If not a compiled closure, uses ATOM_INTERPRETER
@@ -91,16 +91,16 @@ fn handleFN(vm: *VM, instruction: *const @import("../dispatch.zig").Instruction,
         // For now, return error to prevent crash
         return errors.VMError.InvalidOpcode;
     }
-    
+
     std.debug.print("DEBUG handleFN: fnheader_ptr=0x{x}\n", .{fnheader_ptr});
-    
+
     // Read function header from memory
     var fnheader = readFunctionHeader(vm, fnheader_ptr) catch |err| {
         std.debug.print("ERROR handleFN: readFunctionHeader failed with error: {}\n", .{err});
         std.debug.print("  fnheader_ptr=0x{x}\n", .{fnheader_ptr});
         return err;
     };
-    
+
     // Call function with argument count
     // C: OPFN sets up frame, pushes TOS, handles spread args, sets up BF/FX markers
     try function_module.callFunction(vm, &fnheader, arg_count);
@@ -131,20 +131,20 @@ fn readFunctionHeader(vm: *VM, fnheader_ptr: LispPTR) errors.VMError!FunctionHea
     const fptovp_table = vm.fptovp orelse {
         return errors_module.VMError.MemoryAccessFailed;
     };
-    
+
     // Translate address to native pointer
-    const native_ptr = virtual_memory_module.translateAddress(fnheader_ptr, fptovp_table, 4) catch {
+    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, fnheader_ptr, fptovp_table, 4) catch {
         return errors_module.VMError.InvalidAddress;
     };
-    
+
     // Read function header (big-endian from sysout)
     const byte_offset = @intFromPtr(native_ptr) - @intFromPtr(virtual_memory.ptr);
     if (byte_offset + @sizeOf(FunctionHeader) > virtual_memory.len) {
         return errors_module.VMError.InvalidAddress;
     }
-    
+
     const header_bytes = virtual_memory[byte_offset..][0..@sizeOf(FunctionHeader)];
-    
+
     // Function header structure (matches C fnhead):
     // stkmin: DLword (2 bytes, big-endian)
     // na: short (2 bytes, signed, big-endian)
@@ -155,35 +155,35 @@ fn readFunctionHeader(vm: *VM, fnheader_ptr: LispPTR) errors.VMError!FunctionHea
     // ntsize: DLword (2 bytes)
     // nlocals: u8 (1 byte)
     // fvaroffset: u8 (1 byte)
-    
+
     // Read fields with byte swapping
     const stkmin: DLword = (@as(DLword, header_bytes[0]) << 8) | @as(DLword, header_bytes[1]);
     const na_signed: i16 = (@as(i16, @bitCast(@as(u16, header_bytes[2]) << 8 | header_bytes[3])));
     const pv_signed: i16 = (@as(i16, @bitCast(@as(u16, header_bytes[4]) << 8 | header_bytes[5])));
     const startpc: DLword = (@as(DLword, header_bytes[6]) << 8) | @as(DLword, header_bytes[7]);
-    
+
     // Read flags byte (byte 8)
     const flags_byte = header_bytes[8];
     _ = (flags_byte >> 7) & 1; // nil4 (unused for now)
     _ = (flags_byte >> 6) & 1; // byteswapped (unused for now)
     _ = @as(u2, @truncate((flags_byte >> 4) & 3)); // argtype (unused for now)
     const framename_low = @as(u4, @truncate(flags_byte & 0xF));
-    
+
     // Read framename high bits (bytes 9-11 for BIGVM, bytes 9-10 for non-BIGVM)
     // For BIGVM: framename is 28 bits total (4 bits from flags + 24 bits from next 3 bytes)
     // For non-BIGVM: framename is 24 bits total (4 bits from flags + 20 bits from next 2.5 bytes)
     // Assuming BIGVM for now
     const framename_mid = @as(u24, header_bytes[9]) << 16 | @as(u24, header_bytes[10]) << 8 | @as(u24, header_bytes[11]);
     const framename: LispPTR = (@as(LispPTR, framename_low) << 24) | framename_mid;
-    
+
     const ntsize: DLword = (@as(DLword, header_bytes[12]) << 8) | @as(DLword, header_bytes[13]);
     const nlocals = header_bytes[14];
     const fvaroffset = header_bytes[15];
-    
+
     // Convert signed na and pv to unsigned (stored as DLword in FunctionHeader)
     const na: DLword = @as(DLword, @bitCast(na_signed));
     const pv: DLword = @as(DLword, @bitCast(pv_signed));
-    
+
     return FunctionHeader{
         .stkmin = stkmin,
         .na = na,

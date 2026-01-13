@@ -36,7 +36,7 @@ pub fn handleASSOC(vm: *VM) errors.VMError!void {
     while (type_check_module.isList(vm, alist)) {
         // Get CAR of alist (should be a (key . value) pair)
         const pair = try getCAR(vm, alist);
-        
+
         // Check if pair is a list and its CAR matches key
         // C: if (Listp(cadr1.car_cell) && key == car(cadr1.car_cell))
         if (type_check_module.isList(vm, pair)) {
@@ -47,10 +47,10 @@ pub fn handleASSOC(vm: *VM) errors.VMError!void {
                 return;
             }
         }
-        
+
         // Get CDR to continue traversal
         alist = try getCDR(vm, alist);
-        
+
         // C: Check for interrupts (we'll skip for now)
     }
 
@@ -63,12 +63,13 @@ fn getCAR(vm: *VM, list_ptr: LispPTR) errors.VMError!LispPTR {
     if (vm.virtual_memory == null or vm.fptovp == null) {
         return errors.VMError.MemoryAccessFailed;
     }
-    
+
     const fptovp_table = vm.fptovp.?;
-    const native_ptr = virtual_memory_module.translateAddress(list_ptr, fptovp_table, 4) catch {
+    const virtual_memory = vm.virtual_memory.?;
+    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, list_ptr, fptovp_table, 4) catch {
         return errors.VMError.InvalidAddress;
     };
-    
+
     const cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(native_ptr)));
     return cons.getCAR(cell);
 }
@@ -78,12 +79,13 @@ fn getCDR(vm: *VM, list_ptr: LispPTR) errors.VMError!LispPTR {
     if (vm.virtual_memory == null or vm.fptovp == null) {
         return errors.VMError.MemoryAccessFailed;
     }
-    
+
     const fptovp_table = vm.fptovp.?;
-    const native_ptr = virtual_memory_module.translateAddress(list_ptr, fptovp_table, 4) catch {
+    const virtual_memory = vm.virtual_memory.?;
+    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, list_ptr, fptovp_table, 4) catch {
         return errors.VMError.InvalidAddress;
     };
-    
+
     const cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(native_ptr)));
     return cons.getCDR(cell, list_ptr);
 }
@@ -169,9 +171,9 @@ pub fn handleRESTLIST(vm: *VM, count: u8) errors.VMError!void {
     // while (skip <= last) { tail = cons(GetLongWord(IVar + (--last << 1)), tail); }
     // This is complex - requires IVar access and cons creation
     // For now, implement simplified version: traverse list count times using CDR
-    
+
     var tail = stack_module.getTopOfStack(vm);
-    
+
     // Traverse list count times using CDR
     var i: u8 = 0;
     while (i < count) : (i += 1) {
@@ -182,7 +184,7 @@ pub fn handleRESTLIST(vm: *VM, count: u8) errors.VMError!void {
             break;
         }
     }
-    
+
     // Push result
     stack_module.setTopOfStack(vm, tail);
 }
@@ -209,27 +211,28 @@ pub fn handleRPLCONS(vm: *VM) errors.VMError!void {
     if (vm.virtual_memory == null or vm.fptovp == null) {
         return errors_module.VMError.MemoryAccessFailed;
     }
-    
+
     const fptovp_table = vm.fptovp.?;
-    
-    const native_ptr = virtual_memory_module.translateAddress(list, fptovp_table, 4) catch {
+    const virtual_memory = vm.virtual_memory.?;
+
+    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, list, fptovp_table, 4) catch {
         return errors_module.VMError.InvalidAddress;
     };
-    
+
     const cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(native_ptr)));
-    
+
     // Get old CDR for GC
     const old_cdr = cons.getCDR(cell, list);
-    
+
     // Update GC refs: DELREF old CDR, ADDREF new CDR
     if (vm.gc) |gc| {
         gc_module.deleteReference(gc, old_cdr) catch {};
         gc_module.addReference(gc, new_cdr) catch {};
     }
-    
+
     // Set new CDR
     cons.setCDR(cell, list, new_cdr);
-    
+
     // Push list (unchanged)
     try stack_module.pushStack(vm, list);
 }

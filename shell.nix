@@ -7,7 +7,9 @@
 #
 # Note: If SDL3 or Zig are not available in your nixpkgs channel,
 # you may need to use nixpkgs-unstable:
-{pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/nixos-unstable.tar.gz") {}}:
+{
+  pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/nixos-unstable.tar.gz") { },
+}:
 # {pkgs ? import <nixpkgs> {}}:
 pkgs.mkShell {
   # Use stdenv to get proper C compilation environment
@@ -32,8 +34,18 @@ pkgs.mkShell {
     gcc # Alternative C compiler (useful for compatibility testing)
 
     # Display libraries - include all for maximum compatibility
+    # SDL2: Required for C and Zig emulators
     SDL2 # SDL2 display backend (for C and Zig emulators)
+    SDL2.dev # SDL2 development headers and pkg-config files
+
+    # SDL3: Required for Lisp emulator (preferred)
     sdl3 # SDL3 display backend (for Lisp emulator, preferred)
+
+    # X11: Required for C emulator X11 backend (alternative to SDL2)
+    xorg.libX11 # X11 library (for C emulator X11 backend)
+    xorg.libX11.dev # X11 development headers
+    xorg.libXext # X11 extensions
+    xorg.libXext.dev # X11 extensions development headers
 
     # Language compilers
     zig # Zig compiler (for Zig emulator)
@@ -42,7 +54,8 @@ pkgs.mkShell {
     # IDEs
     bun # For amp
     cursor-cli
-    gemini-cli
+    # openskills
+    # gemini-cli
 
     code-cursor
     vscode
@@ -53,6 +66,28 @@ pkgs.mkShell {
     # Ensure C standard library headers are available
     export NIX_CFLAGS_COMPILE="-isystem ${pkgs.glibc.dev}/include $NIX_CFLAGS_COMPILE"
 
+    # Set up library paths for runtime linking
+    # Nix automatically sets up library paths, but we ensure SDL2/X11 are available
+    export LD_LIBRARY_PATH="${
+      pkgs.lib.makeLibraryPath [
+        pkgs.SDL2
+        pkgs.sdl3
+        pkgs.xorg.libX11
+        pkgs.xorg.libXext
+        pkgs.glibc
+      ]
+    }:$LD_LIBRARY_PATH"
+
+    # Set up PKG_CONFIG_PATH for pkg-config to find SDL2/X11
+    export PKG_CONFIG_PATH="${
+      pkgs.lib.makeSearchPath "lib/pkgconfig" [
+        pkgs.SDL2
+        pkgs.sdl3
+        pkgs.xorg.libX11
+        pkgs.xorg.libXext
+      ]
+    }:$PKG_CONFIG_PATH"
+
     echo "Maiko emulator development environment"
     echo "====================================="
     echo "C compiler: $(which clang || which gcc || echo 'Not found')"
@@ -60,9 +95,12 @@ pkgs.mkShell {
     echo "SBCL: $(which sbcl || echo 'Not found')"
     echo ""
     echo "Display libraries:"
-    pkg-config --exists x11 && echo "  ✓ X11 found" || echo "  ✗ X11 not found"
-    pkg-config --exists sdl2 && echo "  ✓ SDL2 found" || echo "  ✗ SDL2 not found"
-    pkg-config --exists sdl3 && echo "  ✓ SDL3 found" || echo "  ✗ SDL3 not found (may need to build from source)"
+    pkg-config --exists x11 && echo "  ✓ X11 found ($(pkg-config --modversion x11))" || echo "  ✗ X11 not found"
+    pkg-config --exists sdl2 && echo "  ✓ SDL2 found ($(pkg-config --modversion sdl2))" || echo "  ✗ SDL2 not found"
+    pkg-config --exists sdl3 && echo "  ✓ SDL3 found ($(pkg-config --modversion sdl3))" || echo "  ✗ SDL3 not found (may need to build from source)"
+    echo ""
+    echo "Runtime library paths:"
+    echo "  LD_LIBRARY_PATH includes SDL2, SDL3, X11 libraries"
     echo ""
     echo "Build systems:"
     command -v cmake >/dev/null && echo "  ✓ CMake found" || echo "  ✗ CMake not found"
@@ -75,5 +113,7 @@ pkgs.mkShell {
     echo "  C emulator:   ./medley/scripts/build/build-emulator.sh --emulator c"
     echo "  Zig emulator: ./medley/scripts/build/build-emulator.sh --emulator zig"
     echo "  Lisp emulator: ./medley/scripts/build/build-emulator.sh --emulator lisp"
+    echo ""
+    echo "Note: Emulators built in this shell will have access to SDL2/SDL3/X11 libraries"
   '';
 }

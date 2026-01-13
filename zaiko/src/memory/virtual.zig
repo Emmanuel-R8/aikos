@@ -114,5 +114,5 @@ pub fn translateAddress(virtual_memory: []const u8, lisp_addr: LispPTR, fptovp_t
         native_addr = @as([*]u8, @ptrFromInt(aligned_addr));
     }
 
-    return native_addr;
+    return @constCast(native_addr);
 }

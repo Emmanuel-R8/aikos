@@ -37,7 +37,7 @@ pub fn handleCAR(vm: *VM) errors.VMError!void {
         stack_module.setTopOfStack(vm, type_check_module.ATOM_T);
         return;
     }
-    
+
     // Check if it's a list (Listp check)
     if (!type_check_module.isList(vm, list_ptr)) {
         // Not a list - should trigger UFN lookup
@@ -51,38 +51,38 @@ pub fn handleCAR(vm: *VM) errors.VMError!void {
         const page_num = (list_ptr >> 9) & 0x7FFF; // Page number (15 bits)
         const page_offset_dlwords = list_ptr & 0x1FF; // Page offset (9 bits, in DLwords)
         const page_offset_bytes = page_offset_dlwords * 2; // Convert DLwords to bytes
-        
+
         // Get virtual page from FPtoVP table
         if (vm.fptovp == null or vm.virtual_memory == null) {
             return;
         }
-        
+
         const fptovp_table = vm.fptovp.?;
         if (page_num >= fptovp_table.entries.len) {
             return;
         }
-        
+
         const virtual_page = fptovp_table.getFPtoVP(page_num);
         if (virtual_page == 0) {
             return;
         }
-        
+
         // Calculate byte offset in virtual memory: virtual_page * 512 + page_offset_bytes
         const BYTESPER_PAGE: usize = 512;
         const cell_byte_offset = (@as(usize, virtual_page) * BYTESPER_PAGE) + page_offset_bytes;
-        
+
         const virtual_memory = vm.virtual_memory.?;
         if (cell_byte_offset + 8 > virtual_memory.len) {
             return;
         }
-        
+
         // Read cons cell fields (big-endian from sysout)
         // Cons cell layout: CAR (4 bytes), CDR (4 bytes)
         const cell_bytes = virtual_memory[cell_byte_offset..cell_byte_offset+8];
         const car_low_word = (@as(types.DLword, cell_bytes[0]) << 8) | @as(types.DLword, cell_bytes[1]);
         const car_high_word = (@as(types.DLword, cell_bytes[2]) << 8) | @as(types.DLword, cell_bytes[3]);
         var car_value: types.LispPTR = (@as(types.LispPTR, car_high_word) << 16) | @as(types.LispPTR, car_low_word);
-        
+
         // Read CDR code (low 8 bits of CDR field)
         const cdr_low_word = (@as(types.DLword, cell_bytes[4]) << 8) | @as(types.DLword, cell_bytes[5]);
         const cdr_code = @as(u8, @truncate(cdr_low_word & 0xFF));
@@ -94,21 +94,21 @@ pub fn handleCAR(vm: *VM) errors.VMError!void {
             const indirect_page_num = (indirect_addr >> 9) & 0x7FFF;
             const indirect_page_offset_dlwords = indirect_addr & 0x1FF;
             const indirect_page_offset_bytes = indirect_page_offset_dlwords * 2;
-            
+
             if (indirect_page_num >= fptovp_table.entries.len) {
                 return;
             }
-            
+
             const indirect_virtual_page = fptovp_table.getFPtoVP(indirect_page_num);
             if (indirect_virtual_page == 0) {
                 return;
             }
-            
+
             const indirect_cell_byte_offset = (@as(usize, indirect_virtual_page) * BYTESPER_PAGE) + indirect_page_offset_bytes;
             if (indirect_cell_byte_offset + 4 > virtual_memory.len) {
                 return;
             }
-            
+
             // Read CAR from indirect cell
             const indirect_cell_bytes = virtual_memory[indirect_cell_byte_offset..indirect_cell_byte_offset+4];
             const indirect_car_low_word = (@as(types.DLword, indirect_cell_bytes[0]) << 8) | @as(types.DLword, indirect_cell_bytes[1]);
@@ -148,10 +148,10 @@ pub fn handleCDR(vm: *VM) errors.VMError!void {
     }
 
     // Get cons cell from memory using address translation
-    if (vm.virtual_memory) |_| {
+    if (vm.virtual_memory) |vmem| {
         // Translate LispPTR to native pointer (4-byte aligned for cons cell)
         // C: NativeAligned4FromLAddr(TOPOFSTACK)
-        const native_ptr = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(list_ptr, fptovp_table, 4) catch {
+        const native_ptr = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(vmem, list_ptr, fptovp_table, 4) catch {
             // Invalid address - trigger UFN (for now, leave value unchanged)
             return;
         } else {
@@ -181,11 +181,12 @@ pub fn handleCDR(vm: *VM) errors.VMError!void {
             // C: CDR_INDIRECT (0) -> TOPOFSTACK = cdr(DATUM68K->car_field) (recursive)
             // Recursive CDR call on indirect cell
             const indirect_addr = cons.getCAR(cell);
-            const indirect_native = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(indirect_addr, fptovp_table, 4) catch {
-                return;
-            } else {
-                return;
-            };
+            const indirect_native = if (vm.fptovp) |fptovp_table| blk: {
+                const vmem_inner = vm.virtual_memory orelse return;
+                break :blk virtual_memory_module.translateAddress(vmem_inner, indirect_addr, fptovp_table, 4) catch {
+                    return;
+                };
+            } else return;
             const indirect_cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(indirect_native)));
             // Recursive call to getCDR
             cdr_value = cons.getCDR(indirect_cell, indirect_addr);
@@ -194,11 +195,12 @@ pub fn handleCDR(vm: *VM) errors.VMError!void {
             // Different page encoding: CDR stored in another cell's CAR field
             const offset = @as(u32, cdr_code) << 1;
             const cdr_addr = list_ptr + offset;
-            const cdr_native = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(cdr_addr, fptovp_table, 4) catch {
-                return;
-            } else {
-                return;
-            };
+            const cdr_native = if (vm.fptovp) |fptovp_table| blk: {
+                const vmem_inner2 = vm.virtual_memory orelse return;
+                break :blk virtual_memory_module.translateAddress(vmem_inner2, cdr_addr, fptovp_table, 4) catch {
+                    return;
+                };
+            } else return;
             const cdr_cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(cdr_native)));
             cdr_value = cons.getCAR(cdr_cell);
         }
@@ -231,8 +233,8 @@ pub fn handleCONS(vm: *VM) errors.VMError!void {
         };
 
         // Get native pointer to cons cell
-        if (vm.virtual_memory) |_| {
-            const native_ptr = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(cell_addr, fptovp_table, 4) catch {
+        if (vm.virtual_memory) |vmem| {
+            const native_ptr = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(vmem, cell_addr, fptovp_table, 4) catch {
                 return errors_module.VMError.MemoryAccessFailed;
             } else {
                 return errors_module.VMError.MemoryAccessFailed;
@@ -273,8 +275,8 @@ pub fn handleRPLACA(vm: *VM) errors.VMError!void {
     }
 
     // Get cons cell from memory
-    if (vm.virtual_memory) |_| {
-        const native_ptr = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(cons_cell_ptr, fptovp_table, 4) catch {
+    if (vm.virtual_memory) |vmem| {
+        const native_ptr = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(vmem, cons_cell_ptr, fptovp_table, 4) catch {
             return errors_module.VMError.MemoryAccessFailed;
         } else {
             return errors_module.VMError.MemoryAccessFailed;
@@ -286,7 +288,7 @@ pub fn handleRPLACA(vm: *VM) errors.VMError!void {
         if (cell.cdr_code == cons.CDR_INDIRECT) {
             // CAR is stored in indirect cell
             const indirect_addr = cell.car_field;
-            const indirect_native = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(indirect_addr, fptovp_table, 4) catch {
+            const indirect_native = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(vmem, indirect_addr, fptovp_table, 4) catch {
                 return;
             } else {
                 return;
@@ -320,8 +322,8 @@ pub fn handleRPLACD(vm: *VM) errors.VMError!void {
     }
 
     // Get cons cell from memory
-    if (vm.virtual_memory) |_| {
-        const native_ptr = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(cons_cell_ptr, fptovp_table, 4) catch {
+    if (vm.virtual_memory) |vmem| {
+        const native_ptr = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(vmem, cons_cell_ptr, fptovp_table, 4) catch {
             return errors_module.VMError.MemoryAccessFailed;
         } else {
             return errors_module.VMError.MemoryAccessFailed;

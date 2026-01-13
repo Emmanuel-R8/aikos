@@ -1,3 +1,4 @@
+const std = @import("std");
 const errors = @import("../../utils/errors.zig");
 const opcodes = @import("../opcodes.zig");
 const stack = @import("../stack.zig");
@@ -48,7 +49,20 @@ pub fn handleDataOperations(vm: *VM, opcode: Opcode, instruction: Instruction) e
         .PVAR_5 => try opcodes.handlePVAR_SET(vm, 5),
         .PVAR_6 => try opcodes.handlePVAR_SET(vm, 6),
         .PVARX_ => try opcodes.handlePVAR_SET(vm, instruction.getByteOperand(0)),
-        .GVAR => try opcodes.handleGVAR(vm, instruction.getWordOperand(0)),
+        .GVAR => {
+            // BIGATOMS+BIGVM mode: GVAR uses 4-byte pointer operand
+            // C: GVAR(Get_AtomNo_PCMAC1) where Get_AtomNo_PCMAC1 = Get_Pointer_PCMAC1 (4 bytes)
+            const atom_index = instruction.getPointerOperand(0);
+            // DEBUG: Log operands being read
+            if (instruction.operands_len >= 4) {
+                std.debug.print("DEBUG GVAR operands: [0]=0x{x:0>2} [1]=0x{x:0>2} [2]=0x{x:0>2} [3]=0x{x:0>2}\n",
+                    .{ instruction.operands[0], instruction.operands[1], instruction.operands[2], instruction.operands[3] });
+                std.debug.print("DEBUG GVAR constructed: 0x{x:0>2}<<24 | 0x{x:0>2}<<16 | 0x{x:0>2}<<8 | 0x{x:0>2} = 0x{x:0>8}\n",
+                    .{ instruction.operands[0], instruction.operands[1], instruction.operands[2], instruction.operands[3], atom_index });
+            }
+            try opcodes.handleGVAR(vm, atom_index);
+            return null;
+        },
         .ARG0 => try opcodes.handleARG0(vm),
         .IVARX_ => try opcodes.handleIVARX_(vm, instruction.getByteOperand(0)),
         .FVARX_ => try opcodes.handleFVARX_(vm, instruction.getByteOperand(0)),
@@ -72,10 +86,22 @@ pub fn handleDataOperations(vm: *VM, opcode: Opcode, instruction: Instruction) e
             try opcodes.handleSLRETURN(vm);
             return null;
         },
-        .POP => try opcodes.handlePOP(vm),
-        .POP_N => try opcodes.handlePOP_N(vm, instruction.getByteOperand(0)),
-        .SWAP => try opcodes.handleSWAP(vm),
-        .NOP => try opcodes.handleNOP(vm),
+        .POP => {
+            try opcodes.handlePOP(vm);
+            return null;
+        },
+        .POP_N => {
+            try opcodes.handlePOP_N(vm, instruction.getByteOperand(0));
+            return null;
+        },
+        .SWAP => {
+            try opcodes.handleSWAP(vm);
+            return null;
+        },
+        .NOP => {
+            try opcodes.handleNOP(vm);
+            return null;
+        },
 
         // Data operations
         .CAR => {

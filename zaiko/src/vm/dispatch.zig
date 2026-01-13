@@ -35,14 +35,19 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
     const interrupt_module = @import("interrupt.zig");
 
     // Initialize dispatch (debug output and tracer)
-    var tracer = dispatch_init.initializeDispatch(vm);
-    defer tracer.deinit();
+    // CRITICAL: Create tracer only once - reuse existing tracer if available
+    // The tracer should persist across multiple dispatch() calls to avoid overwriting the log
+    // C emulator uses static FILE *debug_log that persists across calls
+    if (vm.execution_tracer == null) {
+        vm.execution_tracer = dispatch_init.initializeDispatch(vm);
+    }
+    const tracer = &vm.execution_tracer.?;
 
     // Main dispatch loop - continue until error or explicit stop
     // Add instruction counter to prevent infinite loops
     var instruction_count: u64 = 0;
-    const MAX_INSTRUCTIONS: u64 = 1000000; // Limit to prevent infinite loops
-    
+    const MAX_INSTRUCTIONS: u64 = 1000; // Limit to 1000 steps for comparison
+
     while (true) {
         // Check instruction limit to prevent infinite loops
         instruction_count += 1;
@@ -51,7 +56,7 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
             std.debug.print("  Current PC: 0x{x}\n", .{vm.pc});
             return error.InvalidOpcode; // Stop execution
         }
-        
+
         // Check interrupts before execution
         if (interrupt_module.checkInterrupts(vm)) {
             // TODO: Handle interrupts
@@ -64,7 +69,7 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
 
         if (inst_opt) |inst| {
             // Execute instruction
-            const should_continue = dispatch_loop.executeInstructionInLoop(vm, inst, &tracer) catch |err| {
+            const should_continue = dispatch_loop.executeInstructionInLoop(vm, inst, tracer) catch |err| {
                 return err;
             };
             if (!should_continue) {
@@ -77,7 +82,7 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
                 const memory_access_module = @import("../utils/memory_access.zig");
                 break :blk memory_access_module.getByte(vmem, @as(usize, @intCast(vm.pc))) catch 0xFF;
             } else 0xFF;
-            
+
             const should_continue = dispatch_loop.handleUnknownOpcode(vm, opcode_byte, instruction_count) catch |err| {
                 return err;
             };
@@ -90,7 +95,7 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
         if (interrupt_module.checkInterrupts(vm)) {
             // TODO: Handle interrupts
         }
-        
+
         // Debug: Print progress every 10000 instructions
         if (instruction_count % 10000 == 0) {
             std.debug.print("DEBUG: Executed {} instructions, PC=0x{x}\n", .{ instruction_count, vm.pc });

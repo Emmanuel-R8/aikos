@@ -1,0 +1,28 @@
+Loading sysout file: medley/internal/loadups/starter.sysout
+Opening sysout file: medley/internal/loadups/starter.sysout
+Sysout file size: 8517120 bytes
+thread 193132 panic: reached unreachable code
+/nix/store/iyv5lnq9cwlsixg357zv8zcp4pv2q7ml-zig-0.15.2/lib/zig/std/debug.zig:559:14: 0x1078349 in assert (std.zig)
+    if (!ok) unreachable; // assertion failure
+             ^
+/home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/zaiko/src/utils/endianness.zig:115:21: 0x11bf182 in swapIFPAGE (main.zig)
+    std.debug.assert(ifpage.len == 512); // IFPAGE is exactly 512 bytes
+                    ^
+/home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/zaiko/src/data/sysout.zig:273:32: 0x119144d in swapIFPAGEBytes (main.zig)
+pub fn validateSysout(ifpage: *const IFPAGE) bool {
+                               ^
+/home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/zaiko/src/data/sysout.zig:128:20: 0x117b1d8 in loadSysout (main.zig)
+    // We need to swap all DLword (u16) fields in the IFPAGE struct
+                   ^
+/home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/zaiko/src/main.zig:312:42: 0x117496f in main (main.zig)
+    var sysout_result = sysout.loadSysout(allocator, sysout_path) catch |err| {
+                                         ^
+/nix/store/iyv5lnq9cwlsixg357zv8zcp4pv2q7ml-zig-0.15.2/lib/zig/std/start.zig:627:37: 0x11771b1 in main (std.zig)
+            const result = root.main() catch |err| {
+                                    ^
+???:?:?: 0x7f5c7882a4d7 in ??? (libc.so.6)
+Unwind information for `libc.so.6:0x7f5c7882a4d7` was not available, trace may be incomplete
+
+???:?:?: 0x7f5c7882a59a in ??? (libc.so.6)
+???:?:?: 0x12789c4 in ??? (???)
+timeout: the monitored command dumped core

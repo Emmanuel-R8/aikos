@@ -1,0 +1,24 @@
+Failed to find UNIXCOMM file handles; no processes
+
+=== CRITICAL: BUILD CONFIGURATION DIAGNOSTICS (EARLY) ===
+TEST 1: BIGVM is DEFINED at compile time
+TEST 1: BYTESWAP is DEFINED at compile time
+
+TEST 2: Pointer type and size:
+  sizeof(DLword) = 2 bytes
+  sizeof(unsigned int) = 4 bytes
+  sizeof(void *) = 8 bytes
+  fptovp declared as: unsigned int *
+
+TEST 3: Code path (compile-time check):
+  Will execute BIGVM code path (should malloc sysout_size * 2)
+
+=== EXECUTING BIGVM CODE PATH ===
+TEST 8: BIGVM code path - malloc(66544 bytes) for 16635 entries
+TEST 8: BIGVM path - Reading 66540 bytes (sysout_size * 2)
+
+*Error* Segmentation fault at address 0x7eff97fffffc.
+Please record the signal and code information
+and do a 'v' before trying anything else.
+Enter the URaid
+Reopen of stdin failed.: No such device or address

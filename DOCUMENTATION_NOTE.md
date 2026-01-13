@@ -39,4 +39,4 @@ typst compile main.typ maiko-documentation.pdf
 
 ✅ All documentation has been migrated from `.ai_assistant_db/` to `documentation/`
 ✅ Documentation is now in Typst format for PDF generation
-✅ Cross-references and indexing system in place
+✅ Cross-references and indexing system in plac

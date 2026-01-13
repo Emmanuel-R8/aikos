@@ -1,0 +1,17 @@
+=== AUTO: FastRetCALL TRACE ===
+Before FastRetCALL:
+  FX_FNHEADER = 0x307864 (014074144)
+  CURRENTFX->pc = 104 (0x68, 0150)
+  Expected FuncObj offset (DLwords) = 0x307864
+  Expected FuncObj offset (bytes) = 0x60f0c8
+  Expected PC offset from FuncObj (bytes) = 104 (0x68, 0150)
+  Expected PC offset from Lisp_world (DLwords) = 0x3078cc
+  Expected PC offset from Lisp_world (bytes) = 0x60f198
+
+After FastRetCALL:
+  FuncObj = 0x7fa64060f0c8 (Lisp_world+0x60f0c8 bytes, 0x307864 DLwords)
+  PC = 0x7fa64060f130 (Lisp_world+0x60f130 bytes, 0x307898 DLwords)
+  PC from FuncObj = 104 bytes (52 DLwords)
+  CURRENTFX->pc = 104 (0x68, 0150)
+  Verification: PC == FuncObj + CURRENTFX->pc? YES
+=== END FastRetCALL TRACE ===

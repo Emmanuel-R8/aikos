@@ -53,23 +53,40 @@ pub fn decodeInstructionFromMemory(vm: *VM, pc: LispPTR) errors.VMError!?Instruc
 
         // Read operands (if any) with XOR addressing
         // C: Get_BYTE_PCMAC1 = Get_BYTE(PCMAC + 1) = GETBYTE(PCMAC + 1)
-        var operands_buffer: [4]ByteCode = undefined; // Max instruction length is 5 bytes (opcode + 4 operands)
-        var operands_slice: []const ByteCode = &[0]ByteCode{};
+        var operands_buffer: [4]ByteCode = undefined; // Max instruction length is 5 bytes (opcode + 4 operands for GVAR in BIGATOMS mode)
+        var operands_len: u32 = 0;
 
         if (length > 1) {
+            operands_len = @as(u32, @intCast(length - 1));
             // Read operand bytes with XOR addressing (BYTESWAP mode)
-            for (0..length - 1) |i| {
+            for (0..operands_len) |i| {
                 const operand_offset = pc_usize + i + 1;
-                operands_buffer[i] = memory_access.getByte(vmem, operand_offset) catch {
+                const byte = memory_access.getByte(vmem, operand_offset) catch {
                     return null; // Invalid address
                 };
+                operands_buffer[i] = byte;
+                // DEBUG: Log operand reading for GVAR
+                if (opcode == .GVAR and i < 4) {
+                    const std = @import("std");
+                    const xor_addr = memory_access.applyXORAddressingByte(operand_offset);
+                    // Also check what's at the original address (without XOR)
+                    const orig_byte = if (operand_offset < vmem.len) vmem[operand_offset] else 0xFF;
+                    // Check what's at XOR address in raw memory
+                    const xor_byte = if (xor_addr < vmem.len) vmem[xor_addr] else 0xFF;
+                    std.debug.print("DEBUG decode GVAR: i={}, PC+{}={}, XOR={}, byte=0x{x:0>2}, orig=0x{x:0>2}, xor_raw=0x{x:0>2}\n",
+                        .{ i, i + 1, operand_offset, xor_addr, byte, orig_byte, xor_byte });
+                }
             }
-            operands_slice = operands_buffer[0 .. length - 1];
+            // Zero out remaining bytes
+            for (operands_len..4) |i| {
+                operands_buffer[i] = 0;
+            }
         }
 
         return Instruction{
             .opcode = opcode,
-            .operands = operands_slice,
+            .operands = operands_buffer,
+            .operands_len = operands_len,
             .length = length,
         };
     } else {

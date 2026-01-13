@@ -19,11 +19,11 @@ pub fn handleGETBASEBYTE(vm: *VM) errors.VMError!void {
     const stack_module = @import("../stack.zig");
     const errors_module = @import("../../utils/errors.zig");
     const type_check_module = @import("../../utils/type_check.zig");
-    
+
     // Get byteoffset from TOS (must be small integer or fixnum)
     var byteoffset = stack_module.getTopOfStack(vm);
     const segment = byteoffset & types.SEGMASK;
-    
+
     if (segment == types.S_POSITIVE) {
         byteoffset &= 0x0000FFFF; // Extract low 16 bits
     } else if (segment == types.S_NEGATIVE) {
@@ -33,13 +33,14 @@ pub fn handleGETBASEBYTE(vm: *VM) errors.VMError!void {
         const fptovp_table_check = vm.fptovp orelse {
             return errors_module.VMError.MemoryAccessFailed;
         };
-        
+
         const type_num = type_check_module.getTypeNumber(vm, byteoffset);
         if (type_num) |tn| {
             if (tn == type_check_module.TYPE_FIXP) {
                 // FIXP is a boxed integer - read the int32 value from memory
                 // C: FIXP_VALUE(dest) = *((int *)NativeAligned4FromLAddr(dest))
-                const fixp_ptr = virtual_memory_module.translateAddress(byteoffset, fptovp_table_check, 4) catch {
+                const virtual_memory_check = vm.virtual_memory orelse return errors_module.VMError.MemoryAccessFailed;
+                const fixp_ptr = virtual_memory_module.translateAddress(virtual_memory_check, byteoffset, fptovp_table_check, 4) catch {
                     return errors_module.VMError.InvalidAddress;
                 };
                 const fixp_value_ptr: *i32 = @as(*i32, @ptrCast(@alignCast(fixp_ptr)));
@@ -55,11 +56,11 @@ pub fn handleGETBASEBYTE(vm: *VM) errors.VMError!void {
             return;
         }
     }
-    
+
     // Pop base
     const base = try stack_module.popStack(vm);
     const base_ptr = types.POINTERMASK & base;
-    
+
     // Translate address to native pointer
     const virtual_memory = vm.virtual_memory orelse {
         return errors_module.VMError.MemoryAccessFailed;
@@ -67,19 +68,19 @@ pub fn handleGETBASEBYTE(vm: *VM) errors.VMError!void {
     const fptovp_table = vm.fptovp orelse {
         return errors_module.VMError.MemoryAccessFailed;
     };
-    
-    const native_ptr = virtual_memory_module.translateAddress(base_ptr + @as(LispPTR, @bitCast(@as(i32, @intCast(byteoffset)))), fptovp_table, 1) catch {
+
+    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, base_ptr + @as(LispPTR, @bitCast(@as(i32, @intCast(byteoffset)))), fptovp_table, 1) catch {
         return errors_module.VMError.InvalidAddress;
     };
-    
+
     // Read byte
     const byte_offset = @intFromPtr(native_ptr) - @intFromPtr(virtual_memory.ptr);
     if (byte_offset >= virtual_memory.len) {
         return errors_module.VMError.InvalidAddress;
     }
-    
+
     const byte_value = virtual_memory[byte_offset];
-    
+
     // Push as S_POSITIVE | (0xFF & byte_value)
     const result = types.S_POSITIVE | (@as(LispPTR, byte_value) & 0xFF);
     stack_module.setTopOfStack(vm, result);
@@ -92,10 +93,10 @@ pub fn handleGETBASEBYTE(vm: *VM) errors.VMError!void {
 pub fn handleGETBASE_N(vm: *VM, index: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
     const errors_module = @import("../../utils/errors.zig");
-    
+
     const base = stack_module.getTopOfStack(vm);
     const base_ptr = types.POINTERMASK & base;
-    
+
     // Translate address to native pointer
     const virtual_memory = vm.virtual_memory orelse {
         return errors_module.VMError.MemoryAccessFailed;
@@ -103,20 +104,20 @@ pub fn handleGETBASE_N(vm: *VM, index: u8) errors.VMError!void {
     const fptovp_table = vm.fptovp orelse {
         return errors_module.VMError.MemoryAccessFailed;
     };
-    
-    const native_ptr = virtual_memory_module.translateAddress(base_ptr + @as(LispPTR, index), fptovp_table, 2) catch {
+
+    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, base_ptr + @as(LispPTR, index), fptovp_table, 2) catch {
         return errors_module.VMError.InvalidAddress;
     };
-    
+
     // Read DLword (2 bytes, big-endian from sysout)
     const byte_offset = @intFromPtr(native_ptr) - @intFromPtr(virtual_memory.ptr);
     if (byte_offset + 2 > virtual_memory.len) {
         return errors_module.VMError.InvalidAddress;
     }
-    
+
     const word_bytes = virtual_memory[byte_offset..][0..2];
     const word_value: DLword = (@as(DLword, word_bytes[0]) << 8) | @as(DLword, word_bytes[1]);
-    
+
     // Push as S_POSITIVE | word_value
     const result = types.S_POSITIVE | @as(LispPTR, word_value);
     stack_module.setTopOfStack(vm, result);
@@ -129,10 +130,10 @@ pub fn handleGETBASE_N(vm: *VM, index: u8) errors.VMError!void {
 pub fn handleGETBASEPTR_N(vm: *VM, index: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
     const errors_module = @import("../../utils/errors.zig");
-    
+
     const base = stack_module.getTopOfStack(vm);
     const base_ptr = types.POINTERMASK & base;
-    
+
     // Translate address to native pointer
     const virtual_memory = vm.virtual_memory orelse {
         return errors_module.VMError.MemoryAccessFailed;
@@ -140,23 +141,23 @@ pub fn handleGETBASEPTR_N(vm: *VM, index: u8) errors.VMError!void {
     const fptovp_table = vm.fptovp orelse {
         return errors_module.VMError.MemoryAccessFailed;
     };
-    
-    const native_ptr = virtual_memory_module.translateAddress(base_ptr + @as(LispPTR, index), fptovp_table, 4) catch {
+
+    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, base_ptr + @as(LispPTR, index), fptovp_table, 4) catch {
         return errors_module.VMError.InvalidAddress;
     };
-    
+
     // Read LispPTR (4 bytes, big-endian from sysout)
     const byte_offset = @intFromPtr(native_ptr) - @intFromPtr(virtual_memory.ptr);
     if (byte_offset + 4 > virtual_memory.len) {
         return errors_module.VMError.InvalidAddress;
     }
-    
+
     const ptr_bytes = virtual_memory[byte_offset..][0..4];
     const ptr_value: LispPTR = (@as(LispPTR, ptr_bytes[0]) << 24) |
                                (@as(LispPTR, ptr_bytes[1]) << 16) |
                                (@as(LispPTR, ptr_bytes[2]) << 8) |
                                (@as(LispPTR, ptr_bytes[3]));
-    
+
     // Push as POINTERMASK & ptr_value
     const result = types.POINTERMASK & ptr_value;
     stack_module.setTopOfStack(vm, result);
@@ -171,11 +172,11 @@ pub fn handleGETBASEPTR_N(vm: *VM, index: u8) errors.VMError!void {
 pub fn handleGETBITS_N_FD(vm: *VM, arg1: u8, arg2: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
     const errors_module = @import("../../utils/errors.zig");
-    
+
     const base = stack_module.getTopOfStack(vm);
     const base_ptr = types.POINTERMASK & base;
     const target_addr = base_ptr + @as(LispPTR, arg1);
-    
+
     // Calculate byte offset in virtual memory
     const virtual_memory = vm.virtual_memory orelse {
         return errors_module.VMError.MemoryAccessFailed;
@@ -183,47 +184,47 @@ pub fn handleGETBITS_N_FD(vm: *VM, arg1: u8, arg2: u8) errors.VMError!void {
     const fptovp_table = vm.fptovp orelse {
         return errors_module.VMError.MemoryAccessFailed;
     };
-    
+
     // Calculate byte offset from LispPTR
     const page_num = (target_addr >> 9) & 0x7FFF; // Page number (15 bits)
     const page_offset_dlwords = target_addr & 0x1FF; // Page offset (9 bits, in DLwords)
     const page_offset_bytes = page_offset_dlwords * 2; // Convert DLwords to bytes
-    
+
     // Get virtual page from FPtoVP table
     if (page_num >= fptovp_table.entries.len) {
         return errors_module.VMError.InvalidAddress;
     }
-    
+
     const virtual_page = fptovp_table.getFPtoVP(page_num);
     if (virtual_page == 0) {
         return errors_module.VMError.InvalidAddress;
     }
-    
+
     // Calculate byte offset in virtual memory: virtual_page * 512 + page_offset_bytes
     const BYTESPER_PAGE: usize = 512;
     const byte_offset = (@as(usize, virtual_page) * BYTESPER_PAGE) + page_offset_bytes;
-    
+
     if (byte_offset + 2 > virtual_memory.len) {
         return errors_module.VMError.InvalidAddress;
     }
-    
+
     // Read DLword (2 bytes, big-endian)
     const word_bytes = virtual_memory[byte_offset..byte_offset+2];
     const word_value: DLword = (@as(DLword, word_bytes[0]) << 8) | @as(DLword, word_bytes[1]);
-    
+
     // Parse field descriptor: b = [shift:4][size:4]
     const field_size = 0xF & arg2; // Low 4 bits = field size
     const shift_pos = 0xF & (arg2 >> 4); // High 4 bits = shift position
-    
+
     // Calculate shift: 16 - (shift_pos + field_size + 1)
     const shift = 16 - (@as(u8, shift_pos) + field_size + 1);
-    
+
     // Create mask for field_size bits
     const field_mask: DLword = if (field_size == 0) 0 else (@as(DLword, 1) << @as(u4, @intCast(field_size))) - 1;
-    
+
     // Extract bit field
     const bit_field = (word_value >> @as(u4, @intCast(shift))) & field_mask;
-    
+
     // Push as S_POSITIVE | bit_field
     const result = types.S_POSITIVE | @as(LispPTR, bit_field);
     stack_module.setTopOfStack(vm, result);

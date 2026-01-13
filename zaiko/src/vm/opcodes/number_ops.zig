@@ -108,17 +108,18 @@ pub fn handleBOXIPLUS(vm: *VM) errors.VMError!void {
     if (vm.virtual_memory == null or vm.fptovp == null) {
         return errors_module.VMError.MemoryAccessFailed;
     }
-    
+
     const fptovp_table = vm.fptovp.?;
-    
+    const virtual_memory = vm.virtual_memory.?;
+
     // C: *((int *)NativeAligned4FromLAddr(a)) += arg2;
-    const native_ptr = virtual_memory_module.translateAddress(fixp_box, fptovp_table, 4) catch {
+    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, fixp_box, fptovp_table, 4) catch {
         return errors_module.VMError.InvalidAddress;
     };
-    
+
     const fixp_value_ptr: *i32 = @as(*i32, @ptrCast(@alignCast(native_ptr)));
     fixp_value_ptr.* += arg2;
-    
+
     // C: return (a);
     try stack_module.pushStack(vm, fixp_box);
 }
@@ -153,17 +154,18 @@ pub fn handleBOXIDIFFERENCE(vm: *VM) errors.VMError!void {
     if (vm.virtual_memory == null or vm.fptovp == null) {
         return errors_module.VMError.MemoryAccessFailed;
     }
-    
+
     const fptovp_table = vm.fptovp.?;
-    
+    const virtual_memory = vm.virtual_memory.?;
+
     // C: *((int *)NativeAligned4FromLAddr(a)) -= arg2;
-    const native_ptr = virtual_memory_module.translateAddress(fixp_box, fptovp_table, 4) catch {
+    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, fixp_box, fptovp_table, 4) catch {
         return errors_module.VMError.InvalidAddress;
     };
-    
+
     const fixp_value_ptr: *i32 = @as(*i32, @ptrCast(@alignCast(native_ptr)));
     fixp_value_ptr.* -= arg2;
-    
+
     // C: return (a);
     try stack_module.pushStack(vm, fixp_box);
 }

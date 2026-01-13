@@ -237,19 +237,19 @@ pub fn loadSysout(allocator: std.mem.Allocator, filename: []const u8) errors.Mem
         std.debug.print("WARNING: Sysout loading took {d:.3} seconds (target: < 5 seconds)\n", .{elapsed});
     }
 
-    // CRITICAL VERIFICATION: Check memory at PC 0x307898 after loading
-    const verify_pc: usize = 0x307898;
+    // CRITICAL VERIFICATION: Check memory at PC 0x60f131 (C emulator's actual starting PC)
+    const verify_pc: usize = 0x60f131;
     if (verify_pc < virtual_memory.len and verify_pc + 8 <= virtual_memory.len) {
-        std.debug.print("DEBUG VERIFICATION: Memory at PC 0x307898 after loading:\n", .{});
-        std.debug.print("  Expected (C emulator): 00 00 60 bf c9 12 0a 02\n", .{});
+        std.debug.print("DEBUG VERIFICATION: Memory at PC 0x60f131 after loading (C emulator's starting PC):\n", .{});
+        std.debug.print("  Expected (C emulator trace): 00 60 bf c9 12 0a 02 68\n", .{});
         std.debug.print("  Actual (Zig emulator): ", .{});
         for (0..8) |i| {
             std.debug.print("{x:0>2} ", .{virtual_memory[verify_pc + i]});
         }
         std.debug.print("\n", .{});
 
-        // Check if this matches expected
-        const expected_bytes = [_]u8{ 0x00, 0x00, 0x60, 0xbf, 0xc9, 0x12, 0x0a, 0x02 };
+        // Check if this matches expected (from C trace: [PC+0]=0x00, [PC+1]=0x60, [PC+2]=0xbf, etc.)
+        const expected_bytes = [_]u8{ 0x00, 0x60, 0xbf, 0xc9, 0x12, 0x0a, 0x02, 0x68 };
         var matches = true;
         for (0..8) |i| {
             if (virtual_memory[verify_pc + i] != expected_bytes[i]) {
@@ -258,13 +258,32 @@ pub fn loadSysout(allocator: std.mem.Allocator, filename: []const u8) errors.Mem
             }
         }
         if (!matches) {
-            std.debug.print("  WARNING: Memory at PC 0x307898 does NOT match C emulator!\n", .{});
+            std.debug.print("  WARNING: Memory at PC 0x60f131 does NOT match C emulator!\n", .{});
             std.debug.print("  This indicates a byte-swapping or page loading issue.\n", .{});
         } else {
-            std.debug.print("  SUCCESS: Memory at PC 0x307898 matches C emulator!\n", .{});
+            std.debug.print("  SUCCESS: Memory at PC 0x60f131 matches C emulator!\n", .{});
+        }
+
+        // Also verify XOR addressing reads correctly
+        const memory_access_module = @import("../utils/memory_access.zig");
+        std.debug.print("  XOR addressing verification (Get_Pointer(PC+1)):\n", .{});
+        std.debug.print("    Reading 4 bytes from PC+1 (0x{x}) with XOR addressing:\n", .{verify_pc + 1});
+        var xor_bytes: [4]u8 = undefined;
+        for (0..4) |i| {
+            const addr = verify_pc + 1 + i;
+            const xor_addr = memory_access_module.applyXORAddressingByte(addr);
+            xor_bytes[i] = if (xor_addr < virtual_memory.len) virtual_memory[xor_addr] else 0xFF;
+            std.debug.print("      base+{} = 0x{x}, XOR 3 = 0x{x}, byte = 0x{x:0>2}\n", .{ i, addr, xor_addr, xor_bytes[i] });
+        }
+        const xor_result = (@as(u32, xor_bytes[0]) << 24) | (@as(u32, xor_bytes[1]) << 16) | (@as(u32, xor_bytes[2]) << 8) | @as(u32, xor_bytes[3]);
+        std.debug.print("    Result: 0x{x:0>8} (expected: 0x0000020a from C trace)\n", .{xor_result});
+        if (xor_result == 0x0000020a) {
+            std.debug.print("    SUCCESS: XOR addressing matches C emulator!\n", .{});
+        } else {
+            std.debug.print("    WARNING: XOR addressing result does NOT match C emulator!\n", .{});
         }
     } else {
-        std.debug.print("WARNING: Cannot verify PC 0x307898 - address out of bounds\n", .{});
+        std.debug.print("WARNING: Cannot verify PC 0x60f131 - address out of bounds\n", .{});
         std.debug.print("  PC: 0x{x}, virtual_memory.len: 0x{x}\n", .{ verify_pc, virtual_memory.len });
     }
 

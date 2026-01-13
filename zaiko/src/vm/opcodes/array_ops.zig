@@ -26,8 +26,8 @@ pub fn handleGETAEL1(vm: *VM, index: u8) errors.VMError!void {
     }
 
     // Get array header from memory
-    if (vm.virtual_memory) |_| {
-        const native_ptr = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(array_ptr, fptovp_table, 4) catch {
+    if (vm.virtual_memory) |virtual_memory| {
+        const native_ptr = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(virtual_memory, array_ptr, fptovp_table, 4) catch {
             return errors_module.VMError.MemoryAccessFailed;
         } else {
             return errors_module.VMError.MemoryAccessFailed;
@@ -59,8 +59,8 @@ pub fn handleGETAEL2(vm: *VM, index: u16) errors.VMError!void {
     }
 
     // Get array header from memory
-    if (vm.virtual_memory) |_| {
-        const native_ptr = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(array_ptr, fptovp_table, 4) catch {
+    if (vm.virtual_memory) |virtual_memory| {
+        const native_ptr = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(virtual_memory, array_ptr, fptovp_table, 4) catch {
             return errors_module.VMError.MemoryAccessFailed;
         } else {
             return errors_module.VMError.MemoryAccessFailed;
@@ -92,8 +92,8 @@ pub fn handleSETAEL1(vm: *VM, index: u8) errors.VMError!void {
     }
 
     // Get array header from memory
-    if (vm.virtual_memory) |_| {
-        const native_ptr = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(array_ptr, fptovp_table, 4) catch {
+    if (vm.virtual_memory) |virtual_memory| {
+        const native_ptr = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(virtual_memory, array_ptr, fptovp_table, 4) catch {
             return errors_module.VMError.MemoryAccessFailed;
         } else {
             return errors_module.VMError.MemoryAccessFailed;
@@ -125,8 +125,8 @@ pub fn handleSETAEL2(vm: *VM, index: u16) errors.VMError!void {
     }
 
     // Get array header from memory
-    if (vm.virtual_memory) |_| {
-        const native_ptr = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(array_ptr, fptovp_table, 4) catch {
+    if (vm.virtual_memory) |virtual_memory| {
+        const native_ptr = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(virtual_memory, array_ptr, fptovp_table, 4) catch {
             return errors_module.VMError.MemoryAccessFailed;
         } else {
             return errors_module.VMError.MemoryAccessFailed;
@@ -167,13 +167,14 @@ pub fn handleAREF1(vm: *VM) errors.VMError!void {
         try stack_module.pushStack(vm, 0);
         return;
     }
-    
+
     const fptovp_table = vm.fptovp.?;
-    const native_ptr = virtual_memory_module.translateAddress(arrayarg, fptovp_table, 4) catch {
+    const virtual_memory = vm.virtual_memory orelse return error.MemoryAccessFailed;
+    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, arrayarg, fptovp_table, 4) catch {
         try stack_module.pushStack(vm, 0);
         return;
     };
-    
+
     const arrayblk: *array_module.OneDArray = @as(*array_module.OneDArray, @ptrCast(@alignCast(native_ptr)));
 
     // C: if ((TOPOFSTACK & SEGMASK) != S_POSITIVE) goto aref_ufn;
@@ -185,26 +186,26 @@ pub fn handleAREF1(vm: *VM) errors.VMError!void {
 
     // C: index = TOPOFSTACK & 0xFFFF;
     var index = @as(u16, @truncate(index_value));
-    
+
     // C: if (index >= arrayblk->totalsize) goto aref_ufn;
     if (index >= arrayblk.totalsize) {
         try stack_module.pushStack(vm, 0);
         return;
     }
-    
+
     // C: index += arrayblk->offset;
     index = @as(u16, @intCast(@as(u32, index) + arrayblk.offset));
-    
+
     // C: baseL = arrayblk->base;
     const baseL = arrayblk.base;
-    
+
     // C: switch (arrayblk->typenumber) { ... }
     // Dispatch on type number
     const element_value = switch (arrayblk.typenumber) {
         array_module.TYPE_POINTER => blk: {
             // Pointer: 32 bits
             // C: TOPOFSTACK = *(NativeAligned4FromLAddr(baseL) + index);
-            const base_native = virtual_memory_module.translateAddress(@as(LispPTR, baseL), fptovp_table, 4) catch {
+            const base_native = virtual_memory_module.translateAddress(virtual_memory, @as(LispPTR, baseL), fptovp_table, 4) catch {
                 try stack_module.pushStack(vm, 0);
                 return;
             };
@@ -214,7 +215,7 @@ pub fn handleAREF1(vm: *VM) errors.VMError!void {
         array_module.TYPE_SIGNED_16 => blk: {
             // Signed: 16 bits
             // C: TOPOFSTACK = (GETWORD(((DLword *)NativeAligned2FromLAddr(baseL)) + index)) & 0xFFFF;
-            const base_native = virtual_memory_module.translateAddress(@as(LispPTR, baseL), fptovp_table, 2) catch {
+            const base_native = virtual_memory_module.translateAddress(virtual_memory, @as(LispPTR, baseL), fptovp_table, 2) catch {
                 try stack_module.pushStack(vm, 0);
                 return;
             };
@@ -229,7 +230,7 @@ pub fn handleAREF1(vm: *VM) errors.VMError!void {
         array_module.TYPE_CHARACTER => blk: {
             // Character: 8 bits
             // C: TOPOFSTACK = S_CHARACTER | ((GETBYTE(((char *)NativeAligned2FromLAddr(baseL)) + index)) & 0xFF);
-            const base_native = virtual_memory_module.translateAddress(@as(LispPTR, baseL), fptovp_table, 2) catch {
+            const base_native = virtual_memory_module.translateAddress(virtual_memory, @as(LispPTR, baseL), fptovp_table, 2) catch {
                 try stack_module.pushStack(vm, 0);
                 return;
             };
@@ -244,7 +245,7 @@ pub fn handleAREF1(vm: *VM) errors.VMError!void {
             return;
         },
     };
-    
+
     // C: TOPOFSTACK = element_value; (replace index with element)
     stack_module.setTopOfStack(vm, element_value);
 }
@@ -275,13 +276,14 @@ pub fn handleASET1(vm: *VM) errors.VMError!void {
         try stack_module.pushStack(vm, arrayarg);
         return;
     }
-    
+
     const fptovp_table = vm.fptovp.?;
-    const native_ptr = virtual_memory_module.translateAddress(arrayarg, fptovp_table, 4) catch {
+    const virtual_memory = vm.virtual_memory orelse return error.MemoryAccessFailed;
+    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, arrayarg, fptovp_table, 4) catch {
         try stack_module.pushStack(vm, arrayarg);
         return;
     };
-    
+
     const arrayblk: *array_module.OneDArray = @as(*array_module.OneDArray, @ptrCast(@alignCast(native_ptr)));
 
     // C: if ((index_value & SEGMASK) != S_POSITIVE) goto aset_ufn;
@@ -292,26 +294,26 @@ pub fn handleASET1(vm: *VM) errors.VMError!void {
 
     // C: index = index_value & 0xFFFF;
     var index = @as(u16, @truncate(index_value));
-    
+
     // C: if (index >= arrayblk->totalsize) goto aset_ufn;
     if (index >= arrayblk.totalsize) {
         try stack_module.pushStack(vm, arrayarg);
         return;
     }
-    
+
     // C: index += arrayblk->offset;
     index = @as(u16, @intCast(@as(u32, index) + arrayblk.offset));
-    
+
     // C: base = arrayblk->base;
     const base = arrayblk.base;
-    
+
     // C: aset_switch(arrayblk->typenumber, inx);
     // Dispatch on type number
     switch (arrayblk.typenumber) {
         array_module.TYPE_POINTER => {
             // Pointer: 32 bits
             // C: *(NativeAligned4FromLAddr(base) + index) = value;
-            const base_native = virtual_memory_module.translateAddress(@as(LispPTR, base), fptovp_table, 4) catch {
+            const base_native = virtual_memory_module.translateAddress(virtual_memory, @as(LispPTR, base), fptovp_table, 4) catch {
                 try stack_module.pushStack(vm, arrayarg);
                 return;
             };
@@ -321,7 +323,7 @@ pub fn handleASET1(vm: *VM) errors.VMError!void {
         array_module.TYPE_SIGNED_16 => {
             // Signed: 16 bits
             // C: GETWORD(((DLword *)NativeAligned2FromLAddr(base)) + index) = GetLoWord(value);
-            const base_native = virtual_memory_module.translateAddress(@as(LispPTR, base), fptovp_table, 2) catch {
+            const base_native = virtual_memory_module.translateAddress(virtual_memory, @as(LispPTR, base), fptovp_table, 2) catch {
                 try stack_module.pushStack(vm, arrayarg);
                 return;
             };
@@ -331,7 +333,7 @@ pub fn handleASET1(vm: *VM) errors.VMError!void {
         array_module.TYPE_CHARACTER => {
             // Character: 8 bits
             // C: GETBYTE(((char *)NativeAligned2FromLAddr(base)) + index) = value & 0xFF;
-            const base_native = virtual_memory_module.translateAddress(@as(LispPTR, base), fptovp_table, 2) catch {
+            const base_native = virtual_memory_module.translateAddress(virtual_memory, @as(LispPTR, base), fptovp_table, 2) catch {
                 try stack_module.pushStack(vm, arrayarg);
                 return;
             };
@@ -345,7 +347,7 @@ pub fn handleASET1(vm: *VM) errors.VMError!void {
             return;
         },
     }
-    
+
     // C: Push array_ptr back
     try stack_module.pushStack(vm, arrayarg);
 }

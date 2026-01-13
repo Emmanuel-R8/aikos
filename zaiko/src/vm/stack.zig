@@ -70,6 +70,8 @@ pub const VM = struct {
     // This avoids reading garbage from stack memory initially
     // DEBUG: Added cached TopOfStack to match C implementation
     top_of_stack: LispPTR, // Cached top of stack value (initially 0 = NIL)
+    // Execution tracer (persists across dispatch() calls to avoid overwriting log)
+    execution_tracer: ?@import("execution_trace.zig").ExecutionTrace,
 
     pub fn init(allocator: std.mem.Allocator, stack_size: usize) !VM {
         // CRITICAL: stack_size is in BYTES, but alloc() expects count of DLwords
@@ -92,6 +94,7 @@ pub const VM = struct {
             .pc = 0,
             .return_pc = null,
             .top_of_stack = 0, // C: TopOfStack = 0; (initially empty stack)
+            .execution_tracer = null, // Will be initialized on first dispatch() call
         };
     }
 
@@ -110,8 +113,21 @@ pub const VM = struct {
     }
 
     pub fn deinit(self: *VM) void {
-        // Stack memory will be freed by allocator
-        _ = self;
+        // Free stack memory if it was allocated
+        // Stack memory is allocated in init() and stored in stack_base/stack_end
+        // stack_base points to end of allocation, stack_end points to start
+        // Check if stack_end is valid (not null pointer)
+        const stack_end_addr = @intFromPtr(self.stack_end);
+        const stack_base_addr = @intFromPtr(self.stack_base);
+        if (stack_end_addr != 0 and stack_base_addr > stack_end_addr) {
+            // Calculate allocation size: stack_base - stack_end (in DLwords)
+            const stack_size_dlwords = (stack_base_addr - stack_end_addr) / @sizeOf(DLword);
+            if (stack_size_dlwords > 0) {
+                // Convert to slice and free
+                const stack_slice = self.stack_end[0..stack_size_dlwords];
+                self.allocator.free(stack_slice);
+            }
+        }
     }
 };
 
@@ -290,17 +306,17 @@ pub fn pushStack(vm: *VM, value: LispPTR) errors.VMError!void {
     // C implementation: CurrentStackPTR -= 2; *((LispPTR *)(void *)(CurrentStackPTR)) = x;
     // Stack grows DOWN, so move DOWN by 2 DLwords first, then store
     vm.stack_ptr -= 2; // Move DOWN by 2 DLwords (stack grows down)
-    
+
     // Write big-endian format: [high_byte, low_byte] for each DLword
     const stack_ptr_bytes: [*]u8 = @ptrCast(vm.stack_ptr);
     const low_word = @as(DLword, @truncate(value));
     const high_word = @as(DLword, @truncate(value >> 16));
-    
+
     stack_ptr_bytes[0] = @as(u8, @truncate(low_word >> 8));
     stack_ptr_bytes[1] = @as(u8, @truncate(low_word & 0xFF));
     stack_ptr_bytes[2] = @as(u8, @truncate(high_word >> 8));
     stack_ptr_bytes[3] = @as(u8, @truncate(high_word & 0xFF));
-    
+
     // Update cached TopOfStack value
     vm.top_of_stack = value;
 }
@@ -336,9 +352,9 @@ pub fn popStack(vm: *VM) errors.VMError!LispPTR {
     const low_word_be = (@as(DLword, stack_ptr_bytes[0]) << 8) | @as(DLword, stack_ptr_bytes[1]);
     const high_word_be = (@as(DLword, stack_ptr_bytes[2]) << 8) | @as(DLword, stack_ptr_bytes[3]);
     const value: LispPTR = (@as(LispPTR, high_word_be) << 16) | @as(LispPTR, low_word_be);
-    
+
     vm.stack_ptr -= 2; // Move DOWN by 2 DLwords (stack grows down)
-    
+
     // Update cached TopOfStack value
     // After popping, read new top of stack (or set to 0 if empty)
     if (@intFromPtr(vm.stack_ptr) <= @intFromPtr(vm.stack_base)) {
@@ -372,7 +388,7 @@ pub fn getTopOfStack(vm: *const VM) LispPTR {
 pub fn setTopOfStack(vm: *VM, value: LispPTR) void {
     // C: TopOfStack = value; (updates cached value)
     vm.top_of_stack = value;
-    
+
     // Also write to memory if stack_ptr is valid
     const stack_base_addr = @intFromPtr(vm.stack_base);
     const stack_ptr_addr = @intFromPtr(vm.stack_ptr);
@@ -382,7 +398,7 @@ pub fn setTopOfStack(vm: *VM, value: LispPTR) void {
         const stack_ptr_bytes: [*]u8 = @ptrCast(vm.stack_ptr);
         const low_word = @as(DLword, @truncate(value));
         const high_word = @as(DLword, @truncate(value >> 16));
-        
+
         // Write big-endian: [high_byte, low_byte]
         stack_ptr_bytes[0] = @as(u8, @truncate(low_word >> 8));
         stack_ptr_bytes[1] = @as(u8, @truncate(low_word & 0xFF));

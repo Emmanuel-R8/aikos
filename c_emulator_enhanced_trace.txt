@@ -1,0 +1,227 @@
+Failed to find UNIXCOMM file handles; no processes
+
+=== CRITICAL: BUILD CONFIGURATION DIAGNOSTICS (EARLY) ===
+TEST 1: BIGVM is DEFINED at compile time
+TEST 1: BYTESWAP is DEFINED at compile time
+
+TEST 2: Pointer type and size:
+  sizeof(DLword) = 2 bytes
+  sizeof(unsigned int) = 4 bytes
+  sizeof(void *) = 8 bytes
+  fptovp declared as: unsigned int *
+
+TEST 3: Code path (compile-time check):
+  Will execute BIGVM code path (should malloc sysout_size * 2)
+
+=== EXECUTING BIGVM CODE PATH ===
+TEST 8: BIGVM code path - malloc(66544 bytes) for 16635 entries
+TEST 8: BIGVM path - Reading 66540 bytes (sysout_size * 2)
+requested width: 1024, height: 768
+initialised
+Window created
+Creating renderer...
+Creating texture...
+SDL initialised
+DEBUG FPtoVP: ifpage.fptovpstart = 1023 (0x3ff)
+DEBUG FPtoVP: Calculated offset = 523268 (0x7fc04)
+DEBUG sysout_loader: Checking FPtoVP for stack area (virtual pages 256-384)
+  File page 766 -> virtual page 256 (in stack area)
+  File page 767 -> virtual page 257 (in stack area)
+  File page 768 -> virtual page 258 (in stack area)
+  File page 769 -> virtual page 259 (in stack area)
+  File page 770 -> virtual page 260 (in stack area)
+  File page 771 -> virtual page 261 (in stack area)
+  File page 772 -> virtual page 262 (in stack area)
+  File page 773 -> virtual page 263 (in stack area)
+  File page 774 -> virtual page 264 (in stack area)
+  File page 775 -> virtual page 265 (in stack area)
+  File page 776 -> virtual page 266 (in stack area)
+  File page 777 -> virtual page 267 (in stack area)
+  File page 778 -> virtual page 268 (in stack area)
+  File page 779 -> virtual page 269 (in stack area)
+  File page 780 -> virtual page 270 (in stack area)
+  File page 781 -> virtual page 271 (in stack area)
+  File page 782 -> virtual page 272 (in stack area)
+  File page 783 -> virtual page 273 (in stack area)
+  File page 784 -> virtual page 274 (in stack area)
+  File page 785 -> virtual page 275 (in stack area)
+  File page 786 -> virtual page 276 (in stack area)
+  File page 787 -> virtual page 277 (in stack area)
+  File page 788 -> virtual page 278 (in stack area)
+  File page 789 -> virtual page 279 (in stack area)
+  File page 790 -> virtual page 280 (in stack area)
+  File page 791 -> virtual page 281 (in stack area)
+  File page 792 -> virtual page 282 (in stack area)
+  File page 793 -> virtual page 283 (in stack area)
+  File page 794 -> virtual page 284 (in stack area)
+  File page 795 -> virtual page 285 (in stack area)
+  File page 796 -> virtual page 286 (in stack area)
+  File page 797 -> virtual page 287 (in stack area)
+  File page 798 -> virtual page 288 (in stack area)
+  File page 799 -> virtual page 289 (in stack area)
+  File page 800 -> virtual page 290 (in stack area)
+  File page 801 -> virtual page 291 (in stack area)
+  File page 9417 -> virtual page 292 (in stack area)
+  File page 9418 -> virtual page 293 (in stack area)
+  File page 9419 -> virtual page 294 (in stack area)
+  File page 9420 -> virtual page 295 (in stack area)
+  File page 9421 -> virtual page 296 (in stack area)
+  File page 9422 -> virtual page 297 (in stack area)
+  File page 9423 -> virtual page 298 (in stack area)
+  File page 9424 -> virtual page 299 (in stack area)
+  File page 9425 -> virtual page 300 (in stack area)
+  File page 9426 -> virtual page 301 (in stack area)
+  File page 9427 -> virtual page 302 (in stack area)
+  File page 9633 -> virtual page 303 (in stack area)
+  File page 9634 -> virtual page 304 (in stack area)
+  File page 9651 -> virtual page 305 (in stack area)
+  File page 9654 -> virtual page 306 (in stack area)
+  File page 9681 -> virtual page 307 (in stack area)
+  File page 9682 -> virtual page 308 (in stack area)
+  File page 9683 -> virtual page 309 (in stack area)
+  File page 9684 -> virtual page 310 (in stack area)
+  File page 9685 -> virtual page 311 (in stack area)
+  File page 10465 -> virtual page 312 (in stack area)
+  File page 10466 -> virtual page 313 (in stack area)
+  File page 10685 -> virtual page 314 (in stack area)
+  File page 14754 -> virtual page 315 (in stack area)
+  File page 14755 -> virtual page 316 (in stack area)
+  File page 14756 -> virtual page 317 (in stack area)
+  File page 16617 -> virtual page 292 (in stack area)
+  File page 16618 -> virtual page 293 (in stack area)
+  File page 16619 -> virtual page 294 (in stack area)
+  File page 16620 -> virtual page 295 (in stack area)
+  File page 16621 -> virtual page 296 (in stack area)
+  File page 16622 -> virtual page 297 (in stack area)
+  File page 16623 -> virtual page 298 (in stack area)
+  File page 16624 -> virtual page 299 (in stack area)
+  File page 16625 -> virtual page 300 (in stack area)
+  File page 16626 -> virtual page 301 (in stack area)
+  File page 16629 -> virtual page 302 (in stack area)
+  File page 16630 -> virtual page 303 (in stack area)
+  File page 16633 -> virtual page 304 (in stack area)
+  File page 16634 -> virtual page 305 (in stack area)
+  Found 76 file pages mapping to stack area
+DEBUG FPtoVP: Starting page loading loop (sysout_size/2 = 16635)
+DEBUG sysout_loader: Loading file page 5178 -> virtual page 6204 (PC PAGE 0x307898)
+  Virtual address = 0x7ffb24307800 (offset 0x307800)
+  PC 0x307898 is at offset 0x98 (0x98 bytes) in this page
+DEBUG sysout_loader: PC PAGE - Raw bytes from file (BEFORE byte-swap):
+  First 16 bytes: 0x00 0x31 0xc8 0x15 0x00 0x35 0x00 0x2e 0xc8 0x15 0x00 0x48 0xc8 0x15 0x00 0x46 
+  Bytes at PC offset 0x98 (0x98): 0x00 0x0e 0x00 0x05 0x00 0x36 0x00 0x3f 
+DEBUG sysout_loader: PC PAGE - Bytes AFTER byte-swap (in virtual memory):
+  First 16 bytes at virtual address 0x7ffb24307800: 0x15 0xc8 0x31 0x00 0x2e 0x00 0x35 0x00 0x48 0x00 0x15 0xc8 0x46 0x00 0x15 0xc8 
+  Bytes at PC location (offset 0x98, address 0x7ffb24307898): 0x05 0x00 0x0e 0x00 0x3f 0x00 0x36 0x00 
+DEBUG FPtoVP: At file page 9427 (loop iteration 9427):
+  Entry bytes: [0x00, 0x00]
+  GETPAGEOK(fptovp, 9427) = 0x0000 (0)
+  GETFPTOVP(fptovp, 9427) = 0x012e (302)
+  *** Maps to virtual page 302 (frame page)! ***
+
+=== CRITICAL: Entry 9427 Macro Expansion Test ===
+TEST 6: Entry 9427 (BIGVM mode - 32-bit cell):
+  Full 32-bit value: 0x0000012e (302)
+  Low 16 bits (GETFPTOVP): 0x012e (302)
+  High 16 bits (GETPAGEOK): 0x0000 (0)
+  GETWORDBASEWORD(fptovp, 9427) = 0x0000 (0)
+  GETPAGEOK(fptovp, 9427) = 0x0000 (0)
+  GETFPTOVP(fptovp, 9427) = 0x012e (302)
+  RESULT: Macros return DIFFERENT values!
+    GETPAGEOK != GETFPTOVP - BIGVM behavior detected!
+
+TEST 7: Pointer arithmetic for entry 9427:
+  fptovp base = 0x55e73e586430
+  Entry 9427 via DLword*: 0x55e73e58add6 (offset 18854 bytes)
+  Entry 9427 via bytes: 0x55e73e58add6 (offset 18854 bytes)
+  RESULT: Pointer arithmetic matches (expected)
+=== END Entry 9427 Tests ===
+
+DEBUG FPtoVP: Entry 9427 - GETPAGEOK = 0x0000 (0)
+DEBUG FPtoVP: FIRST call to GETFPTOVP(fptovp, 9427) = 0x012e (302)
+DEBUG FPtoVP: fptovp pointer = 0x55e73e586430
+DEBUG FPtoVP: Loading file page 9427:
+  Direct byte access: bytes=[0x00,0x00] value=0x0000 (0)
+  Array access fptovp[9427]: 0x0000 (0)
+  GETWORDBASEWORD(fptovp, 9427): 0x0000 (0)
+  GETFPTOVP(fptovp, 9427): 0x012e (302) <-- USED FOR LOADING
+  Virtual page = 302
+  *** Loading to virtual page 302 (FRAME PAGE) ***
+  *** CRITICAL: Direct bytes don't match GETFPTOVP! ***
+  *** This explains the mystery! ***
+  Direct access address: 0x55e73e58add6
+  GETFPTOVP access address: 0x55e73e58add6
+  GETFPTOVP reads bytes: [0x00,0x00]
+  *** SAME ADDRESS but different values! This is impossible! ***
+  *** Possible causes: memory corruption, race condition, or compiler bug ***
+DEBUG sysout_loader: After loading frame page, checking contents:
+  Frame address = 0x7ffb24025c00
+  First 16 bytes:
+    [0] = 0x2e    [1] = 0x00    [2] = 0x10    [3] = 0x2e
+    [4] = 0xae    [5] = 0x55    [6] = 0x75    [7] = 0x00
+    [8] = 0x00    [9] = 0x00    [10] = 0x00    [11] = 0x00
+    [12] = 0x00    [13] = 0x00    [14] = 0x00    [15] = 0x00
+
+DEBUG sysout_loader: After loading frame page, checking contents:
+  Frame address = 0x7ffb24025c00
+  First 16 bytes:
+    [0] = 0x2e    [1] = 0x00    [2] = 0x10    [3] = 0x2e
+    [4] = 0xae    [5] = 0x55    [6] = 0x75    [7] = 0x00
+    [8] = 0x00    [9] = 0x00    [10] = 0x00    [11] = 0x00
+    [12] = 0x00    [13] = 0x00    [14] = 0x00    [15] = 0x00
+
+DEBUG sysout_loader: FINAL check of frame location (virtual page 302)
+  Frame approximate address = 0x7ffb24025c00
+  Frame memory contents (first 16 bytes):
+    [0] = 0x2e    [1] = 0x00    [2] = 0x10    [3] = 0x2e
+    [4] = 0xae    [5] = 0x55    [6] = 0x75    [7] = 0x00
+    [8] = 0x00    [9] = 0x00    [10] = 0x00    [11] = 0x00
+    [12] = 0x00    [13] = 0x00    [14] = 0x00    [15] = 0x00
+
+DEBUG start_lisp: BEFORE reading CURRENTFX->nextblock
+  Stackspace = 0x7ffb24020000
+  currentfxp = 0x2e72
+  Frame address = 0x7ffb24025ce4
+  Frame memory contents (first 16 bytes):
+    [0] = 0x60    [1] = 0x2e    [2] = 0x00    [3] = 0xc1
+    [4] = 0x64    [5] = 0x78    [6] = 0x30    [7] = 0x00
+    [8] = 0x68    [9] = 0x00    [10] = 0x8a    [11] = 0x2e
+    [12] = 0xc8    [13] = 0xea    [14] = 0x6c    [15] = 0x00
+
+  Frame fields (as struct):
+    fnheader = 0x307864
+    nextblock = 0x2e8a
+    pc = 0x68
+DEBUG start_lisp: CURRENTFX calculation
+  PVar = 0x7ffb24025cf8
+  CURRENTFX = 0x7ffb24025ce4 (PVar - FRAMESIZE)
+  CURRENTFX->nextblock = 0x2e8a
+DEBUG start_lisp: AFTER reading CURRENTFX->nextblock
+  currentfxp=0x2e72
+  CURRENTFX at 0x7ffb24025ce4
+  CURRENTFX->nextblock=0x2e8a
+  Frame memory contents (first 16 bytes) AFTER reading:
+    [0] = 0x60    [1] = 0x2e    [2] = 0x00    [3] = 0xc1
+    [4] = 0x64    [5] = 0x78    [6] = 0x30    [7] = 0x00
+    [8] = 0x68    [9] = 0x00    [10] = 0x8a    [11] = 0x2e
+    [12] = 0xc8    [13] = 0xea    [14] = 0x6c    [15] = 0x00
+
+DEBUG start_lisp: CURRENTFX->fnheader=0x307864
+DEBUG start_lisp: CURRENTFX->pc=104 (0x68)
+DEBUG start_lisp: TopOfStack=0x0
+DEBUG start_lisp: CurrentStackPTR=0x7ffb24025d10, stack_base=0x7ffb24020000, diff=11912 DLwords
+DEBUG start_lisp: Stack depth (before FastRetCALL): 5956 DLwords
+DEBUG start_lisp: After FastRetCALL:
+DEBUG start_lisp: FuncObj=0x7ffb2460f0c8 (Lisp_world+0x60f0c8)
+DEBUG start_lisp: PC=0x7ffb2460f130 (Lisp_world+0x60f130)
+DEBUG start_lisp: PC offset from FuncObj=104 bytes
+DEBUG start_lisp: IVar=0x7ffb24025cdc
+DEBUG start_lisp: First opcode at PC: 0x00
+DEBUG start_lisp: TopOfStack after FastRetCALL: 0x0
+DEBUG start_lisp: CurrentStackPTR after FastRetCALL: 0x7ffb24025d10, diff=5956 DLwords
+CL:NIL
+
+*Error* Segmentation fault at address 0x7ffb23fffffc.
+Please record the signal and code information
+and do a 'v' before trying anything else.
+Enter the URaid
+Reopen of stdin failed.: No such device or address
