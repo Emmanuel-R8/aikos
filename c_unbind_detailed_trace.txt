@@ -1,8 +1,8 @@
 === DETAILED UNBIND TRACING (Instruction #3) ===
 
-PC (byte pointer): 0x7f670060f136
+PC (byte pointer): 0x7f33d060f136
 PC offset from Lisp_world: 0x60f136 bytes (0x30789b DLwords)
-CurrentStackPTR: 0x7f6700025d10
+CurrentStackPTR: 0x7f33d0025d10
 CurrentStackPTR offset from Lisp_world: 0x25d10 bytes
 
 === Stack State Before UNBIND ===
@@ -20,8 +20,8 @@ Top 10 stack entries (from CurrentStackPTR backwards):
   [9] = 0x05a50000 (94699520) 
 
 === Marker Search (walking backwards) ===
-  Step 0: [0x7f6700025d0e] = 0x000efffe (983038) - continue searching
-  Found marker at [0x7f6700025d0c] = 0xfffe0002
+  Step 0: [0x7f33d0025d0e] = 0x000efffe (983038) - continue searching
+  Found marker at [0x7f33d0025d0c] = 0xfffe0002
 
 === Marker Analysis ===
   Marker value: 0xfffe0002
@@ -29,11 +29,11 @@ Top 10 stack entries (from CurrentStackPTR backwards):
   offset = GetLoWord(value) = 0x0002 (2)
 
 === PVAR Calculation ===
-  PVAR = 0x7f6700025cf8
-  PVAR + 2 DLwords = 0x7f6700025cfc
-  ppvar = PVAR + 2 + offset = 0x7f6700025d00
+  PVAR = 0x7f33d0025cf8
+  PVAR + 2 DLwords = 0x7f33d0025cfc
+  ppvar = PVAR + 2 + offset = 0x7f33d0025d00
   ppvar offset from Lisp_world: 0x25d00 bytes
 
 === Values to be Unbound ===
   Will unbind 1 values starting from ppvar[0] backwards:
-    ppvar[0] = [0x7f6700025d00] = 0x2eb405a5 (will be set to 0xffffffff)
+    ppvar[0] = [0x7f33d0025d00] = 0x2eb405a5 (will be set to 0xffffffff)

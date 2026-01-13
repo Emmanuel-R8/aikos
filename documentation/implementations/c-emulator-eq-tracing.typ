@@ -1,6 +1,6 @@
 # C Emulator EQ Opcode Tracing
 
-**Date**: 2025-01-27  
+**Date**: 2025-01-27
 **Status**: ✅ Completed - Traced EQ opcode execution
 
 ## Overview
@@ -76,7 +76,7 @@ This confirms that EQ:
 
 1. **Pointer Equality**: EQ performs simple pointer equality comparison (no deep comparison)
 2. **Stack Consumption**: Both operands are consumed (TOS and POP_TOS_1)
-3. **Result Values**: 
+3. **Result Values**:
    - Equal: ATOM_T (0x4c) - represents T/true
    - Not Equal: NIL_PTR (0x00000000) - represents NIL/false
 4. **PC Advancement**: PC advances by 1 byte
