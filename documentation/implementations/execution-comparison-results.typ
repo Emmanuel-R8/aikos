@@ -1,7 +1,8 @@
 = Execution Comparison Results: C vs Zig Emulators
 
-*Date*: 2026-01-12 20:00 *Status*: In Progress *Purpose*: Document execution comparison results between C and Zig
-emulators
+*Date*: 2026-01-12 20:00, Updated 2026-01-14 10:59
+*Status*: In Progress - Zig emulator crashes at instruction #3 (UNBIND)
+*Purpose*: Document execution comparison results between C and Zig emulators
 
 == Overview
 
@@ -49,12 +50,45 @@ Traced, Fixed (offset) | | 4 | 0x60f137 | GETBASEPTR_N | 0x60f137 | GETBASEPTR_N
 
 == Remaining Issues
 
-=== Zig Emulator Crash After ~48 Instructions
+=== Zig Emulator Crash at Instruction #3 (UNBIND) - 2026-01-14
 
-*Status*: ⚠️ Under Investigation
+*Status*: ❌ Critical - Blocks log comparison
 
-The Zig emulator crashes after approximately 48 instructions with `error.InvalidAddress`. This occurs after successful
-execution of the first 5 instructions.
+After refactoring the C emulator tracing code into `maiko/src/tracing/`, we tested log generation:
+
+*C Emulator*:
+- ✅ Successfully generates 1000-line execution log
+- ✅ Log file: `c_emulator_execution_log.txt`
+- ✅ Starting PC: `0x60f130` (matches expected)
+- ✅ Complete log format with all fields
+
+*Zig Emulator*:
+- ❌ Crashes at instruction #3 (UNBIND opcode)
+- ❌ Only generates 3 lines before crash
+- ✅ Starting PC: `0x60f130` (matches C emulator)
+- ⚠️ Log format appears incomplete/truncated
+
+*Crash Details*:
+- Location: `zaiko/src/vm/dispatch/execution_control.zig:110`
+- Function: `opcodes.handleUNBIND(vm)`
+- Stack trace: `handleControlFlow` → `routeOpcode` → `executeOpcodeWithOperands` → `executeInstruction` → `executeInstructionInLoop` → `dispatch`
+
+*Comparison Findings*:
+- Instruction #1 (POP): ✅ PC matches (`0x60f130`), but Zig log format incomplete
+- Instruction #2 (GVAR): ✅ PC matches (`0x60f131`), but stack values differ (TOS differs)
+- Instruction #3 (UNBIND): ✅ PC matches (`0x60f136`), but Zig crashes before completing
+
+*Next Steps*:
+1. Fix UNBIND crash in Zig emulator
+2. Fix Zig log format to match C format (complete fields)
+3. Investigate why TOS differs at instruction #2
+4. Re-run comparison once fixes are applied
+
+=== Zig Emulator Crash After ~48 Instructions (Previous Issue)
+
+*Status*: ⚠️ Superseded by instruction #3 crash
+
+The Zig emulator previously crashed after approximately 48 instructions with `error.InvalidAddress`. This issue is now superseded by the earlier crash at instruction #3.
 
 *Possible Causes*:
 1. Invalid address calculation in atom lookup
@@ -92,11 +126,11 @@ implementation matches C behavior ⚠️ Zig crashes after ~48 instructions (inv
 
 == Next Steps
 
-1. Investigate Zig emulator crash at instruction 48
-2. Add enhanced tracing around crash point
-3. Compare stack/frame state at divergence
-4. Fix address calculation or memory access issue
-5. Verify execution continues to 1000 instructions
+1. **Fix UNBIND crash** (Priority 1): Investigate and fix panic in `handleUNBIND` at instruction #3
+2. **Fix Zig log format**: Ensure Zig log format matches C format (complete fields)
+3. **Fix stack values**: Investigate why TOS differs at instruction #2 (GVAR)
+4. **Re-run comparison**: Once fixes are applied, regenerate logs and compare
+5. **Verify execution**: Ensure Zig emulator can execute 1000 instructions without crashing
 
 == Related Documentation
 

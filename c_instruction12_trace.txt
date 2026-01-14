@@ -1,0 +1,17 @@
+=== INSTRUCTION #12 TRACING ===
+
+PC (byte pointer): 0x7fb857a0f14a
+PC offset from Lisp_world: 0x60f14a bytes (0x3078a5 DLwords)
+Opcode byte: 0x6c (0154 octal)
+Opcode name: SIC
+TopOfStack: 0x00000000
+
+Memory bytes at PC:
+  [PC+0] = 0x64
+  [PC+1] = 0x3e
+  [PC+2] = 0x6f
+  [PC+3] = 0xbf
+  [PC+4] = 0x97
+  [PC+5] = 0xf0
+  [PC+6] = 0x78
+  [PC+7] = 0x3a

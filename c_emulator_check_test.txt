@@ -26,3 +26,4 @@ AUTO: Count=1000 reached, check should trigger next
 AUTO: Count=1000 reached, check should trigger next
 AUTO: Count=1000 reached, check should trigger next
 AUTO: Count=1000 reached, check should trigger next
+AUTO: Count=1000 reached, check should trigger next

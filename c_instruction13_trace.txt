@@ -1,0 +1,17 @@
+=== INSTRUCTION #13 TRACING ===
+
+PC (byte pointer): 0x7fb857a0f14c
+PC offset from Lisp_world: 0x60f14c bytes (0x3078a6 DLwords)
+Opcode byte: 0xf0 (0360 octal)
+Opcode name: EQ
+TopOfStack: 0x00000000
+
+Memory bytes at PC:
+  [PC+0] = 0x6f
+  [PC+1] = 0xbf
+  [PC+2] = 0x97
+  [PC+3] = 0xf0
+  [PC+4] = 0x78
+  [PC+5] = 0x3a
+  [PC+6] = 0x7f
+  [PC+7] = 0x00

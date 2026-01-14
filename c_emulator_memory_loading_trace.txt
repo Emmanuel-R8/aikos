@@ -1,0 +1,178 @@
+=== Memory Loading Trace ===
+File: medley/internal/loadups/starter.sysout
+File size: 8517120 bytes
+Number of pages: 16635
+
+=== FPtoVP Table Loading ===
+FPtoVP offset: 0x7fc04 (523268 bytes)
+FPtoVP entries: 16635
+Byte-swap boundary: 8318 (first 8318 entries swapped)
+
+First 10 FPtoVP entries (BEFORE byte-swap):
+  FPtoVP[0] = 65535 (0xffff), GETPAGEOK = 0xffff
+  FPtoVP[1] = 0 (0x0000), GETPAGEOK = 0x0014
+  FPtoVP[2] = 65535 (0xffff), GETPAGEOK = 0xffff
+  FPtoVP[3] = 0 (0x0000), GETPAGEOK = 0x1114
+  FPtoVP[4] = 0 (0x0000), GETPAGEOK = 0x1214
+  FPtoVP[5] = 0 (0x0000), GETPAGEOK = 0x1314
+  FPtoVP[6] = 0 (0x0000), GETPAGEOK = 0x1414
+  FPtoVP[7] = 0 (0x0000), GETPAGEOK = 0x1514
+  FPtoVP[8] = 0 (0x0000), GETPAGEOK = 0x0015
+  FPtoVP[9] = 0 (0x0000), GETPAGEOK = 0x0115
+
+Target file page 5178 (BEFORE byte-swap):
+  FPtoVP[5178] = 0 (virtual page)
+  GETPAGEOK[5178] = 0x3c18
+  File offset: 0x287400 (2651136 bytes)
+  Virtual address: 0x0 (0 bytes)
+
+First 10 FPtoVP entries (AFTER byte-swap):
+  FPtoVP[0] = 65535 (0xffff), GETPAGEOK = 0xffff
+  FPtoVP[1] = 5120 (0x1400), GETPAGEOK = 0x0000
+  FPtoVP[2] = 65535 (0xffff), GETPAGEOK = 0xffff
+  FPtoVP[3] = 5137 (0x1411), GETPAGEOK = 0x0000
+  FPtoVP[4] = 5138 (0x1412), GETPAGEOK = 0x0000
+  FPtoVP[5] = 5139 (0x1413), GETPAGEOK = 0x0000
+  FPtoVP[6] = 5140 (0x1414), GETPAGEOK = 0x0000
+  FPtoVP[7] = 5141 (0x1415), GETPAGEOK = 0x0000
+  FPtoVP[8] = 5376 (0x1500), GETPAGEOK = 0x0000
+  FPtoVP[9] = 5377 (0x1501), GETPAGEOK = 0x0000
+
+Target file page 5178 (AFTER byte-swap):
+  FPtoVP[5178] = 6204 (virtual page)
+  GETPAGEOK[5178] = 0x0000
+
+File page 1 -> Virtual page 5120:
+  File offset: 0x200 (512 bytes)
+  File offset / 2: 0x100
+  File offset * 2: 0x400
+  Virtual address: 0x280000 (2621440 bytes)
+  Virtual address / 2: 0x140000
+  Virtual address * 2: 0x500000
+  GETPAGEOK: 0x0000
+  Raw bytes from file (first 16): 2e 72 00 06 12 02 0c 02 06 02 0f 02 03 02 31 fe 
+  Swapped bytes in memory (first 16): 06 00 72 2e 02 0c 02 12 02 0f 02 06 fe 31 02 03 
+
+File page 3 -> Virtual page 5137:
+  File offset: 0x600 (1536 bytes)
+  File offset / 2: 0x300
+  File offset * 2: 0xc00
+  Virtual address: 0x282200 (2630144 bytes)
+  Virtual address / 2: 0x141100
+  Virtual address * 2: 0x504400
+  GETPAGEOK: 0x0000
+  Raw bytes from file (first 16): 00 6c e3 58 00 7d 78 0e 00 00 00 00 00 7f f0 f4 
+  Swapped bytes in memory (first 16): 58 e3 6c 00 0e 78 7d 00 00 00 00 00 f4 f0 7f 00 
+
+File page 4 -> Virtual page 5138:
+  File offset: 0x800 (2048 bytes)
+  File offset / 2: 0x400
+  File offset * 2: 0x1000
+  Virtual address: 0x282400 (2630656 bytes)
+  Virtual address / 2: 0x141200
+  Virtual address * 2: 0x504800
+  GETPAGEOK: 0x0000
+  Raw bytes from file (first 16): 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+  Swapped bytes in memory (first 16): 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+
+File page 5 -> Virtual page 5139:
+  File offset: 0xa00 (2560 bytes)
+  File offset / 2: 0x500
+  File offset * 2: 0x1400
+  Virtual address: 0x282600 (2631168 bytes)
+  Virtual address / 2: 0x141300
+  Virtual address * 2: 0x504c00
+  GETPAGEOK: 0x0000
+  Raw bytes from file (first 16): 00 00 00 00 00 00 00 00 00 2a 00 00 00 00 01 2d 
+  Swapped bytes in memory (first 16): 00 00 00 00 00 00 00 00 00 00 2a 00 2d 01 00 00 
+
+File page 6 -> Virtual page 5140:
+  File offset: 0xc00 (3072 bytes)
+  File offset / 2: 0x600
+  File offset * 2: 0x1800
+  Virtual address: 0x282800 (2631680 bytes)
+  Virtual address / 2: 0x141400
+  Virtual address * 2: 0x505000
+  GETPAGEOK: 0x0000
+  Raw bytes from file (first 16): 00 38 00 00 00 00 01 3b 00 00 00 28 00 6c 6e 78 
+  Swapped bytes in memory (first 16): 00 00 38 00 3b 01 00 00 28 00 00 00 78 6e 6c 00 
+
+File page 7 -> Virtual page 5141:
+  File offset: 0xe00 (3584 bytes)
+  File offset / 2: 0x700
+  File offset * 2: 0x1c00
+  Virtual address: 0x282a00 (2632192 bytes)
+  Virtual address / 2: 0x141500
+  Virtual address * 2: 0x505400
+  GETPAGEOK: 0x0000
+  Raw bytes from file (first 16): 00 00 00 54 00 6a 34 a8 60 00 00 00 00 00 00 00 
+  Swapped bytes in memory (first 16): 54 00 00 00 a8 34 6a 00 00 00 00 60 00 00 00 00 
+
+File page 8 -> Virtual page 5376:
+  File offset: 0x1000 (4096 bytes)
+  File offset / 2: 0x800
+  File offset * 2: 0x2000
+  Virtual address: 0x2a0000 (2752512 bytes)
+  Virtual address / 2: 0x150000
+  Virtual address * 2: 0x540000
+  GETPAGEOK: 0x0000
+  Raw bytes from file (first 16): 00 03 00 00 00 00 00 00 00 00 15 1f 00 00 00 00 
+  Swapped bytes in memory (first 16): 00 00 03 00 00 00 00 00 1f 15 00 00 00 00 00 00 
+
+File page 9 -> Virtual page 5377:
+  File offset: 0x1200 (4608 bytes)
+  File offset / 2: 0x900
+  File offset * 2: 0x2400
+  Virtual address: 0x2a0200 (2753024 bytes)
+  Virtual address / 2: 0x150100
+  Virtual address * 2: 0x540400
+  GETPAGEOK: 0x0000
+  Raw bytes from file (first 16): 00 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+  Swapped bytes in memory (first 16): 00 00 04 00 00 00 00 00 00 00 00 00 00 00 00 00 
+
+File page 5178 -> Virtual page 6204:
+  File offset: 0x287400 (2651136 bytes)
+  File offset / 2: 0x143a00
+  File offset * 2: 0x50e800
+  Virtual address: 0x307800 (3176448 bytes)
+  Virtual address / 2: 0x183c00
+  Virtual address * 2: 0x60f000
+  GETPAGEOK: 0x0000
+
+*** CRITICAL: File page 5178 loads to PC virtual page 6204 ***
+  This is the file page that will be loaded for PC 0x307898
+  File offset: 0x287400
+  Virtual address: 0x307800
+  Raw bytes from file (first 16): 00 31 c8 15 00 35 00 2e c8 15 00 48 c8 15 00 46 
+  Bytes at PC offset 0x98 (0x98 in page): 00 0e 00 05 00 36 00 3f 
+  Swapped bytes in memory (first 16): 15 c8 31 00 2e 00 35 00 48 00 15 c8 46 00 15 c8 
+  Bytes at PC offset 0x98 AFTER swap: 05 00 0e 00 3f 00 36 00 
+
+=== Critical Address Verification ===
+PC: 0x307898
+  PC (dec): 3176600
+  PC / 2: 1588300 (0x183c4c)
+  PC * 2: 6353200 (0x60f130)
+  Virtual page: 6204 (0x183c) = PC / 512
+  Virtual page / 2: 3102
+  Virtual page * 2: 12408
+  Offset in page: 152 (0x98) = PC % 512
+  Offset / 2: 76
+  Offset * 2: 304
+
+  Searching for ALL file pages mapping to virtual page 6204:
+  WARNING: No file page maps to virtual page 6204!
+
+  File page 5178 (Zig's assumption):
+    Maps to virtual page: 0
+    GETPAGEOK: 0x0000
+    *** DOES NOT MATCH virtual page 6204 (maps to 0 instead) ***
+
+  File page 2937 (has correct bytes):
+    Maps to virtual page: 0
+    GETPAGEOK: 0x0000
+    *** Maps to virtual page 0 (not PC page 6204) ***
+  Virtual address: 0x307800 (3176448 bytes)
+  Virtual address / 2: 0x183c00
+  Virtual address * 2: 0x60f000
+  Memory content at PC: 05 00 0e 00 3f 00 36 00 
