@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """
-Analyze execution divergence between C and Zig emulators
-Detailed state-by-state comparison to identify root causes of differences
+Analyze execution divergence between C and Zig emulators.
+
+Primary use:
+- Identify the first divergence between two execution trace logs.
+- Support fast iteration by skipping the already-matching prefix (auto LCP).
+- Support manual resume by starting comparison at a given line number.
 """
 
+import argparse
 import re
 import sys
 from typing import Dict, List, Tuple, Optional
@@ -28,30 +33,34 @@ class ExecutionLogParser:
 
         instruction_num = int(match.group(1))
 
-        # Parse PC information
-        pc_match = re.search(r'PC:\s+(0x[0-9a-f]+)', line)
+        # Parse PC information (allow `PC:0x...` and `PC: 0x...`)
+        pc_match = re.search(r'PC:\s*(0x[0-9a-f]+)', line)
         pc = pc_match.group(1) if pc_match else ""
 
         # Parse opcode bytes (16 hex chars = 8 bytes)
-        bytes_match = re.search(r'\s+([0-9a-f]{16})\s+', line)
+        bytes_match = re.search(r'\b([0-9a-f]{16})\b', line)
         opcode_bytes = bytes_match.group(1) if bytes_match else ""
 
-        # Parse opcode name (between bytes and Stack field)
-        opcode_match = re.search(r'\s+([A-Z0-9_]+)', line)
-        opcode_name = opcode_match.group(1) if opcode_match else ""
+        # Parse opcode name (token immediately following the 16-hex-byte field)
+        opcode_name = ""
+        if opcode_bytes:
+            opcode_match = re.search(rf'\b{opcode_bytes}\b\s+([A-Z0-9_]+)\b', line)
+            opcode_name = opcode_match.group(1) if opcode_match else ""
 
         # Parse stack information
-        stack_match = re.search(r'Stack:\s+D:\s*(\d+)\s+P:\s*(\d+)\s+TOS:0x([0-9a-f]+)', line)
+        stack_match = re.search(r'Stack:\s+D:\s*(\d+).*?P:\s*(?:0x)?([0-9a-f]+).*?TOS:0x([0-9a-f]+)', line)
         if stack_match:
             stack_depth = int(stack_match.group(1))
-            stack_ptr = int(stack_match.group(2))
+            stack_ptr_raw = stack_match.group(2) or "0"
+            base = 16 if re.search(r"[a-f]", stack_ptr_raw) else 10
+            stack_ptr = int(stack_ptr_raw, base)
             tos = stack_match.group(3)
         else:
             stack_depth = stack_ptr = 0
             tos = ""
 
         # Parse frame information
-        frame_match = re.search(r'Frame:\s+FX:\s*(\d+)\s+FH:0x([0-9a-f]+)', line)
+        frame_match = re.search(r'Frame:\s+FX:\s*(\d+).*?FH:0x([0-9a-f]+)', line)
         if frame_match:
             fx_offset = int(frame_match.group(1))
             fnheader = frame_match.group(2)
@@ -75,11 +84,12 @@ class ExecutionLogParser:
 class DivergenceAnalyzer:
     """Analyze differences between C and Zig execution logs"""
 
-    def __init__(self, c_log_file: str, zig_log_file: str):
+    def __init__(self, c_log_file: str, zig_log_file: str, start_line: int = 1):
         self.c_parser = ExecutionLogParser()
         self.zig_parser = ExecutionLogParser()
         self.c_log_file = c_log_file
         self.zig_log_file = zig_log_file
+        self.start_line = max(1, start_line)
 
     def load_logs(self):
         """Load and parse both execution logs"""
@@ -102,44 +112,72 @@ class DivergenceAnalyzer:
 
     def analyze_divergence(self):
         """Analyze where and why the emulators diverge"""
-        max_instructions = min(len(self.c_parser.instructions), len(self.zig_parser.instructions))
+        c_len = len(self.c_parser.instructions)
+        z_len = len(self.zig_parser.instructions)
+        max_instructions = min(c_len, z_len)
 
         print(f"\n=== DIVERGENCE ANALYSIS ===")
-        print(f"Analyzing first {max_instructions} instructions\n")
+        print(f"C emulator: {c_len} instructions")
+        print(f"Zig emulator: {z_len} instructions")
+        print(f"Start line: {self.start_line}\n")
 
-        for i in range(max_instructions):
-            c_inst = self.c_parser.instructions[i]
-            zig_inst = self.zig_parser.instructions[i]
+        # Convert 1-based "line" to 0-based index
+        start_idx = self.start_line - 1
+        if start_idx >= max_instructions:
+            print("ERROR: start line beyond available overlap of the two logs")
+            return
 
-            # Check for differences
-            differences = []
+        # Auto longest-common-prefix (LCP) from the chosen start line
+        lcp = 0
+        for i in range(start_idx, max_instructions):
+            if self.c_parser.instructions[i]["raw_line"] == self.zig_parser.instructions[i]["raw_line"]:
+                lcp += 1
+            else:
+                break
 
-            if c_inst['opcode_name'] != zig_inst['opcode_name']:
-                differences.append(f"Opcode: {c_inst['opcode_name']} vs {zig_inst['opcode_name']}")
+        print(f"Longest common prefix (from start line): {lcp} line(s)\n")
 
-            if c_inst['opcode_bytes'] != zig_inst['opcode_bytes']:
-                differences.append(f"Bytes: {c_inst['opcode_bytes']} vs {zig_inst['opcode_bytes']}")
+        divergence_idx = start_idx + lcp
+        if divergence_idx >= max_instructions:
+            # No divergence within the overlap. Determine whether both logs ended together.
+            if c_len == z_len:
+                print("✅ No divergence found: logs match to completion (same length).")
+            else:
+                print("⚠️ No divergence found in overlap, but logs have different lengths:")
+                print(f"  C lines:   {c_len}")
+                print(f"  Zig lines: {z_len}")
+                print("  This may indicate early stop or extra output in one emulator.")
+            return
 
-            if c_inst['pc'] != zig_inst['pc']:
-                differences.append(f"PC: {c_inst['pc']} vs {zig_inst['pc']}")
+        c_inst = self.c_parser.instructions[divergence_idx]
+        zig_inst = self.zig_parser.instructions[divergence_idx]
 
-            if c_inst['stack_depth'] != zig_inst['stack_depth']:
-                differences.append(f"Stack depth: {c_inst['stack_depth']} vs {zig_inst['stack_depth']}")
+        # Check for differences (field-level)
+        differences = []
 
-            if c_inst['tos'] != zig_inst['tos']:
-                differences.append(f"TOS: {c_inst['tos']} vs {zig_inst['tos']}")
+        if c_inst["opcode_name"] != zig_inst["opcode_name"]:
+            differences.append(f"Opcode: {c_inst['opcode_name']} vs {zig_inst['opcode_name']}")
 
-            if differences:
-                print(f"--- INSTRUCTION {i+1} ---")
-                print(f"C:   {c_inst['raw_line'][:120]}...")
-                print(f"Zig: {zig_inst['raw_line'][:120]}...")
-                print(f"DIFFERENCES: {'; '.join(differences)}")
-                print()
+        if c_inst["opcode_bytes"] != zig_inst["opcode_bytes"]:
+            differences.append(f"Bytes: {c_inst['opcode_bytes']} vs {zig_inst['opcode_bytes']}")
 
-                # Show detailed byte comparison for first few differences
-                if i < 5:  # Only for first 5 divergences to avoid spam
-                    self._show_detailed_comparison(c_inst, zig_inst)
-                break  # Stop at first divergence for detailed analysis
+        if c_inst["pc"] != zig_inst["pc"]:
+            differences.append(f"PC: {c_inst['pc']} vs {zig_inst['pc']}")
+
+        if c_inst["stack_depth"] != zig_inst["stack_depth"]:
+            differences.append(f"Stack depth: {c_inst['stack_depth']} vs {zig_inst['stack_depth']}")
+
+        if c_inst["tos"] != zig_inst["tos"]:
+            differences.append(f"TOS: {c_inst['tos']} vs {zig_inst['tos']}")
+
+        print(f"--- FIRST DIVERGENCE ---")
+        print(f"At log line: {divergence_idx + 1}")
+        print(f"C:   {c_inst['raw_line'][:140]}...")
+        print(f"Zig: {zig_inst['raw_line'][:140]}...")
+        print(f"DIFFERENCES: {'; '.join(differences) if differences else '(unable to parse differences)'}")
+        print()
+
+        self._show_detailed_comparison(c_inst, zig_inst)
 
     def _show_detailed_comparison(self, c_inst: Dict, zig_inst: Dict):
         """Show detailed comparison of specific instruction"""
@@ -155,14 +193,18 @@ class DivergenceAnalyzer:
         print()
 
 def main():
-    if len(sys.argv) != 3:
-        print("Usage: python analyze_execution_divergence.py <c_log> <zig_log>")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Find first divergence between C and Zig execution logs.")
+    parser.add_argument("c_log", help="Path to C emulator log")
+    parser.add_argument("zig_log", help="Path to Zig emulator log")
+    parser.add_argument(
+        "--start-line",
+        type=int,
+        default=1,
+        help="1-based line number to start comparison from (manual resume override)",
+    )
+    args = parser.parse_args()
 
-    c_log_file = sys.argv[1]
-    zig_log_file = sys.argv[2]
-
-    analyzer = DivergenceAnalyzer(c_log_file, zig_log_file)
+    analyzer = DivergenceAnalyzer(args.c_log, args.zig_log, start_line=args.start_line)
     analyzer.load_logs()
     analyzer.analyze_divergence()
 

@@ -10,14 +10,22 @@ cd "$REPO_ROOT"
 
 SYSOUT_FILE="${1:-medley/internal/loadups/starter.sysout}"
 MAX_STEPS=1000
+SYSOUT_PATH="$SYSOUT_FILE"
+
+# Use an absolute sysout path so Zig runs correctly from any cwd.
+if [[ "$SYSOUT_PATH" != /* ]]; then
+    SYSOUT_PATH="$REPO_ROOT/$SYSOUT_PATH"
+fi
 
 echo "=== Comparing C and Zig Emulator Execution (${MAX_STEPS} steps) ==="
 echo "Sysout file: $SYSOUT_FILE"
+echo "Sysout path: $SYSOUT_PATH"
 echo ""
 
 # Clean old logs
 rm -f "$REPO_ROOT/c_emulator_execution_log.txt" "$REPO_ROOT/zig_emulator_execution_log.txt"
 rm -f "$REPO_ROOT/zaiko/zig_emulator_execution_log.txt"
+rm -f "$REPO_ROOT/zaiko/zaiko/zig_emulator_execution_log.txt"
 
 # Find C emulator
 C_EMULATOR=""
@@ -42,125 +50,10 @@ if [ ! -d "$ZIG_DIR" ]; then
     exit 1
 fi
 
-# Backup files that will be modified
-BACKUP_DIR="$REPO_ROOT/.emulator_comparison_backup"
-mkdir -p "$BACKUP_DIR"
-
-# Function to restore backups
-restore_backups() {
-    if [ -d "$BACKUP_DIR" ]; then
-        echo "Restoring original files..."
-        if [ -f "$BACKUP_DIR/dispatch.zig" ]; then
-            cp "$BACKUP_DIR/dispatch.zig" "$ZIG_DIR/src/vm/dispatch.zig"
-        fi
-        if [ -f "$BACKUP_DIR/execution_trace.zig" ]; then
-            cp "$BACKUP_DIR/execution_trace.zig" "$ZIG_DIR/src/vm/execution_trace.zig"
-        fi
-        if [ -f "$BACKUP_DIR/xc.c" ]; then
-            cp "$BACKUP_DIR/xc.c" "$REPO_ROOT/maiko/src/xc.c"
-        fi
-        rm -rf "$BACKUP_DIR"
-    fi
-}
-
-# Trap to restore on exit
-trap restore_backups EXIT
-
-# Modify Zig emulator to stop after MAX_STEPS
 echo ""
-echo "=== Modifying Zig emulator to stop after ${MAX_STEPS} steps ==="
-if [ -f "$ZIG_DIR/src/vm/dispatch.zig" ]; then
-    cp "$ZIG_DIR/src/vm/dispatch.zig" "$BACKUP_DIR/dispatch.zig"
-    # Replace MAX_INSTRUCTIONS with MAX_STEPS using Python for better reliability
-    python3 <<EOF
-import re
-with open("$ZIG_DIR/src/vm/dispatch.zig", "r") as f:
-    content = f.read()
-content = re.sub(r'const MAX_INSTRUCTIONS: u64 = \d+', f'const MAX_INSTRUCTIONS: u64 = ${MAX_STEPS}', content)
-with open("$ZIG_DIR/src/vm/dispatch.zig", "w") as f:
-    f.write(content)
-EOF
-    echo "✓ Modified dispatch.zig: MAX_INSTRUCTIONS = ${MAX_STEPS}"
-else
-    echo "ERROR: dispatch.zig not found"
-    exit 1
-fi
-
-# Modify execution_trace to stop logging after MAX_STEPS
-if [ -f "$ZIG_DIR/src/vm/execution_trace.zig" ]; then
-    cp "$ZIG_DIR/src/vm/execution_trace.zig" "$BACKUP_DIR/execution_trace.zig"
-    # Add check to stop logging after MAX_STEPS using Python
-    python3 <<EOF
-with open("$ZIG_DIR/src/vm/execution_trace.zig", "r") as f:
-    lines = f.readlines()
-
-# Find the line with "self.instruction_count += 1" and add check before it
-new_lines = []
-for i, line in enumerate(lines):
-    if "self.instruction_count += 1" in line and i > 0:
-        # Check if check already exists
-        if "if (self.instruction_count >= ${MAX_STEPS})" not in lines[i-1]:
-            new_lines.append(f"        // Stop logging after {MAX_STEPS} steps\n")
-            new_lines.append(f"        if (self.instruction_count >= {MAX_STEPS}) {{\n")
-            new_lines.append("            return;\n")
-            new_lines.append("        }\n")
-    new_lines.append(line)
-
-with open("$ZIG_DIR/src/vm/execution_trace.zig", "w") as f:
-    f.writelines(new_lines)
-EOF
-    echo "✓ Modified execution_trace.zig: Stop logging after ${MAX_STEPS} steps"
-else
-    echo "ERROR: execution_trace.zig not found"
-    exit 1
-fi
-
-# Modify C emulator to stop after MAX_STEPS
-echo ""
-echo "=== Modifying C emulator to stop after ${MAX_STEPS} steps ==="
-if [ -f "$REPO_ROOT/maiko/src/xc.c" ]; then
-    cp "$REPO_ROOT/maiko/src/xc.c" "$BACKUP_DIR/xc.c"
-    # Add check before debug_instruction_count++ using Python
-    python3 <<EOF
-with open("$REPO_ROOT/maiko/src/xc.c", "r") as f:
-    lines = f.readlines()
-
-# Find the line with "debug_instruction_count++" and add check before it
-new_lines = []
-for i, line in enumerate(lines):
-    if "debug_instruction_count++" in line and i > 0:
-        # Check if check already exists
-        if "if (debug_instruction_count >= ${MAX_STEPS})" not in lines[i-1]:
-            new_lines.append(f"  if (debug_instruction_count >= {MAX_STEPS}) {{\n")
-            new_lines.append(f"    break; /* Stop after {MAX_STEPS} steps */\n")
-            new_lines.append("  }\n")
-    new_lines.append(line)
-
-with open("$REPO_ROOT/maiko/src/xc.c", "w") as f:
-    f.writelines(new_lines)
-EOF
-    echo "✓ Modified xc.c: Stop after ${MAX_STEPS} steps"
-
-    # Rebuild C emulator
-    echo "Rebuilding C emulator..."
-    cd "$REPO_ROOT/maiko"
-    if [ -d "build-cmake" ]; then
-        make -C build-cmake ldesdl >/dev/null 2>&1 || {
-            echo "ERROR: Failed to rebuild C emulator"
-            exit 1
-        }
-        # Update C_EMULATOR path
-        if [ -f "build-cmake/ldesdl" ]; then
-            C_EMULATOR="$REPO_ROOT/maiko/build-cmake/ldesdl"
-        fi
-    else
-        echo "ERROR: build-cmake directory not found"
-        exit 1
-    fi
-    cd "$REPO_ROOT"
-else
-    echo "WARNING: xc.c not found, C emulator may not stop at ${MAX_STEPS} steps"
-fi
+echo "=== Fast iteration cap ==="
+export EMULATOR_MAX_STEPS="${EMULATOR_MAX_STEPS:-$MAX_STEPS}"
+echo "Using EMULATOR_MAX_STEPS=${EMULATOR_MAX_STEPS} (unset or 0 => run to completion)"
 
 # Run C emulator
 echo ""
@@ -188,13 +81,23 @@ echo ""
 echo "=== Running Zig Emulator ==="
 echo "Command: cd zaiko && zig build run -- $SYSOUT_FILE"
 cd "$ZIG_DIR"
-timeout 10 zig build run -- "../../../$SYSOUT_FILE" > /dev/null 2>&1 || true
+timeout 10 zig build run -- "$SYSOUT_PATH" > /dev/null 2>&1 || true
 
 # Check for log in both possible locations
 if [ -f "$ZIG_DIR/zig_emulator_execution_log.txt" ]; then
     cp "$ZIG_DIR/zig_emulator_execution_log.txt" "$REPO_ROOT/zig_emulator_execution_log.txt"
     ZIG_LINES=$(wc -l < "$REPO_ROOT/zig_emulator_execution_log.txt")
     echo "✓ Zig emulator log created: $ZIG_LINES lines"
+    if [ "$ZIG_LINES" -gt "$MAX_STEPS" ]; then
+        echo "  WARNING: Log has more than ${MAX_STEPS} lines, truncating..."
+        head -n "$MAX_STEPS" "$REPO_ROOT/zig_emulator_execution_log.txt" > "$REPO_ROOT/zig_emulator_execution_log_truncated.txt"
+        mv "$REPO_ROOT/zig_emulator_execution_log_truncated.txt" "$REPO_ROOT/zig_emulator_execution_log.txt"
+        ZIG_LINES=$MAX_STEPS
+    fi
+elif [ -f "$ZIG_DIR/zaiko/zig_emulator_execution_log.txt" ]; then
+    cp "$ZIG_DIR/zaiko/zig_emulator_execution_log.txt" "$REPO_ROOT/zig_emulator_execution_log.txt"
+    ZIG_LINES=$(wc -l < "$REPO_ROOT/zig_emulator_execution_log.txt")
+    echo "✓ Zig emulator log created (nested): $ZIG_LINES lines"
     if [ "$ZIG_LINES" -gt "$MAX_STEPS" ]; then
         echo "  WARNING: Log has more than ${MAX_STEPS} lines, truncating..."
         head -n "$MAX_STEPS" "$REPO_ROOT/zig_emulator_execution_log.txt" > "$REPO_ROOT/zig_emulator_execution_log_truncated.txt"

@@ -46,15 +46,25 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
     // Main dispatch loop - continue until error or explicit stop
     // Add instruction counter to prevent infinite loops
     var instruction_count: u64 = 0;
-    const MAX_INSTRUCTIONS: u64 = 1000; // Limit to 1000 steps for comparison
+    const max_steps_opt: ?u64 = blk: {
+        const env = std.process.getEnvVarOwned(std.heap.page_allocator, "EMULATOR_MAX_STEPS") catch break :blk null;
+        defer std.heap.page_allocator.free(env);
+        const trimmed = std.mem.trim(u8, env, " \t\r\n");
+        if (trimmed.len == 0) break :blk null;
+        const parsed = std.fmt.parseInt(u64, trimmed, 10) catch break :blk null;
+        if (parsed == 0) break :blk null;
+        break :blk parsed;
+    };
 
     while (true) {
         // Check instruction limit to prevent infinite loops
         instruction_count += 1;
-        if (instruction_count > MAX_INSTRUCTIONS) {
-            std.debug.print("WARNING: Instruction limit reached ({}) - stopping execution to prevent infinite loop\n", .{MAX_INSTRUCTIONS});
-            std.debug.print("  Current PC: 0x{x}\n", .{vm.pc});
-            return error.InvalidOpcode; // Stop execution
+        if (max_steps_opt) |max_steps| {
+            if (instruction_count > max_steps) {
+                std.debug.print("INFO: EMULATOR_MAX_STEPS reached ({}) - stopping execution\n", .{max_steps});
+                std.debug.print("  Current PC: 0x{x}\n", .{vm.pc});
+                return;
+            }
         }
 
         // Check interrupts before execution

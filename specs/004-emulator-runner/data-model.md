@@ -1,11 +1,16 @@
-# Data Model: Emulator Runner Scripts
+# Data Model: Runner Scripts + Execution Trace Parity
 
-**Date**: 2026-01-12
+**Date**: 2026-01-15
 **Feature**: 004-emulator-runner
 
 ## Overview
 
-The emulator runner feature manages the selection and execution of Interlisp emulators. The data model focuses on configuration and validation rather than persistent storage.
+This feature manages two related concerns:
+
+1. Runner-script configuration/validation for selecting and launching emulators
+2. Execution-trace parity runs and comparisons (C ground truth; Zig must match)
+
+No persistent storage is required; artifacts are ephemeral (log files, comparison reports, lock file).
 
 ## Entities
 
@@ -85,6 +90,41 @@ Represents the complete runtime configuration for starting Interlisp.
 5. System constructs RunConfiguration with all settings
 6. System executes with locking mechanism
 
+### Execution Trace Parity Entities
+
+#### TraceRun
+
+Represents one trace-generation run for a specific emulator and sysout/configuration.
+
+**Attributes**:
+- `emulator_impl`: Enum (`c`, `zig`)
+- `sysout_file`: String
+- `trace_output_path`: String
+- `completed`: Boolean
+- `max_steps`: Optional<Integer> - runtime cap for fast iteration (if set)
+
+#### TraceComparison
+
+Represents one comparison between C and Zig traces.
+
+**Attributes**:
+- `c_trace_path`: String
+- `zig_trace_path`: String
+- `lcp_lines`: Integer - longest common prefix length (auto-detected)
+- `start_line`: Optional<Integer> - manual override for comparison start
+- `first_divergence_line`: Optional<Integer>
+- `first_divergence_context`: Map<String, String> (e.g., PC/opcode/bytes/stack/frame as available)
+- `matches_to_completion`: Boolean
+
+#### ParityStage
+
+Represents the staged parity gate.
+
+**Attributes**:
+- `stage`: Enum (`starter_sysout`, `full_sysout`)
+- `required`: Boolean
+- `completed`: Boolean
+
 ## State Transitions
 
 ### Emulator Selection States
@@ -105,3 +145,4 @@ Represents the complete runtime configuration for starting Interlisp.
 - Lock files prevent concurrent runs per user
 - Backward compatibility with existing run-medley arguments
 - Platform-specific emulator availability
+- Parity staged: `starter.sysout` completion parity required before `full.sysout`

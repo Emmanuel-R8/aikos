@@ -23,6 +23,23 @@ Sysout loading related findings and implementations.
 - *C Reference*: `maiko/src/ldsout.c:250-350`
 - *Status*: ✅ Implemented with sparse page handling and byte-swapping
 
+=== Key Discovery: FPtoVP `virtual_page` is in 512-byte pages
+
+*Last Updated*: 2026-01-15 17:25
+
+When debugging execution parity, the trace may show both:
+- `PC` in bytes (e.g. `PC:0x60f130`)
+- `PC/2` in DLwords (e.g. `/2:0x307898`)
+
+The sysout FPtoVP mapping uses the byte-addressed virtual page index:
+
+- `vpage = PC_bytes / 512`
+- `off  = PC_bytes % 512`
+
+For `starter.sysout`, the first instruction page is:
+- `PC_bytes=0x60f130` → `vpage=12408`, `off=0x130`
+- `file_page=3003` maps to `vpage=12408` and contains bytes `bf 60 00 00 02 0a 12 c9` at offset `0x130` (before byte-swap), which become `00 00 60 bf c9 12 0a 02` in memory after 32-bit swapping.
+
 *Version Constants*:
 - *Zig Implementation*: `zaiko/src/data/sysout.zig:18-19`
 - *Constants*: `LVERSION = 21000`, `MINBVERSION = 21001`

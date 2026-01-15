@@ -4,6 +4,7 @@ Enhanced execution divergence analysis
 Identifies root causes of emulator differences
 """
 
+import argparse
 import re
 import sys
 from typing import Dict, List, Tuple, Optional
@@ -82,21 +83,14 @@ def parse_zig_emulator_line(line: str) -> Optional[Dict]:
 
     return result
 
-def analyze_memory_at_pc(pc_address: str, c_instructions: List[Dict], zig_instructions: List[Dict]) -> Dict:
-    """Analyze what bytes each emulator reads at the same PC"""
-    if not c_instructions or not zig_instructions:
-        return {}
-
-    c_first = c_instructions[0]
-    zig_first = zig_instructions[0]
-
+def analyze_memory_at_pc(pc_address: str, c_inst: Dict, zig_inst: Dict) -> Dict:
+    """Analyze what bytes each emulator reads at the same PC for one divergence point."""
     print(f"\n=== MEMORY ANALYSIS AT PC {pc_address} ===")
-    print(f"C emulator reads:    {c_first.get('opcode_bytes', 'N/A')}")
-    print(f"Zig emulator reads:  {zig_first.get('opcode_bytes', 'N/A')}")
+    print(f"C emulator reads:    {c_inst.get('opcode_bytes', 'N/A')}")
+    print(f"Zig emulator reads:  {zig_inst.get('opcode_bytes', 'N/A')}")
 
-    # Decode bytes to see what they represent
-    c_bytes = c_first.get('opcode_bytes', '')
-    zig_bytes = zig_first.get('opcode_bytes', '')
+    c_bytes = c_inst.get('opcode_bytes', '')
+    zig_bytes = zig_inst.get('opcode_bytes', '')
 
     analysis = {
         'pc': pc_address,
@@ -104,8 +98,8 @@ def analyze_memory_at_pc(pc_address: str, c_instructions: List[Dict], zig_instru
         'zig_bytes': zig_bytes,
         'c_first_byte': c_bytes[:2] if c_bytes else '',
         'zig_first_byte': zig_bytes[:2] if zig_bytes else '',
-        'c_opcode_name': c_first.get('opcode_name', ''),
-        'zig_opcode_name': zig_first.get('opcode_name', ''),
+        'c_opcode_name': c_inst.get('opcode_name', ''),
+        'zig_opcode_name': zig_inst.get('opcode_name', ''),
         'identical_bytes': c_bytes == zig_bytes,
         'identical_first_byte': c_bytes[:2] == zig_bytes[:2] if c_bytes and zig_bytes else False
     }
@@ -118,26 +112,30 @@ def analyze_memory_at_pc(pc_address: str, c_instructions: List[Dict], zig_instru
     return analysis
 
 def main():
-    if len(sys.argv) != 3:
-        print("Usage: python enhanced_divergence_analysis.py <c_log> <zig_log>")
-        sys.exit(1)
-
-    c_log_file = sys.argv[1]
-    zig_log_file = sys.argv[2]
+    parser = argparse.ArgumentParser(description="Enhanced divergence analysis (LCP + first divergence).")
+    parser.add_argument("c_log", help="Path to C emulator log")
+    parser.add_argument("zig_log", help="Path to Zig emulator log")
+    parser.add_argument(
+        "--start-line",
+        type=int,
+        default=1,
+        help="1-based line number to start comparison from (manual resume override)",
+    )
+    args = parser.parse_args()
 
     # Load C emulator log
-    print(f"Loading C emulator log: {c_log_file}")
+    print(f"Loading C emulator log: {args.c_log}")
     c_instructions = []
-    with open(c_log_file, 'r') as f:
+    with open(args.c_log, 'r') as f:
         for line in f:
             parsed = parse_c_emulator_line(line)
             if parsed:
                 c_instructions.append(parsed)
 
     # Load Zig emulator log
-    print(f"Loading Zig emulator log: {zig_log_file}")
+    print(f"Loading Zig emulator log: {args.zig_log}")
     zig_instructions = []
-    with open(zig_log_file, 'r') as f:
+    with open(args.zig_log, 'r') as f:
         for line in f:
             parsed = parse_zig_emulator_line(line)
             if parsed:
@@ -146,47 +144,73 @@ def main():
     print(f"C emulator: {len(c_instructions)} instructions")
     print(f"Zig emulator: {len(zig_instructions)} instructions")
 
-    # Analyze first instruction divergence
-    if c_instructions and zig_instructions:
-        c_first = c_instructions[0]
-        zig_first = zig_instructions[0]
+    if not c_instructions or not zig_instructions:
+        print("ERROR: One or both logs contain no parseable instruction lines")
+        return
 
-        print(f"\n=== FIRST INSTRUCTION COMPARISON ===")
-        print(f"C:   {c_first['raw_line'][:100]}...")
-        print(f"Zig: {zig_first['raw_line'][:100]}...")
+    start_line = max(1, args.start_line)
+    start_idx = start_line - 1
+    max_instructions = min(len(c_instructions), len(zig_instructions))
+    if start_idx >= max_instructions:
+        print("ERROR: start line beyond available overlap of the two logs")
+        return
 
-        # Analyze memory at PC
-        pc_addr = c_first.get('pc', '0x0')
-        memory_analysis = analyze_memory_at_pc(pc_addr, c_instructions, zig_instructions)
-
-        print(f"\n=== ROOT CAUSE ANALYSIS ===")
-
-        if not memory_analysis['identical_first_byte']:
-            print("🚨 CRITICAL: Different bytes read at same PC address!")
-            print("   This indicates:")
-            print("   1. Memory loading differences between emulators")
-            print("   2. XOR addressing implementation differences")
-            print("   3. Virtual memory mapping issues")
-            print("   4. Different sysout file interpretation")
+    # Auto LCP
+    lcp = 0
+    for i in range(start_idx, max_instructions):
+        if c_instructions[i]["raw_line"] == zig_instructions[i]["raw_line"]:
+            lcp += 1
         else:
-            print("✅ Same bytes read, but different opcode interpretation")
-            print("   This indicates:")
-            print("   1. Opcode decoding differences")
-            print("   2. Instruction length calculation issues")
+            break
 
-        # Stack comparison
-        c_stack = c_first.get('stack_depth', 0)
-        zig_stack = zig_first.get('stack_depth', 0)
+    divergence_idx = start_idx + lcp
+    print(f"\n=== PREFIX SKIP ===")
+    print(f"Start line: {start_line}")
+    print(f"Longest common prefix (from start): {lcp} line(s)")
+
+    if divergence_idx >= max_instructions:
+        if len(c_instructions) == len(zig_instructions):
+            print("\n✅ No divergence found: logs match to completion (same length).")
+        else:
+            print("\n⚠️ No divergence found in overlap, but logs have different lengths:")
+            print(f"  C lines:   {len(c_instructions)}")
+            print(f"  Zig lines: {len(zig_instructions)}")
+        return
+
+    c_first = c_instructions[divergence_idx]
+    zig_first = zig_instructions[divergence_idx]
+
+    print(f"\n=== FIRST DIVERGENCE (after LCP) ===")
+    print(f"At log line: {divergence_idx + 1}")
+    print(f"C:   {c_first['raw_line'][:140]}...")
+    print(f"Zig: {zig_first['raw_line'][:140]}...")
+
+    # Analyze memory at PC
+    pc_addr = c_first.get("pc", "0x0")
+    memory_analysis = analyze_memory_at_pc(pc_addr, c_first, zig_first)
+
+    print(f"\n=== ROOT CAUSE ANALYSIS ===")
+
+    if not memory_analysis.get("identical_first_byte", False):
+        print("CRITICAL: Different bytes read at same PC address.")
+        print("Likely causes: memory loading differences, address translation differences, sysout interpretation mismatch.")
+    else:
+        print("Same first byte at PC, but other fields differ.")
+        print("Likely causes: opcode decode/length differences, stack/frame state divergence.")
+
+    # Stack comparison (guard against divide-by-zero)
+    c_stack = c_first.get("stack_depth", 0) or 0
+    zig_stack = zig_first.get("stack_depth", 0) or 0
+    if c_stack:
         print(f"\nStack depth ratio: {zig_stack / c_stack:.2f}x (Zig/C)")
-        if abs(zig_stack - c_stack) > 1000:
-            print("🚨 Large stack difference suggests different initialization")
+    else:
+        print("\nStack depth ratio: N/A (C stack depth not parsed)")
 
-        # Frame header comparison
-        c_fh = c_first.get('fnheader', '')
-        zig_fh = zig_first.get('fnheader', '')
-        if c_fh and zig_fh and c_fh != zig_fh:
-            print(f"Frame header mismatch: C={c_fh} Zig={zig_fh}")
-            print("🚨 Different function headers suggest different code loaded")
+    # Frame header comparison
+    c_fh = c_first.get("fnheader", "")
+    zig_fh = zig_first.get("fnheader", "")
+    if c_fh and zig_fh and c_fh != zig_fh:
+        print(f"Frame header mismatch: C={c_fh} Zig={zig_fh}")
 
 if __name__ == "__main__":
     main()

@@ -1,113 +1,150 @@
-# Tasks: Emulator Runner Scripts for Interlisp
+# Tasks: Runner Scripts + Execution Trace Parity for Interlisp
 
 **Input**: Design documents from `/specs/004-emulator-runner/`
-**Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
+**Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/, and execution debugging docs (`execution-*.md`)
 
-**Tests**: No test tasks included - feature specification does not request TDD approach.
+**Tests**: No TDD requirement. Include scripted parity workflows (log generation + comparison) as part of US4 so the work stays repeatable.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
-- Include exact file paths in descriptions
+- **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3, US4)
+- Every task MUST include exact file paths in its description
 
 ## Path Conventions
 
-- Scripts in `medley/scripts/`
-- Test scripts in `tests/scripts/`
-- Existing run-medley script will be modified
+- Runner entrypoint: `medley/run-medley`
+- Runner utilities: `medley/scripts/medley/emulator_utils.sh`
+- Parity tooling: `scripts/`
+- C emulator (reference): `maiko/src/`
+- Zig emulator: `zaiko/src/`
+
+---
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Project initialization and basic script structure
+**Purpose**: Ensure the repo has the expected parity and runner tooling layout.
 
-- [x] T001 Create medley/scripts/emulator_utils.sh with basic utility functions
-- [x] T002 Create tests/scripts/ directory structure for test scripts
-- [x] T003 [P] Backup existing run-medley script for rollback capability
+- [X] T001 Verify parity tooling is present and runnable (python3/shebangs) in `scripts/generate_debug_logs.sh`, `scripts/compare_debug_logs.sh`, `scripts/analyze_execution_divergence.py`, `scripts/enhanced_divergence_analysis.py` (FR-019/FR-020)
+- [X] T002 Verify runner entrypoints exist and are executable: `medley/run-medley`, `medley/scripts/medley/medley.command`, `medley/scripts/medley/medley_run.sh` (FR-011)
+- [X] T003 [P] Verify unified-build path expectations for emulators in `medley/scripts/medley/emulator_utils.sh` (FR-006/FR-007)
 
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
+**Purpose**: Core infrastructure that MUST be complete before any story can be validated end-to-end.
 
-**⚠️ CRITICAL**: No user story work can begin until this phase is complete
+**⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [x] T004 Implement emulator type validation function in medley/scripts/emulator_utils.sh
-- [x] T005 Implement platform detection logic in medley/scripts/emulator_utils.sh
-- [x] T006 Implement emulator path resolution (unified build + fallback) in medley/scripts/emulator_utils.sh
-- [x] T007 Implement basic file validation (exists, executable, size) in medley/scripts/emulator_utils.sh
-- [x] T008 Implement lock file creation/management in medley/scripts/emulator_utils.sh
+- [X] T004 Ensure lock file behavior matches spec/contracts (path + content + stale threshold) in `medley/scripts/medley/emulator_utils.sh` (FR-016..FR-018)
+- [X] T005 Ensure emulator selection precedence and validation are correct in `medley/scripts/medley/emulator_utils.sh` and `medley/run-medley` (FR-001..FR-005)
+- [X] T006 Ensure platform-specific emulator availability is handled gracefully (clear message when emulator/build not available for current platform) in `medley/scripts/medley/emulator_utils.sh` and `medley/run-medley` (FR-012)
+- [X] T007 Ensure proactive emulator executable validation matches spec (including shebang acceptance) in `medley/scripts/medley/emulator_utils.sh` (FR-015)
 
-**Checkpoint**: Foundation ready - user story implementation can now begin in parallel
-
----
-
-## Phase 3: User Story 1 - Run Interlisp with Selected Emulator (Priority: P1) 🎯 MVP
-
-**Goal**: Enable developers to run Interlisp with C, Zig, or Lisp emulators via command-line selection
-
-**Independent Test**: Can be fully tested by running `./run-medley --emulator zig` and verifying that the Zig emulator is used to start Interlisp, delivering the ability to choose emulators at runtime.
-
-### Implementation for User Story 1
-
-- [x] T009 [US1] Modify run-medley script to accept --emulator flag with validation
-- [x] T010 [US1] Integrate emulator path resolution into run-medley execution flow
-- [x] T011 [US1] Add error handling for invalid/missing emulators in run-medley
-- [x] T012 [US1] Update run-medley to use selected emulator for Interlisp startup
-- [x] T013 [US1] Test US1 independently with all three emulators
-
-**Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
+**Checkpoint**: Foundation ready.
 
 ---
 
-## Phase 4: User Story 2 - Set Default Emulator Preference (Priority: P2)
+## Phase 3: User Story 4 - Execution Trace Parity: Make Zig Match C (Priority: P0)
 
-**Goal**: Allow developers to set a default emulator preference via environment variable
+**Goal**: Provide a repeatable workflow to generate/compare C vs Zig traces and iteratively fix Zig until it matches C **to completion**, staged: `starter.sysout` first, then `full.sysout`.
 
-**Independent Test**: Can be fully tested by setting `MEDLEY_EMULATOR=zig` and running `./run-medley` without the `--emulator` flag, verifying the Zig emulator is used by default.
+**Independent Test**:
+- Stage 1: `starter.sysout` traces match to completion
+- Stage 2: `full.sysout` traces match to completion (only after Stage 1 is complete)
 
-### Implementation for User Story 2
+### Implementation for User Story 4 (Parity Workflow)
 
-- [x] T014 [US2] Add MEDLEY_EMULATOR environment variable support to run-medley
-- [x] T015 [US2] Implement precedence logic (command-line > environment > default) in emulator_utils.sh
-- [x] T016 [US2] Update run-medley help text to document environment variable usage
-- [x] T017 [US2] Test US2 independently with environment variable scenarios
+- [X] T008 [US4] Define canonical trace line format (required fields + ordering) in `specs/004-emulator-runner/contracts/run-scripts-api.md` (FR-021)
+- [X] T009 [US4] Update `scripts/generate_debug_logs.sh` to support staged sysout runs (`starter.sysout` then `full.sysout`) and deterministic log output paths (FR-019, FR-025)
+- [X] T010 [US4] Implement “skip already-matching prefix” by adding LCP detection to `scripts/analyze_execution_divergence.py` (FR-024)
+- [X] T011 [US4] Add manual resume override (e.g., `--start-line N`) to `scripts/analyze_execution_divergence.py` (FR-024)
+- [X] T012 [US4] Update `scripts/enhanced_divergence_analysis.py` to surface LCP length and first-divergence context (PC/bytes/opcode/stack/frame) (FR-020, FR-024)
 
-**Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
+### Runtime step cap (fast iteration, no source patching)
 
----
+- [X] T013 [US4] Add shared runtime knob `EMULATOR_MAX_STEPS` to Zig execution loop in `zaiko/src/vm/dispatch.zig` (FR-026)
+- [X] T014 [US4] Add shared runtime knob `EMULATOR_MAX_STEPS` to C execution tracing loop in `maiko/src/xc.c` (FR-026)
+- [X] T015 [US4] Update parity scripts to use the runtime knob (and stop patching source files) in `scripts/compare_emulator_execution.sh` (FR-022, FR-026)
+- [X] T016 [US4] Update parity documentation to mention `EMULATOR_MAX_STEPS` for fast iteration in `specs/004-emulator-runner/quickstart.md` and `specs/004-emulator-runner/contracts/run-scripts-api.md` (FR-022, FR-026)
 
-## Phase 5: User Story 3 - Automatic Emulator Building on First Run (Priority: P3)
-
-**Goal**: Automatically build missing emulators when --auto-build flag is used
-
-**Independent Test**: Can be fully tested by removing a built emulator and running `./run-medley --emulator zig --auto-build`, verifying the Zig emulator is built automatically before Interlisp starts.
-
-### Implementation for User Story 3
-
-- [x] T018 [US3] Add --auto-build flag parsing to run-medley
-- [x] T019 [US3] Implement build command detection for each emulator type
-- [x] T020 [US3] Add automatic build execution before emulator validation
-- [x] T021 [US3] Handle build failures with clear error messages
-- [x] T022 [US3] Test US3 independently with build scenarios
-
-**Checkpoint**: All user stories should now be independently functional
+**Checkpoint**: Parity tooling supports (a) LCP skip, (b) manual resume, and (c) runtime step caps without source modification.
 
 ---
 
-## Phase 6: Polish & Cross-Cutting Concerns
+## Phase 4: Parity Stage 1 - `starter.sysout` to Completion (Priority: P0)
 
-**Purpose**: Improvements that affect multiple user stories
+**Goal**: Achieve completion parity on `medley/internal/loadups/starter.sysout` (SC-009).
 
-- [x] T023 [P] Update run-medley help text with comprehensive usage examples
-- [x] T024 [P] Add shell script linting and validation
-- [x] T025 Improve error messages for better user experience
-- [x] T026 [P] Create comprehensive test scripts in tests/scripts/
-- [x] T027 Validate backward compatibility with existing run-medley usage
-- [x] T028 Update documentation and quickstart validation
+ - [X] T017 [US4] Run baseline parity workflow for `starter.sysout` and record current first divergence using `scripts/generate_debug_logs.sh` + `scripts/analyze_execution_divergence.py`
+
+### Fix sequence (use C as ground truth; regenerate + compare after each fix)
+
+- [X] T018 [US4] Complete memory-loading integration verification task D014 described in `specs/004-emulator-runner/execution-debugging-tasks.md` (Zig: `zaiko/src/data/sysout.zig`)
+- [ ] T019 [US4] Fix FuncObj offset parity tasks D021-D023 in `zaiko/src/vm/execution_trace.zig`
+- [ ] T020 [US4] Fix frame header parity tasks D024-D026 in `zaiko/src/vm/execution_trace.zig` (reference C layout in `maiko/inc/stack.h`)
+- [ ] T021 [US4] Fix TOS parity tasks D028-D030 in `zaiko/src/vm/stack.zig` and `zaiko/src/vm/init.zig`
+- [ ] T022 [US4] Fix early-stop parity tasks D031-D033 in `zaiko/src/vm/dispatch/dispatch_loop.zig` and `zaiko/src/main.zig`
+- [ ] T023 [US4] Iterate: regenerate logs and advance divergence point until `starter.sysout` matches to completion (SC-009) using `scripts/generate_debug_logs.sh` + `scripts/analyze_execution_divergence.py`
+
+**Checkpoint**: `starter.sysout` completion parity achieved (SC-009).
+
+---
+
+## Phase 5: Parity Stage 2 - `full.sysout` to Completion (Priority: P0)
+
+**Goal**: After Stage 1, achieve completion parity on `medley/loadups/full.sysout` (SC-010).
+
+- [ ] T024 [US4] Run parity workflow for `full.sysout` and record current first divergence using `scripts/generate_debug_logs.sh` + `scripts/analyze_execution_divergence.py`
+- [ ] T025 [US4] Iterate fixes (same loop as Stage 1): change Zig to match C, regenerate logs, and use LCP skip/resume until completion parity is achieved (SC-010)
+
+**Checkpoint**: `full.sysout` completion parity achieved (SC-010).
+
+---
+
+## Phase 6: User Story 1 - Run Interlisp with Selected Emulator (Priority: P1) 🎯 MVP
+
+**Goal**: Run Interlisp with selected emulator via `--emulator <c|zig|lisp>` while preserving existing run-medley behavior.
+
+**Independent Test**: `cd medley && ./run-medley --emulator zig` starts using Zig emulator (or fails with clear error).
+
+- [ ] T026 [US1] Verify `--emulator` selection works end-to-end for C/Zig/Lisp in `medley/run-medley` (FR-001, FR-014)
+- [ ] T027 [US1] Verify `medley/scripts/medley/medley.command` supports the same selection behavior via its component regeneration workflow (FR-011)
+- [ ] T028 [US1] Verify `medley/scripts/medley/medley_run.sh` (component script) invokes the selected emulator consistently (FR-011)
+- [ ] T029 [US1] Implement and/or verify explicit executable naming mapping (`lde/ldex/ldesdl/zaiko/laiko`) and display-backend rules in `medley/scripts/medley/emulator_utils.sh` (FR-013)
+
+---
+
+## Phase 7: User Story 2 - Set Default Emulator Preference (Priority: P2)
+
+**Goal**: Support `MEDLEY_EMULATOR` as default emulator selection when `--emulator` is not provided.
+
+**Independent Test**: `cd medley && MEDLEY_EMULATOR=zig ./run-medley` uses Zig emulator.
+
+- [ ] T030 [US2] Verify `MEDLEY_EMULATOR` selection and precedence in `medley/run-medley` and `medley/scripts/medley/emulator_utils.sh` (FR-002, FR-003, FR-004)
+- [ ] T031 [US2] Verify help/usage text documents env var precedence in `medley/run-medley` (FR-002, FR-003)
+
+---
+
+## Phase 8: User Story 3 - Automatic Emulator Building on First Run (Priority: P3)
+
+**Goal**: Support `--auto-build` to build missing emulator before running.
+
+**Independent Test**: `cd medley && ./run-medley --emulator zig --auto-build` builds and runs (or fails with clear error).
+
+- [ ] T032 [US3] Verify `--auto-build` triggers the right build scripts and propagates failures clearly in `medley/run-medley` and `medley/scripts/medley/emulator_utils.sh` (FR-008, FR-009)
+
+---
+
+## Phase 9: Polish & Cross-Cutting Concerns
+
+**Purpose**: Clean up, consistency, and validation across runner + parity workflow.
+
+- [ ] T033 [P] Run a consistency pass on docs and contracts for lock file details and parity workflow wording in `specs/004-emulator-runner/contracts/*` and `specs/004-emulator-runner/quickstart.md` (FR-016..FR-018, FR-019..FR-026)
+- [ ] T034 Validate `specs/004-emulator-runner/quickstart.md` commands end-to-end on the target platform(s) (SC-006, SC-008, SC-009, SC-010)
 
 ---
 
@@ -115,83 +152,24 @@
 
 ### Phase Dependencies
 
-- **Setup (Phase 1)**: No dependencies - can start immediately
-- **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
-- **User Stories (Phase 3+)**: All depend on Foundational phase completion
-  - User stories can then proceed in parallel (if staffed)
-  - Or sequentially in priority order (P1 → P2 → P3)
-- **Polish (Final Phase)**: Depends on all desired user stories being complete
-
-### User Story Dependencies
-
-- **User Story 1 (P1)**: Can start after Foundational (Phase 2) - No dependencies on other stories
-- **User Story 2 (P2)**: Can start after Foundational (Phase 2) - Builds on US1 but independently testable
-- **User Story 3 (P3)**: Can start after Foundational (Phase 2) - Builds on US1 but independently testable
-
-### Within Each User Story
-
-- Core implementation before integration
-- Story complete before moving to next priority
+- **Setup (Phase 1)**: No dependencies
+- **Foundational (Phase 2)**: Depends on Setup completion; blocks all stories
+- **US4 (Phases 3–5)**: Depends on Foundational; staged parity (`starter.sysout` then `full.sysout`)
+- **US1/US2/US3 (Phases 6–8)**: Depends on Foundational; can proceed in parallel with US4 once foundational is complete
+- **Polish (Phase 9)**: After any subset of stories you want to stabilize/document
 
 ### Parallel Opportunities
 
-- All Setup tasks marked [P] can run in parallel
-- All Foundational tasks marked [P] can run in parallel (within Phase 2)
-- Once Foundational phase completes, all user stories can start in parallel (if team capacity allows)
-- Different user stories can be worked on in parallel by different team members
+- Tasks touching different areas can run in parallel (e.g., Python log analyzers vs runner scripts vs emulator code), as long as they don’t fight over the same files:
+  - [P] `scripts/analyze_execution_divergence.py` enhancements can proceed alongside emulator runtime knob work.
+  - [P] `medley/scripts/medley/medley.command` verification can proceed alongside parity work.
 
 ---
 
-## Parallel Example: User Story 1
+## Parallel Example: US4 workflow improvements
 
 ```bash
-# Launch foundational utilities together:
-Task: "Implement emulator type validation function in medley/scripts/emulator_utils.sh"
-Task: "Implement platform detection logic in medley/scripts/emulator_utils.sh"
-
-# Launch US1 implementation tasks:
-Task: "Modify run-medley script to accept --emulator flag with validation"
-Task: "Integrate emulator path resolution into run-medley execution flow"
+Task: "Add LCP detection to scripts/analyze_execution_divergence.py"
+Task: "Add EMULATOR_MAX_STEPS to zaiko/src/vm/dispatch.zig"
+Task: "Add EMULATOR_MAX_STEPS to maiko/src/xc.c"
 ```
-
----
-
-## Implementation Strategy
-
-### MVP First (User Story 1 Only)
-
-1. Complete Phase 1: Setup
-2. Complete Phase 2: Foundational (CRITICAL - blocks all stories)
-3. Complete Phase 3: User Story 1
-4. **STOP and VALIDATE**: Test User Story 1 independently
-5. Deploy/demo if ready
-
-### Incremental Delivery
-
-1. Complete Setup + Foundational → Foundation ready
-2. Add User Story 1 → Test independently → Deploy/Demo (MVP!)
-3. Add User Story 2 → Test independently → Deploy/Demo
-4. Add User Story 3 → Test independently → Deploy/Demo
-5. Each story adds value without breaking previous stories
-
-### Parallel Team Strategy
-
-With multiple developers:
-
-1. Team completes Setup + Foundational together
-2. Once Foundational is done:
-   - Developer A: User Story 1
-   - Developer B: User Story 2
-   - Developer C: User Story 3
-3. Stories complete and integrate independently
-
----
-
-## Notes
-
-- [P] tasks = different files, no dependencies
-- [Story] label maps task to specific user story for traceability
-- Each user story should be independently completable and testable
-- Commit after each task or logical group
-- Stop at any checkpoint to validate story independently
-- Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence

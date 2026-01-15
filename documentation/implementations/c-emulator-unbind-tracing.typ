@@ -143,7 +143,7 @@ This restores the variable to the "unbound" state (0xffffffff).
 
 == Zig Implementation Verification
 
-*Status*: ⏳ Pending
+*Status*: ✅ Completed - UNBIND executes past instruction #3
 
 The Zig implementation in `zaiko/src/vm/opcodes/binding.zig` should match the C behavior:
 1. Walk backwards through stack to find marker
@@ -155,6 +155,12 @@ The Zig implementation in `zaiko/src/vm/opcodes/binding.zig` should match the C 
 - Removed incorrect `>> 1` shift on offset (C uses GetLoWord directly)
 - Fixed ppvar calculation to use DLword pointer arithmetic then cast to LispPTR*
 - Fixed unbinding loop to decrement ppvar before each assignment
+
+**Additional Fix (Critical, 2026-01-15)**:
+- Match C’s marker search semantics exactly: `for (; (((int)*--CSTKPTRL) >= 0););`
+  - Zig UNBIND must *decrement stack pointer first* and read the value from stack memory (not from cached `TopOfStack`)
+- Handle potential unaligned access for `ppvar = (LispPTR *)((DLword *)PVAR + 2 + offset)`
+  - Zig uses `[*]align(1) LispPTR` for `ppvar` and `current_ppvar` to avoid alignment traps
 
 == Related Documentation
 

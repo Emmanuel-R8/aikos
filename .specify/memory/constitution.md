@@ -1,50 +1,51 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Interlisp Specifications Constitution
+
+This constitution governs the *specification artifacts* under `specs/` (including `spec.md`, `plan.md`, and `tasks.md`) and any changes derived from them.
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Reference-First
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+- **MUST** treat the existing repository behavior and the C implementation as the ground truth when conflicts occur.
+- **MUST** update documentation and specs when we discover they conflict with the implemented behavior (or explicitly decide to change the implementation).
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. Backward Compatibility for Medley Run Scripts
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+- **MUST** preserve existing behavior of Medley run scripts unless a spec explicitly declares a breaking change.
+- **MUST** keep default behavior unchanged when new flags/environment variables are not used.
+- **MUST** document any behavior changes with clear before/after notes in the relevant `spec.md` and `quickstart.md`.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Script Portability and Safety
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+- **MUST** use robust shell practices appropriate to the target script (`bash` vs POSIX `sh`), without breaking existing caller expectations.
+- **MUST** avoid introducing interactive prompts into runner scripts.
+- **MUST** use explicit, deterministic precedence rules for configuration sources (CLI flags > environment variables > defaults).
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. Operator-Facing Error Messages
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+- **MUST** present errors with a **user-facing summary** first, then **technical details** (paths, exit codes, failing checks).
+- **MUST** provide actionable remediation guidance where feasible (e.g., “use `--auto-build`”, “check execute bit”).
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. Concurrency Discipline
+
+- **MUST** prevent accidental concurrent runs by default via a lock mechanism.
+- **MUST** define “stale lock” precisely (time threshold and/or PID liveness) in `spec.md`.
+- **MUST** ensure lock cleanup behavior is documented for normal exit vs crash scenarios.
+
+### VI. Traceability: Requirements ↔ Tasks
+
+- **MUST** ensure every Functional Requirement (FR) in `spec.md` has at least one clearly identified task in `tasks.md`.
+- **MUST** ensure every task in `tasks.md` maps to a requirement and/or user story (or is explicitly labeled as “engineering hygiene”).
+- **MUST NOT** leave placeholder/template text (e.g., “ACTION REQUIRED”, `[PRINCIPLE]`, TODO markers) in committed spec artifacts.
+
+## Documentation & Contracts
+
+- **MUST** keep CLI usage examples consistent across `spec.md`, `quickstart.md`, and any contract docs.
+- **SHOULD** record notable design decisions in `research.md` and keep them aligned with `spec.md` clarifications.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+- This constitution supersedes any template text in generated artifacts.
+- Amendments require updating this file and (when relevant) re-running consistency checks across affected specs.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-01-15 | **Last Amended**: 2026-01-15

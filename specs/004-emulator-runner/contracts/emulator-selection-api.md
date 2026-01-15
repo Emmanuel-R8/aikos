@@ -101,8 +101,8 @@ Error: Another Interlisp session is running. Please wait or use a different emul
 
 ### Lock Management
 
-- Create lock file: `medley/.medley-<username>.lock`
-- Content: `PID=<pid>\nTIMESTAMP=<unix-timestamp>`
+- Create per-user lock file: `$HOME/.medley/medley.lock`
+- Content: two lines: `<pid>\n<unix-timestamp>`
 - Auto-remove locks > 1 minute old
 
 ### Build Integration

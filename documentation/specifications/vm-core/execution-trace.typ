@@ -9,7 +9,9 @@ The execution trace provides a single-line log format for each instruction execu
 
 == Format Specification
 
-Each line contains exactly 462 characters (461 + newline) with the following column layout:
+*Last Updated*: 2026-01-15 17:25
+
+Each line represents one executed instruction. While earlier drafts described a fixed-width, column-aligned layout, real-world traces (especially the C emulator’s unified format) are often *longer than 462 characters*. Consumers should therefore parse by *stable tokens/fields*, not absolute column offsets.
 
 === Column Layout
 
@@ -40,11 +42,10 @@ Each line contains exactly 462 characters (461 + newline) with the following col
 
 ==== Instruction Bytes (Columns 69-88)
 
-*Format*: 8 bytes in hexadecimal (16 characters) + 4 trailing spaces
+*Format*: 8 bytes in hexadecimal (16 characters) + optional spacing
 
 - Bytes are read from virtual memory at PC address
-- Up to 8 bytes shown (may be less if instruction is shorter)
-- Missing bytes padded with `00`
+- Exactly 8 bytes should be shown for parity workflows
 - Format: `%02x%02x%02x%02x%02x%02x%02x%02x    ` (16 hex + 4 spaces)
 
 *Debug Info* (first 10 instructions, expanded for diagnosis):
@@ -53,7 +54,7 @@ Each line contains exactly 462 characters (461 + newline) with the following col
 - `[MEM_ZEROS]` - Indicates memory at PC location is all zeros (memory loading issue)
 - `[PC_MISMATCH_CHECK vpage:%u]` - Special marker for known PC mismatch locations (PC 0x307898/0x307899)
 
-*Note*: Debug info can be expanded as needed for diagnosis, as long as the core format (columns 1-461) remains identical across emulators.
+*Note*: Debug info can be expanded as needed for diagnosis, as long as the required fields remain present and parseable across emulators.
 
 ==== Instruction Name (Columns 89-128)
 

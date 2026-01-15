@@ -553,7 +553,14 @@ pub fn loadMemoryPages(
     }
 
     // T103: Performance optimization - only do debug passes in debug mode
-    const target_vpage = if (DEBUG_SYSOUT_LOADING) 6204 else 0; // PC 0x307898 / 512 = 6204
+    //
+    // IMPORTANT: The C emulator trace prints PC as a BYTE offset (e.g. 0x60f130),
+    // and also shows the DLword offset (/2: 0x307898). `virtual_memory` is
+    // byte-addressed, and FPtoVP virtual page numbers are in *byte pages*
+    // (512-byte pages), matching C's `[vpage:...]` field.
+    //
+    // PC (bytes) 0x60f130 / 512 = vpage 12408, offset 0x130 within that page.
+    const target_vpage = if (DEBUG_SYSOUT_LOADING) 12408 else 0;
     var found_target_page = if (DEBUG_SYSOUT_LOADING) false else false;
     var target_page_count: usize = 0;
 
@@ -603,14 +610,16 @@ pub fn loadMemoryPages(
             continue;
         }
 
-        // Use GETFPTOVP to get virtual page number (low 16 bits)
-        const virtual_page = fptovp.getFPtoVP(file_page);
+        // Use GETFPTOVP to get virtual page number (low 16 bits). This is a byte-page
+        // index (512-byte pages), matching C's `[vpage:...]` field.
+        const virtual_page_u16 = fptovp.getFPtoVP(file_page);
+        const virtual_page: u32 = @as(u32, virtual_page_u16);
 
         // T103: Performance optimization - conditional debug output
         if (DEBUG_SYSOUT_LOADING and virtual_page == target_vpage) {
             const pageok = fptovp.getPageOK(file_page);
             std.debug.print("DEBUG: Loading file page {} -> virtual page {} (PC page) [{d}/{d}]\n", .{ file_page, virtual_page, target_page_count, target_page_count });
-            std.debug.print("  FPtoVP[{}] = {} (GETFPTOVP), GETPAGEOK = 0x{x:0>4}\n", .{ file_page, virtual_page, pageok });
+            std.debug.print("  FPtoVP[{}] = {} (GETPAGEOK=0x{x:0>4})\n", .{ file_page, virtual_page, pageok });
             found_target_page = true;
         }
 
@@ -659,9 +668,9 @@ pub fn loadMemoryPages(
 
         if ((DEBUG_SYSOUT_LOADING or ENHANCED_TRACING) and virtual_page == target_vpage) {
             std.debug.print("\n=== ENHANCED TRACING: Loading PC Page ===\n", .{});
-            std.debug.print("DEBUG sysout_loader: Loading file page {} -> virtual page {} (PC PAGE 0x307898)\n", .{ file_page, virtual_page });
+            std.debug.print("DEBUG sysout_loader: Loading file page {} -> virtual page {} (PC PAGE 0x60f130)\n", .{ file_page, virtual_page });
             std.debug.print("  Virtual address = 0x{x} (offset 0x{x})\n", .{ virtual_address, virtual_address });
-            std.debug.print("  PC 0x307898 is at offset 0x98 (0x98 bytes) in this page\n", .{});
+            std.debug.print("  PC 0x60f130 is at offset 0x130 (0x130 bytes) in this page\n", .{});
             std.debug.print("DEBUG sysout_loader: PC PAGE - Raw bytes from file (BEFORE byte-swap):\n", .{});
             std.debug.print("  File page: {}, file offset: 0x{x} ({} bytes)\n", .{ file_page, file_offset, file_offset });
             std.debug.print("  First 16 bytes: ", .{});
@@ -669,7 +678,7 @@ pub fn loadMemoryPages(
                 std.debug.print("0x{x:0>2} ", .{page_buffer[i]});
             }
             std.debug.print("\n", .{});
-            const pc_offset_in_page: usize = 0x98; // PC 0x307898 - base 0x307800 = 0x98
+            const pc_offset_in_page: usize = 0x130; // PC 0x60f130 - base 0x60f000 = 0x130
             std.debug.print("  Bytes at PC offset 0x{x} (0x{x}): ", .{ pc_offset_in_page, pc_offset_in_page });
             for (0..8) |i| {
                 if (pc_offset_in_page + i < BYTESPER_PAGE) {
@@ -729,7 +738,7 @@ pub fn loadMemoryPages(
                 std.debug.print("0x{x:0>2} ", .{virtual_memory[virtual_address + i]});
             }
             std.debug.print("\n", .{});
-            const pc_offset_in_page: usize = 0x98; // PC 0x307898 - base 0x307800 = 0x98
+            const pc_offset_in_page: usize = 0x130; // PC 0x60f130 - base 0x60f000 = 0x130
             const pc_addr = virtual_address + pc_offset_in_page;
             std.debug.print("  Bytes at PC location (offset 0x{x}, address 0x{x}): ", .{ pc_offset_in_page, pc_addr });
             for (0..8) |i| {

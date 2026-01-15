@@ -1,37 +1,59 @@
-# Implementation Plan: Emulator Runner Scripts for Interlisp
+# Implementation Plan: Emulator Runner Scripts + Execution Trace Parity
 
-**Branch**: `004-emulator-runner` | **Date**: 2026-01-12 | **Spec**: specs/004-emulator-runner/spec.md
-**Input**: Feature specification from `/specs/004-emulator-runner/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `004-emulator-runner` | **Date**: 2026-01-15 | **Spec**: `specs/004-emulator-runner/spec.md`
+**Input**: Feature specification from `specs/004-emulator-runner/spec.md`
 
 ## Summary
 
-Create scripts to run Interlisp with choice of emulators (C, Zig, Lisp), with locking mechanism, validation, and auto-build capability. Technical approach uses shell scripts integrating with existing Medley infrastructure and unified build system.
+Deliver two related capabilities:
+
+1. **Runner scripts**: Run Medley Interlisp with a chosen emulator (C/Zig/Lisp) with validation, locking, and optional auto-build, preserving backward compatibility.
+2. **Execution-trace parity**: Provide a repeatable workflow to generate and compare execution traces from the C and Zig emulators, then iteratively fix Zig until it matches C **to completion**, staged (`starter.sysout` first, then `full.sysout`). Comparison must support skipping the already-matching prefix (auto LCP) and fast iteration via a runtime step cap knob.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
+**Language/Version**: Shell (bash + POSIX sh), C (Maiko), Zig 0.15.2+, Python 3
 
-**Language/Version**: Bash/shell scripts
-**Primary Dependencies**: Existing Medley run scripts, unified build system (spec 003)
-**Storage**: N/A
-**Testing**: Manual testing, shell script validation
-**Target Platform**: Linux, macOS (Medley supported platforms)
-**Project Type**: Scripts/utilities
-**Performance Goals**: Start Interlisp in under 5 seconds after emulator selection
-**Constraints**: 100% backward compatibility with existing scripts
-**Scale/Scope**: Single user, multiple emulator choices
+**Primary Dependencies**:
+- Unified build layout (spec 003): `maiko/build/<emulator>/<os>.<arch>/...`
+- Existing runner scripts: `medley/run-medley`, `medley/scripts/medley/medley.command`, `medley/scripts/medley/medley_run.sh`
+- Trace tooling: `scripts/generate_debug_logs.sh`, `scripts/compare_debug_logs.sh`, `scripts/analyze_execution_divergence.py`, `scripts/enhanced_divergence_analysis.py`
+
+**Storage**: None (ephemeral log files + a per-user lock file)
+
+**Testing**:
+- Manual smoke tests for runner scripts
+- Scripted trace generation/comparison runs for parity work
+
+**Target Platform**: Linux, macOS
+
+**Project Type**: Repository-integrated scripts + emulator parity tooling and emulator code changes (C + Zig)
+
+**Performance Goals**:
+- Runner script overhead negligible
+- Trace comparison should be able to identify the first divergence quickly (supports skipping matching prefix)
+
+**Constraints**:
+- Backward compatible default runner behavior when new flags/env vars aren’t used
+- C trace is ground truth
+- Parity staged: `starter.sysout` completion parity before `full.sysout`
+- Provide a runtime “max steps” knob (flag/env var) honored by both emulators (no source patching)
+
+**Scale/Scope**:
+- Single developer workflow, repeated iteration loops
+- Logs may be large for “to completion” runs; tools must support incremental iteration (LCP skip)
 
 ## Constitution Check
 
-_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
+*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-Constitution is template - no specific gates defined. Assumed to pass.
+- **No placeholders**: plan/spec/tasks must not contain template placeholders.
+- **Backward compatibility**: runner script defaults unchanged when not using new options.
+- **Traceability**: every FR (including parity FR-019+) must map to one or more tasks.
+- **Reference-first**: C emulator output is ground truth for parity.
+- **Error messages**: user-friendly summary + technical details.
+
+Status: **PASS** if the plan/tasks enforce the above gates.
 
 ## Project Structure
 
@@ -39,37 +61,43 @@ Constitution is template - no specific gates defined. Assumed to pass.
 
 ```text
 specs/004-emulator-runner/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+├── plan.md
+├── research.md
+├── data-model.md
+├── quickstart.md
+├── contracts/
+├── tasks.md
+├── execution-debugging-plan.md
+├── execution-debugging-tasks.md
+├── execution-trace-debugging-summary.md
+└── execution-trace-debugging-tasks.md
 ```
 
 ### Source Code (repository root)
 
 ```text
-medley/scripts/
-├── run-medley              # Modified to support --emulator flag
-├── emulator_utils.sh       # New utility functions for emulator handling
-└── medley/                 # Existing directory
-    └── emulator_utils.sh   # Existing utility (may be extended)
+medley/
+├── run-medley
+└── scripts/medley/
+    ├── emulator_utils.sh
+    ├── medley.command
+    └── medley_run.sh
 
-tests/scripts/
-├── test-emulator-selection.sh
-├── test-lock-mechanism.sh
-├── test-emulator-validation.sh
-└── test-backward-compatibility.sh
+scripts/
+├── generate_debug_logs.sh
+├── compare_debug_logs.sh
+├── analyze_execution_divergence.py
+└── enhanced_divergence_analysis.py
+
+maiko/src/
+└── (C emulator tracing + execution log changes)
+
+zaiko/src/
+└── (Zig emulator tracing + parity fixes)
 ```
 
-**Structure Decision**: Scripts are placed in medley/scripts/ to integrate with existing Medley infrastructure. Test scripts in tests/scripts/ following project conventions.
+**Structure Decision**: Keep runner logic in `medley/` + `medley/scripts/medley/` to match Medley’s existing organization; keep parity workflows in top-level `scripts/` for developer tooling; emulator fixes live in their respective implementations (`maiko/src/`, `zaiko/src/`).
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation                  | Why Needed         | Simpler Alternative Rejected Because |
-| -------------------------- | ------------------ | ------------------------------------ |
-| [e.g., 4th project]        | [current need]     | [why 3 projects insufficient]        |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient]  |
+No constitution violations identified for this feature.

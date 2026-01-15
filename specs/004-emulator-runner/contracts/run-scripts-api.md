@@ -54,6 +54,82 @@
 
 ---
 
+## Trace Parity Tooling (C vs Zig)
+
+These are developer workflows (not Medley runtime flags) used to achieve execution-trace parity (C ground truth; Zig must match to completion).
+
+### generate logs
+
+**Script**: `scripts/generate_debug_logs.sh`
+
+**Signature**:
+- `./scripts/generate_debug_logs.sh [sysout_file]`
+
+**Default sysout**: `medley/internal/loadups/starter.sysout`
+
+**Outputs** (repo root):
+- `c_emulator_execution_log.txt`
+- `zig_emulator_execution_log.txt`
+
+**Staging**:
+- First reach completion parity on `starter.sysout`
+- Then run the same workflow on `medley/loadups/full.sysout`
+
+### compare logs
+
+**Script**: `scripts/compare_debug_logs.sh` (baseline) and/or a future enhanced comparator
+
+**Expected capabilities**:
+- Compare C vs Zig logs line-by-line and report the first divergence with actionable field context.
+- Support skipping the already-matching prefix by auto-detecting the longest common prefix (LCP).
+- Support manual override for iteration (e.g., `--start-line N`).
+
+### Canonical trace line format (FR-021)
+
+Both emulators MUST emit a comparable, line-oriented format where each instruction corresponds to one line.
+
+**Required fields** (in order):
+1. `instruction_num` (decimal, left-padded OK)
+2. `PC: 0x...` (hex)
+3. `FuncObj+...` (byte offset; formatting may vary but must be parseable)
+4. `opcode_bytes` (16 hex chars = 8 bytes)
+5. `opcode_name` (uppercase mnemonic token)
+6. `Stack: D:<depth> P:<ptr> TOS:0x<hex>` (at least depth + TOS must be present)
+7. `Frame: FX:<offset> FH:0x<hex>` (may use placeholders if unavailable, but format token must exist)
+
+**Example (C)**:
+
+```text
+    1 PC: 0x60f130 (Lisp_world+0x60f130, FuncObj+  104 bytes)       000060bfc9120a02    POP  Stack: D: 5956 P:11912 TOS:0x0000000000000000  Frame: FX:11890 FH:0x307864
+```
+
+**Example (Zig)**:
+
+```text
+    1 PC: 0x307898 (Lisp_world+0x307898, FuncObj+  104 bytes)       000060bfc9120a02    POP  Stack: D: 5956 P:11912 TOS:0x0000000000000000  Frame: FX:11890 FH:0x307864
+```
+
+Note: Additional diagnostic decorations (e.g., `[vpage:...]`, `@mem:...`, `N:[...]`) are allowed, but MUST NOT break extraction of the required fields.
+
+### fast iteration cap (runtime knob)
+
+To avoid scripts that patch source files, the emulators SHOULD honor a shared runtime knob that caps executed/traceable steps for faster iteration.
+
+**Canonical name**: `EMULATOR_MAX_STEPS`
+
+**Behavior**:
+- When set (non-empty integer), both C and Zig emulators stop tracing/executing after N steps (for debugging only).
+- When unset, parity workflows run “to completion”.
+
+**How to use it (recommended)**:
+- `scripts/compare_emulator_execution.sh` exports `EMULATOR_MAX_STEPS` for both emulators (defaults to 1000 unless you override it in the environment).
+
+Example:
+
+```bash
+EMULATOR_MAX_STEPS=2000 ./scripts/compare_emulator_execution.sh medley/internal/loadups/starter.sysout
+```
+
 ## Function Interfaces
 
 ### select_emulator()
@@ -177,9 +253,9 @@ acquire_run_lock(run_id, override_flag) -> success
 - If failure: Lock file not created, error message displayed
 
 **Lock File**:
-- Location: `$HOME/.medley/.medley-run-<run_id>.lock` or `$TMPDIR/medley/.medley-run-<run_id>.lock`
-- Contents: Process ID (PID) as integer
-- Stale detection: Lock age > 5 minutes OR process not running
+- Location: `$HOME/.medley/medley.lock`
+- Contents: two lines: `<pid>\n<unix-timestamp>`
+- Stale detection: lock age > 60 seconds (auto-remove) or PID not running (auto-remove)
 
 **Errors**:
 - Lock held by active process → Returns false, error message with PID

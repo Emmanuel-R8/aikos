@@ -18,7 +18,7 @@ This document defines the function signatures and interfaces for emulator select
 - `--emulator TYPE` (optional): Command-line emulator selection (`c`, `zig`, or `lisp`)
 - `--env-var VAR` (optional): Environment variable name (default: `MEDLEY_EMULATOR`)
 
-**Returns**: 
+**Returns**:
 - Sets shell variable `selected_emulator` to `c`, `zig`, or `lisp`
 - Sets shell variable `selection_source` to `command-line`, `environment`, or `default`
 - Exit code: 0 on success, 1 on invalid selection
@@ -106,7 +106,7 @@ validate_emulator_executable /path/to/zaiko
 **Purpose**: Acquire user-specific lock file to prevent concurrent runs.
 
 **Parameters**:
-- `--lock-dir DIR` (optional): Directory for lock file (default: `medley/`)
+- `--lock-dir DIR` (optional): Directory for lock file (default: `$HOME/.medley`)
 
 **Returns**:
 - Sets shell variable `lock_file_path` to path of lock file
@@ -114,9 +114,8 @@ validate_emulator_executable /path/to/zaiko
 - Exit code: 0 on success, 1 on active lock detected
 
 **Lock File Format**:
-- Path: `<lock-dir>/.medley-<username>.lock`
-- Content: `PID:timestamp` (single line)
-- Username: From `$USER` or `id -un`
+- Path: `<lock-dir>/medley.lock` (default: `$HOME/.medley/medley.lock`)
+- Content: `PID` then `timestamp` (two lines)
 
 **Stale Lock Handling** (FR-017):
 - Lock file age > 60 seconds → Auto-remove with warning message, proceed
@@ -129,8 +128,8 @@ validate_emulator_executable /path/to/zaiko
 
 **Example**:
 ```bash
-acquire_lock --lock-dir /path/to/medley
-# Sets: lock_file_path=/path/to/medley/.medley-username.lock
+acquire_lock --lock-dir /path/to/.medley
+# Sets: lock_file_path=/path/to/.medley/medley.lock
 # Creates lock file with current PID and timestamp
 ```
 
@@ -157,7 +156,7 @@ acquire_lock --lock-dir /path/to/medley
 
 **Example**:
 ```bash
-release_lock --lock-file /path/to/medley/.medley-username.lock
+release_lock --lock-file /path/to/.medley/medley.lock
 # Removes lock file
 ```
 

@@ -36,6 +36,7 @@ Each line represents one instruction execution and contains:
 ==== Memory Bytes (Columns 69-88)
 
 - `[MEM:...]`: 8 bytes of instruction memory in hex
+  - For parity comparisons, emit a fixed 8-byte window starting at `PC` (even if the instruction length is shorter).
 
 ==== Instruction Name (Columns 89-128)
 
@@ -80,7 +81,8 @@ Each line represents one instruction execution and contains:
 
 - Logs up to 1000 instructions (stops on crash)
 - Uses `std.fmt.bufPrint` with unified format strings
-- Buffer size increased to 1024 bytes to accommodate verbose format
+- Writes the full constructed line (do not truncate to a fixed width)
+- Buffer size increased (currently 4096 bytes) to accommodate verbose format
 - All values shown in hex, octal, and bit-shifted formats
 
 == Bit-Shifted Values Purpose

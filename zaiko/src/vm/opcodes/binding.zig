@@ -86,25 +86,46 @@ pub fn handleUNBIND(vm: *VM) errors.VMError!void {
 
     // Walk backwards through stack until we find a negative value (marker)
     // C: for (; (((int)*--CSTKPTRL) >= 0););
-    // This means: keep popping until we find a value with high bit set (negative when cast to int)
+    // This means: decrement stack pointer FIRST, then read value
+    // Keep doing this until we find a value with high bit set (negative when cast to int)
+    // CRITICAL: C code decrements FIRST, then reads, so we need to read directly from stack memory
+
     while (true) {
-        if (stack_module.getStackDepth(vm) == 0) {
-            // Stack is empty - no marker found
+        // Check if we can decrement (stack has data)
+        // Stack grows DOWN, so stack_ptr must be > stack_base to have data
+        const stack_base_addr = @intFromPtr(vm.stack_base);
+        var stack_ptr_addr = @intFromPtr(vm.stack_ptr);
+
+        // Check if we can decrement (need at least 2 DLwords = 4 bytes below current position)
+        if (stack_ptr_addr <= stack_base_addr + 4) {
+            // Stack doesn't have enough data - no marker found
             return errors_module.VMError.StackUnderflow;
         }
 
-        const value = stack_module.getTopOfStack(vm);
+        // Decrement stack pointer FIRST (C: --CSTKPTRL)
+        // Stack grows DOWN, so decrementing means moving DOWN (subtracting)
+        // Move DOWN by 2 DLwords (1 LispPTR = 4 bytes)
+        stack_ptr_addr -= 4; // Move DOWN by 4 bytes (2 DLwords)
+        vm.stack_ptr = @ptrFromInt(stack_ptr_addr);
+
+        // Read value directly from stack memory (C: *--CSTKPTRL)
+        // CRITICAL: Read with byte swapping for big-endian format
+        const stack_ptr_bytes: [*]const u8 = @ptrCast(vm.stack_ptr);
+        const low_word_be = (@as(DLword, stack_ptr_bytes[0]) << 8) | @as(DLword, stack_ptr_bytes[1]);
+        const high_word_be = (@as(DLword, stack_ptr_bytes[2]) << 8) | @as(DLword, stack_ptr_bytes[3]);
+        const value: LispPTR = (@as(LispPTR, high_word_be) << 16) | @as(LispPTR, low_word_be);
+
         // Check if value is negative (high bit set) - this is the marker
         if (@as(i32, @bitCast(value)) < 0) {
-            break; // Found marker
+            // Found marker - update cached TopOfStack and break
+            vm.top_of_stack = value;
+            break;
         }
-
-        // Pop and continue searching
-        _ = try stack_module.popStack(vm);
+        // Continue searching (loop will decrement again)
     }
 
-    // Get marker value
-    const marker = stack_module.getTopOfStack(vm);
+    // Get marker value (already in vm.top_of_stack, but read it explicitly)
+    const marker = vm.top_of_stack;
 
     // Extract num and offset from marker: num = (~value) >> 16, offset = GetLoWord(value)
     // C: num = (~value) >> 16; offset = GetLoWord(value) (used directly, not shifted)
@@ -125,18 +146,22 @@ pub fn handleUNBIND(vm: *VM) errors.VMError!void {
     const pvar_base = frame_addr + frame_size;
 
     // PVAR is a DLword pointer, so do DLword arithmetic first
+    // C: ppvar = (LispPTR *)((DLword *)PVAR + 2 + GetLoWord(value))
+    // PVAR is a DLword pointer, so arithmetic is in DLword units
     const pvar_dlword_ptr: [*]DLword = @ptrFromInt(pvar_base);
     const ppvar_dlword: [*]DLword = pvar_dlword_ptr + 2 + offset;
     // Then cast to LispPTR* (C does this cast after arithmetic)
-    // Use @alignCast to handle alignment difference (DLword=2, LispPTR=4)
-    const ppvar: [*]LispPTR = @alignCast(@ptrCast(ppvar_dlword));
+    // CRITICAL: C code does this cast directly, which may result in unaligned access
+    // In Zig, we need to handle potential misalignment. Since DLword=2 and LispPTR=4,
+    // the address might not be 4-byte aligned. Use @ptrCast with align(1) to allow unaligned access
+    const ppvar: [*]align(1) LispPTR = @ptrCast(ppvar_dlword);
 
     // Restore num values to 0xffffffff (unbound marker)
     // C: for (i = num; --i >= 0;) { *--ppvar = 0xffffffff; }
     // This decrements ppvar before each assignment, starting from ppvar and going backwards
     // For num=1: i=1, --i=0 (>=0), --ppvar, then assign
     var i: u32 = num;
-    var current_ppvar: [*]LispPTR = ppvar;
+    var current_ppvar: [*]align(1) LispPTR = ppvar;
     while (i > 0) : (i -= 1) {
         current_ppvar -= 1; // Decrement before assignment (C: *--ppvar)
         current_ppvar[0] = 0xFFFFFFFF; // Unbound marker
@@ -178,12 +203,12 @@ pub fn handleDUNBIND(vm: *VM) errors.VMError!void {
             const pvar_base = frame_addr + frame_size;
             const pvar_dlword_ptr: [*]DLword = @ptrFromInt(pvar_base);
             const ppvar_dlword: [*]DLword = pvar_dlword_ptr + 2 + offset;
-            const ppvar: [*]LispPTR = @alignCast(@ptrCast(ppvar_dlword));
+            const ppvar: [*]align(1) LispPTR = @ptrCast(ppvar_dlword);
 
             // Restore num values to unbound
             // C: for (i = num; --i >= 0;) { *--ppvar = 0xffffffff; }
             var i: u32 = num;
-            var current_ppvar: [*]LispPTR = ppvar;
+            var current_ppvar: [*]align(1) LispPTR = ppvar;
             while (i > 0) : (i -= 1) {
                 current_ppvar -= 1; // Decrement before assignment
                 current_ppvar[0] = 0xFFFFFFFF;
@@ -220,7 +245,7 @@ pub fn handleDUNBIND(vm: *VM) errors.VMError!void {
             const pvar_base = frame_addr + frame_size;
             const pvar_dlword_ptr: [*]DLword = @ptrFromInt(pvar_base);
             const ppvar_dlword: [*]DLword = pvar_dlword_ptr + 2 + offset;
-            const ppvar: [*]LispPTR = @alignCast(@ptrCast(ppvar_dlword));
+            const ppvar: [*]LispPTR = @ptrCast(@alignCast(ppvar_dlword));
 
             var i: u32 = num;
             var current_ppvar: [*]LispPTR = ppvar;

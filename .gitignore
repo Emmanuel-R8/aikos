@@ -43,3 +43,13 @@ zig-out/
 *.zig.obj
 *.zig.o
 
+# Python artifacts (repo scripts)
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+

@@ -101,10 +101,10 @@ pub const ExecutionTrace = struct {
         }
 
         const file = self.log_file.?;
-        // AUTO: Increased buffer size to accommodate hex+octal+bit-shift format
-        // Original format was ~300 chars, new format with hex/octal/bit-shifts is ~800+ chars
-        var buffer: [1024]u8 = undefined;
-        @memset(buffer[0..], ' '); // Initialize buffer with spaces
+        // The C trace lines can be long (many formatted fields). Use a large buffer
+        // and write the full constructed line (no fixed-width truncation).
+        var buffer: [4096]u8 = undefined;
+        @memset(buffer[0..], ' '); // Initialize buffer with spaces (for column padding)
         var pos: usize = 0;
 
         // Helper to append formatted string
@@ -152,19 +152,24 @@ pub const ExecutionTrace = struct {
         const offset_fmt = self.formatFuncObjOffset(funcobj_byte_offset);
         try append(&buffer, &pos, "+{s} ", .{offset_fmt[0..]});
 
-        // Pad PC field to exactly 62 characters (column 7-68)
-        const pc_field_end = 68; // Column 68 (0-indexed: 67, but we want to be at 68)
-        while (pos < pc_field_end) : (pos += 1) {
-            buffer[pos] = ' ';
+        // Pad PC field to at least the historic "PC column" width, but never
+        // move the write cursor backwards (that would overwrite already-written bytes).
+        const pc_field_end = 68;
+        if (pos < pc_field_end) {
+            while (pos < pc_field_end) : (pos += 1) {
+                buffer[pos] = ' ';
+            }
+        } else {
+            try append(&buffer, &pos, " ", .{});
         }
-        pos = pc_field_end; // Ensure we're at column 69
 
         // Column 69-88: Instruction bytes (20 characters: 8 bytes hex + 4 spaces)
         // CRITICAL: C emulator log shows bytes read DIRECTLY from PCMAC (no XOR addressing)
         // C: xc.c:584: *((unsigned char *)PCMAC + i) - direct memory access, no XOR
         // But opcode decoding uses Get_BYTE_PCMAC0 which applies XOR addressing
         // So we show bytes WITHOUT XOR to match C log format
-        const bytes_to_show = @min(8, inst.length);
+        // C prints a fixed 8-byte window starting at PCMAC, regardless of instruction length.
+        const bytes_to_show: usize = 8;
         if (vm.virtual_memory) |vmem| {
             var i: usize = 0;
             while (i < bytes_to_show and vm.pc + i < vmem.len) : (i += 1) {
@@ -379,12 +384,15 @@ pub const ExecutionTrace = struct {
             tos_ul, tos_ul, tos_ul << 1, tos_ul >> 1,
             next_values[0], next_values[0], next_values[1], next_values[1], next_values[2], next_values[2], next_values[3], next_values[3] });
 
-        // Pad stack field to 170 characters (column 129-298)
-        const stack_end = 298; // Column 298 (0-indexed: 297, but we want to be at 298)
-        while (pos < stack_end) : (pos += 1) {
-            buffer[pos] = ' ';
+        // Pad stack field to the historic column boundary (optional).
+        const stack_end = 298;
+        if (pos < stack_end) {
+            while (pos < stack_end) : (pos += 1) {
+                buffer[pos] = ' ';
+            }
+        } else {
+            try append(&buffer, &pos, " ", .{});
         }
-        pos = stack_end; // Ensure we're at column 299
 
         // Column 299-461: Frame information (163 characters)
         if (vm.current_frame) |frame| {
@@ -472,69 +480,41 @@ pub const ExecutionTrace = struct {
                 frame_nextblock, frame_nextblock, frame_nextblock << 1, frame_nextblock >> 1,
                 funcobj_lisp_offset, funcobj_lisp_offset, funcobj_lisp_offset << 1, funcobj_lisp_offset >> 1 });
 
-            // Pad frame field to 163 characters (column 299-461)
-            // Frame field should end at column 461 (index 461)
-            const frame_start_pos = 298; // Column 299 (0-indexed: 298)
-            const frame_end = 461; // Column 461 (0-indexed: 461)
-            // Calculate how many spaces we need to pad
-            const frame_content_len = pos - frame_start_pos;
-            // AUTO: Use checked subtraction to prevent integer overflow
-            const padding_needed = if (frame_content_len < 163) 163 - frame_content_len else 0;
-            // Add padding spaces
-            var i: usize = 0;
-            while (i < padding_needed and pos < buffer.len and pos < frame_end) : (i += 1) {
-                buffer[pos] = ' ';
-                pos += 1;
-            }
-            // Ensure we're at the frame end position
+            // Optional frame padding: do not move cursor backwards.
+            const frame_end = 461;
             if (pos < frame_end) {
-                pos = frame_end;
+                while (pos < frame_end and pos < buffer.len) : (pos += 1) {
+                    buffer[pos] = ' ';
+                }
+            } else {
+                try append(&buffer, &pos, " ", .{});
             }
         } else {
             // No frame - use dashes
             try append(&buffer, &pos, "Frame: FX:----- FH:------ PC:----- NB:----- FO:-----", .{});
 
-            // Pad to 163 characters
-            const frame_start_pos = 298;
             const frame_end = 461;
-            const no_frame_content_len = pos - frame_start_pos; // "Frame: FX:----- ..." length
-            const padding_needed = 163 - no_frame_content_len;
-            // Add padding spaces
-            var i: usize = 0;
-            while (i < padding_needed and pos < buffer.len and pos < frame_end) : (i += 1) {
-                buffer[pos] = ' ';
-                pos += 1;
-            }
-            // Ensure we're at the frame end position
             if (pos < frame_end) {
-                pos = frame_end;
+                while (pos < frame_end and pos < buffer.len) : (pos += 1) {
+                    buffer[pos] = ' ';
+                }
+            } else {
+                try append(&buffer, &pos, " ", .{});
             }
         }
 
-        // Final padding: ensure exactly 461 characters before newline
-        // This handles any remaining padding needed after frame field
-        while (pos < 461 and pos < buffer.len) : (pos += 1) {
-            buffer[pos] = ' ';
-        }
-
-        // Set pos to 461 to ensure we're at the right position
-        pos = 461;
-
-        // Add newline at position 461
-        if (461 < buffer.len) {
-            buffer[461] = '\n';
-            pos = 462;
-        } else {
-            std.debug.print("ERROR: Buffer too small for newline\n", .{});
+        // Append newline and write the constructed line.
+        if (pos + 1 >= buffer.len) {
+            std.debug.print("ERROR: Execution trace line exceeded buffer size (pos={}, max={})\n", .{ pos, buffer.len });
             return;
         }
-
-        // Write exactly 462 characters (461 + newline) to file
-        try file.writeAll(buffer[0..462]);
+        buffer[pos] = '\n';
+        pos += 1;
+        try file.writeAll(buffer[0..pos]);
 
         // DEBUG: Verify write for first few instructions
         if (self.instruction_count <= 3) {
-            std.debug.print("DEBUG execution_trace: Wrote {} bytes to log file (instruction {})\n", .{ 462, self.instruction_count });
+            std.debug.print("DEBUG execution_trace: Wrote {} bytes to log file (instruction {})\n", .{ pos, self.instruction_count });
         }
     }
 

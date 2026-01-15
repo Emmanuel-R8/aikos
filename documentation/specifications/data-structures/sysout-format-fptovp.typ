@@ -83,6 +83,25 @@
 
 === Table Usage
 
+=== Units and Interpretation (CRITICAL)
+
+*Last Updated*: 2026-01-15 17:25
+
+The low 16-bit `virtual_page_number` returned by `GETFPTOVP` is a *virtual page index in 512-byte pages* (what the C tracer prints as `[vpage:...]`), derived from the byte-addressed PC:
+
+- `vpage = PC_bytes / BYTESPER_PAGE` where `BYTESPER_PAGE = 512`
+- `off  = PC_bytes % BYTESPER_PAGE`
+
+The C trace also prints `PC/2` (a DLword address), which can be confusing during debugging. Do *not* use `PC/2` when determining which sysout page contains instruction bytes in `virtual_memory` (byte addressed).
+
+*Example* (`starter.sysout`, first instruction):
+- `PC_bytes = 0x60f130`
+- `PC_dlword = PC_bytes / 2 = 0x307898`
+- `vpage = 0x60f130 / 512 = 12408`, `off = 0x130`
+
+*Verification anchor (starter.sysout)*:
+- The page containing bytes `bf 60 00 00 02 0a 12 c9` at `off=0x130` is `file_page=3003` mapping to `vpage=12408`.
+
 [`function LoadPage(file, file_page_number`]:
     // Check if page exists
     virtual_page = FPtoVP[file_page_number]

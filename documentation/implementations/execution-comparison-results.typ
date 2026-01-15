@@ -1,8 +1,7 @@
 = Execution Comparison Results: C vs Zig Emulators
 
-*Date*: 2026-01-12 20:00, Updated 2026-01-14 10:59
-*Status*: In Progress - Zig emulator crashes at instruction #3 (UNBIND)
-*Purpose*: Document execution comparison results between C and Zig emulators
+*Date*: 2026-01-12 20:00, Updated 2026-01-15 13:17 *Status*: In Progress - Zig UNBIND crash fixed; Zig now reaches
+instruction #6 (22 lines) *Purpose*: Document execution comparison results between C and Zig emulators
 
 == Overview
 
@@ -50,9 +49,9 @@ Traced, Fixed (offset) | | 4 | 0x60f137 | GETBASEPTR_N | 0x60f137 | GETBASEPTR_N
 
 == Remaining Issues
 
-=== Zig Emulator Crash at Instruction #3 (UNBIND) - 2026-01-14
+=== Zig Emulator Crash at Instruction #3 (UNBIND) - 2026-01-14 (Resolved 2026-01-15)
 
-*Status*: ❌ Critical - Blocks log comparison
+*Status*: ✅ Fixed - No longer blocks log comparison
 
 After refactoring the C emulator tracing code into `maiko/src/tracing/`, we tested log generation:
 
@@ -63,32 +62,39 @@ After refactoring the C emulator tracing code into `maiko/src/tracing/`, we test
 - ✅ Complete log format with all fields
 
 *Zig Emulator*:
-- ❌ Crashes at instruction #3 (UNBIND opcode)
-- ❌ Only generates 3 lines before crash
+- ✅ UNBIND no longer crashes at instruction #3
+- ✅ Generates 22 lines (reaches at least instruction #6: TJUMP1)
 - ✅ Starting PC: `0x60f130` (matches C emulator)
-- ⚠️ Log format appears incomplete/truncated
+- ⚠️ Log format still needs tightening to be readily comparable to C (some fields appear truncated)
 
 *Crash Details*:
 - Location: `zaiko/src/vm/dispatch/execution_control.zig:110`
 - Function: `opcodes.handleUNBIND(vm)`
-- Stack trace: `handleControlFlow` → `routeOpcode` → `executeOpcodeWithOperands` → `executeInstruction` → `executeInstructionInLoop` → `dispatch`
+- Stack trace: `handleControlFlow` → `routeOpcode` → `executeOpcodeWithOperands` → `executeInstruction` →
+  `executeInstructionInLoop` → `dispatch`
 
 *Comparison Findings*:
 - Instruction #1 (POP): ✅ PC matches (`0x60f130`), but Zig log format incomplete
 - Instruction #2 (GVAR): ✅ PC matches (`0x60f131`), but stack values differ (TOS differs)
 - Instruction #3 (UNBIND): ✅ PC matches (`0x60f136`), but Zig crashes before completing
 
+*Fix Summary (Zig)*:
+- Root cause: Zig UNBIND marker search did not match C’s `*--CSTKPTRL` semantics (decrement-first, then read) and hit
+  alignment traps when casting `(DLword *)PVAR + ...` to `LispPTR *`.
+- Fix: In `zaiko/src/vm/opcodes/binding.zig`, UNBIND now decrements the stack pointer first and reads the marker value
+  directly from stack memory (byte-swapped), and uses `[*]align(1) LispPTR` for potentially-unaligned `ppvar`.
+
 *Next Steps*:
-1. Fix UNBIND crash in Zig emulator
-2. Fix Zig log format to match C format (complete fields)
-3. Investigate why TOS differs at instruction #2
-4. Re-run comparison once fixes are applied
+1. Fix Zig log format to match C format (complete fields; no truncation)
+2. Re-run C vs Zig comparison from instruction #1 onward (now that UNBIND executes)
+3. Investigate why TOS differs at instruction #2 (GVAR)
 
 === Zig Emulator Crash After ~48 Instructions (Previous Issue)
 
 *Status*: ⚠️ Superseded by instruction #3 crash
 
-The Zig emulator previously crashed after approximately 48 instructions with `error.InvalidAddress`. This issue is now superseded by the earlier crash at instruction #3.
+The Zig emulator previously crashed after approximately 48 instructions with `error.InvalidAddress`. This issue is now
+superseded by the earlier crash at instruction #3.
 
 *Possible Causes*:
 1. Invalid address calculation in atom lookup

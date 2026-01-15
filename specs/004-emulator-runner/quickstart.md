@@ -1,11 +1,22 @@
 # Quick Start: Emulator Runner Scripts
 
-**Date**: 2026-01-12
+**Date**: 2026-01-15
 **Feature**: 004-emulator-runner
 
 ## Overview
 
-The emulator runner scripts allow you to run Interlisp with your choice of emulator implementation (C, Zig, or Lisp).
+This feature covers:
+
+- Running Medley Interlisp with your choice of emulator implementation (C, Zig, or Lisp)
+- Comparing C vs Zig execution traces and iterating until Zig matches C (staged: `starter.sysout` first, then `full.sysout`)
+
+## Where to Run
+
+These examples assume you run commands from the Medley directory:
+
+```bash
+cd medley
+```
 
 ## Basic Usage
 
@@ -97,3 +108,35 @@ Please wait for it to finish or use a different emulator.
 ## Backward Compatibility
 
 All existing functionality is preserved. The `--emulator` flag is optional and defaults to the C emulator.
+
+## Execution Trace Parity (C vs Zig)
+
+### Stage 1: `starter.sysout`
+
+From repo root:
+
+```bash
+./scripts/generate_debug_logs.sh medley/internal/loadups/starter.sysout
+./scripts/compare_debug_logs.sh c_emulator_execution_log.txt zig_emulator_execution_log.txt
+python3 ./scripts/analyze_execution_divergence.py c_emulator_execution_log.txt zig_emulator_execution_log.txt
+```
+
+As parity improves, prefer tooling that can auto-skip the already-matching prefix (longest common prefix / LCP) and focus on the next divergence.
+
+#### Fast iteration: cap execution steps (`EMULATOR_MAX_STEPS`)
+
+For faster iteration (especially when the logs get long), set `EMULATOR_MAX_STEPS` to cap how many instructions are executed/traced by **both** emulators:
+
+```bash
+EMULATOR_MAX_STEPS=1000 ./scripts/compare_emulator_execution.sh medley/internal/loadups/starter.sysout
+```
+
+Unset it (or set it to `0`) to run “to completion”.
+
+### Stage 2: `full.sysout` (after Stage 1 completion parity)
+
+```bash
+./scripts/generate_debug_logs.sh medley/loadups/full.sysout
+./scripts/compare_debug_logs.sh c_emulator_execution_log.txt zig_emulator_execution_log.txt
+python3 ./scripts/analyze_execution_divergence.py c_emulator_execution_log.txt zig_emulator_execution_log.txt
+```
