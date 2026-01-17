@@ -5,6 +5,8 @@
 
 **Tests**: No TDD requirement. Include scripted parity workflows (log generation + comparison) as part of US4 so the work stays repeatable.
 
+**Status**: Phase 0 (C Tracing) COMPLETE - All 6 tasks (CT000-CT006) implemented. Parity progress: Zig matches C for first 38 instructions (divergence at instruction 38).
+
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
 ## Format: `[ID] [P?] [Story] Description`
@@ -27,9 +29,9 @@
 
 **Purpose**: Ensure the repo has the expected parity and runner tooling layout.
 
-- [X] T001 Verify parity tooling is present and runnable (python3/shebangs) in `scripts/generate_debug_logs.sh`, `scripts/compare_debug_logs.sh`, `scripts/analyze_execution_divergence.py`, `scripts/enhanced_divergence_analysis.py` (FR-019/FR-020)
-- [X] T002 Verify runner entrypoints exist and are executable: `medley/run-medley`, `medley/scripts/medley/medley.command`, `medley/scripts/medley/medley_run.sh` (FR-011)
-- [X] T003 [P] Verify unified-build path expectations for emulators in `medley/scripts/medley/emulator_utils.sh` (FR-006/FR-007)
+- [x] T001 Verify parity tooling is present and runnable (python3/shebangs) in `scripts/generate_debug_logs.sh`, `scripts/compare_debug_logs.sh`, `scripts/analyze_execution_divergence.py`, `scripts/enhanced_divergence_analysis.py` (FR-019/FR-020)
+- [x] T002 Verify runner entrypoints exist and are executable: `medley/run-medley`, `medley/scripts/medley/medley.command`, `medley/scripts/medley/medley_run.sh` (FR-011)
+- [x] T003 [P] Verify unified-build path expectations for emulators in `medley/scripts/medley/emulator_utils.sh` (FR-006/FR-007)
 
 ---
 
@@ -39,10 +41,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [X] T004 Ensure lock file behavior matches spec/contracts (path + content + stale threshold) in `medley/scripts/medley/emulator_utils.sh` (FR-016..FR-018)
-- [X] T005 Ensure emulator selection precedence and validation are correct in `medley/scripts/medley/emulator_utils.sh` and `medley/run-medley` (FR-001..FR-005)
-- [X] T006 Ensure platform-specific emulator availability is handled gracefully (clear message when emulator/build not available for current platform) in `medley/scripts/medley/emulator_utils.sh` and `medley/run-medley` (FR-012)
-- [X] T007 Ensure proactive emulator executable validation matches spec (including shebang acceptance) in `medley/scripts/medley/emulator_utils.sh` (FR-015)
+- [x] T004 Ensure lock file behavior matches spec/contracts (path + content + stale threshold) in `medley/scripts/medley/emulator_utils.sh` (FR-016..FR-018)
+- [x] T005 Ensure emulator selection precedence and validation are correct in `medley/scripts/medley/emulator_utils.sh` and `medley/run-medley` (FR-001..FR-005)
+- [x] T006 Ensure platform-specific emulator availability is handled gracefully (clear message when emulator/build not available for current platform) in `medley/scripts/medley/emulator_utils.sh` and `medley/run-medley` (FR-012)
+- [x] T007 Ensure proactive emulator executable validation matches spec (including shebang acceptance) in `medley/scripts/medley/emulator_utils.sh` (FR-015)
 
 **Checkpoint**: Foundation ready.
 
@@ -53,23 +55,24 @@
 **Goal**: Provide a repeatable workflow to generate/compare C vs Zig traces and iteratively fix Zig until it matches C **to completion**, staged: `starter.sysout` first, then `full.sysout`.
 
 **Independent Test**:
+
 - Stage 1: `starter.sysout` traces match to completion
 - Stage 2: `full.sysout` traces match to completion (only after Stage 1 is complete)
 
 ### Implementation for User Story 4 (Parity Workflow)
 
-- [X] T008 [US4] Define canonical trace line format (required fields + ordering) in `specs/004-emulator-runner/contracts/run-scripts-api.md` (FR-021)
-- [X] T009 [US4] Update `scripts/generate_debug_logs.sh` to support staged sysout runs (`starter.sysout` then `full.sysout`) and deterministic log output paths (FR-019, FR-025)
-- [X] T010 [US4] Implement “skip already-matching prefix” by adding LCP detection to `scripts/analyze_execution_divergence.py` (FR-024)
-- [X] T011 [US4] Add manual resume override (e.g., `--start-line N`) to `scripts/analyze_execution_divergence.py` (FR-024)
-- [X] T012 [US4] Update `scripts/enhanced_divergence_analysis.py` to surface LCP length and first-divergence context (PC/bytes/opcode/stack/frame) (FR-020, FR-024)
+- [x] T008 [US4] Define canonical trace line format (required fields + ordering) in `specs/004-emulator-runner/contracts/run-scripts-api.md` (FR-021)
+- [x] T009 [US4] Update `scripts/generate_debug_logs.sh` to support staged sysout runs (`starter.sysout` then `full.sysout`) and deterministic log output paths (FR-019, FR-025)
+- [x] T010 [US4] Implement “skip already-matching prefix” by adding LCP detection to `scripts/analyze_execution_divergence.py` (FR-024)
+- [x] T011 [US4] Add manual resume override (e.g., `--start-line N`) to `scripts/analyze_execution_divergence.py` (FR-024)
+- [x] T012 [US4] Update `scripts/enhanced_divergence_analysis.py` to surface LCP length and first-divergence context (PC/bytes/opcode/stack/frame) (FR-020, FR-024)
 
 ### Runtime step cap (fast iteration, no source patching)
 
-- [X] T013 [US4] Add shared runtime knob `EMULATOR_MAX_STEPS` to Zig execution loop in `zaiko/src/vm/dispatch.zig` (FR-026)
-- [X] T014 [US4] Add shared runtime knob `EMULATOR_MAX_STEPS` to C execution tracing loop in `maiko/src/xc.c` (FR-026)
-- [X] T015 [US4] Update parity scripts to use the runtime knob (and stop patching source files) in `scripts/compare_emulator_execution.sh` (FR-022, FR-026)
-- [X] T016 [US4] Update parity documentation to mention `EMULATOR_MAX_STEPS` for fast iteration in `specs/004-emulator-runner/quickstart.md` and `specs/004-emulator-runner/contracts/run-scripts-api.md` (FR-022, FR-026)
+- [x] T013 [US4] Add shared runtime knob `EMULATOR_MAX_STEPS` to Zig execution loop in `zaiko/src/vm/dispatch.zig` (FR-026)
+- [x] T014 [US4] Add shared runtime knob `EMULATOR_MAX_STEPS` to C execution tracing loop in `maiko/src/xc.c` (FR-026)
+- [x] T015 [US4] Update parity scripts to use the runtime knob (and stop patching source files) in `scripts/compare_emulator_execution.sh` (FR-022, FR-026)
+- [x] T016 [US4] Update parity documentation to mention `EMULATOR_MAX_STEPS` for fast iteration in `specs/004-emulator-runner/quickstart.md` and `specs/004-emulator-runner/contracts/run-scripts-api.md` (FR-022, FR-026)
 
 **Checkpoint**: Parity tooling supports (a) LCP skip, (b) manual resume, and (c) runtime step caps without source modification.
 
@@ -79,16 +82,16 @@
 
 **Goal**: Achieve completion parity on `medley/internal/loadups/starter.sysout` (SC-009).
 
- - [X] T017 [US4] Run baseline parity workflow for `starter.sysout` and record current first divergence using `scripts/generate_debug_logs.sh` + `scripts/analyze_execution_divergence.py`
+- [x] T017 [US4] Run baseline parity workflow for `starter.sysout` and record current first divergence using `scripts/generate_debug_logs.sh` + `scripts/analyze_execution_divergence.py`
 
 ### Fix sequence (use C as ground truth; regenerate + compare after each fix)
 
-- [X] T018 [US4] Complete memory-loading integration verification task D014 described in `specs/004-emulator-runner/execution-debugging-tasks.md` (Zig: `zaiko/src/data/sysout.zig`)
-- [ ] T019 [US4] Fix FuncObj offset parity tasks D021-D023 in `zaiko/src/vm/execution_trace.zig`
+- [x] T018 [US4] Complete memory-loading integration verification task D014 described in `specs/004-emulator-runner/execution-debugging-tasks.md` (Zig: `zaiko/src/data/sysout.zig`)
+- [x] T019 [US4] Fix FuncObj offset parity tasks D021-D023 in `zaiko/src/vm/execution_trace.zig`
 - [ ] T020 [US4] Fix frame header parity tasks D024-D026 in `zaiko/src/vm/execution_trace.zig` (reference C layout in `maiko/inc/stack.h`)
 - [ ] T021 [US4] Fix TOS parity tasks D028-D030 in `zaiko/src/vm/stack.zig` and `zaiko/src/vm/init.zig`
 - [ ] T022 [US4] Fix early-stop parity tasks D031-D033 in `zaiko/src/vm/dispatch/dispatch_loop.zig` and `zaiko/src/main.zig`
-- [ ] T023 [US4] Iterate: regenerate logs and advance divergence point until `starter.sysout` matches to completion (SC-009) using `scripts/generate_debug_logs.sh` + `scripts/analyze_execution_divergence.py`
+- [ ] T023 [US4] Iterate: regenerate logs and advance divergence point until `starter.sysout` reaches completion parity (SC-009) using `scripts/generate_debug_logs.sh` + `scripts/analyze_execution_divergence.py`
 
 **Checkpoint**: `starter.sysout` completion parity achieved (SC-009).
 

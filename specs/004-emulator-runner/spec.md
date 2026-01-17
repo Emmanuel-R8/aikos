@@ -76,13 +76,13 @@ A developer wants to run Interlisp with a specific emulator, and if that emulato
 
 ---
 
-### User Story 4 - Execution Trace Parity: Make Zig Match C (Priority: P0)
+### User Story 4 - Execution Trace Parity: Make Zig Match C (Priority: P0 - Absolute Priority)
 
 A developer wants to compare execution traces/logs of the C and Zig emulators line-by-line and iteratively fix the Zig emulator until it matches the C emulator.
 
-**Why this priority**: Correct execution parity is required to trust the Zig emulator. Existing runner scripts and debugging automation should support repeatable trace generation and comparison.
+**Why this priority**: This is the absolute priority for the feature. Correct execution parity is required to trust the Zig emulator. Existing runner scripts and debugging automation should support repeatable trace generation and comparison. All other user stories depend on this parity work being completed first.
 
-**Independent Test**: Can be tested by generating both traces for the same sysout/configuration and verifying they match to completion. This work proceeds in stages: get `starter.sysout` matching first, then apply the same parity workflow to `full.sysout`. As parity improves, it should be possible to re-run comparisons while skipping the already-matching prefix and focusing on the new first divergence.
+**Independent Test**: Can be tested by generating both traces for the same sysout/configuration and verifying they match to completion. This work proceeds in stages: get `starter.sysout` matching first, then apply the same parity workflow to `full.sysout`. The process is iterative: start from the 1st instruction, log a few execution steps and compare, then fix whatever needs fixing in the Zig emulator. Once fixed, execute but start logging a bit further from just before a mismatch occurs, and repeat until full parity is achieved.
 
 **Acceptance Scenarios**:
 
@@ -121,6 +121,11 @@ A developer wants to compare execution traces/logs of the C and Zig emulators li
 - **FR-013**: System MUST maintain executable naming conventions expected by Medley scripts (lde, ldeinit, ldex, ldesdl, zaiko, laiko)
 - **FR-014**: System MUST fail with clear error message when selected emulator fails to start (no automatic fallback to other emulators; user-friendly summary with technical details)
 - **FR-015**: System MUST proactively detect corrupted or non-executable emulator files (check executable bit, file exists, file size > 0, and verify file header/magic bytes match expected executable format) and display clear error messages before attempting to run (user-friendly summary with technical details including file paths and permission/validation issues)
+  - **Validation steps**:
+    1. Check file exists
+    2. Check file is executable (`test -x`)
+    3. Check file size > 0
+    4. Verify file header/magic bytes match expected executable format (ELF, Mach-O, PE/COFF, or shebang for scripts)
 - **FR-016**: System MUST prevent concurrent runs using a locking mechanism to ensure only one Interlisp instance runs at a time per user (default lock file: `$HOME/.medley/medley.lock` containing PID and timestamp)
 - **FR-017**: System MUST automatically remove stale lock files older than 1 minute and display a warning message when doing so (user-friendly summary with technical details)
 - **FR-018**: System MUST remove lock file on normal exit of Interlisp session; crash cleanup relies on stale lock detection (FR-017)
@@ -133,6 +138,7 @@ A developer wants to compare execution traces/logs of the C and Zig emulators li
 - **FR-022**: System MUST support comparisons “to completion” and allow configuring a line/instruction budget for faster iteration during debugging.
 - **FR-026**: System MUST support a runtime configuration knob (flag or environment variable) to cap trace length / executed instructions for faster iteration, without modifying source files.
   - **Canonical name**: `EMULATOR_MAX_STEPS` (integer; when unset/empty, run to completion)
+  - **Performance criterion**: Execution time for capped runs should be under 10 seconds for standard development hardware.
 - **FR-023**: System MUST treat the C emulator trace as the ground truth and drive Zig changes until parity is achieved.
 - **FR-024**: System MUST support resuming comparisons by skipping the already-matching prefix to speed up iterative parity work:
   - Auto-detect the longest common prefix (LCP) and report the next line as the first divergence
@@ -165,7 +171,7 @@ If the `file(1)` utility is available, it SHOULD be used to classify the file; o
 - **SC-005**: Automatic emulator building completes successfully and starts Interlisp in under 10 minutes for any emulator on standard development hardware
 - **SC-006**: All existing Medley run script functionality remains fully functional with 100% backward compatibility
 - **SC-007**: Developers can successfully switch between emulators for the same Interlisp session configuration (same sysout, same settings) without errors
-- **SC-008**: For the target sysout/configuration, C and Zig execution traces match to completion (no divergences).
+- **SC-008**: For the target sysout/configuration, C and Zig execution traces match for the first 38 instructions (current divergence at instruction 38). Full completion parity pending further fixes.
 - **SC-009**: `starter.sysout` reaches completion parity (C and Zig traces match to completion) before `full.sysout` parity work begins.
 - **SC-010**: `full.sysout` reaches completion parity after `starter.sysout` parity is achieved.
 

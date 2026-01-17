@@ -270,8 +270,11 @@ pub fn handleRPLACA(vm: *VM) errors.VMError!void {
     const new_car = try stack_module.popStack(vm);
     const cons_cell_ptr = try stack_module.popStack(vm);
 
+    // C: RPLACA on NIL is allowed (no error check)
+    // Just push back the cons cell pointer unchanged
     if (cons_cell_ptr == 0) {
-        return errors_module.VMError.InvalidAddress; // NIL is not a cons cell
+        try stack_module.pushStack(vm, cons_cell_ptr);
+        return;
     }
 
     // Get cons cell from memory
