@@ -15,7 +15,8 @@ const Opcode = @import("instruction.zig").Opcode;
 pub fn handleFJUMPWithOffset(vm: *VM, offset: i8) errors.VMError!?i64 {
     const stack_module = @import("../stack.zig");
     const tos = stack_module.getTopOfStack(vm);
-    _ = try stack_module.popStack(vm); // Always pop (C: POP in both branches)
+    // C: POP macro operates on CSTKPTRL (tos stack pointer), not the traced CurrentStackPTR directly.
+    try stack_module.tosPop(vm); // Always pop (C: POP in both branches)
     if (tos == 0) {
         // NIL - jump
         try opcodes.handleFJUMP(vm, offset);
@@ -42,7 +43,8 @@ pub fn handleTJUMPWithOffset(vm: *VM, offset: i8) errors.VMError!?i64 {
 
     const tos = stack_module.getTopOfStack(vm);
     std.debug.print("DEBUG: TJUMP: TOS=0x{x}, offset={}\n", .{ tos, offset });
-    _ = try stack_module.popStack(vm); // Always pop (C: POP in both branches)
+    // C: POP macro operates on CSTKPTRL (tos stack pointer), not the traced CurrentStackPTR directly.
+    try stack_module.tosPop(vm); // Always pop (C: POP in both branches)
 
     const new_stack_depth = stack_module.getStackDepth(vm);
     std.debug.print("DEBUG: TJUMP: After pop, stack_depth={}\n", .{new_stack_depth});
@@ -125,90 +127,92 @@ pub fn handleControlFlow(vm: *VM, opcode: Opcode, instruction: Instruction) erro
         .ASSOC => try opcodes.handleASSOC(vm),
         .GVAR_ => try opcodes.handleGVAR_(vm, instruction.getWordOperand(0)),
         // Note: No generic JUMP opcode - use JUMPX, JUMPXX, or JUMP0-JUMP15
-        // Optimized jump variants (offset encoded in opcode)
+        // Optimized jump variants (offset encoded in opcode).
+        // C: JUMP0 = JUMPMACRO(2), JUMP1 = JUMPMACRO(3), ... => offset is opcode_number + 2.
         .JUMP0 => {
-            try opcodes.handleJUMP(vm);
-            return 0;
-        },
-        .JUMP1 => {
-            try opcodes.handleJUMP(vm);
-            return 1;
-        },
-        .JUMP2 => {
             try opcodes.handleJUMP(vm);
             return 2;
         },
-        .JUMP3 => {
+        .JUMP1 => {
             try opcodes.handleJUMP(vm);
             return 3;
         },
-        .JUMP4 => {
+        .JUMP2 => {
             try opcodes.handleJUMP(vm);
             return 4;
         },
-        .JUMP5 => {
+        .JUMP3 => {
             try opcodes.handleJUMP(vm);
             return 5;
         },
-        .JUMP6 => {
+        .JUMP4 => {
             try opcodes.handleJUMP(vm);
             return 6;
         },
-        .JUMP7 => {
+        .JUMP5 => {
             try opcodes.handleJUMP(vm);
             return 7;
         },
-        .JUMP8 => {
+        .JUMP6 => {
             try opcodes.handleJUMP(vm);
             return 8;
         },
-        .JUMP9 => {
+        .JUMP7 => {
             try opcodes.handleJUMP(vm);
             return 9;
         },
-        .JUMP10 => {
+        .JUMP8 => {
             try opcodes.handleJUMP(vm);
             return 10;
         },
-        .JUMP11 => {
+        .JUMP9 => {
             try opcodes.handleJUMP(vm);
             return 11;
         },
-        .JUMP12 => {
+        .JUMP10 => {
             try opcodes.handleJUMP(vm);
             return 12;
         },
-        .JUMP13 => {
+        .JUMP11 => {
             try opcodes.handleJUMP(vm);
             return 13;
         },
-        .JUMP14 => {
+        .JUMP12 => {
             try opcodes.handleJUMP(vm);
             return 14;
         },
-        .JUMP15 => {
+        .JUMP13 => {
             try opcodes.handleJUMP(vm);
             return 15;
+        },
+        .JUMP14 => {
+            try opcodes.handleJUMP(vm);
+            return 16;
+        },
+        .JUMP15 => {
+            try opcodes.handleJUMP(vm);
+            return 17;
         },
         // Note: No generic FJUMP opcode - use FJUMPX or FJUMP0-FJUMP15
         // Optimized false jump variants
         // C: FJUMPMACRO(x): if (TOPOFSTACK != 0) { POP; nextop1; } else { CHECK_INTERRUPT; POP; PCMACL += (x); nextop0; }
-        .FJUMP0 => return handleFJUMPWithOffset(vm, 0),
-        .FJUMP1 => return handleFJUMPWithOffset(vm, 1),
-        .FJUMP2 => return handleFJUMPWithOffset(vm, 2),
-        .FJUMP3 => return handleFJUMPWithOffset(vm, 3),
-        .FJUMP4 => return handleFJUMPWithOffset(vm, 4),
-        .FJUMP5 => return handleFJUMPWithOffset(vm, 5),
-        .FJUMP6 => return handleFJUMPWithOffset(vm, 6),
-        .FJUMP7 => return handleFJUMPWithOffset(vm, 7),
-        .FJUMP8 => return handleFJUMPWithOffset(vm, 8),
-        .FJUMP9 => return handleFJUMPWithOffset(vm, 9),
-        .FJUMP10 => return handleFJUMPWithOffset(vm, 10),
-        .FJUMP11 => return handleFJUMPWithOffset(vm, 11),
-        .FJUMP12 => return handleFJUMPWithOffset(vm, 12),
-        .FJUMP13 => return handleFJUMPWithOffset(vm, 13),
-        .FJUMP14 => return handleFJUMPWithOffset(vm, 14),
-        .FJUMP15 => return handleFJUMPWithOffset(vm, 15),
+        // C: FJUMP0 = FJUMPMACRO(2), FJUMP1 = FJUMPMACRO(3), ... => offset is opcode_number + 2.
+        .FJUMP0 => return handleFJUMPWithOffset(vm, 2),
+        .FJUMP1 => return handleFJUMPWithOffset(vm, 3),
+        .FJUMP2 => return handleFJUMPWithOffset(vm, 4),
+        .FJUMP3 => return handleFJUMPWithOffset(vm, 5),
+        .FJUMP4 => return handleFJUMPWithOffset(vm, 6),
+        .FJUMP5 => return handleFJUMPWithOffset(vm, 7),
+        .FJUMP6 => return handleFJUMPWithOffset(vm, 8),
+        .FJUMP7 => return handleFJUMPWithOffset(vm, 9),
+        .FJUMP8 => return handleFJUMPWithOffset(vm, 10),
+        .FJUMP9 => return handleFJUMPWithOffset(vm, 11),
+        .FJUMP10 => return handleFJUMPWithOffset(vm, 12),
+        .FJUMP11 => return handleFJUMPWithOffset(vm, 13),
+        .FJUMP12 => return handleFJUMPWithOffset(vm, 14),
+        .FJUMP13 => return handleFJUMPWithOffset(vm, 15),
+        .FJUMP14 => return handleFJUMPWithOffset(vm, 16),
+        .FJUMP15 => return handleFJUMPWithOffset(vm, 17),
         // Note: No generic TJUMP opcode - use TJUMPX or TJUMP0-TJUMP15
         // Optimized true jump variants
         // C: TJUMPMACRO(x): if (TOPOFSTACK == 0) { POP; nextop1; } else { CHECK_INTERRUPT; POP; PCMACL += (x); nextop0; }

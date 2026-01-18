@@ -31,12 +31,20 @@ pub const MemoryOffsets = struct {
 pub const PAGE_SIZE: u32 = 512; // 512 bytes per page
 pub const PAGE_MASK: u32 = PAGE_SIZE - 1;
 
-/// Get page number from address (high 15 bits of LispPTR)
+/// Get page number from LispPTR (LAddr).
+///
+/// C reference: `NativeAligned4FromLPage(LPage)` uses `LPage << 8`, i.e. one page = 256 DLwords.
+/// Since LispPTR is a DLword offset, the page number is:
+///   page = (POINTERMASK & addr) >> 8
 pub fn getPageNumber(addr: LispPTR) u32 {
-    return addr >> 9; // 512 = 2^9
+    const masked: u32 = addr & types.POINTERMASK;
+    return masked >> 8;
 }
 
-/// Get offset within page (low 9 bits of LispPTR)
+/// Get byte offset within page from LispPTR (LAddr).
+/// Low 8 bits are DLword offset within a 256-DLword page; convert to bytes by *2.
 pub fn getPageOffset(addr: LispPTR) u32 {
-    return addr & PAGE_MASK;
+    const masked: u32 = addr & types.POINTERMASK;
+    const dlword_off: u32 = masked & 0xFF;
+    return dlword_off * 2;
 }

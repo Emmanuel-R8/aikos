@@ -196,7 +196,9 @@ pub fn handleGVAR(vm: *VM, atom_index: types.LispPTR) errors.VMError!void {
     // C: GVAR(x) does PUSH(GetLongWord(Valspace + ((x) << 1))) for non-BIGATOMS
     // C: For BIGATOMS+BIGVM: PUSH(GetLongWord((LispPTR *)AtomSpace + (tx * 5) + NEWATOM_VALUE_PTROFF))
     const value = try atom_module.readAtomValue(vm, atom_index);
-    try stack_module.pushStack(vm, value);
+    // C uses the TOS-stack macros: PUSH(x) pushes the current TOS to the value stack,
+    // then sets TOS to x (tos1defs.h).
+    try stack_module.tosPush(vm, value);
 }
 
 /// ACONST: Atom constant

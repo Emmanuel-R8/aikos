@@ -43,6 +43,11 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
     }
     const tracer = &vm.execution_tracer.?;
 
+    // CRITICAL: Restore CSTKPTRL from CurrentStackPTR at start of each dispatch loop iteration
+    // C: StackPtrRestore is called at the start of nextopcode: label
+    // This ensures CSTKPTRL is correctly aligned with CurrentStackPTR
+    stack.initCSTKPTRLFromCurrentStackPTR(vm);
+
     // Main dispatch loop - continue until error or explicit stop
     // Add instruction counter to prevent infinite loops
     var instruction_count: u64 = 0;
@@ -63,6 +68,7 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
             if (instruction_count > max_steps) {
                 std.debug.print("INFO: EMULATOR_MAX_STEPS reached ({}) - stopping execution\n", .{max_steps});
                 std.debug.print("  Current PC: 0x{x}\n", .{vm.pc});
+                vm.stop_requested = true;
                 return;
             }
         }

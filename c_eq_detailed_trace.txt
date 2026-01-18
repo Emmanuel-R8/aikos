@@ -1,13 +1,13 @@
 === DETAILED EQ TRACING (Instruction #9) ===
 
-PC (byte pointer): 0x7fb857a0f13f
+PC (byte pointer): 0x7fffc060f13f
 PC offset from Lisp_world: 0x60f13f bytes (0x30789f DLwords)
 Opcode byte: 0x10 (0360 octal, EQ)
 
 === Stack State Before EQ ===
   TopOfStack (TOS): 0x00000000
   POP_TOS_1 (value below TOS): 0x0000004c
-  CurrentStackPTR: 0x7fb857425d10
+  CurrentStackPTR: 0x7fffc0025d10
   CurrentStackPTR offset from Lisp_world: 0x25d10 bytes
   Stack depth: 11912 entries
 

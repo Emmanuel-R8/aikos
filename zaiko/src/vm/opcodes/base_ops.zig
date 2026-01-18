@@ -1,3 +1,4 @@
+const std = @import("std");
 const errors = @import("../../utils/errors.zig");
 const stack = @import("../stack.zig");
 const types = @import("../../utils/types.zig");
@@ -225,11 +226,11 @@ pub fn handleGETBASEPTR_N(vm: *VM, index: u8) errors.VMError!void {
         return errors_module.VMError.InvalidAddress;
     };
 
-    // Read LispPTR (4 bytes) directly from native pointer in native byte order
-    // C: *((LispPTR *)NativeAligned4FromLAddr(...)) reads in native byte order (little-endian on x86_64)
-    // The native_ptr points to memory that has already been byte-swapped during page loading
-    const native_lispptr_ptr: [*]const LispPTR = @ptrCast(@alignCast(native_ptr));
-    const ptr_value = native_lispptr_ptr[0]; // Read directly in native byte order
+    // Read LispPTR (4 bytes) from native pointer.
+    // Pages are already byte-swapped into native endianness on load, but the address may be
+    // unaligned (C tolerates this on x86). Avoid `@alignCast` and read via bytes.
+    const ptr_bytes: *const [4]u8 = @ptrCast(native_ptr);
+    const ptr_value: LispPTR = std.mem.readInt(LispPTR, ptr_bytes, .little);
 
     // Push as POINTERMASK & ptr_value
     const result = types.POINTERMASK & ptr_value;

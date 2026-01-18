@@ -20,7 +20,9 @@ pub fn handlePUSH(vm: *VM) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handlePOP(vm: *VM) errors.VMError!void {
     const stack_module = @import("../stack.zig");
-    _ = try stack_module.popStack(vm); // Discard value
+    // C POP macro (tos1defs.h): `POP` => `TOPOFSTACK = *(--CSTKPTRL)`
+    // This updates the cached TOS via CSTKPTRL, without directly mutating the traced CurrentStackPTR.
+    try stack_module.tosPop(vm);
 }
 
 /// POP_N: Pop N values from stack

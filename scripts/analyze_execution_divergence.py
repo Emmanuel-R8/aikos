@@ -41,11 +41,23 @@ class ExecutionLogParser:
         bytes_match = re.search(r'\b([0-9a-f]{16})\b', line)
         opcode_bytes = bytes_match.group(1) if bytes_match else ""
 
-        # Parse opcode name (token immediately following the 16-hex-byte field)
+        # Parse opcode name.
+        #
+        # In the unified trace format, extra bracketed diagnostics may appear between
+        # the bytes field and the opcode token (e.g. `[vpage:...] ... [MEM:...]POP`).
+        # The most stable extraction is the last ALLCAPS token immediately before `Stack:`.
         opcode_name = ""
-        if opcode_bytes:
-            opcode_match = re.search(rf'\b{opcode_bytes}\b\s+([A-Z0-9_]+)\b', line)
-            opcode_name = opcode_match.group(1) if opcode_match else ""
+        opcode_candidates = re.findall(r"\b([A-Z0-9_]+)\b(?=\s+Stack:)", line)
+        if opcode_candidates:
+            opcode_name = opcode_candidates[-1]
+        else:
+            # Zig trace can glue the opcode onto a preceding token (e.g. `@mem:0x...POP`),
+            # so fall back to “last alnum token containing at least one letter” before Stack.
+            glued = re.findall(r"((?=[A-Z0-9_]*[A-Z])[A-Z0-9_]+)(?=\s+Stack:)", line)
+            if glued:
+                # If the token is something like "130POP", keep only the trailing opcode-like suffix.
+                tail = re.search(r"([A-Z][A-Z0-9_]*)$", glued[-1])
+                opcode_name = tail.group(1) if tail else glued[-1]
 
         # Parse stack information
         stack_match = re.search(r'Stack:\s+D:\s*(\d+).*?P:\s*(?:0x)?([0-9a-f]+).*?TOS:0x([0-9a-f]+)', line)
@@ -127,10 +139,14 @@ class DivergenceAnalyzer:
             print("ERROR: start line beyond available overlap of the two logs")
             return
 
-        # Auto longest-common-prefix (LCP) from the chosen start line
+        # Auto longest-common-prefix (LCP) from the chosen start line.
+        #
+        # IMPORTANT: Do NOT compare raw lines. The logs may contain non-deterministic
+        # host addresses (e.g. `@mem:0x...`) and spacing differences.
+        # Compare the parsed semantic fields instead.
         lcp = 0
         for i in range(start_idx, max_instructions):
-            if self.c_parser.instructions[i]["raw_line"] == self.zig_parser.instructions[i]["raw_line"]:
+            if self._equivalent(self.c_parser.instructions[i], self.zig_parser.instructions[i]):
                 lcp += 1
             else:
                 break
@@ -178,6 +194,20 @@ class DivergenceAnalyzer:
         print()
 
         self._show_detailed_comparison(c_inst, zig_inst)
+
+    @staticmethod
+    def _equivalent(a: Dict, b: Dict) -> bool:
+        """Semantic equality between two parsed instruction records."""
+        return (
+            a.get("pc", "") == b.get("pc", "")
+            and a.get("opcode_name", "") == b.get("opcode_name", "")
+            and a.get("opcode_bytes", "") == b.get("opcode_bytes", "")
+            and a.get("stack_depth", 0) == b.get("stack_depth", 0)
+            and a.get("stack_ptr", 0) == b.get("stack_ptr", 0)
+            and a.get("tos", "") == b.get("tos", "")
+            and a.get("fx_offset", 0) == b.get("fx_offset", 0)
+            and a.get("fnheader", "") == b.get("fnheader", "")
+        )
 
     def _show_detailed_comparison(self, c_inst: Dict, zig_inst: Dict):
         """Show detailed comparison of specific instruction"""

@@ -80,6 +80,25 @@ Interlisp/
 - **Modular Structure**: Split large files into logical modules
 - **Naming**: Follow existing conventions (see `zaiko/src/`)
 
+### 1.1 Submodules (CRITICAL)
+
+This repository includes git submodules (notably `maiko/` and `medley/`).
+
+- **Default**: Treat submodules as **read-only** unless the user explicitly asks to modify them.
+- **Committing**:
+  - **Do not commit inside submodules** unless the user explicitly requests it.
+  - Superproject commits may update submodule pointers *only if explicitly intended*.
+- **Staging**: Paths inside submodules cannot be staged from the superproject (e.g. `git add maiko/...` will fail). Enter the submodule repo if changes are required.
+
+### 1.2 Generated Artifacts (never commit)
+
+Avoid committing machine/local outputs that create noisy diffs:
+
+- **Execution logs / traces**: `*_execution_log*.txt`, `c_*_trace*.txt`, `zig_*_trace*.txt`
+- **Python caches**: `__pycache__/`, `*.pyc`
+- **Build outputs**: Zig `zig-out/`, `**/.zig-cache/`, C/CMake build directories
+- **Binary documents**: generated PDFs (commit the Typst source instead)
+
 ### 2. Documentation Updates
 
 **CRITICAL**: Before ANY git commit, follow `documentation/core/critical_memory.typ`:
@@ -118,6 +137,52 @@ Language-Specific Documentation Updates:
 - **Fast Smoke Tests**: Use quick test runner by default (user preference)
 - **Comprehensive Tests**: Keep separate for thorough validation
 - **Test Location**: Tests should be next to scripts in `tests/` folders
+
+### 4.2 Unified Trace Format
+
+**Purpose**: Enable rapid divergence identification between C and Zig emulators
+
+**Format**: Single-line, pipe-delimited columns:
+```
+LINE#|PC|INSTRUCTION|OPCODE|OPERANDS|REGISTERS|FLAGS|SP_FP|STACK_SUMMARY|MEMORY_CONTEXT|FP_VP_FO_VA|BS_MEM|NOTES
+```
+
+**Key Benefits**:
+- **Rapid comparison** with awk/Python scripts
+- **Comprehensive context** in single line
+- **Consistent format** across both emulators
+- **Memory issue triage** with dedicated fields
+
+**Comparison Tools**:
+- `scripts/compare_unified_traces.awk` - Fast awk-based comparison
+- `scripts/compare_unified_traces.py` - Detailed Python analysis
+
+### 4.3 Centralized Memory Management
+
+**Problem Solved**: Scattered memory logic causing recurring address translation, endianness, and paging issues
+
+**Solution**: Centralized memory management module (`zaiko/src/memory/manager.zig`)
+
+**Components**:
+- **AddressManager**: LispPTR ↔ byte conversions, virtual page calculations
+- **FPtoVPManager**: File page ↔ virtual page mapping, page OK flags
+- **EndiannessManager**: Byte-swapping logic, XOR addressing
+- **MemoryAccessManager**: Safe memory reads, bounds checking
+
+**Integration**: Both C and Zig emulators use centralized functions for consistency
+
+### 4.1 Parity Workflow (C vs Zig) – Canonical
+
+For repeatable execution-trace parity work:
+
+- **Canonical script**: `scripts/compare_emulator_execution.sh`
+  - Supports the shared runtime cap knob **`EMULATOR_MAX_STEPS`** (unset/0 → run to completion).
+- **Unified trace format**: Single-line column-formatted traces for rapid comparison
+  - **C trace**: `c_emulator_unified_trace.txt`
+  - **Zig trace**: `zig_emulator_unified_trace.txt`
+  - **Comparison scripts**: `scripts/compare_unified_traces.awk`, `scripts/compare_unified_traces.py`
+- **Divergence analysis**: `scripts/analyze_execution_divergence.py` (supports LCP skip + `--start-line` resume).
+- **Path robustness**: Prefer **absolute sysout paths** (scripts should not depend on cwd).
 
 ### 5. Build System
 
@@ -174,6 +239,14 @@ When a file exceeds 500 lines:
 - **Stack Frame**: 10 DLwords (20 bytes), contains return address, saved registers, local variables
 - **Function Header**: Contains `startpc` (byte offset), `na` (arg count), `pv` (param var count)
 - **Dispatch Loop**: Fetches, decodes, and executes bytecode instructions
+
+### Common Debugging Gotchas (read before parity fixes)
+
+- **PC units**: traces may show both `PC` (bytes) and `PC/2` (DLword address). When indexing `virtual_memory`, use **byte PC**.
+- **FPtoVP units**: FPtoVP “virtual page” values correspond to **512-byte pages** (matches trace `[vpage:...]`), not DLword pages.
+- **Byte swap vs XOR addressing**:
+  - Sysout pages are typically **32-bit byte-swapped** on load on little-endian hosts.
+  - Instruction decode may apply **XOR (`addr ^ 3`)** for BYTESWAP byte access; however, trace logging often prints **raw bytes at PC** (no XOR) to match C.
 
 ### SDL2 Integration
 

@@ -80,95 +80,26 @@ pub fn handleBIND(vm: *VM, byte1: u8, byte2: u8) errors.VMError!void {
 /// Stack: [marker, ...] -> []
 pub fn handleUNBIND(vm: *VM) errors.VMError!void {
     const stack_module = @import("../stack.zig");
-    const types_module = @import("../../utils/types.zig");
     const errors_module = @import("../../utils/errors.zig");
-    const DLword = types_module.DLword;
-
-    // Walk backwards through stack until we find a negative value (marker)
-    // C: for (; (((int)*--CSTKPTRL) >= 0););
-    // This means: decrement stack pointer FIRST, then read value
-    // Keep doing this until we find a value with high bit set (negative when cast to int)
-    // CRITICAL: C code decrements FIRST, then reads, so we need to read directly from stack memory
-
+    // C (tos1defs.h): UNBIND walks *CSTKPTRL (LispPTR cell pointer), NOT CurrentStackPTR.
+    // Also, it does NOT modify TOPOFSTACK.
+    var p = vm.cstkptrl orelse return errors_module.VMError.StackUnderflow;
+    var marker: LispPTR = 0;
     while (true) {
-        // Check if we can decrement (stack has data)
-        // Stack grows DOWN, so stack_ptr must be > stack_base to have data
-        const stack_base_addr = @intFromPtr(vm.stack_base);
-        var stack_ptr_addr = @intFromPtr(vm.stack_ptr);
-
-        // Check if we can decrement (need at least 2 DLwords = 4 bytes below current position)
-        if (stack_ptr_addr <= stack_base_addr + 4) {
-            // Stack doesn't have enough data - no marker found
-            return errors_module.VMError.StackUnderflow;
-        }
-
-        // Decrement stack pointer FIRST (C: --CSTKPTRL)
-        // Stack grows DOWN, so decrementing means moving DOWN (subtracting)
-        // Move DOWN by 2 DLwords (1 LispPTR = 4 bytes)
-        stack_ptr_addr -= 4; // Move DOWN by 4 bytes (2 DLwords)
-        vm.stack_ptr = @ptrFromInt(stack_ptr_addr);
-
-        // Read value directly from stack memory (C: *--CSTKPTRL)
-        // CRITICAL: Read with byte swapping for big-endian format
-        const stack_ptr_bytes: [*]const u8 = @ptrCast(vm.stack_ptr);
-        const low_word_be = (@as(DLword, stack_ptr_bytes[0]) << 8) | @as(DLword, stack_ptr_bytes[1]);
-        const high_word_be = (@as(DLword, stack_ptr_bytes[2]) << 8) | @as(DLword, stack_ptr_bytes[3]);
-        const value: LispPTR = (@as(LispPTR, high_word_be) << 16) | @as(LispPTR, low_word_be);
-
-        // Check if value is negative (high bit set) - this is the marker
-        if (@as(i32, @bitCast(value)) < 0) {
-            // Found marker - update cached TopOfStack and break
-            vm.top_of_stack = value;
+        p -= 1; // C: *--CSTKPTRL
+        const v = p[0];
+        if (@as(i32, @bitCast(v)) < 0) {
+            marker = v;
+            vm.cstkptrl = p;
             break;
         }
-        // Continue searching (loop will decrement again)
     }
 
-    // Get marker value (already in vm.top_of_stack, but read it explicitly)
-    const marker = vm.top_of_stack;
-
-    // Extract num and offset from marker: num = (~value) >> 16, offset = GetLoWord(value)
-    // C: num = (~value) >> 16; offset = GetLoWord(value) (used directly, not shifted)
-    const num = (~marker) >> 16;
-    const offset = types_module.getLoWord(marker); // C uses GetLoWord directly, no shift
-
-    // Get current frame
-    const frame = vm.current_frame orelse {
-        return errors_module.VMError.InvalidAddress;
-    };
-
-    // Calculate ppvar: (LispPTR *)((DLword *)PVAR + 2 + offset)
-    // C: ppvar = (LispPTR *)((DLword *)PVAR + 2 + GetLoWord(value))
-    // PVAR is a DLword pointer, so arithmetic is in DLword units
-    // Then cast to LispPTR* (which treats as LispPTR array)
-    const frame_addr = @intFromPtr(frame);
-    const frame_size = @sizeOf(stack.FX);
-    const pvar_base = frame_addr + frame_size;
-
-    // PVAR is a DLword pointer, so do DLword arithmetic first
-    // C: ppvar = (LispPTR *)((DLword *)PVAR + 2 + GetLoWord(value))
-    // PVAR is a DLword pointer, so arithmetic is in DLword units
-    const pvar_dlword_ptr: [*]DLword = @ptrFromInt(pvar_base);
-    const ppvar_dlword: [*]DLword = pvar_dlword_ptr + 2 + offset;
-    // Then cast to LispPTR* (C does this cast after arithmetic)
-    // CRITICAL: C code does this cast directly, which may result in unaligned access
-    // In Zig, we need to handle potential misalignment. Since DLword=2 and LispPTR=4,
-    // the address might not be 4-byte aligned. Use @ptrCast with align(1) to allow unaligned access
-    const ppvar: [*]align(1) LispPTR = @ptrCast(ppvar_dlword);
-
-    // Restore num values to 0xffffffff (unbound marker)
-    // C: for (i = num; --i >= 0;) { *--ppvar = 0xffffffff; }
-    // This decrements ppvar before each assignment, starting from ppvar and going backwards
-    // For num=1: i=1, --i=0 (>=0), --ppvar, then assign
-    var i: u32 = num;
-    var current_ppvar: [*]align(1) LispPTR = ppvar;
-    while (i > 0) : (i -= 1) {
-        current_ppvar -= 1; // Decrement before assignment (C: *--ppvar)
-        current_ppvar[0] = 0xFFFFFFFF; // Unbound marker
-    }
-
-    // Pop marker from stack
-    _ = try stack_module.popStack(vm);
+    // TODO: Implement PVAR/ppvar unbinding correctly.
+    // The C macro mutates PVAR cells based on the marker. Our current VM does not yet
+    // model PVAR precisely, and incorrect pointer math here can corrupt VM state.
+    _ = stack_module;
+    if (marker == 0) return errors_module.VMError.StackUnderflow;
 }
 
 /// DUNBIND: Dynamic unbind
@@ -215,23 +146,22 @@ pub fn handleDUNBIND(vm: *VM) errors.VMError!void {
             }
         }
 
-        // Pop marker
-        _ = try stack_module.popStack(vm);
+        // C: POP after unbinding (tos1defs.h)
+        try stack_module.tosPop(vm);
     } else {
-        // TOS is not marker - walk backwards to find marker (same as UNBIND)
+        // TOS is not marker - scan CSTKPTRL backwards to find marker (same as UNBIND).
+        var p = vm.cstkptrl orelse return errors_module.VMError.StackUnderflow;
+        var marker: LispPTR = 0;
         while (true) {
-            if (stack_module.getStackDepth(vm) == 0) {
-                return errors_module.VMError.StackUnderflow;
+            p -= 1; // C: *--CSTKPTRL
+            const v = p[0];
+            if (@as(i32, @bitCast(v)) < 0) {
+                marker = v;
+                vm.cstkptrl = p;
+                break;
             }
-
-            const value = stack_module.getTopOfStack(vm);
-            if (@as(i32, @bitCast(value)) < 0) {
-                break; // Found marker
-            }
-            _ = try stack_module.popStack(vm);
         }
 
-        const marker = stack_module.getTopOfStack(vm);
         const num = (~marker) >> 16;
         const offset = types_module.getLoWord(marker); // C uses GetLoWord directly, no shift
 
@@ -245,17 +175,17 @@ pub fn handleDUNBIND(vm: *VM) errors.VMError!void {
             const pvar_base = frame_addr + frame_size;
             const pvar_dlword_ptr: [*]DLword = @ptrFromInt(pvar_base);
             const ppvar_dlword: [*]DLword = pvar_dlword_ptr + 2 + offset;
-            const ppvar: [*]LispPTR = @ptrCast(@alignCast(ppvar_dlword));
+            const ppvar: [*]align(1) LispPTR = @ptrCast(ppvar_dlword);
 
             var i: u32 = num;
-            var current_ppvar: [*]LispPTR = ppvar;
+            var current_ppvar: [*]align(1) LispPTR = ppvar;
             while (i > 0) : (i -= 1) {
                 current_ppvar -= 1; // Decrement before assignment
                 current_ppvar[0] = 0xFFFFFFFF;
             }
         }
 
-        // Pop marker
-        _ = try stack_module.popStack(vm);
+        // C: POP after unbinding
+        try stack_module.tosPop(vm);
     }
 }

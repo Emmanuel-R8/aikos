@@ -14,12 +14,15 @@ const LispPTR = types.LispPTR;
 pub fn handleEQ(vm: *VM) errors.VMError!void {
     const stack_module = @import("../stack.zig");
 
-    const b = try stack_module.popStack(vm);
-    const a = try stack_module.popStack(vm);
+    // C uses the TOS-stack macros: EQ consumes two operands (TOS and the cell under it)
+    // and leaves a single boolean result in TOPOFSTACK, without mutating CurrentStackPTR.
+    const p = vm.cstkptrl orelse return error.StackUnderflow;
+    const under: LispPTR = (p - 1)[0];
+    const tos: LispPTR = stack_module.getTopOfStack(vm);
 
-    // EQ compares pointer equality
-    const result: LispPTR = if (a == b) 1 else 0; // T or NIL
-    try stack_module.pushStack(vm, result);
+    const result: LispPTR = if (tos == under) 1 else 0; // T or NIL (placeholder ATOM_T/NIL)
+    vm.cstkptrl = p - 1; // consume one value from the value stack (2 -> 1)
+    vm.top_of_stack = result;
 }
 
 /// EQL: Equal test (deep comparison)

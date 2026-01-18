@@ -41,6 +41,196 @@ pub const ExecutionTrace = struct {
         }
     }
 
+    /// Generate unified single-line trace format for rapid C/Zig comparison
+    pub fn unifiedTraceLog(self: *ExecutionTrace, vm: *VM, inst: Instruction) !void {
+        if (self.log_file == null) return;
+
+        // Only log first 100 instructions or PC 0x307898
+        const pc_byte_offset = vm.pc;
+        const should_log = self.instruction_count <= 100 or pc_byte_offset == 0x307898;
+        if (!should_log) return;
+
+        var buffer: [2048]u8 = undefined;
+        var pos: usize = 0;
+
+        // Helper to append formatted string
+        const append = struct {
+            fn append(buf: []u8, p: *usize, comptime fmt: []const u8, args: anytype) !void {
+                const written = try std.fmt.bufPrint(buf[p.*..], fmt, args);
+                p.* += written.len;
+            }
+        }.append;
+
+        // 1. LINE#
+        try append(&buffer, &pos, "{d:>6}|", .{self.instruction_count});
+
+        // 2. PC
+        try append(&buffer, &pos, "0x{x:0>6}|", .{pc_byte_offset});
+
+        // 3. INSTRUCTION
+        const opcode_name = switch (inst.opcode) {
+            .CONST_0 => "0",
+            .CONST_1 => "1",
+            else => @tagName(inst.opcode),
+        };
+        var instr_padded: [17]u8 = undefined;
+        @memset(instr_padded[0..], ' ');
+        const name_len = @min(opcode_name.len, 16);
+        @memcpy(instr_padded[0..name_len], opcode_name[0..name_len]);
+        try append(&buffer, &pos, "{s}|", .{instr_padded[0..16]});
+
+        // 4. OPCODE
+        const opcode_byte = @intFromEnum(inst.opcode);
+        try append(&buffer, &pos, "0x{x:0>2}|", .{opcode_byte});
+
+        // 5. OPERANDS - will be filled after parsing
+        var operands_buf: [21]u8 = [_]u8{' '} ** 21;
+        var operands_pos: usize = 0;
+
+        // Fill operands based on instruction type
+        switch (inst.opcode) {
+            .TYPEP => {
+                if (inst.operands.len >= 1) {
+                    const param = inst.getByteOperand(0);
+                    operands_pos = (try std.fmt.bufPrint(operands_buf[operands_pos..], "p1=0x{x:0>2}", .{param})).len;
+                }
+            },
+            .DTEST => {
+                if (inst.operands.len >= 1) {
+                    const atom = inst.getByteOperand(0);
+                    operands_pos = (try std.fmt.bufPrint(operands_buf[operands_pos..], "atom=0x{x:0>2}", .{atom})).len;
+                }
+            },
+            .UNWIND => {
+                if (inst.operands.len >= 2) {
+                    const p1 = inst.getByteOperand(0);
+                    const p2 = inst.getByteOperand(1);
+                    operands_pos = (try std.fmt.bufPrint(operands_buf[operands_pos..], "p1=0x{x:0>2} p2=0x{x:0>2}", .{ p1, p2 })).len;
+                }
+            },
+            .RPLPTR_N => {
+                if (inst.operands.len >= 1) {
+                    const param = inst.getByteOperand(0);
+                    operands_pos = (try std.fmt.bufPrint(operands_buf[operands_pos..], "p1=0x{x:0>2}", .{param})).len;
+                }
+            },
+            .GVAR_ => {
+                if (inst.operands.len >= 1) {
+                    const atom = inst.getByteOperand(0);
+                    operands_pos = (try std.fmt.bufPrint(operands_buf[operands_pos..], "atom=0x{x:0>2}", .{atom})).len;
+                }
+            },
+            .FINDKEY => {
+                if (inst.operands.len >= 1) {
+                    const param = inst.getByteOperand(0);
+                    operands_pos = (try std.fmt.bufPrint(operands_buf[operands_pos..], "p1=0x{x:0>2}", .{param})).len;
+                }
+            },
+            .MISCN => {
+                if (inst.operands.len >= 2) {
+                    const p1 = inst.getByteOperand(0);
+                    const p2 = inst.getByteOperand(1);
+                    operands_pos = (try std.fmt.bufPrint(operands_buf[operands_pos..], "p1=0x{x:0>2} p2=0x{x:0>2}", .{ p1, p2 })).len;
+                }
+            },
+            .TYPEMASK_N => {
+                if (inst.operands.len >= 1) {
+                    const param = inst.getByteOperand(0);
+                    operands_pos = (try std.fmt.bufPrint(operands_buf[operands_pos..], "p1=0x{x:0>2}", .{param})).len;
+                }
+            },
+            .STORE_N => {
+                if (inst.operands.len >= 1) {
+                    const param = inst.getByteOperand(0);
+                    operands_pos = (try std.fmt.bufPrint(operands_buf[operands_pos..], "p1=0x{x:0>2}", .{param})).len;
+                }
+            },
+            .COPY_N => {
+                if (inst.operands.len >= 1) {
+                    const param = inst.getByteOperand(0);
+                    operands_pos = (try std.fmt.bufPrint(operands_buf[operands_pos..], "p1=0x{x:0>2}", .{param})).len;
+                }
+            },
+            .IVARX, .PVARX, .FVARX, .PVARX_, .IVARX_, .FVARX_ => {
+                if (inst.operands.len >= 1) {
+                    const param = inst.getByteOperand(0);
+                    operands_pos = (try std.fmt.bufPrint(operands_buf[operands_pos..], "p1=0x{x:0>2}", .{param})).len;
+                }
+            },
+            .SICX => {
+                if (inst.operands.len >= 2) {
+                    const w = inst.getWordOperand(0);
+                    operands_pos = (try std.fmt.bufPrint(operands_buf[operands_pos..], "w=0x{x:0>4}", .{w})).len;
+                }
+            },
+            .POP_N, .ATOMCELL_N, .GETBASE_N, .GETBASEPTR_N, .GETBITS_N_FD, .PUTBASE_N, .PUTBASEPTR_N, .PUTBITS_N_FD, .IPLUS_N, .IDIFFERENCE_N => {
+                if (inst.operands.len >= 1) {
+                    const param = inst.getByteOperand(0);
+                    operands_pos = (try std.fmt.bufPrint(operands_buf[operands_pos..], "p1=0x{x:0>2}", .{param})).len;
+                }
+            },
+            .JUMPX, .JUMPXX, .FJUMPX, .TJUMPX, .NFJUMPX, .NTJUMPX => {
+                if (inst.operands.len >= 2) {
+                    const offset = inst.getSignedWordOperand(0);
+                    operands_pos = (try std.fmt.bufPrint(operands_buf[operands_pos..], "off={d}", .{offset})).len;
+                }
+            },
+            else => {
+                // No operands
+            },
+        }
+        try append(&buffer, &pos, "{s}|", .{operands_buf[0..20]});
+
+        // 6. REGISTERS - simplified, unknown in Zig
+        try append(&buffer, &pos, "{s}|", .{"" ** 30});
+
+        // 7. FLAGS - unknown in Zig
+        try append(&buffer, &pos, "{s}|", .{"" ** 10});
+
+        // 8. SP_FP
+        const currentfx_offset = self.getCurrentFXOffset(vm);
+        try append(&buffer, &pos, "SP:0x{x:0>6} FP:0x{x:0>6}|", .{ self.getStackPtrOffset(vm), currentfx_offset });
+
+        // 9. STACK_SUMMARY
+        const tos = stack.getTopOfStack(vm);
+        const stack_depth = stack.getStackDepth(vm);
+        const next_values = self.getNextStackValues(vm, 4);
+        try append(&buffer, &pos, "D:{d} TOS:0x{x:0>8} N1:0x{x:0>8} N2:0x{x:0>8}|", .{ stack_depth, tos, next_values[0], next_values[1] });
+
+        // 10. MEMORY_CONTEXT
+        const BYTESPER_PAGE: usize = 512;
+        const pc_vpage = pc_byte_offset / BYTESPER_PAGE;
+        const pc_offset_in_page = pc_byte_offset % BYTESPER_PAGE;
+        try append(&buffer, &pos, "@mem:0x{x} [vpage:{} off:0x{x:0>3}]|", .{ @intFromPtr(vm.virtual_memory.?.ptr) + pc_byte_offset, pc_vpage, pc_offset_in_page });
+
+        // 11. FP_VP_FO_VA - simplified, unknown file page mapping in Zig
+        const virtual_address = pc_vpage * BYTESPER_PAGE;
+        try append(&buffer, &pos, "FP:0 VP:{} FO:0x0 VA:0x{x:0>6}|", .{ pc_vpage, virtual_address });
+
+        // 12. BS_MEM
+        try append(&buffer, &pos, "BS:RAW MEM:", .{});
+        if (vm.virtual_memory) |vmem| {
+            var i: usize = 0;
+            while (i < 4 and pc_byte_offset + i < vmem.len) : (i += 1) {
+                try append(&buffer, &pos, "{x:0>2}", .{vmem[pc_byte_offset + i]});
+            }
+        }
+        try append(&buffer, &pos, "|", .{});
+
+        // 13. NOTES
+        var notes: [31]u8 = [_]u8{' '} ** 31;
+        if (pc_byte_offset == 0x307898) {
+            @memcpy(notes[0.."PC_MISMATCH_CHECK".len], "PC_MISMATCH_CHECK");
+        }
+        try append(&buffer, &pos, "{s}", .{notes[0..30]});
+
+        // Newline
+        try append(&buffer, &pos, "\n", .{});
+
+        // Write to file
+        try self.log_file.?.writeAll(buffer[0..pos]);
+    }
+
     /// Log instruction execution (single-line format per emulator_debug.log)
     pub fn logInstruction(self: *ExecutionTrace, vm: *VM, inst: Instruction) !void {
         if (self.log_file == null) {
@@ -50,6 +240,9 @@ pub const ExecutionTrace = struct {
             }
             return;
         }
+
+        // Generate unified trace format for rapid comparison
+        try self.unifiedTraceLog(vm, inst);
 
         // ENHANCED TRACING: Match C emulator's first instruction tracing
         const ENHANCED_TRACING = @import("builtin").mode == .Debug;
@@ -146,15 +339,15 @@ pub const ExecutionTrace = struct {
         const pc_byte_uint = @as(u32, @intCast(pc_byte_offset));
         const pc_times_2 = pc_byte_uint << 1;
         const pc_div_2 = pc_byte_uint >> 1;
-        try append(&buffer, &pos, "PC:0x{x:0>6}/0{o:0>11}(*2:0x{x:0>6}/0{o:0>11} /2:0x{x:0>6}/0{o:0>11}) Lisp+0x{x:0>6}/0{o:0>11} FuncObj", .{
-            pc_byte_uint, pc_byte_uint, pc_times_2, pc_times_2, pc_div_2, pc_div_2, pc_byte_uint, pc_byte_uint });
+        try append(&buffer, &pos, "PC:0x{x:0>6}/0{o:0>11}(*2:0x{x:0>6}/0{o:0>11} /2:0x{x:0>6}/0{o:0>11}) Lisp+0x{x:0>6}/0{o:0>11} FuncObj", .{ pc_byte_uint, pc_byte_uint, pc_times_2, pc_times_2, pc_div_2, pc_div_2, pc_byte_uint, pc_byte_uint });
         // Format offset - C uses %5d which right-aligns and includes sign
         const offset_fmt = self.formatFuncObjOffset(funcobj_byte_offset);
         try append(&buffer, &pos, "+{s} ", .{offset_fmt[0..]});
 
         // Pad PC field to at least the historic "PC column" width, but never
         // move the write cursor backwards (that would overwrite already-written bytes).
-        const pc_field_end = 68;
+        // Match the C trace alignment for the byte window start.
+        const pc_field_end = 67;
         if (pos < pc_field_end) {
             while (pos < pc_field_end) : (pos += 1) {
                 buffer[pos] = ' ';
@@ -191,54 +384,36 @@ pub const ExecutionTrace = struct {
         }
         try append(&buffer, &pos, "    ", .{}); // 4 trailing spaces
 
-        // DEBUG: Add memory verification info (only for first few instructions to avoid log bloat)
-        // This matches the C emulator's debug output format
-        // EXPANDED: Add more debug info to diagnose PC and memory issues
-        if (self.instruction_count <= 10) {
-            if (vm.virtual_memory) |vmem| {
-                // Log virtual page and offset for debugging
-                // BYTESPER_PAGE = 512
-                const BYTESPER_PAGE: usize = 512;
-                const pc_vpage = pc_byte_offset / BYTESPER_PAGE;
-                const pc_offset_in_page = pc_byte_offset % BYTESPER_PAGE;
-                try append(&buffer, &pos, "[vpage:{} off:0x{x:0>3}]", .{ pc_vpage, pc_offset_in_page });
+        // Enriched log metadata used by the parity scripts.
+        // Keep this aligned with the C trace enrichment:
+        //   [vpage:<VP> off:0x<OFF>] [optional @mem:0x...] [FP:65535 VP:<VP> FO:0x0 VA:0x<PAGEBASE>] [MEM:<8 bytes>]
+        if (vm.virtual_memory) |vmem| {
+            const BYTESPER_PAGE: usize = 512;
+            const pc_vpage = pc_byte_offset / BYTESPER_PAGE;
+            const pc_offset_in_page = pc_byte_offset % BYTESPER_PAGE;
+            const va = pc_byte_offset - pc_offset_in_page;
 
-                // Also log the actual memory address being read from (for first instruction only)
-                if (self.instruction_count == 1) {
-                    const mem_addr = @intFromPtr(&vmem[vm.pc]);
-                    try append(&buffer, &pos, " @mem:0x{x}", .{mem_addr});
-                }
-
-                // EXPANDED DEBUG: For first 10 instructions, add memory content verification
-                // This helps diagnose why memory shows zeros
-                if (self.instruction_count <= 10) {
-                    // Check if memory at PC is zeros (indicates loading issue)
-                    const is_zeros = if (vm.pc < vmem.len and vm.pc + 8 <= vmem.len) blk: {
-                        var all_zero = true;
-                        for (0..8) |i| {
-                            if (vmem[vm.pc + i] != 0) {
-                                all_zero = false;
-                                break;
-                            }
-                        }
-                        break :blk all_zero;
-                    } else false;
-
-                    if (is_zeros) {
-                        try append(&buffer, &pos, " [MEM_ZEROS]", .{});
-                    }
-
-                    // For PC 0x307898 specifically (known mismatch location), add file page info
-                    if (pc_byte_offset == 0x307898 or pc_byte_offset == 0x307899) {
-                        // Log virtual page for mismatch diagnosis
-                        try append(&buffer, &pos, " [PC_MISMATCH_CHECK vpage:{}]", .{pc_vpage});
-                    }
-                }
+            try append(&buffer, &pos, "[vpage:{} off:0x{x:0>3}]", .{ pc_vpage, pc_offset_in_page });
+            if (self.instruction_count == 1) {
+                const mem_addr = @intFromPtr(&vmem[@as(usize, @intCast(vm.pc))]);
+                try append(&buffer, &pos, " @mem:0x{x}", .{mem_addr});
             }
+            try append(&buffer, &pos, " [FP:65535 VP:{} FO:0x0 VA:0x{x:0>6}] [MEM:", .{ pc_vpage, @as(u32, @intCast(va)) });
+            var i: usize = 0;
+            while (i < 8) : (i += 1) {
+                const b = if (vm.pc + i < vmem.len) vmem[@as(usize, @intCast(vm.pc)) + i] else 0;
+                try append(&buffer, &pos, "{x:0>2}", .{b});
+            }
+            try append(&buffer, &pos, "]", .{});
         }
 
         // Column 89-128: Instruction name + parameters (40 characters, left-aligned)
-        const opcode_name = @tagName(inst.opcode);
+        const opcode_name = switch (inst.opcode) {
+            // C trace prints these constant opcodes as bare numbers.
+            .CONST_0 => "0",
+            .CONST_1 => "1",
+            else => @tagName(inst.opcode),
+        };
         var instr_buf: [41]u8 = undefined;
         @memset(instr_buf[0..], ' '); // Initialize with spaces
         var instr_pos: usize = 0;
@@ -378,21 +553,9 @@ pub const ExecutionTrace = struct {
         // C format: "Stack: D:%5d/0%011o(*2:%5d /2:%5d) P:0x%05x/0%011o(*2:0x%05x /2:0x%05x) TOS:0x%016lx/0%022lo(*2:0x%016lx /2:0x%016lx) N:[0x%08x/0%011o 0x%08x/0%011o 0x%08x/0%011o 0x%08x/0%011o]"
         const stack_ptr_uint = @as(u32, @intCast(stack_ptr_offset));
         const tos_ul = @as(u64, @intCast(tos)); // tos is LispPTR (u32), cast to u64 for formatting
-        try append(&buffer, &pos, "Stack: D:{d:>5}/0{o:0>11}(*2:{d:>5} /2:{d:>5}) P:0x{x:0>5}/0{o:0>11}(*2:0x{x:0>5} /2:0x{x:0>5}) TOS:0x{x:0>16}/0{o:0>22}(*2:0x{x:0>16} /2:0x{x:0>16}) N:[0x{x:0>8}/0{o:0>11} 0x{x:0>8}/0{o:0>11} 0x{x:0>8}/0{o:0>11} 0x{x:0>8}/0{o:0>11}]", .{
-            stack_depth, stack_depth, stack_depth << 1, stack_depth >> 1,
-            stack_ptr_uint, stack_ptr_uint, stack_ptr_uint << 1, stack_ptr_uint >> 1,
-            tos_ul, tos_ul, tos_ul << 1, tos_ul >> 1,
-            next_values[0], next_values[0], next_values[1], next_values[1], next_values[2], next_values[2], next_values[3], next_values[3] });
+        try append(&buffer, &pos, "Stack: D:{d:>5}/0{o:0>11}(*2:{d:>5} /2:{d:>5}) P:0x{x:0>5}/0{o:0>11}(*2:0x{x:0>5} /2:0x{x:0>5}) TOS:0x{x:0>16}/0{o:0>22}(*2:0x{x:0>16} /2:0x{x:0>16}) N:[0x{x:0>8}/0{o:0>11} 0x{x:0>8}/0{o:0>11} 0x{x:0>8}/0{o:0>11} 0x{x:0>8}/0{o:0>11}]", .{ stack_depth, stack_depth, stack_depth << 1, stack_depth >> 1, stack_ptr_uint, stack_ptr_uint, stack_ptr_uint << 1, stack_ptr_uint >> 1, tos_ul, tos_ul, tos_ul << 1, tos_ul >> 1, next_values[0], next_values[0], next_values[1], next_values[1], next_values[2], next_values[2], next_values[3], next_values[3] });
 
-        // Pad stack field to the historic column boundary (optional).
-        const stack_end = 298;
-        if (pos < stack_end) {
-            while (pos < stack_end) : (pos += 1) {
-                buffer[pos] = ' ';
-            }
-        } else {
-            try append(&buffer, &pos, " ", .{});
-        }
+        // Do not pad between Stack[...] and Frame[...] (C trace concatenates directly).
 
         // Column 299-461: Frame information (163 characters)
         if (vm.current_frame) |frame| {
@@ -465,20 +628,10 @@ pub const ExecutionTrace = struct {
             const funcobj_dlword = fx_fnheader_24bit;
             const funcobj_lisp_offset = funcobj_dlword * 2;
 
-            // DEBUG: Log calculated values (hexadecimal/octal format)
-            if (self.instruction_count <= 3) {
-                std.debug.print("  Calculated: FX=0x{x:0>4} ({o:0>6}o) FH=0x{x:0>6} PC=0x{x:0>4} ({o:0>6}o) NB=0x{x:0>4} ({o:0>6}o) FO=+0x{x:0>6} ({o:0>8}o)\n", .{ currentfx_offset, currentfx_offset, fx_fnheader_24bit, frame_pc, frame_pc, frame_nextblock, frame_nextblock, funcobj_lisp_offset, funcobj_lisp_offset });
-            }
-
             // AUTO: Format frame with hex, octal, and bit-shifted values (matching C format)
             // C format: "Frame: FX:%5d/0%011o(*2:%5d /2:%5d) FH:0x%06x/0%011o(*2:0x%06x/0%011o /2:0x%06x/0%011o) PC:%5d/0%011o(*2:%5d /2:%5d) NB:%5d/0%011o(*2:%5d /2:%5d) FO:+%5d/0%011o(*2:%5d /2:%5d)"
             const fx_fnheader_uint = @as(u32, @intCast(fx_fnheader_24bit));
-            try append(&buffer, &pos, "Frame: FX:{d:>5}/0{o:0>11}(*2:{d:>5} /2:{d:>5}) FH:0x{x:0>6}/0{o:0>11}(*2:0x{x:0>6}/0{o:0>11} /2:0x{x:0>6}/0{o:0>11}) PC:{d:>5}/0{o:0>11}(*2:{d:>5} /2:{d:>5}) NB:{d:>5}/0{o:0>11}(*2:{d:>5} /2:{d:>5}) FO:+{d:>5}/0{o:0>11}(*2:{d:>5} /2:{d:>5})", .{
-                currentfx_offset, currentfx_offset, currentfx_offset << 1, currentfx_offset >> 1,
-                fx_fnheader_uint, fx_fnheader_uint, fx_fnheader_uint << 1, fx_fnheader_uint << 1, fx_fnheader_uint >> 1, fx_fnheader_uint >> 1,
-                frame_pc, frame_pc, frame_pc << 1, frame_pc >> 1,
-                frame_nextblock, frame_nextblock, frame_nextblock << 1, frame_nextblock >> 1,
-                funcobj_lisp_offset, funcobj_lisp_offset, funcobj_lisp_offset << 1, funcobj_lisp_offset >> 1 });
+            try append(&buffer, &pos, "Frame: FX:{d:>5}/0{o:0>11}(*2:{d:>5} /2:{d:>5}) FH:0x{x:0>6}/0{o:0>11}(*2:0x{x:0>6}/0{o:0>11} /2:0x{x:0>6}/0{o:0>11}) PC:{d:>5}/0{o:0>11}(*2:{d:>5} /2:{d:>5}) NB:{d:>5}/0{o:0>11}(*2:{d:>5} /2:{d:>5}) FO:+{d:>5}/0{o:0>11}(*2:{d:>5} /2:{d:>5})", .{ currentfx_offset, currentfx_offset, currentfx_offset << 1, currentfx_offset >> 1, fx_fnheader_uint, fx_fnheader_uint, fx_fnheader_uint << 1, fx_fnheader_uint << 1, fx_fnheader_uint >> 1, fx_fnheader_uint >> 1, frame_pc, frame_pc, frame_pc << 1, frame_pc >> 1, frame_nextblock, frame_nextblock, frame_nextblock << 1, frame_nextblock >> 1, funcobj_lisp_offset, funcobj_lisp_offset, funcobj_lisp_offset << 1, funcobj_lisp_offset >> 1 });
 
             // Optional frame padding: do not move cursor backwards.
             const frame_end = 461;
@@ -523,28 +676,33 @@ pub const ExecutionTrace = struct {
 
     fn getFuncObjOffset(self: *ExecutionTrace, vm: *VM) i32 {
         _ = self;
-        // In the C emulator the FuncObj offset printed in the trace is:
-        //   funcobj_byte_offset = (char *)PCMAC - (char *)FuncObj;
-        // but for the current frame this is exactly CURRENTFX->pc
-        // (the saved byte offset from the function header to the return PC).
-        // We already know CURRENTFX and can read its pc field directly from
-        // the frame image in virtual memory, so we mirror that behaviour.
-        if (vm.current_frame) |frame| {
-            if (vm.virtual_memory) |vmem| {
-                const frame_addr = @intFromPtr(frame);
-                const vmem_addr = @intFromPtr(vmem.ptr);
-                if (frame_addr < vmem_addr or frame_addr + @sizeOf(stack.FX) > vmem_addr + vmem.len) {
-                    return 0;
-                }
-                const frame_offset_in_vmem: usize = @intCast(frame_addr - vmem_addr);
-                // BIGVM frame layout in memory (see comments in vm_initialization.zig):
-                // bytes [8..9] = pc (byte offset from FuncObj)
-                const frame_bytes = vmem[frame_offset_in_vmem..][0..12];
-                const frame_pc = std.mem.readInt(DLword, frame_bytes[8..10], .little);
-                return @intCast(frame_pc);
-            }
-        }
-        return 0;
+        // C trace prints: `FuncObj+%5d` where that offset is:
+        //   (char *)PCMAC - (char *)FuncObj
+        // i.e. the *current* PC offset within the function object, not the saved CURRENTFX->pc field.
+        if (vm.current_frame == null or vm.virtual_memory == null) return 0;
+
+        const frame = vm.current_frame.?;
+        const vmem = vm.virtual_memory.?;
+        const frame_addr = @intFromPtr(frame);
+        const vmem_addr = @intFromPtr(vmem.ptr);
+        if (frame_addr < vmem_addr or frame_addr + 12 > vmem_addr + vmem.len) return 0;
+
+        const frame_offset_in_vmem: usize = @intCast(frame_addr - vmem_addr);
+        const frame_bytes = vmem[frame_offset_in_vmem..][0..12];
+
+        // Non-BIGVM frame layout (matching the existing frame formatter below):
+        // FX_FNHEADER is a 24-bit LispPTR stored as:
+        //   lofnheader (DLword) at [4..6]
+        //   hi2fnheader (u8) in low byte of [6..8]
+        const lofnheader = std.mem.readInt(DLword, frame_bytes[4..6], .little);
+        const hi1fnheader_hi2fnheader = std.mem.readInt(DLword, frame_bytes[6..8], .little);
+        const hi2fnheader: u8 = @as(u8, @truncate(hi1fnheader_hi2fnheader & 0xFF));
+        const fx_fnheader_24: LispPTR = (((@as(LispPTR, hi2fnheader) << 16) | lofnheader) & 0xFFFFFF);
+
+        const funcobj_byte_base: u32 = @as(u32, @intCast(fx_fnheader_24)) * 2;
+        const pc_byte: u32 = @as(u32, @intCast(vm.pc));
+        if (pc_byte < funcobj_byte_base) return 0;
+        return @as(i32, @intCast(pc_byte - funcobj_byte_base));
     }
 
     fn getCurrentFXOffset(self: *ExecutionTrace, vm: *VM) usize {
@@ -590,24 +748,16 @@ pub const ExecutionTrace = struct {
     fn getNextStackValues(self: *ExecutionTrace, vm: *VM, count: usize) [4]LispPTR {
         _ = self;
         var values: [4]LispPTR = [_]LispPTR{0} ** 4;
-        const stack_ptr_addr = @intFromPtr(vm.stack_ptr);
-        const stack_base_addr = @intFromPtr(vm.stack_base);
-
-        // Stack grows down, so we read from stack_ptr (which points to next push location)
-        // Top of stack is at stack_ptr - 2 DLwords (one LispPTR)
-        // Next values are at stack_ptr - 4, stack_ptr - 6, etc.
+        // Match C trace (maiko/src/xc.c):
+        //   for i: stack_slot = CurrentStackPTR - i*2 (DLwords); next_values[i] = *((LispPTR*)stack_slot)
+        // i.e. read 32-bit values at CurrentStackPTR, then 4 bytes below, etc.
         var i: usize = 0;
         while (i < count and i < 4) : (i += 1) {
-            // Each LispPTR is 2 DLwords = 4 bytes
-            // Read from stack_ptr - (i+1)*4 bytes (going down the stack)
-            const offset_bytes = (i + 1) * 4;
-            const stack_slot_addr = stack_ptr_addr - offset_bytes;
-            if (stack_slot_addr >= stack_base_addr) {
-                const stack_slot: [*]DLword = @ptrFromInt(stack_slot_addr);
-                const low = stack_slot[0];
-                const high = stack_slot[1];
-                values[i] = (@as(LispPTR, high) << 16) | @as(LispPTR, low);
-            }
+            const dlword_off: usize = i * 2; // 2 DLwords = 1 LispPTR cell
+            const stack_slot: [*]DLword = vm.stack_ptr - dlword_off;
+            if (@intFromPtr(stack_slot) <= @intFromPtr(vm.stack_base)) break;
+            const cell_ptr: [*]align(1) LispPTR = @ptrCast(@as([*]u8, @ptrCast(stack_slot)));
+            values[i] = cell_ptr[0];
         }
         return values;
     }

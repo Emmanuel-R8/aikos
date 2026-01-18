@@ -200,7 +200,7 @@ pub fn handleGVAR(vm: *VM, atom_index: types.LispPTR) errors.VMError!void {
     // C: GVAR(x) does PUSH(GetLongWord(Valspace + ((x) << 1))) for non-BIGATOMS
     // C: For BIGATOMS+BIGVM: PUSH(GetLongWord((LispPTR *)AtomSpace + (tx * 5) + NEWATOM_VALUE_PTROFF))
     const value = try atom_module.readAtomValue(vm, atom_index);
-    try stack_module.pushStack(vm, value);
+    try stack_module.tosPush(vm, value);
 }
 
 /// ACONST: Atom constant
@@ -531,18 +531,11 @@ pub fn handleFVARX_(vm: *VM, index: u8) errors.VMError!void {
 pub fn handleCOPY(vm: *VM) errors.VMError!void {
     const stack_module = @import("../stack.zig");
 
-    // COPY requires:
-    // 1. Value on stack
-    // 2. Push copy of value
-
-    // TODO: Proper implementation needs:
-    // 1. Get value from stack
-    // 2. Create copy (for GC purposes)
-    // 3. Push copy
-
-    // Placeholder: duplicate value
-    const value = stack_module.getTopOfStack(vm);
-    try stack_module.pushStack(vm, value);
+    // C (inlineC.h): COPY => HARD_PUSH(TOPOFSTACK); nextop1;
+    // This pushes the cached TOS onto the value stack without changing TOPOFSTACK,
+    // and it does NOT mutate the traced CurrentStackPTR.
+    const tos = stack_module.getTopOfStack(vm);
+    try stack_module.tosHardPush(vm, tos);
 }
 
 /// MYARGCOUNT: My argument count

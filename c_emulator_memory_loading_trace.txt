@@ -1,5 +1,5 @@
 === Memory Loading Trace ===
-File: medley/internal/loadups/starter.sysout
+File: /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/medley/internal/loadups/starter.sysout
 File size: 8517120 bytes
 Number of pages: 16635
 
@@ -161,17 +161,23 @@ PC: 0x307898
   Offset * 2: 304
 
   Searching for ALL file pages mapping to virtual page 6204:
-  WARNING: No file page maps to virtual page 6204!
+    File page 5178 -> Virtual page 6204 (GETPAGEOK=0x0000)
+  Found 1 file page(s) mapping to virtual page 6204
+    File page 5178:
+      File offset: 0x287400 (2651136 bytes)
+      File offset / 2: 0x143a00
+      File offset * 2: 0x50e800
+      *** This is the FIRST mapping found (used for loading) ***
 
   File page 5178 (Zig's assumption):
-    Maps to virtual page: 0
+    Maps to virtual page: 6204
     GETPAGEOK: 0x0000
-    *** DOES NOT MATCH virtual page 6204 (maps to 0 instead) ***
+    *** MATCHES virtual page 6204 (PC page) ***
 
   File page 2937 (has correct bytes):
-    Maps to virtual page: 0
+    Maps to virtual page: 11850
     GETPAGEOK: 0x0000
-    *** Maps to virtual page 0 (not PC page 6204) ***
+    *** Maps to virtual page 11850 (not PC page 6204) ***
   Virtual address: 0x307800 (3176448 bytes)
   Virtual address / 2: 0x183c00
   Virtual address * 2: 0x60f000

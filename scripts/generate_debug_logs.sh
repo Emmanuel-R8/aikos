@@ -11,10 +11,12 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
 arg1="${1:-}"
+arg2="${2:-}"
 
 run_one() {
     local sysout_file="$1"
     local tag="$2"
+    local max_steps="${3:-}"
     local sysout_path="$sysout_file"
 
     # Use an absolute sysout path so Zig runs correctly from any cwd.
@@ -26,11 +28,16 @@ run_one() {
     echo "Sysout file: $sysout_file"
     echo "Sysout path: $sysout_path"
     echo "Tag: $tag"
+    if [ -n "$max_steps" ]; then
+        echo "EMULATOR_MAX_STEPS: $max_steps"
+    fi
     echo ""
 
     # Clean old logs (canonical names)
     rm -f "$REPO_ROOT/c_emulator_execution_log.txt" "$REPO_ROOT/zig_emulator_execution_log.txt"
     rm -f "$REPO_ROOT/zaiko/zig_emulator_execution_log.txt"
+    # Clean old tagged copies too (avoid stale logs masking failures)
+    rm -f "$REPO_ROOT/c_emulator_execution_log.${tag}.txt" "$REPO_ROOT/zig_emulator_execution_log.${tag}.txt"
 
     # Find C emulator (linux default paths)
     local c_emulator=""
@@ -62,7 +69,11 @@ run_one() {
     echo "=== Running Zig Emulator ==="
     echo "Command: cd zaiko && zig build run -- $sysout_path"
     cd "$REPO_ROOT/zaiko"
-    timeout 5 zig build run -- "$sysout_path" > /dev/null 2>&1 || true
+    if [ -n "$max_steps" ]; then
+        EMULATOR_MAX_STEPS="$max_steps" timeout 30 zig build run -- "$sysout_path" > /dev/null 2>&1 || true
+    else
+        timeout 30 zig build run -- "$sysout_path" > /dev/null 2>&1 || true
+    fi
 
     # Normalize Zig log location and persist a tagged copy
     if [ -f "$REPO_ROOT/zaiko/zig_emulator_execution_log.txt" ]; then
@@ -99,11 +110,11 @@ run_one() {
 }
 
 if [ "$arg1" = "--staged" ] || [ "$arg1" = "--stage" ]; then
-    run_one "medley/internal/loadups/starter.sysout" "starter"
+    run_one "medley/internal/loadups/starter.sysout" "starter" "$arg2"
     echo ""
     echo "------------------------------------------------------------"
     echo ""
-    run_one "medley/loadups/full.sysout" "full"
+    run_one "medley/loadups/full.sysout" "full" "$arg2"
     exit 0
 fi
 
@@ -111,4 +122,4 @@ SYSOUT_FILE="${arg1:-medley/internal/loadups/starter.sysout}"
 tag="$(basename "$SYSOUT_FILE")"
 tag="${tag%.sysout}"
 
-run_one "$SYSOUT_FILE" "$tag"
+run_one "$SYSOUT_FILE" "$tag" "$arg2"

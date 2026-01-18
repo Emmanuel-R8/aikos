@@ -446,6 +446,12 @@ pub fn main() !void {
             }
         };
 
+        // If dispatch requested a stop (e.g. EMULATOR_MAX_STEPS reached), exit main loop.
+        if (vm.stop_requested) {
+            quit_requested = true;
+            break;
+        }
+
         // Small delay to prevent CPU spinning
         std.Thread.sleep(1000); // 1 microsecond
     }

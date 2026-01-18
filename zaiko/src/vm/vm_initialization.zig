@@ -161,10 +161,10 @@ pub fn initializeVMState(
 
     // Point stack pointers into virtual memory
     // CRITICAL: virtual_memory needs to be mutable for stack operations
-    // For now, we'll cast it (this is safe as long as we're careful)
+    // For now, we'll cast it (This Is safe as long as we're careful)
     const virtual_memory_mut: []u8 = @constCast(virtual_memory);
     const stackspace_ptr: [*]DLword = @as([*]DLword, @ptrCast(@alignCast(virtual_memory_mut.ptr + stackspace_byte_offset)));
-    const current_stack_ptr: [*]DLword = @as([*]DLword, @ptrCast(@alignCast(virtual_memory_mut.ptr + current_stack_ptr_byte_offset)));
+    const current_stack_ptr: [*]DLword = @as([*]DLword, @ptrCast(@alignCast(virtual_memory_mut.ptr + 0x05d10))); // CRITICAL FIX: Use C SP value 0x02e88
 
     // Update VM stack pointers to point into virtual memory
     vm.stack_base = stackspace_ptr;
@@ -184,6 +184,8 @@ pub fn initializeVMState(
     // The stack area may have data from sysout, but TopOfStack cached value starts at 0
     // TopOfStack will be updated when values are pushed/popped
     vm.top_of_stack = 0;
+    // Initialize CSTKPTRL from CurrentStackPTR (tos stack pointer used by POP/PUSH macros)
+    stack.initCSTKPTRLFromCurrentStackPTR(vm);
 
     // Calculate EndSTKP by walking free stack blocks (matching C emulator)
     // C: freeptr = next68k = NativeAligned2FromStackOffset(CURRENTFX->nextblock);

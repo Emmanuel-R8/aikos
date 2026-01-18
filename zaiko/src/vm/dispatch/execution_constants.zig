@@ -17,12 +17,12 @@ pub fn handleConstants(vm: *VM, opcode: @import("instruction.zig").Opcode, instr
         // Constants
         .NIL => {
             const stack_module = @import("../stack.zig");
-            try stack_module.pushStack(vm, 0); // Push NIL
+            try stack_module.tosPush(vm, 0); // PUSH(NIL)
             return null;
         },
         .T => {
             const stack_module = @import("../stack.zig");
-            try stack_module.pushStack(vm, 1); // Push T
+            try stack_module.tosPush(vm, 1); // PUSH(T) (placeholder ATOM_T)
             return null;
         },
         .CONST_0 => {
@@ -31,14 +31,14 @@ pub fn handleConstants(vm: *VM, opcode: @import("instruction.zig").Opcode, instr
             const stack_module = @import("../stack.zig");
             const LispPTR = @import("../../utils/types.zig").LispPTR;
             const S_POSITIVE: LispPTR = 0xE0000;
-            try stack_module.pushStack(vm, S_POSITIVE); // Push small positive integer 0
+            try stack_module.tosPush(vm, S_POSITIVE); // PUSHATOM(S_POSITIVE)
             return null;
         },
         .CONST_1 => {
             // C: case 0153: PUSHATOM(0xE0001); /* '1 */
             // 0xE0001 = S_POSITIVE | 1 (small positive integer 1)
             const stack_module = @import("../stack.zig");
-            try stack_module.pushStack(vm, 0xE0001); // Push small positive integer 1
+            try stack_module.tosPush(vm, 0xE0001); // PUSHATOM(0xE0001)
             return null;
         },
         .ACONST => {
