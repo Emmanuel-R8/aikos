@@ -50,7 +50,7 @@ pub fn handleIVAR(vm: *VM, index: u8) errors.VMError!void {
     }
 
     const virtual_memory = vm.virtual_memory.?;
-    const ivar_bytes = virtual_memory[ivar_addr..ivar_addr+4];
+    const ivar_bytes = virtual_memory[ivar_addr .. ivar_addr + 4];
     const low_word = (@as(types.DLword, ivar_bytes[0]) << 8) | @as(types.DLword, ivar_bytes[1]);
     const high_word = (@as(types.DLword, ivar_bytes[2]) << 8) | @as(types.DLword, ivar_bytes[3]);
     const ivar_value: types.LispPTR = (@as(types.LispPTR, high_word) << 16) | @as(types.LispPTR, low_word);
@@ -453,7 +453,7 @@ pub fn handleIVARX(vm: *VM, word_offset: u8) errors.VMError!void {
     }
 
     const virtual_memory = vm.virtual_memory.?;
-    const ivar_bytes = virtual_memory[ivar_addr..ivar_addr+4];
+    const ivar_bytes = virtual_memory[ivar_addr .. ivar_addr + 4];
     const low_word = (@as(types_module.DLword, ivar_bytes[0]) << 8) | @as(types_module.DLword, ivar_bytes[1]);
     const high_word = (@as(types_module.DLword, ivar_bytes[2]) << 8) | @as(types_module.DLword, ivar_bytes[3]);
     const value: types.LispPTR = (@as(types.LispPTR, high_word) << 16) | @as(types.LispPTR, low_word);
@@ -499,7 +499,7 @@ pub fn handleIVARX_(vm: *VM, word_offset: u8) errors.VMError!void {
     }
 
     const virtual_memory_mut: []u8 = @constCast(vm.virtual_memory.?);
-    const ivar_bytes = virtual_memory_mut[ivar_addr..ivar_addr+4];
+    const ivar_bytes = virtual_memory_mut[ivar_addr .. ivar_addr + 4];
     const low_word = @as(types_module.DLword, @truncate(value));
     const high_word = @as(types_module.DLword, @truncate(value >> 16));
     ivar_bytes[0] = @as(u8, @truncate(low_word >> 8));
@@ -605,7 +605,8 @@ pub fn handleMYALINK(vm: *VM) errors.VMError!void {
     const types_module = @import("../../utils/types.zig");
 
     // C: MYALINK: PUSH((((CURRENTFX->alink) & 0xfffe) - FRAMESIZE) | S_POSITIVE);
-    // FRAMESIZE = 10 DLwords = 20 bytes
+    // FRAMESIZE = 10 DLwords = 20 bytes (frame size in virtual memory)
+    // C's FRAMESIZE is defined in lispemul.h: #define FRAMESIZE 10
     const FRAMESIZE: u32 = 10; // DLwords
 
     const frame = vm.current_frame orelse {
@@ -615,9 +616,27 @@ pub fn handleMYALINK(vm: *VM) errors.VMError!void {
     // Get alink (activation link to previous frame)
     const alink = stack_module.getAlink(frame);
 
+    // CRITICAL: Handle invalid alink values (should not happen in valid execution)
+    // Maiko's native_newframe explicitly checks: if (alink == 0) error("alink is 0 in native_newframe");
+    // Stack boundaries should be marked with ENDSTACKMARK (0xb), not 0.
+    // This workaround allows continued execution for debugging purposes.
+    if (alink == 0) {
+        std.debug.print("DEBUG MYALINK: alink=0 encountered - should be ENDSTACKMARK (0xb) at stack boundary\n", .{});
+        // Temporary fix: treat as stack boundary to prevent crash
+        // TODO: Fix frame initialization to use proper ENDSTACKMARK values
+        const alink_addr = 0; // Stack boundary placeholder
+        const result = types_module.S_POSITIVE | alink_addr;
+        try stack_module.pushStack(vm, result);
+        return;
+    }
+
     // C: (alink & 0xfffe) - FRAMESIZE
     // Clear LSB and subtract FRAMESIZE (in DLwords, so multiply by 2 for bytes)
     const alink_cleared = alink & 0xFFFFFFFE; // Clear LSB
+
+    // C equivalent: ((((CURRENTFX->alink) & 0xfffe) - FRAMESIZE) | S_POSITIVE)
+    // Note: Maiko doesn't check for underflow here because valid execution should not reach this point
+    // with problematic alink values. The underflow we're seeing indicates a deeper frame management issue.
     const alink_addr = alink_cleared - (FRAMESIZE * 2); // FRAMESIZE in bytes
 
     // C: | S_POSITIVE
