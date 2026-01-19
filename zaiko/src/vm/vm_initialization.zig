@@ -164,7 +164,7 @@ pub fn initializeVMState(
     // For now, we'll cast it (This Is safe as long as we're careful)
     const virtual_memory_mut: []u8 = @constCast(virtual_memory);
     const stackspace_ptr: [*]DLword = @as([*]DLword, @ptrCast(@alignCast(virtual_memory_mut.ptr + stackspace_byte_offset)));
-    const current_stack_ptr: [*]DLword = @as([*]DLword, @ptrCast(@alignCast(virtual_memory_mut.ptr + 0x05d10))); // CRITICAL FIX: Use C SP value 0x02e88
+    const current_stack_ptr: [*]DLword = @as([*]DLword, @ptrCast(@alignCast(virtual_memory_mut.ptr + current_stack_ptr_byte_offset))); // C: CurrentStackPTR = next68k - 2
 
     // Update VM stack pointers to point into virtual memory
     vm.stack_base = stackspace_ptr;

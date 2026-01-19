@@ -3,6 +3,7 @@ const types = @import("../utils/types.zig");
 
 const LispPTR = types.LispPTR;
 const DLword = types.DLword;
+const ByteCode = types.ByteCode;
 
 /// Constants
 pub const BYTES_PER_PAGE = 512;
@@ -84,6 +85,28 @@ pub const EndiannessManager = struct {
         const xor_addr = base_addr ^ 3; // XOR with 3 for byte addressing
         return @ptrFromInt(xor_addr + offset);
     }
+
+    /// Get XOR address for byte access
+    pub fn getXorAddress(address: usize) usize {
+        return address ^ 3;
+    }
+
+    /// Read 16-bit value from memory with XOR addressing (little-endian)
+    /// Per C emulator: GETBYTE applies XOR addressing, then construct word from bytes
+    pub fn readWordXor(memory: []const u8, address: usize) u16 {
+        const xor_addr0 = address ^ 3;
+        const xor_addr1 = (address + 1) ^ 3;
+        const byte0 = if (xor_addr0 < memory.len) memory[xor_addr0] else 0;
+        const byte1 = if (xor_addr1 < memory.len) memory[xor_addr1] else 0;
+        return @as(u16, byte0) | (@as(u16, byte1) << 8);
+    }
+
+    /// Read 16-bit value from memory without XOR addressing (little-endian)
+    pub fn readWordLittleEndian(memory: []const u8, address: usize) u16 {
+        const byte0 = if (address < memory.len) memory[address] else 0;
+        const byte1 = if (address + 1 < memory.len) memory[address + 1] else 0;
+        return @as(u16, byte0) | (@as(u16, byte1) << 8);
+    }
 };
 
 /// Memory access utilities
@@ -114,5 +137,19 @@ pub const MemoryAccessManager = struct {
             return memory[pc..end];
         }
         return &[_]u8{};
+    }
+
+    /// Read JUMPX offset from memory with XOR addressing
+    /// JUMPX opcode is at PC, operands at PC+1 and PC+2
+    /// Per C emulator: Get_BYTE_PCMAC1 and Get_BYTE_PCMAC2 apply XOR addressing
+    pub fn readJumpOffset(memory: []const u8, pc: usize) i16 {
+        const byte0 = EndiannessManager.readWordXor(memory, pc + 1);
+        return @as(i16, @bitCast(byte0));
+    }
+
+    /// Read JUMPX offset without XOR addressing (raw bytes)
+    pub fn readJumpOffsetRaw(memory: []const u8, pc: usize) i16 {
+        const byte0 = EndiannessManager.readWordLittleEndian(memory, pc + 1);
+        return @as(i16, @bitCast(byte0));
     }
 };

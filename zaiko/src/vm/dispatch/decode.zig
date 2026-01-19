@@ -5,6 +5,7 @@ const opcode_module = @import("opcode.zig");
 const instruction_struct_module = @import("instruction_struct.zig");
 const length_module = @import("length.zig");
 const memory_access = @import("../../utils/memory_access.zig");
+const memory_manager = @import("../../memory/manager.zig");
 
 const ByteCode = types.ByteCode;
 const LispPTR = types.LispPTR;
@@ -12,6 +13,8 @@ const VM = stack.VM;
 const Opcode = opcode_module.Opcode;
 const Instruction = instruction_struct_module.Instruction;
 const getInstructionLength = length_module.getInstructionLength;
+const MemoryAccessManager = memory_manager.MemoryAccessManager;
+const EndiannessManager = memory_manager.EndiannessManager;
 
 /// Fetch instruction byte from virtual memory
 /// Per contracts/vm-core-interface.zig
@@ -73,8 +76,7 @@ pub fn decodeInstructionFromMemory(vm: *VM, pc: LispPTR) errors.VMError!?Instruc
                     const orig_byte = if (operand_offset < vmem.len) vmem[operand_offset] else 0xFF;
                     // Check what's at XOR address in raw memory
                     const xor_byte = if (xor_addr < vmem.len) vmem[xor_addr] else 0xFF;
-                    std.debug.print("DEBUG decode GVAR: i={}, PC+{}={}, XOR={}, byte=0x{x:0>2}, orig=0x{x:0>2}, xor_raw=0x{x:0>2}\n",
-                        .{ i, i + 1, operand_offset, xor_addr, byte, orig_byte, xor_byte });
+                    std.debug.print("DEBUG decode GVAR: i={}, PC+{}={}, XOR={}, byte=0x{x:0>2}, orig=0x{x:0>2}, xor_raw=0x{x:0>2}\n", .{ i, i + 1, operand_offset, xor_addr, byte, orig_byte, xor_byte });
                 }
             }
             // Zero out remaining bytes

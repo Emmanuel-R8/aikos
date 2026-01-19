@@ -90,10 +90,19 @@ head -3 zaiko/zig_emulator_execution_log.txt
 
 ## SESSION CONTINUITY INSTRUCTIONS
 
-1. **IMMEDIATE**: Fix VM initialization stack/frame pointers
+1. **IMMEDIATE**: Fix VM initialization stack/frame pointers to match C (SP=0x02e88, FP=0x307864)
 2. **VERIFY**: Run step-wise comparison again after fix
 3. **CONTINUE**: Fix next divergence if stack/frame pointers resolved
 4. **ITERATE**: Continue until both emulators produce identical traces
+
+## CURRENT ACTION: STEP-WISE PROGRESS
+
+**STATUS**: Attempting to fix VM initialization stack/frame pointer calculation
+**CURRENT ISSUE**: Zig compilation errors with @ptrCast const qualifier issues
+**TARGET**: Achieve SP=0x02e88, FP=0x307864 to match C emulator
+**FILE**: `zaiko/src/vm/vm_initialization.zig` 
+**PROGRESS**: Stack pointer fixes attempted but Zig emulator still not running
+**NEXT**: Need systematic debugging approach to fix compilation and achieve correct SP/FP values
 
 ## DEBUGGING ENVIRONMENT
 

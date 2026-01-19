@@ -284,3 +284,44 @@ pub fn handleLISTGET(vm: *VM) errors.VMError!void {
         try stack_module.pushStack(vm, 0);
     }
 }
+
+/// ELT: Get nth element of a list
+/// Stack: [list, index] -> [element at index or NIL]
+/// Index is 0-based from top of stack
+pub fn handleELT(vm: *VM) errors.VMError!void {
+    const stack_module = @import("../stack.zig");
+
+    const index = try stack_module.popStack(vm);
+    const list = try stack_module.popStack(vm);
+
+    // Convert index from Lisp format (may be S_POSITIVE)
+    const idx = @as(i32, @bitCast(index));
+    if (idx < 0) {
+        try stack_module.pushStack(vm, 0); // Return NIL for negative index
+        return;
+    }
+
+    var current = list;
+    var i: i32 = 0;
+
+    while (i < idx) {
+        if (current == 0) {
+            // End of list before reaching index
+            try stack_module.pushStack(vm, 0); // Return NIL
+            return;
+        }
+
+        // Move to next element
+        const next = try cons.cdr(vm, current);
+        current = next;
+        i += 1;
+    }
+
+    // Return current element (CAR of current cons cell)
+    if (current == 0) {
+        try stack_module.pushStack(vm, 0); // Return NIL
+    } else {
+        const element = try cons.car(vm, current);
+        try stack_module.pushStack(vm, element);
+    }
+}

@@ -39,10 +39,14 @@ Control flow and memory operation opcodes (0x00-0x7F).
 - *JUMP0-JUMP15 (0x80-0x8F)* [1] Unconditional jump, offset encoded in opcode (0-15). Stack: No effect.
 - *FJUMP0-FJUMP15 (0x90-0x9F)* [1] Jump if false (NIL), offset 0-15. Stack: Always pops TOS (pops regardless of condition).
 - *TJUMP0-TJUMP15 (0xA0-0xAF)* [1] Jump if true (non-NIL), offset 0-15. Stack: Always pops TOS (pops regardless of condition).
-- *JUMPX (0xB0)* [3] Unconditional jump, 16-bit signed offset. Stack: No effect.
-- *FJUMPX (0xB2)* [3] Jump if false, 16-bit offset. Stack: Always pops TOS.
-- *TJUMPX (0xB3)* [3] Jump if true, 16-bit offset. Stack: Always pops TOS.
-- *NFJUMPX (0xB4), NTJUMPX (0xB5)* [3] Negated variants.
+- *JUMPX (0xB0)* [2] Unconditional jump, 8-bit signed offset. Stack: No effect.
+  - *Operand*: 1 byte with XOR addressing (addr ^ 3)
+  - *Sign-extension*: If byte >= 128, subtract 256 to get signed offset
+  - *C Implementation*: `maiko/src/mvs.c` lines 108-113 - uses `GETBYTE((char *)pc + 1)` then sign-extends
+  - *CRITICAL*: JUMPX is 8-bit signed, NOT 16-bit. JUMPXX (0xB1) is 16-bit signed.
+- *FJUMPX (0xB2)* [3] Jump if false, 8-bit signed offset. Stack: Always pops TOS.
+- *TJUMPX (0xB3)* [3] Jump if true, 8-bit signed offset. Stack: Always pops TOS.
+- *NFJUMPX (0xB4), NTJUMPX (0xB5)* [3] Negated variants, 8-bit signed offset.
 
 *Critical Stack Behavior for Conditional Jumps*:
 - FJUMP variants: Always pop TOS before checking condition. If TOS is NIL, jump; otherwise continue.

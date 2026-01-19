@@ -1,10 +1,13 @@
 const errors = @import("../../utils/errors.zig");
 const opcodes = @import("../opcodes.zig");
 const stack = @import("../stack.zig");
+const types = @import("../../utils/types.zig");
+const std = @import("std");
 
 const VM = stack.VM;
 const Instruction = @import("instruction.zig").Instruction;
 const Opcode = @import("instruction.zig").Opcode;
+const LispPTR = types.LispPTR;
 
 // ============================================================================
 // Execution - Control Flow Opcodes
@@ -29,7 +32,6 @@ pub fn handleFJUMPWithOffset(vm: *VM, offset: i8) errors.VMError!?i64 {
 /// Helper function for TJUMP handlers
 /// C: TJUMPMACRO(x): if (TOPOFSTACK == 0) { POP; nextop1; } else { CHECK_INTERRUPT; POP; PCMACL += (x); nextop0; }
 pub fn handleTJUMPWithOffset(vm: *VM, offset: i8) errors.VMError!?i64 {
-    const std = @import("std");
     const stack_module = @import("../stack.zig");
 
     // Check stack depth before popping
@@ -238,7 +240,29 @@ pub fn handleControlFlow(vm: *VM, opcode: Opcode, instruction: Instruction) erro
         .TJUMP15 => return handleTJUMPWithOffset(vm, 17),
         .JUMPX => {
             try opcodes.handleJUMPX(vm);
-            return @as(i64, instruction.getSignedWordOperand(0));
+            const pc = vm.pc;
+            const offset_byte: i16 = blk: {
+                if (vm.virtual_memory) |vmem| {
+                    const addr = pc + 1;
+                    const xor_addr = addr ^ 3;
+                    const raw_byte = if (xor_addr < vmem.len) vmem[xor_addr] else 0;
+                    const signed: i16 = if (raw_byte >= 128) @as(i16, @intCast(raw_byte)) - 256 else @as(i16, @intCast(raw_byte));
+                    break :blk signed;
+                }
+                break :blk 0;
+            };
+
+            if (vm.virtual_memory) |vmem| {
+                const addr1 = pc + 1;
+                const xor1 = addr1 ^ 3;
+                const byte1 = if (xor1 < vmem.len) vmem[xor1] else 0;
+                const raw1 = if (addr1 < vmem.len) vmem[addr1] else 0;
+
+                std.debug.print("DEBUG JUMPX: PC=0x{x}, offset_byte=0x{x} ({}), PC+offset=0x{x}\n", .{ pc, offset_byte, offset_byte, pc + @as(LispPTR, @intCast(offset_byte)) });
+                std.debug.print("  Byte at addr=0x{x} (XOR addr=0x{x}): XOR byte=0x{x:0>2}, raw byte=0x{x:0>2}\n", .{ addr1, xor1, byte1, raw1 });
+            }
+
+            return offset_byte;
         },
         .JUMPXX => {
             try opcodes.handleJUMPXX(vm);
