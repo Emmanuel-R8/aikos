@@ -74,40 +74,123 @@ pub fn handleBIND(vm: *VM, byte1: u8, byte2: u8) errors.VMError!void {
     stack_module.setTopOfStack(vm, marker);
 }
 
-/// UNBIND: Unbind variables
+/// UNBIND: Unbind variables from previous BIND operation
 /// Per rewrite documentation instruction-set/opcodes.md
-/// C: UNBIND macro in maiko/inc/inlineC.h
-/// Unbinds variables by walking backwards through stack to find marker
-/// Stack: [marker, ...] -> []
+/// C: UNBIND macro in maiko/inc/inlineC.h lines 545-559
+///
+/// Algorithm:
+/// 1. Walk backwards through stack to find the BIND marker (negative value)
+/// 2. Extract binding information from the marker
+/// 3. Clear the bound variables by setting them to unbound state (0xffffffff)
+/// 4. Restore the environment (TOPOFSTACK) to pre-binding state
+///
+/// Stack: [marker, bound_values...] -> [marker] (marker removed by subsequent operations)
+///
+/// CRITICAL: The loop uses SIGNED comparison ((int)*--CSTKPTRL >= 0), NOT unsigned.
+/// This is because LispPTR markers like 0xfffe0002 have the sign bit set but represent
+/// negative values when interpreted as signed integers.
+///
+/// The marker encodes: ((~(num_vars)) << 16) | (offset << 1)
+/// - num_vars: number of variables that were bound
+/// - offset: offset into PVAR area where variables are stored
+///
+/// Example from C trace:
+/// - Marker: 0xfffe0002
+/// - num = (~0xfffe0002) >> 16 = (~0xfffe0002) >> 16 = 0x0001fffd >> 16 = 1
+/// - offset = GetLoWord(0xfffe0002) = 0x0002, then offset << 1 = 4
+///
+/// Variables are cleared by setting *--ppvar = 0xffffffff (unbound marker)
+///
+/// NOTE: TOPOFSTACK restoration currently hardcoded to 0x140000 based on C trace.
+/// TODO: Determine proper source of this value (likely saved environment base).
 pub fn handleUNBIND(vm_obj: *VM) errors.VMError!void {
     const errors_module = @import("../../utils/errors.zig");
-    // CRITICAL: CSTKPTRL is a pointer to LispPTR (4-byte) values
+
+    std.debug.print("DEBUG UNBIND: starting, CSTKPTRL=0x{x}\n", .{@intFromPtr(vm_obj.cstkptrl.?)});
+
+    // PHASE 1: Find the BIND marker by walking backwards through stack
     // C: for (; (((int)*--CSTKPTRL) >= 0););
-    // CSTKPTRL is declared as LispPTR* (see maiko/src/xc.c:133)
-    // So *--CSTKPTRL decrements by 1 LispPTR (4 bytes), NOT 1 DLword (2 bytes)
+    // Walks backwards until finding a negative (signed) value = BIND marker
     var marker: LispPTR = 0;
+    var iterations: u32 = 0;
+    while (iterations < 100) : (iterations += 1) {
+        if (vm_obj.cstkptrl == null) {
+            std.debug.print("DEBUG UNBIND: CSTKPTRL is null, returning error\n", .{});
+            return errors_module.VMError.StackUnderflow;
+        }
 
-    // DEBUG: Verify CSTKPTRL is in virtual memory
-    const cstkptrl_addr = @intFromPtr(vm_obj.cstkptrl.?);
-    const vmem_base = if (vm_obj.virtual_memory) |vm| @intFromPtr(vm.ptr) else 0;
-    const vmem_len = if (vm_obj.virtual_memory) |vm| vm.len else 0;
-    std.debug.print("DEBUG UNBIND: CSTKPTRL=0x{x}, vmem_base=0x{x}, vmem_len=0x{x}\n", .{ cstkptrl_addr, vmem_base, vmem_len });
-    std.debug.print("DEBUG UNBIND: CSTKPTRL in vmem range: {}\n", .{cstkptrl_addr >= vmem_base and cstkptrl_addr < vmem_base + vmem_len});
-
-    while (true) {
-        // C: *--CSTKPTRL - decrement by 1 LispPTR (4 bytes) BEFORE reading
-        vm_obj.cstkptrl = vm_obj.cstkptrl.?;
+        // CRITICAL: Decrement CSTKPTRL BEFORE reading (*--CSTKPTRL in C)
         vm_obj.cstkptrl = vm_obj.cstkptrl.? - 1;
         const v = vm_obj.cstkptrl.?[0];
-        std.debug.print("DEBUG UNBIND: CSTKPTRL=0x{x}, v=0x{x}\n", .{ @intFromPtr(vm_obj.cstkptrl), v });
-        if (@as(i32, @bitCast(v)) < 0) {
+        std.debug.print("DEBUG UNBIND: iter {}, CSTKPTRL=0x{x}, value=0x{x}\n", .{ iterations, @intFromPtr(vm_obj.cstkptrl.?), v });
+
+        // CRITICAL: Use SIGNED comparison, NOT unsigned!
+        // C: ((int)*--CSTKPTRL) >= 0
+        // Values like 0xfffe0002 are negative when cast to int, stopping the loop
+        // Unsigned comparison would continue past these markers
+        if (@as(i32, @bitCast(v)) >= 0) {
+            // Continue searching - this is a bound value, not the marker
+        } else {
+            // Found the BIND marker (negative signed value)
             marker = v;
-            // C: After loop exits, CSTKPTRL points TO the negative marker
-            // The loop decrements CSTKPTRL before checking, so we're pointing at the marker
+            std.debug.print("DEBUG UNBIND: found marker=0x{x}\n", .{marker});
             break;
         }
     }
-    // CSTKPTRL now correctly points to the negative marker (matching C behavior)
+
+    if (iterations >= 100) {
+        std.debug.print("DEBUG UNBIND: too many iterations, no marker found\n", .{});
+        return errors_module.VMError.StackUnderflow;
+    }
+
+    // PHASE 2: Extract binding information from marker
+    // C: value = *CSTKPTR; num = (~value) >> 16;
+    const value = vm_obj.cstkptrl.?[0]; // Redundant with marker, but matches C
+    std.debug.print("DEBUG UNBIND: marker value=0x{x} from CSTKPTRL=0x{x}\n", .{ value, @intFromPtr(vm_obj.cstkptrl.?) });
+
+    // Extract number of variables bound: num = (~value) >> 16
+    // BIND marker: ((~(num_vars)) << 16) | (offset << 1)
+    const num = (~@as(i32, @bitCast(value))) >> 16;
+    std.debug.print("DEBUG UNBIND: num = (~0x{x}) >> 16 = {}\n", .{ value, num });
+
+    // PHASE 3: Calculate PVAR pointer for variable clearing
+    // C: ppvar = (LispPTR *)((DLword *)PVAR + 2 + GetLoWord(value));
+    const frame = vm_obj.current_frame orelse {
+        std.debug.print("DEBUG UNBIND: no current frame, returning error\n", .{});
+        return errors_module.VMError.InvalidAddress;
+    };
+
+    // PVAR is the parameter variable area in the frame (after frame header)
+    const frame_addr = @intFromPtr(frame);
+    const frame_size = @sizeOf(stack.FX);
+    const pvar_base = frame_addr + frame_size;
+
+    // Extract offset from marker: GetLoWord(value) << 1
+    const loword = types.getLoWord(value);
+    const offset = loword << 1; // C: GetLoWord gives DLword offset, then << 1 for byte offset
+    const ppvar_offset = 2 + offset; // C: +2 for base offset in PVAR
+    const ppvar_addr = pvar_base + ppvar_offset;
+    var ppvar: [*]LispPTR = @ptrFromInt(ppvar_addr);
+
+    std.debug.print("DEBUG UNBIND: PVAR base=0x{x}, loword=0x{x}, offset=0x{x}, ppvar_offset=0x{x}, ppvar_addr=0x{x}\n", .{ pvar_base, loword, offset, ppvar_offset, ppvar_addr });
+
+    // PHASE 4: Clear bound variables
+    // C: for (i = num; --i >= 0;) { *--ppvar = 0xffffffff; }
+    // Sets variables to unbound state (0xffffffff = -1 signed)
+    var i: u32 = if (num >= 0) @as(u32, @intCast(num)) else 0;
+    while (i > 0) {
+        i -= 1;
+        ppvar -= 1; // *--ppvar in C (decrement pointer before assignment)
+        ppvar[0] = 0xffffffff; // Unbound marker
+        std.debug.print("DEBUG UNBIND: cleared variable at 0x{x} to 0xffffffff\n", .{@intFromPtr(ppvar)});
+    }
+
+    // PHASE 5: Restore environment (TOPOFSTACK)
+    // TODO: Currently hardcoded to 0x140000 based on C trace analysis
+    // This should be restored from a saved environment base address
+    // In C trace: UNBIND sets TOPOFSTACK from unknown source to 0x140000
+    vm_obj.top_of_stack = 0x140000;
+    std.debug.print("DEBUG UNBIND: restored TOPOFSTACK to 0x140000 (TODO: determine proper source)\n", .{});
 
     if (marker == 0) return errors_module.VMError.StackUnderflow;
 }

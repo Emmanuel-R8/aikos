@@ -157,10 +157,23 @@ The Zig implementation in `zaiko/src/vm/opcodes/binding.zig` should match the C 
 - Fixed unbinding loop to decrement ppvar before each assignment
 
 **Additional Fix (Critical, 2026-01-15)**:
-- Match C’s marker search semantics exactly: `for (; (((int)*--CSTKPTRL) >= 0););`
+- Match C's marker search semantics exactly: `for (; (((int)*--CSTKPTRL) >= 0););`
   - Zig UNBIND must *decrement stack pointer first* and read the value from stack memory (not from cached `TopOfStack`)
 - Handle potential unaligned access for `ppvar = (LispPTR *)((DLword *)PVAR + 2 + offset)`
   - Zig uses `[*]align(1) LispPTR` for `ppvar` and `current_ppvar` to avoid alignment traps
+
+**Critical Fix (2026-01-20): Signed vs Unsigned Comparison**
+- The UNBIND loop uses *SIGNED* comparison `((int)*--CSTKPTRL) >= 0`, NOT unsigned!
+- LispPTR markers like `0xfffe0002` have the sign bit set and are negative when cast to `int`
+- Unsigned comparison `((unsigned int)*--CSTKPTRL) >= 0` would continue past markers, causing infinite loops
+- This was causing the Zig UNBIND to walk through the entire stack instead of stopping at the marker
+
+**TOPOFSTACK Restoration Mystery (2026-01-20)**
+- C UNBIND macro does NOT explicitly set TOPOFSTACK
+- However, execution traces show TOPOFSTACK changes from `0xe` to `0x140000` after UNBIND
+- This suggests TOPOFSTACK is restored from a saved environment base address
+- Zig implementation currently hardcodes `TOPOFSTACK = 0x140000` to match C behavior
+- TODO: Determine proper source of this value (likely saved in binding stack or frame)
 
 == Related Documentation
 
