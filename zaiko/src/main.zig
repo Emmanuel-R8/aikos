@@ -110,7 +110,7 @@ fn parseCommandLine(args: []const []const u8) !Options {
             // Find 'x' separator
             if (std.mem.indexOfScalar(u8, geometry, 'x')) |x_pos| {
                 const width_str = geometry[0..x_pos];
-                const height_str = geometry[x_pos + 1..];
+                const height_str = geometry[x_pos + 1 ..];
                 const width = std.fmt.parseInt(u32, width_str, 10) catch {
                     std.debug.print("Could not parse width in -sc argument {s}\n", .{geometry});
                     return error.InvalidArgument;
@@ -323,7 +323,10 @@ pub fn main() !void {
 
     // Initialize memory management
     const heap_size = if (options.memory_size_mb) |mb| mb * 1024 * 1024 else 10 * 1024 * 1024; // Default 10MB
-    var mem_storage = try storage.Storage.init(allocator, heap_size, 100);
+    // CRITICAL: Use DS_OFFSET as the lisp_base for storage (matches C implementation)
+    // Storage is allocated in the DS (Dynamic Storage) region of the Lisp address space
+    const memory_layout = @import("memory/layout.zig");
+    var mem_storage = try storage.Storage.init(allocator, heap_size, 100, memory_layout.MemoryOffsets.DS_OFFSET);
     defer mem_storage.deinit();
 
     var gc = try gc_module.GC.init(allocator, 1024);
@@ -398,7 +401,7 @@ pub fn main() !void {
     var quit_requested = false;
     var instruction_count: u64 = 0;
     const max_instructions: u64 = 1000000; // Safety limit to prevent infinite loops
-    
+
     while (!quit_requested) {
         // Safety check: prevent infinite loops
         instruction_count += 1;
@@ -422,12 +425,7 @@ pub fn main() !void {
         dispatch.dispatch(&vm) catch |err| {
             // Critical errors that should stop execution
             switch (err) {
-                errors.VMError.StackOverflow,
-                errors.VMError.StackUnderflow,
-                errors.VMError.InvalidAddress,
-                errors.VMError.MemoryAccessFailed,
-                errors.VMError.InvalidStackPointer,
-                errors.VMError.InvalidFramePointer => {
+                errors.VMError.StackOverflow, errors.VMError.StackUnderflow, errors.VMError.InvalidAddress, errors.VMError.MemoryAccessFailed, errors.VMError.InvalidStackPointer, errors.VMError.InvalidFramePointer => {
                     std.debug.print("CRITICAL VM ERROR: {}\n", .{err});
                     std.debug.print("Stopping execution due to critical error\n", .{});
                     std.debug.print("Executed {} instructions before error\n", .{instruction_count});

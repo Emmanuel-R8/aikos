@@ -243,10 +243,16 @@ When a file exceeds 500 lines:
 ### Common Debugging Gotchas (read before parity fixes)
 
 - **PC units**: traces may show both `PC` (bytes) and `PC/2` (DLword address). When indexing `virtual_memory`, use **byte PC**.
-- **FPtoVP units**: FPtoVP “virtual page” values correspond to **512-byte pages** (matches trace `[vpage:...]`), not DLword pages.
+- **FPtoVP units**: FPtoVP "virtual page" values correspond to **512-byte pages** (matches trace `[vpage:...]`), not DLword pages.
 - **Byte swap vs XOR addressing**:
   - Sysout pages are typically **32-bit byte-swapped** on load on little-endian hosts.
   - Instruction decode may apply **XOR (`addr ^ 3`)** for BYTESWAP byte access; however, trace logging often prints **raw bytes at PC** (no XOR) to match C.
+- **CSTKPTRL/TOPOFSTACK synchronization (CRITICAL)**:
+  - The C code's `StackPtrRestore()` macro restores `CSTKPTRL` from `CurrentStackPTR` before each opcode
+  - **TOPOFSTACK must be read from memory** (`*(CSTKPTRL - 1)`) after restoring CSTKPTRL, NOT from a cached value
+  - This is because operations like GVAR push values (changing TOPOFSTACK), and UNBIND walks CSTKPTRL into the binding stack
+  - Without syncing TOPOFSTACK from memory, operations after UNBIND see stale cached values
+  - **Fix**: Call `readTopOfStackFromMemory()` after `initCSTKPTRLFromCurrentStackPTR()` in the dispatch loop
 
 ### SDL2 Integration
 

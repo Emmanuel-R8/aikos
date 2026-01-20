@@ -16,7 +16,7 @@ pub fn getInstructionLength(opcode: Opcode) u32 {
         // C: FN_OPCODE_SIZE = 3 for non-BIGATOMS
         .FN0, .FN1, .FN2, .FN3, .FN4 => 3,
         .RETURN, .UNBIND, .DUNBIND => 1,
-        .CAR, .CDR, .CONS, .NTYPX, .RPLACA, .RPLACD => 1, // Data operations
+        .RPLACA, .RPLACD, .POPDISP => 1, // Data operations
         .ASSOC, .CMLASSOC, .FMEMB, .CMLMEMBER, .CREATECELL => 1, // List operations
         .RPLCONS, .LISTGET => 1, // List operations
         .BIN, .BOUT => 1, // I/O operations

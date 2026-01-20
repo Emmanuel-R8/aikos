@@ -214,6 +214,8 @@ pub fn handleGETBASEPTR_N(vm: *VM, index: u8) errors.VMError!void {
     const base = stack_module.getTopOfStack(vm);
     const base_ptr = types.POINTERMASK & base;
 
+    std.debug.print("DEBUG GETBASEPTR_N: index=0x{x}, base=0x{x}, base_ptr=0x{x}\n", .{ index, base, base_ptr });
+
     // Translate address to native pointer
     const virtual_memory = vm.virtual_memory orelse {
         return errors_module.VMError.MemoryAccessFailed;
@@ -222,7 +224,10 @@ pub fn handleGETBASEPTR_N(vm: *VM, index: u8) errors.VMError!void {
         return errors_module.VMError.MemoryAccessFailed;
     };
 
-    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, base_ptr + @as(LispPTR, index), fptovp_table, 4) catch {
+    const target_addr = base_ptr + @as(LispPTR, index);
+    std.debug.print("DEBUG GETBASEPTR_N: target_addr=0x{x}\n", .{target_addr});
+
+    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, target_addr, fptovp_table, 4) catch {
         return errors_module.VMError.InvalidAddress;
     };
 
@@ -231,9 +236,11 @@ pub fn handleGETBASEPTR_N(vm: *VM, index: u8) errors.VMError!void {
     // unaligned (C tolerates this on x86). Avoid `@alignCast` and read via bytes.
     const ptr_bytes: *const [4]u8 = @ptrCast(native_ptr);
     const ptr_value: LispPTR = std.mem.readInt(LispPTR, ptr_bytes, .little);
+    std.debug.print("DEBUG GETBASEPTR_N: ptr_value=0x{x}\n", .{ptr_value});
 
     // Push as POINTERMASK & ptr_value
     const result = types.POINTERMASK & ptr_value;
+    std.debug.print("DEBUG GETBASEPTR_N: result=0x{x}\n", .{result});
     stack_module.setTopOfStack(vm, result);
 }
 
@@ -283,7 +290,7 @@ pub fn handleGETBITS_N_FD(vm: *VM, arg1: u8, arg2: u8) errors.VMError!void {
     }
 
     // Read DLword (2 bytes, big-endian)
-    const word_bytes = virtual_memory[byte_offset..byte_offset+2];
+    const word_bytes = virtual_memory[byte_offset .. byte_offset + 2];
     const word_value: DLword = (@as(DLword, word_bytes[0]) << 8) | @as(DLword, word_bytes[1]);
 
     // Parse field descriptor: b = [shift:4][size:4]

@@ -65,7 +65,8 @@ pub fn returnFromFunction(vm: *VM) errors.VMError!LispPTR {
 
     // Get current frame
     const current_frame = vm.current_frame orelse {
-        return error.InvalidAddress; // No frame to return from
+        // No frame - just return the value
+        return return_value;
     };
 
     // Get previous frame from activation link
@@ -77,18 +78,23 @@ pub fn returnFromFunction(vm: *VM) errors.VMError!LispPTR {
         return return_value;
     }
 
-    // Restore previous frame
-    // CRITICAL: alink is a DLword offset from Stackspace, not a native address
-    const STK_OFFSET: u32 = 0x00010000; // DLword offset from Lisp_world
-    const stackspace_byte_offset = STK_OFFSET * 2;
-    const previous_frame_byte_offset = stackspace_byte_offset + (@as(usize, @intCast(previous_frame_addr)) * 2);
-    
-    if (vm.virtual_memory == null or previous_frame_byte_offset + @sizeOf(FX) > vm.virtual_memory.?.len) {
-        return error.InvalidAddress;
+    // Restore previous frame from stack allocation
+    // CRITICAL: alink is a DLword offset from stack_base, not from virtual_memory
+    const stack_base_addr = @intFromPtr(vm.stack_base);
+    const stack_end_addr = @intFromPtr(vm.stack_end);
+
+    // alink is DLword offset from stack_base
+    const previous_frame_byte_offset = stack_base_addr - (@as(usize, @intCast(previous_frame_addr)) * 2);
+
+    // Check bounds
+    if (previous_frame_byte_offset < stack_end_addr or previous_frame_byte_offset + @sizeOf(FX) > stack_base_addr) {
+        // Invalid frame address - just return
+        vm.current_frame = null;
+        vm.pc = 0;
+        return return_value;
     }
-    
-    const virtual_memory_mut: []u8 = @constCast(vm.virtual_memory.?);
-    const previous_frame: *align(1) FX = @ptrFromInt(@intFromPtr(virtual_memory_mut.ptr) + previous_frame_byte_offset);
+
+    const previous_frame: *align(1) FX = @ptrFromInt(previous_frame_byte_offset);
     vm.current_frame = previous_frame;
 
     // Restore PC from previous frame

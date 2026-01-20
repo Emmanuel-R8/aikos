@@ -40,7 +40,7 @@ pub fn routeOpcode(vm: *VM, opcode: Opcode, instruction: Instruction) errors.VME
         std.debug.print("DEBUG ROUTER: Data operations succeeded\n", .{});
         return result;
     } else |err| {
-        std.debug.print("DEBUG ROUTER: Data operations returned error: {}\n", .{err});
+        std.debug.print("DEBUG ROUTER: Data operations returned error: {} (err != NotHandled: {})\n", .{ err, err != error.NotHandled });
         if (err != error.NotHandled) return err;
     }
 

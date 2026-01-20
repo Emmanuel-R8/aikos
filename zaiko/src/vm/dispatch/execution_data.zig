@@ -15,6 +15,7 @@ const Opcode = @import("instruction.zig").Opcode;
 /// Returns jump offset if instruction is a jump, null if handled with no jump
 /// Returns error.NotHandled if opcode doesn't match this category
 pub fn handleDataOperations(vm: *VM, opcode: Opcode, instruction: Instruction) errors.VMError!?i64 {
+    std.debug.print("DEBUG data_ops: opcode=0x{x:0>2}, tag={s}\n", .{ @intFromEnum(opcode), @tagName(opcode) });
     switch (opcode) {
         // Variable access
         .IVAR0 => try opcodes.handleIVAR(vm, 0),
@@ -32,7 +33,15 @@ pub fn handleDataOperations(vm: *VM, opcode: Opcode, instruction: Instruction) e
         .PVAR4 => try opcodes.handlePVAR(vm, 4),
         .PVAR5 => try opcodes.handlePVAR(vm, 5),
         .PVAR6 => try opcodes.handlePVAR(vm, 6),
+        .PVAR_0 => try opcodes.handlePVAR(vm, 0),
+        .PVAR_1 => try opcodes.handlePVAR(vm, 1),
+        .PVAR_2 => try opcodes.handlePVAR(vm, 2),
+        .PVAR_3 => try opcodes.handlePVAR(vm, 3),
+        .PVAR_4 => try opcodes.handlePVAR(vm, 4),
+        .PVAR_5 => try opcodes.handlePVAR(vm, 5),
+        .PVAR_6 => try opcodes.handlePVAR(vm, 6),
         .PVARX => try opcodes.handlePVARX(vm, instruction.getByteOperand(0)),
+        .PVARX_ => try opcodes.handlePVARX(vm, instruction.getByteOperand(0)),
         .FVAR0 => try opcodes.handleFVAR(vm, 0),
         .FVAR1 => try opcodes.handleFVAR(vm, 1),
         .FVAR2 => try opcodes.handleFVAR(vm, 2),
@@ -99,6 +108,7 @@ pub fn handleDataOperations(vm: *VM, opcode: Opcode, instruction: Instruction) e
         },
         .RPLACA => try opcodes.handleRPLACA(vm),
         .RPLACD => try opcodes.handleRPLACD(vm),
+        .POPDISP => return error.NotHandled, // Unused opcode - will fall through to arithmetic handler
         .CMLASSOC => try opcodes.handleCMLASSOC(vm),
         .FMEMB => try opcodes.handleFMEMB(vm),
         .CMLMEMBER => try opcodes.handleCMLMEMBER(vm),

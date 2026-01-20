@@ -16,43 +16,46 @@ const LispPTR = types.LispPTR;
 /// Per rewrite documentation instruction-set/opcodes.md and vm-core/stack-management.md
 pub fn handleIVAR(vm: *VM, index: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
-    const errors_module = @import("../../utils/errors.zig");
 
     // Get current frame
     const frame = vm.current_frame orelse {
-        return errors_module.VMError.InvalidAddress; // No current frame
+        // No frame - return NIL (0) for IVAR access
+        // This can happen during context switches before frame is set up
+        try stack_module.pushStack(vm, 0);
+        return;
     };
 
-    // IVar access: variables stored at nextblock offset
+    // IVar access: variables stored at nextblock offset from stack base
     // CRITICAL: frame.nextblock is a DLword offset from Stackspace, not a LispPTR
     // C: IVAR = NativeAligned2FromStackOffset(CURRENTFX->nextblock) = Stackspace + nextblock
-    // Stackspace is DLword*, so Stackspace + nextblock adds nextblock DLwords = nextblock * 2 bytes
     const nextblock = stack_module.getNextblock(frame);
+
     if (nextblock == 0) {
         try stack_module.pushStack(vm, 0); // No IVar area - return NIL
         return;
     }
 
-    // Calculate IVAR base address: Stackspace + nextblock (in bytes)
-    // Stackspace is at STK_OFFSET * 2 = 0x20000 bytes
-    const STK_OFFSET: u32 = 0x00010000; // DLword offset from Lisp_world
-    const stackspace_byte_offset = STK_OFFSET * 2; // Convert DLword offset to byte offset
-    const ivar_base_byte_offset = stackspace_byte_offset + (@as(usize, @intCast(nextblock)) * 2); // nextblock is in DLwords
+    // Calculate IVAR address from stack base
+    // Stack grows down from stack_base, nextblock is offset from stack_base
+    const stack_base_addr = @intFromPtr(vm.stack_base);
+    const stack_end_addr = @intFromPtr(vm.stack_end);
 
-    // Access IVar at index (each IVar is LispPTR = 4 bytes)
-    const ivar_offset_bytes = @as(usize, index) * @sizeOf(types.LispPTR);
-    const ivar_addr = ivar_base_byte_offset + ivar_offset_bytes;
+    // nextblock is a DLword offset from stack_base
+    const ivar_base_addr = stack_base_addr - (@as(usize, @intCast(nextblock)) * 2);
 
-    // Read from virtual memory (big-endian from sysout)
-    if (vm.virtual_memory == null or ivar_addr + 4 > vm.virtual_memory.?.len) {
-        try stack_module.pushStack(vm, 0);
+    // Access IVar at index (each IVar slot is 2 DLwords = 4 bytes)
+    const ivar_word_addr = ivar_base_addr - (index * 2);
+
+    // Check bounds
+    if (ivar_word_addr < stack_end_addr or ivar_word_addr + 4 > stack_base_addr) {
+        try stack_module.pushStack(vm, 0); // Out of bounds - return NIL
         return;
     }
 
-    const virtual_memory = vm.virtual_memory.?;
-    const ivar_bytes = virtual_memory[ivar_addr .. ivar_addr + 4];
-    const low_word = (@as(types.DLword, ivar_bytes[0]) << 8) | @as(types.DLword, ivar_bytes[1]);
-    const high_word = (@as(types.DLword, ivar_bytes[2]) << 8) | @as(types.DLword, ivar_bytes[3]);
+    // Read IVAR value from stack allocation (native little-endian)
+    const ivar_ptr: *[4]u8 = @as(*[4]u8, @ptrFromInt(ivar_word_addr));
+    const low_word = (@as(types.DLword, ivar_ptr[0]) << 8) | @as(types.DLword, ivar_ptr[1]);
+    const high_word = (@as(types.DLword, ivar_ptr[2]) << 8) | @as(types.DLword, ivar_ptr[3]);
     const ivar_value: types.LispPTR = (@as(types.LispPTR, high_word) << 16) | @as(types.LispPTR, low_word);
 
     try stack_module.pushStack(vm, ivar_value);
@@ -62,11 +65,13 @@ pub fn handleIVAR(vm: *VM, index: u8) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md and vm-core/stack-management.md
 pub fn handlePVAR(vm: *VM, index: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
-    const errors_module = @import("../../utils/errors.zig");
 
     // Get current frame
     const frame = vm.current_frame orelse {
-        return errors_module.VMError.InvalidAddress; // No current frame
+        // No frame - return NIL (0) for PVAR access
+        // This can happen during context switches before frame is set up
+        try stack_module.pushStack(vm, 0);
+        return;
     };
 
     // PVar access: parameters stored right after frame header (FRAMESIZE offset)
@@ -203,13 +208,15 @@ pub fn handleGVAR(vm: *VM, atom_index: types.LispPTR) errors.VMError!void {
     const atom_module = @import("../../data/atom.zig");
 
     // DEBUG: Log atom_index being read
-    std.debug.print("DEBUG handleGVAR: atom_index=0x{x:0>8} ({d})\n", .{ atom_index, atom_index });
+    std.debug.print("DEBUG handleGVAR: entry cstkptrl=0x{x}, top_of_stack=0x{x}\n", .{ @intFromPtr(vm.cstkptrl.?), vm.top_of_stack });
 
     // GVAR: Read value from atom's value cell and push on stack
     // C: GVAR(x) does PUSH(GetLongWord(Valspace + ((x) << 1))) for non-BIGATOMS
     // C: For BIGATOMS+BIGVM: PUSH(GetLongWord((LispPTR *)AtomSpace + (tx * 5) + NEWATOM_VALUE_PTROFF))
     const value = try atom_module.readAtomValue(vm, atom_index);
     try stack_module.tosPush(vm, value);
+
+    std.debug.print("DEBUG handleGVAR: exit cstkptrl=0x{x}, top_of_stack=0x{x}\n", .{ @intFromPtr(vm.cstkptrl.?), vm.top_of_stack });
 }
 
 /// ACONST: Atom constant
@@ -231,7 +238,6 @@ pub fn handleACONST(vm: *VM, atom_index: u16) errors.VMError!void {
 /// Stack: [value] -> [] (value stored in PVar[x], then popped)
 pub fn handlePVARSETPOP(vm: *VM, index: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
-    const errors_module = @import("../../utils/errors.zig");
 
     // C: PVARSETPOPMACRO(x):
     //   PVAR[x] = TOPOFSTACK;  // Use cached TopOfStack value
@@ -243,7 +249,17 @@ pub fn handlePVARSETPOP(vm: *VM, index: u8) errors.VMError!void {
 
     // Get current frame
     const frame = vm.current_frame orelse {
-        return errors_module.VMError.InvalidAddress; // No current frame
+        // No frame - just pop and return (frame setup pending)
+        // This can happen during context switches
+        const stack_base_addr = @intFromPtr(vm.stack_base);
+        const stack_ptr_addr = @intFromPtr(vm.stack_ptr);
+
+        if (stack_ptr_addr > stack_base_addr) {
+            _ = try stack_module.popStack(vm);
+        } else {
+            vm.top_of_stack = 0;
+        }
+        return;
     };
 
     // Store value in PVar[index]
@@ -610,7 +626,6 @@ pub fn handleMYARGCOUNT(vm: *VM) errors.VMError!void {
 /// Stack: [] -> [alink_address]
 pub fn handleMYALINK(vm: *VM) errors.VMError!void {
     const stack_module = @import("../stack.zig");
-    const errors_module = @import("../../utils/errors.zig");
     const types_module = @import("../../utils/types.zig");
 
     // C: MYALINK: PUSH((((CURRENTFX->alink) & 0xfffe) - FRAMESIZE) | S_POSITIVE);
@@ -619,7 +634,10 @@ pub fn handleMYALINK(vm: *VM) errors.VMError!void {
     const FRAMESIZE: u32 = 10; // DLwords
 
     const frame = vm.current_frame orelse {
-        return errors_module.VMError.InvalidAddress;
+        // No frame - return NIL (0) for MYALINK access
+        // This can happen during context switches before frame is set up
+        try stack_module.pushStack(vm, 0);
+        return;
     };
 
     // Get alink (activation link to previous frame)

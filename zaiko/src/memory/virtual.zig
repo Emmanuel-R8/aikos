@@ -2,6 +2,7 @@ const std = @import("std");
 const types = @import("../utils/types.zig");
 const errors = @import("../utils/errors.zig");
 const layout = @import("layout.zig");
+const storage_module = @import("storage.zig");
 
 const LispPTR = types.LispPTR;
 const DLword = types.DLword;
@@ -44,6 +45,38 @@ pub const VirtualMemory = struct {
         return error.PageMappingFailed; // Placeholder
     }
 };
+
+/// Extended address translation that handles both virtual memory and storage heap
+/// For addresses in the sysout (virtual_memory), returns pointer into virtual_memory
+/// For addresses in the storage heap, returns pointer into storage heap
+pub fn translateAddressExtended(
+    virtual_memory: []const u8,
+    storage: ?*const storage_module.Storage,
+    lisp_addr: LispPTR,
+    fptovp_table: *const @import("../data/sysout.zig").FPtoVPTable,
+    alignment: u8,
+) errors.MemoryError![*]u8 {
+    _ = fptovp_table;
+    _ = alignment;
+
+    const masked: LispPTR = lisp_addr & types.POINTERMASK;
+    const byte_offset: usize = @as(usize, @intCast(masked)) * 2;
+
+    // Check if address is in virtual_memory range (sysout data)
+    if (byte_offset < virtual_memory.len) {
+        return @constCast(virtual_memory.ptr + byte_offset);
+    }
+
+    // Check if address is in storage heap range
+    if (storage) |s| {
+        if (storage_module.lispPTRToOffset(s, lisp_addr)) |offset| {
+            const native_ptr = @as([*]u8, @ptrFromInt(storage_module.getNativeBase(s))) + offset;
+            return @constCast(native_ptr);
+        }
+    }
+
+    return error.InvalidAddress;
+}
 
 /// Translate LispPTR (LAddr) to a native pointer.
 ///

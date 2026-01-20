@@ -149,13 +149,25 @@ pub fn initCSTKPTRLFromCurrentStackPTR(vm: *VM) void {
     vm.cstkptrl = @as([*]align(1) LispPTR, @ptrFromInt(addr));
 }
 
+/// Read TOPOFSTACK from memory based on current CSTKPTRL.
+/// C: TOPOFSTACK = *(CSTKPTRL - 1)
+/// This reads the actual top-of-stack value from memory, not the cached value.
+/// Should be called after initCSTKPTRLFromCurrentStackPTR to sync the cached value.
+pub fn readTopOfStackFromMemory(vm: *VM) void {
+    const cstkptr = vm.cstkptrl orelse return;
+    vm.top_of_stack = (cstkptr - 1)[0];
+}
+
 /// POP macro (tos1defs.h): `POP` => `TOPOFSTACK = *(--CSTKPTRL)`
 pub fn tosPop(vm: *VM) errors.VMError!void {
     const p = vm.cstkptrl orelse return error.StackUnderflow;
-    // Decrement by one LispPTR cell and load into cached TOS
+    std.debug.print("DEBUG tosPop: CSTKPTRL before=0x{x}, TOPOFSTACK before=0x{x}\n", .{ @intFromPtr(p), vm.top_of_stack });
+    // Decrement by one LispPTR cell and read value from memory into cached TOS
     const p_prev: [*]align(1) LispPTR = p - 1;
     vm.cstkptrl = p_prev;
-    vm.top_of_stack = p_prev[0];
+    vm.top_of_stack = p_prev[0]; // Read from memory, NOT from cached value
+    std.debug.print("DEBUG tosPop: CSTKPTRL after=0x{x}, p_prev=0x{x}, *p_prev=0x{x}\n", .{ @intFromPtr(p_prev), @intFromPtr(p_prev), p_prev[0] });
+    std.debug.print("DEBUG tosPop: TOPOFSTACK after=0x{x}\n", .{vm.top_of_stack});
 }
 
 /// PUSH macro (tos1defs.h): `PUSH(x)` => `HARD_PUSH(TOPOFSTACK); TOPOFSTACK = x;`

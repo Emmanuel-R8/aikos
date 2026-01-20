@@ -190,6 +190,7 @@ pub const Opcode = enum(u8) {
     DTEST = 0x06,
     RPLACA = 0x18,
     RPLACD = 0x19,
+    POPDISP = 0x1A, // 34 - pop dispatch
     CMLASSOC = 0x1B,
     FMEMB = 0x1C,
     CMLMEMBER = 0x1D,

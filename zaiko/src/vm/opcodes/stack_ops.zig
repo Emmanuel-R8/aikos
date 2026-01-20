@@ -1,5 +1,6 @@
 const errors = @import("../../utils/errors.zig");
 const stack = @import("../stack.zig");
+const std = @import("std");
 
 const VM = stack.VM;
 
@@ -22,7 +23,9 @@ pub fn handlePOP(vm: *VM) errors.VMError!void {
     const stack_module = @import("../stack.zig");
     // C POP macro (tos1defs.h): `POP` => `TOPOFSTACK = *(--CSTKPTRL)`
     // This updates the cached TOS via CSTKPTRL, without directly mutating the traced CurrentStackPTR.
+    std.debug.print("DEBUG handlePOP: calling tosPop\n", .{});
     try stack_module.tosPop(vm);
+    std.debug.print("DEBUG handlePOP: done, top_of_stack=0x{x}\n", .{vm.top_of_stack});
 }
 
 /// POP_N: Pop N values from stack

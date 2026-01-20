@@ -106,7 +106,7 @@ pub fn handleBIND(vm: *VM, byte1: u8, byte2: u8) errors.VMError!void {
 pub fn handleUNBIND(vm_obj: *VM) errors.VMError!void {
     const errors_module = @import("../../utils/errors.zig");
 
-    std.debug.print("DEBUG UNBIND: starting, CSTKPTRL=0x{x}\n", .{@intFromPtr(vm_obj.cstkptrl.?)});
+    // std.debug.print("DEBUG UNBIND: starting, CSTKPTRL=0x{x}\n", .{@intFromPtr(vm_obj.cstkptrl.?)});
 
     // PHASE 1: Find the BIND marker by walking backwards through stack
     // C: for (; (((int)*--CSTKPTRL) >= 0););
@@ -122,7 +122,7 @@ pub fn handleUNBIND(vm_obj: *VM) errors.VMError!void {
         // CRITICAL: Decrement CSTKPTRL BEFORE reading (*--CSTKPTRL in C)
         vm_obj.cstkptrl = vm_obj.cstkptrl.? - 1;
         const v = vm_obj.cstkptrl.?[0];
-        std.debug.print("DEBUG UNBIND: iter {}, CSTKPTRL=0x{x}, value=0x{x}\n", .{ iterations, @intFromPtr(vm_obj.cstkptrl.?), v });
+        // std.debug.print("DEBUG UNBIND: iter {}, CSTKPTRL=0x{x}, value=0x{x}\n", .{ iterations, @intFromPtr(vm_obj.cstkptrl.?), v });
 
         // CRITICAL: Use SIGNED comparison, NOT unsigned!
         // C: ((int)*--CSTKPTRL) >= 0
@@ -133,7 +133,7 @@ pub fn handleUNBIND(vm_obj: *VM) errors.VMError!void {
         } else {
             // Found the BIND marker (negative signed value)
             marker = v;
-            std.debug.print("DEBUG UNBIND: found marker=0x{x}\n", .{marker});
+            // std.debug.print("DEBUG UNBIND: found marker=0x{x}\n", .{marker});
             break;
         }
     }
@@ -146,12 +146,12 @@ pub fn handleUNBIND(vm_obj: *VM) errors.VMError!void {
     // PHASE 2: Extract binding information from marker
     // C: value = *CSTKPTR; num = (~value) >> 16;
     const value = vm_obj.cstkptrl.?[0]; // Redundant with marker, but matches C
-    std.debug.print("DEBUG UNBIND: marker value=0x{x} from CSTKPTRL=0x{x}\n", .{ value, @intFromPtr(vm_obj.cstkptrl.?) });
+    // std.debug.print("DEBUG UNBIND: marker value=0x{x} from CSTKPTRL=0x{x}\n", .{ value, @intFromPtr(vm_obj.cstkptrl.?) });
 
     // Extract number of variables bound: num = (~value) >> 16
     // BIND marker: ((~(num_vars)) << 16) | (offset << 1)
     const num = (~@as(i32, @bitCast(value))) >> 16;
-    std.debug.print("DEBUG UNBIND: num = (~0x{x}) >> 16 = {}\n", .{ value, num });
+    // std.debug.print("DEBUG UNBIND: num = (~0x{x}) >> 16 = {}\n", .{ value, num });
 
     // PHASE 3: Calculate PVAR pointer for variable clearing
     // C: ppvar = (LispPTR *)((DLword *)PVAR + 2 + GetLoWord(value));
@@ -170,9 +170,9 @@ pub fn handleUNBIND(vm_obj: *VM) errors.VMError!void {
     const offset = loword << 1; // C: GetLoWord gives DLword offset, then << 1 for byte offset
     const ppvar_offset = 2 + offset; // C: +2 for base offset in PVAR
     const ppvar_addr = pvar_base + ppvar_offset;
-    var ppvar: [*]LispPTR = @ptrFromInt(ppvar_addr);
+    var ppvar: [*]align(1) LispPTR = @ptrFromInt(ppvar_addr);
 
-    std.debug.print("DEBUG UNBIND: PVAR base=0x{x}, loword=0x{x}, offset=0x{x}, ppvar_offset=0x{x}, ppvar_addr=0x{x}\n", .{ pvar_base, loword, offset, ppvar_offset, ppvar_addr });
+    // std.debug.print("DEBUG UNBIND: PVAR base=0x{x}, loword=0x{x}, offset=0x{x}, ppvar_offset=0x{x}, ppvar_addr=0x{x}\n", .{ pvar_base, loword, offset, ppvar_offset, ppvar_addr });
 
     // PHASE 4: Clear bound variables
     // C: for (i = num; --i >= 0;) { *--ppvar = 0xffffffff; }
@@ -182,7 +182,7 @@ pub fn handleUNBIND(vm_obj: *VM) errors.VMError!void {
         i -= 1;
         ppvar -= 1; // *--ppvar in C (decrement pointer before assignment)
         ppvar[0] = 0xffffffff; // Unbound marker
-        std.debug.print("DEBUG UNBIND: cleared variable at 0x{x} to 0xffffffff\n", .{@intFromPtr(ppvar)});
+        // std.debug.print("DEBUG UNBIND: cleared variable at 0x{x} to 0xffffffff\n", .{@intFromPtr(ppvar)});
     }
 
     // PHASE 5: Restore environment (TOPOFSTACK)
@@ -190,7 +190,7 @@ pub fn handleUNBIND(vm_obj: *VM) errors.VMError!void {
     // This should be restored from a saved environment base address
     // In C trace: UNBIND sets TOPOFSTACK from unknown source to 0x140000
     vm_obj.top_of_stack = 0x140000;
-    std.debug.print("DEBUG UNBIND: restored TOPOFSTACK to 0x140000 (TODO: determine proper source)\n", .{});
+    // std.debug.print("DEBUG UNBIND: restored TOPOFSTACK to 0x140000 (TODO: determine proper source)\n", .{});
 
     if (marker == 0) return errors_module.VMError.StackUnderflow;
 }

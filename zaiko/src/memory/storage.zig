@@ -3,6 +3,7 @@ const types = @import("../utils/types.zig");
 const errors = @import("../utils/errors.zig");
 const cons = @import("../data/cons.zig");
 const array = @import("../data/array.zig");
+const layout = @import("layout.zig");
 
 const LispPTR = types.LispPTR;
 
@@ -14,8 +15,10 @@ pub const Storage = struct {
     heap_end: [*]u8,
     pages_allocated: u32,
     max_pages: u32,
+    /// Base LispPTR address for this storage region (e.g., DS_OFFSET = 0x00200000)
+    lisp_base: LispPTR,
 
-    pub fn init(allocator: std.mem.Allocator, initial_size: usize, max_pages: u32) !Storage {
+    pub fn init(allocator: std.mem.Allocator, initial_size: usize, max_pages: u32, lisp_base: LispPTR) !Storage {
         const heap_mem = try allocator.alloc(u8, initial_size);
 
         return Storage{
@@ -25,6 +28,7 @@ pub const Storage = struct {
             .heap_end = heap_mem.ptr + initial_size,
             .pages_allocated = 0,
             .max_pages = max_pages,
+            .lisp_base = lisp_base,
         };
     }
 
@@ -32,6 +36,29 @@ pub const Storage = struct {
         self.allocator.free(self.heap_base[0 .. @intFromPtr(self.heap_end) - @intFromPtr(self.heap_base)]);
     }
 };
+
+/// Get the native base address of storage
+pub fn getNativeBase(storage: *const Storage) usize {
+    return @intFromPtr(storage.heap_base);
+}
+
+/// Get the size of storage
+pub fn getStorageSize(storage: *Storage) usize {
+    return @intFromPtr(storage.heap_end) - @intFromPtr(storage.heap_base);
+}
+
+/// Convert storage offset to LispPTR
+pub fn offsetToLispPTR(storage: *Storage, offset: usize) LispPTR {
+    return storage.lisp_base + @as(LispPTR, @intCast(offset / 2));
+}
+
+/// Convert LispPTR to storage offset (returns null if not in storage range)
+pub fn lispPTRToOffset(storage: *const Storage, lisp_addr: LispPTR) ?usize {
+    const masked = lisp_addr & types.POINTERMASK;
+    if (masked < storage.lisp_base) return null;
+    const offset_dlwords = masked - storage.lisp_base;
+    return @as(usize, @intCast(offset_dlwords)) * 2;
+}
 
 /// Allocate cons cell
 /// Per contracts/memory-interface.zig
@@ -49,10 +76,12 @@ pub fn allocateConsCell(storage: *Storage) errors.MemoryError!LispPTR {
         .cdr_code = 0,
     };
 
-    const addr = @as(LispPTR, @intCast(@intFromPtr(storage.heap_ptr)));
+    // Calculate offset from heap_base
+    const offset = @intFromPtr(storage.heap_ptr) - @intFromPtr(storage.heap_base);
     storage.heap_ptr += cons_size;
 
-    return addr;
+    // Convert offset to LispPTR
+    return offsetToLispPTR(storage, offset);
 }
 
 /// Allocate array

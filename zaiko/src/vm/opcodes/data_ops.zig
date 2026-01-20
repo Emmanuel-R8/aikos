@@ -78,7 +78,7 @@ pub fn handleCAR(vm: *VM) errors.VMError!void {
 
         // Read cons cell fields (big-endian from sysout)
         // Cons cell layout: CAR (4 bytes), CDR (4 bytes)
-        const cell_bytes = virtual_memory[cell_byte_offset..cell_byte_offset+8];
+        const cell_bytes = virtual_memory[cell_byte_offset .. cell_byte_offset + 8];
         const car_low_word = (@as(types.DLword, cell_bytes[0]) << 8) | @as(types.DLword, cell_bytes[1]);
         const car_high_word = (@as(types.DLword, cell_bytes[2]) << 8) | @as(types.DLword, cell_bytes[3]);
         var car_value: types.LispPTR = (@as(types.LispPTR, car_high_word) << 16) | @as(types.LispPTR, car_low_word);
@@ -110,7 +110,7 @@ pub fn handleCAR(vm: *VM) errors.VMError!void {
             }
 
             // Read CAR from indirect cell
-            const indirect_cell_bytes = virtual_memory[indirect_cell_byte_offset..indirect_cell_byte_offset+4];
+            const indirect_cell_bytes = virtual_memory[indirect_cell_byte_offset .. indirect_cell_byte_offset + 4];
             const indirect_car_low_word = (@as(types.DLword, indirect_cell_bytes[0]) << 8) | @as(types.DLword, indirect_cell_bytes[1]);
             const indirect_car_high_word = (@as(types.DLword, indirect_cell_bytes[2]) << 8) | @as(types.DLword, indirect_cell_bytes[3]);
             car_value = (@as(types.LispPTR, indirect_car_high_word) << 16) | @as(types.LispPTR, indirect_car_low_word);
@@ -232,11 +232,15 @@ pub fn handleCONS(vm: *VM) errors.VMError!void {
             };
         };
 
-        // Get native pointer to cons cell
+        // Get native pointer to cons cell using extended translation
         if (vm.virtual_memory) |vmem| {
-            const native_ptr = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(vmem, cell_addr, fptovp_table, 4) catch {
-                return errors_module.VMError.MemoryAccessFailed;
-            } else {
+            const native_ptr = virtual_memory_module.translateAddressExtended(
+                vmem,
+                storage,
+                cell_addr,
+                vm.fptovp orelse return errors_module.VMError.MemoryAccessFailed,
+                4,
+            ) catch {
                 return errors_module.VMError.MemoryAccessFailed;
             };
 
@@ -251,7 +255,6 @@ pub fn handleCONS(vm: *VM) errors.VMError!void {
             // Push cons cell address
             try stack_module.pushStack(vm, cell_addr);
         } else {
-            // No virtual memory - can't set up cons cell properly
             return errors_module.VMError.MemoryAccessFailed;
         }
     } else {
@@ -279,7 +282,13 @@ pub fn handleRPLACA(vm: *VM) errors.VMError!void {
 
     // Get cons cell from memory
     if (vm.virtual_memory) |vmem| {
-        const native_ptr = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(vmem, cons_cell_ptr, fptovp_table, 4) catch {
+        const native_ptr = if (vm.storage) |storage| virtual_memory_module.translateAddressExtended(
+            vmem,
+            storage,
+            cons_cell_ptr,
+            vm.fptovp orelse return errors_module.VMError.MemoryAccessFailed,
+            4,
+        ) catch {
             return errors_module.VMError.MemoryAccessFailed;
         } else {
             return errors_module.VMError.MemoryAccessFailed;
@@ -291,10 +300,16 @@ pub fn handleRPLACA(vm: *VM) errors.VMError!void {
         if (cell.cdr_code == cons.CDR_INDIRECT) {
             // CAR is stored in indirect cell
             const indirect_addr = cell.car_field;
-            const indirect_native = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(vmem, indirect_addr, fptovp_table, 4) catch {
-                return;
+            const indirect_native = if (vm.storage) |storage| virtual_memory_module.translateAddressExtended(
+                vmem,
+                storage,
+                indirect_addr,
+                vm.fptovp orelse return errors_module.VMError.MemoryAccessFailed,
+                4,
+            ) catch {
+                return errors_module.VMError.MemoryAccessFailed;
             } else {
-                return;
+                return errors_module.VMError.MemoryAccessFailed;
             };
             const indirect_cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(indirect_native)));
             cons.setCAR(indirect_cell, new_car);
@@ -326,7 +341,13 @@ pub fn handleRPLACD(vm: *VM) errors.VMError!void {
 
     // Get cons cell from memory
     if (vm.virtual_memory) |vmem| {
-        const native_ptr = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(vmem, cons_cell_ptr, fptovp_table, 4) catch {
+        const native_ptr = if (vm.storage) |storage| virtual_memory_module.translateAddressExtended(
+            vmem,
+            storage,
+            cons_cell_ptr,
+            vm.fptovp orelse return errors_module.VMError.MemoryAccessFailed,
+            4,
+        ) catch {
             return errors_module.VMError.MemoryAccessFailed;
         } else {
             return errors_module.VMError.MemoryAccessFailed;

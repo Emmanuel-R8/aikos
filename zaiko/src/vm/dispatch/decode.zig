@@ -167,6 +167,7 @@ pub fn decodeOpcode(byte: ByteCode) ?Opcode {
         0x17 => Opcode.GVAR_,
         0x18 => Opcode.RPLACA,
         0x19 => Opcode.RPLACD,
+        0x1A => Opcode.POPDISP,
         0x1B => Opcode.CMLASSOC,
         0x1C => Opcode.FMEMB,
         0x1D => Opcode.CMLMEMBER,

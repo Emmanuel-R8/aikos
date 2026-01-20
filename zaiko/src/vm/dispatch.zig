@@ -18,6 +18,22 @@ const DLword = types.DLword;
 const IFPAGE = types.IFPAGE;
 const VM = stack.VM;
 
+/// C equivalent: RET macro (tos1defs.h:83-88)
+/// Initializes local cache variables from global state at start of dispatch
+/// This is only called ONCE at the start, not before every opcode.
+/// Per-opcode sync is WRONG because operations like UNBIND modify the local cache.
+fn initLocalStackCache(vm: *VM) void {
+    // C: StackPtrRestore = CSTKPTRL = (void *)(CurrentStackPTR + 2)
+    // CurrentStackPTR is DLword*, so +2 DLwords = +4 bytes.
+    // CSTKPTRL = stack_ptr + 4 bytes (1 LispPTR ahead).
+    const cstkptr_addr = @intFromPtr(vm.stack_ptr) + 4;
+    vm.cstkptrl = @as([*]align(1) LispPTR, @ptrFromInt(cstkptr_addr));
+    std.debug.print("DEBUG initLocalStackCache: stack_ptr=0x{x}, CSTKPTRL=0x{x}\n", .{ @intFromPtr(vm.stack_ptr), @intFromPtr(vm.cstkptrl.?) });
+
+    // TOPOFSTACK = TopOfStack (from global/cached value)
+    vm.top_of_stack = vm.top_of_stack;
+}
+
 // Re-export types and functions for backward compatibility
 pub const Instruction = instruction.Instruction;
 pub const Opcode = instruction.Opcode;
@@ -43,6 +59,9 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
     }
     const tracer = &vm.execution_tracer.?;
 
+    // Initialize local stack cache ONCE at start of dispatch (matches C's RET call)
+    initLocalStackCache(vm);
+
     // Main dispatch loop - continue until error or explicit stop
     // Add instruction counter to prevent infinite loops
     var instruction_count: u64 = 0;
@@ -57,10 +76,17 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
     };
 
     while (true) {
-        // CRITICAL: Restore CSTKPTRL from CurrentStackPTR before each opcode
-        // C: StackPtrRestore is called at the start of nextopcode: label (before each opcode)
-        // This ensures CSTKPTRL is correctly aligned with CurrentStackPTR before execution
-        stack.initCSTKPTRLFromCurrentStackPTR(vm);
+        // CRITICAL: Do NOT restore CSTKPTRL or re-read TOPOFSTACK at the start of each opcode.
+        // In C, CSTKPTRL (cspcache) and TOPOFSTACK (tscache) are LOCAL variables in the dispatch function.
+        // They persist across opcodes and are only initialized once at the start of dispatch via RET:
+        //   #define RET do { pccache = PC + 1; StackPtrRestore; TOPOFSTACK = TopOfStack; } while (0)
+        //
+        // Operations like UNBIND directly modify these local cache variables:
+        //   for (; (((int)*--CSTKPTRL) >= 0););  // Modifies local CSTKPTRL
+        //
+        // If we sync before every opcode, we undo the changes UNBIND made to the local cache.
+        //
+        // The initial sync happens once at the start of dispatch (see below), matching C behavior.
 
         // Check instruction limit to prevent infinite loops
         instruction_count += 1;

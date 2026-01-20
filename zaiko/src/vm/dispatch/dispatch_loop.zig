@@ -20,6 +20,63 @@ pub fn executeInstructionInLoop(
         std.debug.print("WARNING: Failed to log instruction: {}\n", .{err});
     };
 
+    // DEBUG: Verify memory integrity before instruction execution
+    if (vm.pc == 0x60f136) {
+        // Check memory at 0x60f14f before executing UNBIND
+        if (vm.virtual_memory) |vmem| {
+            const test_addr = 0x60f14f;
+            if (test_addr < vmem.len) {
+                const memory_access_module = @import("../../utils/memory_access.zig");
+                const byte = memory_access_module.getByte(vmem, test_addr) catch 0xFF;
+                std.debug.print("DEBUG MEMORY CHECK: Before UNBIND at PC=0x60f136, memory[0x60f14f] = 0x{x:0>2}\n", .{byte});
+            }
+        }
+    }
+    if (vm.pc == 0x60f14a) {
+        // Check memory at 0x60f14f before executing SIC (JUMPX)
+        if (vm.virtual_memory) |vmem| {
+            const test_addr = 0x60f14f;
+            if (test_addr < vmem.len) {
+                const memory_access_module = @import("../../utils/memory_access.zig");
+                const byte = memory_access_module.getByte(vmem, test_addr) catch 0xFF;
+                std.debug.print("DEBUG MEMORY CHECK: Before SIC at PC=0x60f14a, memory[0x60f14f] = 0x{x:0>2}\n", .{byte});
+            }
+        }
+    }
+    if (vm.pc == 0x60f14c) {
+        // Check memory at 0x60f14f before executing EQ
+        if (vm.virtual_memory) |vmem| {
+            const test_addr = 0x60f14f;
+            if (test_addr < vmem.len) {
+                const memory_access_module = @import("../../utils/memory_access.zig");
+                const byte = memory_access_module.getByte(vmem, test_addr) catch 0xFF;
+                std.debug.print("DEBUG MEMORY CHECK: Before EQ at PC=0x60f14c, memory[0x60f14f] = 0x{x:0>2}\n", .{byte});
+            }
+        }
+    }
+    if (vm.pc == 0x60f14d) {
+        // Check memory at 0x60f14f before executing FJUMP7
+        if (vm.virtual_memory) |vmem| {
+            const test_addr = 0x60f14f;
+            if (test_addr < vmem.len) {
+                const memory_access_module = @import("../../utils/memory_access.zig");
+                const byte = memory_access_module.getByte(vmem, test_addr) catch 0xFF;
+                std.debug.print("DEBUG MEMORY CHECK: Before FJUMP7 at PC=0x60f14d, memory[0x60f14f] = 0x{x:0>2}\n", .{byte});
+            }
+        }
+    }
+    if (vm.pc == 0x60f14e) {
+        // Check memory at 0x60f14f before executing POP
+        if (vm.virtual_memory) |vmem| {
+            const test_addr = 0x60f14f;
+            if (test_addr < vmem.len) {
+                const memory_access_module = @import("../../utils/memory_access.zig");
+                const byte = memory_access_module.getByte(vmem, test_addr) catch 0xFF;
+                std.debug.print("DEBUG MEMORY CHECK: Before POP at PC=0x60f14e, memory[0x60f14f] = 0x{x:0>2}\n", .{byte});
+            }
+        }
+    }
+
     // Execute opcode handler with instruction
     const jump_offset = execution.executeInstruction(vm, inst) catch |err| {
         // Handle opcode execution errors matching C emulator behavior
