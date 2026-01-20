@@ -37,7 +37,7 @@ const ATOM_OFFSET: u32 = 0x00000; // Byte offset for ATOMSPACE (non-BIGVM)
 //
 // TODO: detect BIGATOMS from build/sysout once we support both.
 const BIGVM = true;
-const BIGATOMS = true;
+const BIGATOMS = false; // Changed to false for non-BIGATOMS mode (16-bit atom indices)
 
 // lispmap.h (BIGVM) offsets are DLword offsets (see `NativeAligned2FromLAddr` in maiko/inc/adr68k.h).
 // These are used for non-BIGATOMS Valspace/Defspace addressing.
@@ -60,7 +60,7 @@ pub fn getVALCELL(_: *VM, atom_index: LispPTR) errors.VMError!usize {
         // NEWATOM_VALUE_OFFSET is in DLwords, convert to bytes: * 2
         const value_offset_bytes = NEWATOM_VALUE_OFFSET * 2;
         const value_addr = @as(usize, @intCast(atom_index)) + value_offset_bytes;
-        
+
         // Translate to virtual memory offset
         // For now, assume atom_index is already a virtual memory offset
         // TODO: Proper address translation if needed
@@ -127,7 +127,7 @@ pub fn readAtomValue(vm: *VM, atom_index: LispPTR) errors.VMError!LispPTR {
     };
 
     const value_cell_offset = try getVALCELL(vm, atom_index);
-    
+
     if (value_cell_offset + @sizeOf(LispPTR) > virtual_memory.len) {
         return error.InvalidAddress;
     }
@@ -144,7 +144,7 @@ pub fn writeAtomValue(vm: *VM, atom_index: LispPTR, value: LispPTR) errors.VMErr
     };
 
     const value_cell_offset = try getVALCELL(vm, atom_index);
-    
+
     if (value_cell_offset + @sizeOf(LispPTR) > virtual_memory_mut.len) {
         return error.InvalidAddress;
     }

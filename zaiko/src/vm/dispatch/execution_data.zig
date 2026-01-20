@@ -40,32 +40,13 @@ pub fn handleDataOperations(vm: *VM, opcode: Opcode, instruction: Instruction) e
         .FVAR4 => try opcodes.handleFVAR(vm, 4),
         .FVAR5 => try opcodes.handleFVAR(vm, 5),
         .FVAR6 => try opcodes.handleFVAR(vm, 6),
-        .FVARX => try opcodes.handleFVAR(vm, instruction.getByteOperand(0)),
-        .PVAR_0 => try opcodes.handlePVAR_SET(vm, 0),
-        .PVAR_1 => try opcodes.handlePVAR_SET(vm, 1),
-        .PVAR_2 => try opcodes.handlePVAR_SET(vm, 2),
-        .PVAR_3 => try opcodes.handlePVAR_SET(vm, 3),
-        .PVAR_4 => try opcodes.handlePVAR_SET(vm, 4),
-        .PVAR_5 => try opcodes.handlePVAR_SET(vm, 5),
-        .PVAR_6 => try opcodes.handlePVAR_SET(vm, 6),
-        .PVARX_ => try opcodes.handlePVAR_SET(vm, instruction.getByteOperand(0)),
+        .FVARX => try opcodes.handleFVARX(vm, instruction.getByteOperand(0)),
+        .FVARX_N => try opcodes.handleFVARX(vm, instruction.getByteOperand(0)),
+        .FVARX_ => try opcodes.handleFVARX_(vm, instruction.getByteOperand(0)),
         .GVAR => {
-            // BIGATOMS+BIGVM mode: GVAR uses 4-byte pointer operand
-            // C: GVAR(Get_AtomNo_PCMAC1) where Get_AtomNo_PCMAC1 = Get_Pointer_PCMAC1 (4 bytes)
-            const atom_index = instruction.getPointerOperand(0);
-            // DEBUG: Log operands being read
-            if (instruction.operands_len >= 4) {
-                std.debug.print("DEBUG GVAR operands: [0]=0x{x:0>2} [1]=0x{x:0>2} [2]=0x{x:0>2} [3]=0x{x:0>2}\n",
-                    .{ instruction.operands[0], instruction.operands[1], instruction.operands[2], instruction.operands[3] });
-                std.debug.print("DEBUG GVAR constructed: 0x{x:0>2}<<24 | 0x{x:0>2}<<16 | 0x{x:0>2}<<8 | 0x{x:0>2} = 0x{x:0>8}\n",
-                    .{ instruction.operands[0], instruction.operands[1], instruction.operands[2], instruction.operands[3], atom_index });
-            }
-            try opcodes.handleGVAR(vm, atom_index);
+            try opcodes.handleGVAR(vm, instruction.getPointerOperand(0));
             return null;
         },
-        .ARG0 => try opcodes.handleARG0(vm),
-        .IVARX_ => try opcodes.handleIVARX_(vm, instruction.getByteOperand(0)),
-        .FVARX_ => try opcodes.handleFVARX_(vm, instruction.getByteOperand(0)),
         .COPY => {
             try opcodes.handleCOPY(vm);
             return null;

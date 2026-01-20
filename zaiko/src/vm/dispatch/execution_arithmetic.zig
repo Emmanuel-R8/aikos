@@ -87,6 +87,7 @@ pub fn handleArithmeticAndRemaining(vm: *VM, opcode: Opcode, instruction: Instru
         .MISC4 => try opcodes.handleMISC4(vm),
         .UPCTRACE => try opcodes.handleUPCTRACE(vm),
         .CL_EQUAL => try opcodes.handleCL_EQUAL(vm),
+        .CONTEXTSWITCH => try opcodes.handleCONTEXTSWITCH(vm),
 
         else => {
             // Unknown opcode - could be UFN or unimplemented

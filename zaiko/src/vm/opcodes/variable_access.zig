@@ -183,6 +183,15 @@ pub fn handleFVAR(vm: *VM, index: u8) errors.VMError!void {
     try stack_module.pushStack(vm, masked_value);
 }
 
+/// FVARX: Free variable access with byte index
+/// Per C implementation: FVARX(index) - gets free variable at index
+/// Same as FVAR but index is provided as a byte operand instead of being embedded in opcode
+pub fn handleFVARX(vm: *VM, index: u8) errors.VMError!void {
+    // FVARX is identical to FVAR, just index comes from byte operand
+    // Delegate to handleFVAR which already handles the logic
+    try handleFVAR(vm, index);
+}
+
 /// GVAR: Global variable access
 /// Per rewrite documentation instruction-set/opcodes.md
 /// Accesses global variable via atom index

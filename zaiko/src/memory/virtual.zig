@@ -62,14 +62,12 @@ pub fn translateAddress(virtual_memory: []const u8, lisp_addr: LispPTR, fptovp_t
     const masked: LispPTR = lisp_addr & types.POINTERMASK;
     const byte_offset: usize = @as(usize, @intCast(masked)) * 2;
 
+    // DEBUG: Trace translateAddress calls with marker value
+    if (lisp_addr == 0xfffe0002) {
+        std.debug.print("DEBUG translateAddress: FOUND! lisp_addr=0x{x}, masked=0x{x}, byte_offset=0x{x}\n", .{ lisp_addr, masked, byte_offset });
+    }
+
     if (byte_offset >= virtual_memory.len) {
-        std.debug.print("ERROR: Address translation exceeds virtual memory bounds\n", .{});
-        std.debug.print("  LispPTR: 0x{x}\n", .{lisp_addr});
-        std.debug.print("  Byte offset: {} (0x{x})\n", .{byte_offset, byte_offset});
-        std.debug.print("  Virtual memory size: {} bytes\n", .{virtual_memory.len});
-        std.debug.print("  Possible causes:\n", .{});
-        std.debug.print("    - Invalid LispPTR (masked offset too large)\n", .{});
-        std.debug.print("    - Virtual memory allocation too small\n", .{});
         return error.InvalidAddress;
     }
 

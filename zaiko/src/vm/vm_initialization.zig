@@ -166,9 +166,15 @@ pub fn initializeVMState(
     const stackspace_ptr: [*]DLword = @as([*]DLword, @ptrCast(@alignCast(virtual_memory_mut.ptr + stackspace_byte_offset)));
     const current_stack_ptr: [*]DLword = @as([*]DLword, @ptrCast(@alignCast(virtual_memory_mut.ptr + current_stack_ptr_byte_offset))); // C: CurrentStackPTR = next68k - 2
 
+    std.debug.print("DEBUG: virtual_memory ptr = 0x{x}\n", .{@intFromPtr(virtual_memory_mut.ptr)});
+    std.debug.print("DEBUG: stackspace_byte_offset = 0x{x}\n", .{stackspace_byte_offset});
+    std.debug.print("DEBUG: stackspace_ptr = 0x{x} (should be virtual_memory + 0x20000)\n", .{@intFromPtr(stackspace_ptr)});
+    std.debug.print("DEBUG: current_stack_ptr = 0x{x} (should be virtual_memory + 0x25d10)\n", .{@intFromPtr(current_stack_ptr)});
+
     // Update VM stack pointers to point into virtual memory
     vm.stack_base = stackspace_ptr;
     vm.stack_ptr = current_stack_ptr;
+    std.debug.print("DEBUG: After assignment, vm.stack_ptr = 0x{x}\n", .{@intFromPtr(vm.stack_ptr)});
 
     // CRITICAL: Initialize current_frame pointer to point to frame in virtual memory
     // The frame is at frame_offset in virtual memory

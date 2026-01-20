@@ -244,6 +244,8 @@ pub fn decodeOpcode(byte: ByteCode) ?Opcode {
         0x6D => Opcode.SNIC,
         0x6E => Opcode.SICX,
         0x6F => Opcode.GCONST,
+        0x7E => Opcode.CONTEXTSWITCH,
+        0x7F => Opcode.FVARX_N,
         0x80 => Opcode.JUMP0,
         0x81 => Opcode.JUMP1,
         0x82 => Opcode.JUMP2,

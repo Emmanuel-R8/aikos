@@ -97,6 +97,7 @@ pub const handleMISC8 = misc_ops.handleMISC8;
 pub const handleMISC10 = misc_ops.handleMISC10;
 pub const handleUPCTRACE = misc_ops.handleUPCTRACE;
 pub const handleCL_EQUAL = misc_ops.handleCL_EQUAL;
+pub const handleCONTEXTSWITCH = misc_ops.handleCONTEXTSWITCH;
 pub const handleCMLEQUAL = misc_ops.handleCMLEQUAL;
 pub const handleVAG2 = misc_ops.handleVAG2;
 pub const handleFFTSTEP = misc_ops.handleFFTSTEP;

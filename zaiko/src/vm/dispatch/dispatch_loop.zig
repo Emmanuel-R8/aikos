@@ -58,35 +58,34 @@ pub fn executeInstructionInLoop(
     };
 
     // Update program counter
+    const pc_before_update = vm.pc;
+
     if (jump_offset) |offset| {
-        // Jump instruction - update PC by offset
-        // C: JUMPMACRO(x): PCMACL += (x); nextop0;
-        // nextop0 means don't advance PC by instruction length
-        // So PC update is: PC = PC + offset (no additional advance)
         const new_pc = @as(i64, @intCast(vm.pc)) + offset;
         if (new_pc < 0) {
-            return error.InvalidOpcode; // Invalid jump target (negative)
+            return error.InvalidOpcode;
         }
         if (vm.virtual_memory) |vmem| {
             if (new_pc >= vmem.len) {
-                return error.InvalidOpcode; // Invalid jump target (beyond memory)
+                return error.InvalidOpcode;
             }
         }
         vm.pc = @as(LispPTR, @intCast(new_pc));
-        
-        // CRITICAL: If offset is 0 (JUMP0), we need to advance PC by instruction length
-        // C: JUMPMACRO(0) does PCMACL += 0, then nextop0 (don't advance by instruction length)
-        // But if offset is 0, PC doesn't change, causing infinite loop
-        // Solution: Advance PC by instruction length when offset is 0
+
         if (offset == 0) {
             vm.pc += inst.length;
         }
+
+        std.debug.print("DEBUG PC: Jump from 0x{x} to 0x{x} (offset={})\n", .{ pc_before_update, vm.pc, offset });
     } else {
-        // Normal instruction - advance by instruction length
         vm.pc += inst.length;
+
+        if (pc_before_update < 0x70f000) {
+            std.debug.print("DEBUG PC: Advance from 0x{x} to 0x{x} (length={})\n", .{ pc_before_update, vm.pc, inst.length });
+        }
     }
 
-    return true; // Continue loop
+    return true;
 }
 
 /// Handle unknown/invalid opcodes
@@ -96,14 +95,14 @@ pub fn handleUnknownOpcode(vm: *VM, opcode_byte: u8, instruction_count: u64) err
     if (instruction_count <= 3) {
         std.debug.print("DEBUG: Skipping opcode 0x{x:0>2} at PC=0x{x}\n", .{ opcode_byte, vm.pc });
     }
-    
+
     // Handle unused opcode 0x70 (opc_unused_112) gracefully - skip it
     if (opcode_byte == 0x70) {
         // C: opc_unused_112 - skip this byte and continue
         vm.pc += 1;
         return true; // Continue
     }
-    
+
     // Unknown opcode - handle gracefully
     // Opcode 0x00 is opc_unused_0, which should be skipped
     if (opcode_byte == 0x00) {
@@ -111,7 +110,7 @@ pub fn handleUnknownOpcode(vm: *VM, opcode_byte: u8, instruction_count: u64) err
         vm.pc += 1;
         return true; // Continue
     }
-    
+
     std.debug.print("ERROR: Failed to decode instruction at PC=0x{x}, opcode=0x{x:0>2}\n", .{ vm.pc, opcode_byte });
 
     // Unknown opcode - skip and continue (don't crash)
@@ -125,24 +124,34 @@ pub fn decodeInstruction(vm: *VM, instruction_count: u64) errors.VMError!?instru
     // Decode full instruction with operands from virtual memory
     // DEBUG: Print PC and first few bytes for first few instructions
     // CRITICAL: Also check PC 0x307898 specifically (known mismatch location)
-    if (instruction_count <= 3 or vm.pc == 0x307898) {
+    if (instruction_count <= 3 or vm.pc == 0x307898 or vm.pc == 0x60f14f) {
         if (vm.virtual_memory) |vmem| {
             if (vm.pc < vmem.len and vm.pc + 8 <= vmem.len) {
-                const bytes_at_pc = vmem[@as(usize, @intCast(vm.pc))..][0..8];
-                std.debug.print("DEBUG dispatch: PC=0x{x}, bytes: 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2}\n", 
-                    .{ vm.pc, bytes_at_pc[0], bytes_at_pc[1], bytes_at_pc[2], bytes_at_pc[3],
-                       bytes_at_pc[4], bytes_at_pc[5], bytes_at_pc[6], bytes_at_pc[7] });
-                
+                // CRITICAL: Show BOTH raw bytes and XOR-addressed bytes
+                // Raw bytes (what C trace shows, no XOR)
+                const raw_bytes_at_pc = vmem[@as(usize, @intCast(vm.pc))..][0..8];
+                std.debug.print("DEBUG dispatch: PC=0x{x}, RAW bytes (no XOR): 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2}\n", .{ vm.pc, raw_bytes_at_pc[0], raw_bytes_at_pc[1], raw_bytes_at_pc[2], raw_bytes_at_pc[3], raw_bytes_at_pc[4], raw_bytes_at_pc[5], raw_bytes_at_pc[6], raw_bytes_at_pc[7] });
+
+                // XOR-addressed bytes (what decode actually uses)
+                const memory_access_module = @import("../../utils/memory_access.zig");
+                std.debug.print("DEBUG dispatch: PC=0x{x}, XOR bytes: ", .{vm.pc});
+                for (0..8) |i| {
+                    const addr = @as(usize, @intCast(vm.pc)) + i;
+                    const xor_addr = memory_access_module.applyXORAddressingByte(addr);
+                    if (xor_addr < vmem.len) {
+                        std.debug.print("0x{x:0>2} ", .{vmem[xor_addr]});
+                    } else {
+                        std.debug.print("?? ", .{});
+                    }
+                }
+                std.debug.print("\n", .{});
+
                 // CRITICAL DEBUG: For PC 0x307898, dump more context
                 if (vm.pc == 0x307898) {
                     std.debug.print("DEBUG CRITICAL: PC=0x307898 memory dump:\n", .{});
                     std.debug.print("  Expected (C emulator reads AFTER XOR): 00 00 60 bf c9 12 0a 02\n", .{});
-                    std.debug.print("  Direct memory (no XOR): {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2}\n", 
-                        .{ bytes_at_pc[0], bytes_at_pc[1], bytes_at_pc[2], bytes_at_pc[3],
-                           bytes_at_pc[4], bytes_at_pc[5], bytes_at_pc[6], bytes_at_pc[7] });
-                    
-                    // Show what XOR addressing would read
-                    const memory_access_module = @import("../../utils/memory_access.zig");
+                    std.debug.print("  Direct memory (no XOR): {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2}\n", .{ raw_bytes_at_pc[0], raw_bytes_at_pc[1], raw_bytes_at_pc[2], raw_bytes_at_pc[3], raw_bytes_at_pc[4], raw_bytes_at_pc[5], raw_bytes_at_pc[6], raw_bytes_at_pc[7] });
+
                     std.debug.print("  With XOR addressing (what we should read): ", .{});
                     for (0..8) |i| {
                         const addr = @as(usize, @intCast(vm.pc)) + i;
@@ -154,7 +163,7 @@ pub fn decodeInstruction(vm: *VM, instruction_count: u64) errors.VMError!?instru
                         }
                     }
                     std.debug.print("\n", .{});
-                    
+
                     // Show XOR addresses
                     std.debug.print("  XOR addresses: ", .{});
                     for (0..8) |i| {
@@ -171,7 +180,7 @@ pub fn decodeInstruction(vm: *VM, instruction_count: u64) errors.VMError!?instru
             std.debug.print("DEBUG dispatch: PC=0x{x} but virtual_memory is null\n", .{vm.pc});
         }
     }
-    
+
     const inst_result = instruction.decodeInstructionFromMemory(vm, vm.pc) catch |err| {
         switch (err) {
             error.InvalidAddress, error.MemoryAccessFailed => {
@@ -192,8 +201,7 @@ pub fn decodeInstruction(vm: *VM, instruction_count: u64) errors.VMError!?instru
     // DEBUG: Print opcode for first few instructions
     if (instruction_count <= 3) {
         const opcode_val = @intFromEnum(inst.opcode);
-        std.debug.print("DEBUG: Decoded opcode 0x{x:0>2} ({s}) at PC=0x{x}, length={}\n", 
-            .{ opcode_val, @tagName(inst.opcode), vm.pc, inst.length });
+        std.debug.print("DEBUG: Decoded opcode 0x{x:0>2} ({s}) at PC=0x{x}, length={}\n", .{ opcode_val, @tagName(inst.opcode), vm.pc, inst.length });
     }
 
     return inst;

@@ -10,15 +10,15 @@ const LispPTR = types.LispPTR;
 /// MISCN: Miscellaneous operation dispatch
 /// Per C implementation: maiko/src/miscn.c:OP_miscn
 /// C: opc_MISCN (0x24) in maiko/inc/opcodes.h
-/// 
+///
 /// **Purpose**: Dispatch opcode for various miscellaneous operations
-/// 
+///
 /// **Instruction Format**: [opcode:0x24][misc_index:1B][arg_count:1B] (length: 3 bytes)
-/// 
+///
 /// **Operands**:
 /// - misc_index (arg1): Operation selector - determines which misc operation to perform
 /// - arg_count (arg2): Number of arguments on stack (0-255)
-/// 
+///
 /// **C Implementation** (maiko/src/miscn.c):
 /// - OP_miscn(int misc_index, int arg_count)
 /// - Collects arg_count arguments from stack into args array
@@ -36,62 +36,62 @@ const LispPTR = types.LispPTR;
 ///   - miscn_LCPutIVValue: LispC put instance variable value
 ///   - RS232 operations (if RS232 enabled)
 ///   - miscn_CALL_C: Call C function
-/// 
+///
 /// **Stack State**:
 /// - Before: [arg_N, ..., arg_1, arg_0] (arg_count arguments)
 /// - After: [result] (operation result)
-/// 
+///
 /// **Return Behavior**:
 /// - Returns 0 if operation succeeded (normal return)
 /// - Returns 1 if operation failed (triggers UFN lookup)
-/// 
+///
 /// **Current Status**: Basic implementation with operation dispatch
 /// TODO: Implement all misc_index operations (USER_SUBR, SXHASH, VALUES, etc.)
 pub fn handleMISCN(vm: *VM, misc_index: u8, arg_count: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
     const std = @import("std");
-    
+
     // C: Collect arguments from stack into array
     // C: args[0] = NIL_PTR; stk = CurrentStackPTR + 1;
     // C: while (arg_num > 0) args[--arg_num] = *--stk;
-    
+
     // For now, validate arg_count
     if (arg_count > 255) {
         std.debug.print("ERROR MISCN: arg_count ({}) exceeds maximum (255)\n", .{arg_count});
         return error.InvalidOpcode;
     }
-    
+
     // Collect arguments from stack (in reverse order to match C)
     // C implementation collects args backwards: args[--arg_num] = *--stk
     // This means args[0] is the last argument popped, args[arg_count-1] is TOS
     var args: [255]LispPTR = undefined;
     args[0] = 0; // NIL_PTR placeholder
-    
+
     // Pop arguments from stack (TOS is last argument)
     var i: u8 = 0;
     while (i < arg_count) : (i += 1) {
         args[@as(usize, arg_count - 1 - i)] = try stack_module.popStack(vm);
     }
-    
+
     // Dispatch based on misc_index
     // C: switch (misc_index) { case miscn_XXX: ... }
     std.debug.print("DEBUG MISCN: misc_index=0x{x:0>2} ({d}), arg_count={d}\n", .{ misc_index, misc_index, arg_count });
-    
+
     // TODO: Implement full dispatch switch for all misc_index values
     // For now, return error to trigger UFN (matches C behavior for unknown misc_index)
     // This prevents crashes while allowing the emulator to continue
-    
+
     // Place arguments back on stack (for now, until operations are implemented)
     var j: u8 = 0;
     while (j < arg_count) : (j += 1) {
         try stack_module.pushStack(vm, args[@as(usize, arg_count - 1 - j)]);
     }
-    
+
     // For now, set result to NIL (prevents crash)
     // TODO: Implement proper dispatch for all misc_index operations
     const type_check_module = @import("../../utils/type_check.zig");
     try stack_module.pushStack(vm, type_check_module.NIL_PTR);
-    
+
     // Don't return error - returning error causes router to try next handler
     // Instead, just return NIL for now until operations are implemented
 }
@@ -150,6 +150,57 @@ pub fn handleCL_EQUAL(vm: *VM) errors.VMError!void {
     try stack_module.pushStack(vm, result);
 }
 
+/// CONTEXTSWITCH: Context switch to new function frame
+/// Per C implementation: maiko/src/return.c:OP_contextsw and contextsw
+/// C: opc_CONTEXTSWITCH = 126 (0x7E) in maiko/inc/opcodes.h
+///
+/// **Purpose**: Switch execution context to a new function frame
+/// This is used for calling special handlers (keyboard, reset stack, fault)
+///
+/// **C Implementation**:
+/// - OP_contextsw() pops TOS to get frame number, calls contextsw()
+/// - contextsw() saves current PC, saves TOS, switches to new frame
+/// - The frame number is used to look up the new frame via currentfxp
+///
+/// **Stack State**:
+/// - Before: [frame_number] (TOS contains frame number)
+/// - After: Context switched to new frame
+///
+/// **Current Status**: Basic implementation for emulator continuation
+/// TODO: Full implementation matching C contextsw() behavior
+pub fn handleCONTEXTSWITCH(vm: *VM) errors.VMError!void {
+    const stack_module = @import("../stack.zig");
+    const std = @import("std");
+
+    // C: OP_contextsw() implementation:
+    //   EXT;
+    //   OP_contextsw();
+    //   RET;
+    //
+    // C: contextsw(TopOfStack & 0xffff, 1, 2);
+    // - Pops TOS to get frame number (fxnum)
+    // - bytenum = 1 (increment PC by 1 byte after switch)
+    // - flags = 2 (call from OP_contextsw)
+
+    // Pop frame number from stack
+    const fxnum = try stack_module.popStack(vm);
+    const frame_number = fxnum & 0xFFFF; // Use low 16 bits
+
+    std.debug.print("DEBUG CONTEXTSWITCH: frame_number=0x{x:0>4} ({})\n", .{ frame_number, frame_number });
+
+    // TODO: Full context switch implementation
+    // - Save CURRENTFX->pc = PC - FuncObj + bytenum
+    // - Set CURRENTFX->nopush = T
+    // - Switch to new frame via currentfxp lookup
+    // - Set up new stack pointer and frame pointer
+    //
+    // For now, just continue execution (basic stub)
+    // This allows the emulator to proceed past CONTEXTSWITCH
+
+    // In C, CONTEXTSWITCH causes a significant context change
+    // For emulation, we need to actually implement the frame switching
+}
+
 /// CMLEQUAL: Case-insensitive member equal
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleCMLEQUAL(vm: *VM) errors.VMError!void {
@@ -184,7 +235,7 @@ pub fn handleFFTSTEP(vm: *VM) errors.VMError!void {
 pub fn handleSTORE_N(vm: *VM, count: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
     const errors_module = @import("../../utils/errors.zig");
-    
+
     // Pop count values from stack
     var i: u8 = 0;
     while (i < count) : (i += 1) {

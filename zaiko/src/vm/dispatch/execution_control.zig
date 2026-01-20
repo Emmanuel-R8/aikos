@@ -66,7 +66,14 @@ pub fn handleTJUMPWithOffset(vm: *VM, offset: i8) errors.VMError!?i64 {
 /// Returns jump offset if instruction is a jump, null if handled with no jump
 /// Returns error.NotHandled if opcode doesn't match this category
 pub fn handleControlFlow(vm: *VM, opcode: Opcode, instruction: Instruction) errors.VMError!?i64 {
+    std.debug.print("DEBUG handleControlFlow: opcode=0x{x:0>2} ({s})\n", .{ @intFromEnum(opcode), @tagName(opcode) });
     switch (opcode) {
+        .GVAR_ => {
+            std.debug.print("DEBUG: GVAR_ matched! Calling handler...\n", .{});
+            try opcodes.handleGVAR_(vm, instruction.getWordOperand(0));
+            std.debug.print("DEBUG: GVAR_ handler returned successfully\n", .{});
+            return null;
+        },
         // Control flow - Function calls
         .FN0 => {
             try opcodes.handleFN0(vm, &instruction);
@@ -127,7 +134,6 @@ pub fn handleControlFlow(vm: *VM, opcode: Opcode, instruction: Instruction) erro
             return null;
         },
         .ASSOC => try opcodes.handleASSOC(vm),
-        .GVAR_ => try opcodes.handleGVAR_(vm, instruction.getWordOperand(0)),
         // Note: No generic JUMP opcode - use JUMPX, JUMPXX, or JUMP0-JUMP15
         // Optimized jump variants (offset encoded in opcode).
         // C: JUMP0 = JUMPMACRO(2), JUMP1 = JUMPMACRO(3), ... => offset is opcode_number + 2.
@@ -239,17 +245,17 @@ pub fn handleControlFlow(vm: *VM, opcode: Opcode, instruction: Instruction) erro
         .TJUMP14 => return handleTJUMPWithOffset(vm, 16),
         .TJUMP15 => return handleTJUMPWithOffset(vm, 17),
         .JUMPX => {
-            try opcodes.handleJUMPX(vm);
             const pc = vm.pc;
             const offset_byte: i16 = blk: {
                 if (vm.virtual_memory) |vmem| {
                     const addr = pc + 1;
                     const xor_addr = addr ^ 3;
                     const raw_byte = if (xor_addr < vmem.len) vmem[xor_addr] else 0;
-                    const signed: i16 = if (raw_byte >= 128) @as(i16, @intCast(raw_byte)) - 256 else @as(i16, @intCast(raw_byte));
-                    break :blk signed;
+                    // Convert unsigned byte to signed byte (two's complement)
+                    const signed_byte = @as(i16, @intCast(@as(u8, @intCast(raw_byte))));
+                    break :blk signed_byte;
                 }
-                break :blk 0;
+                break :blk @as(i16, 0);
             };
 
             if (vm.virtual_memory) |vmem| {
@@ -257,12 +263,11 @@ pub fn handleControlFlow(vm: *VM, opcode: Opcode, instruction: Instruction) erro
                 const xor1 = addr1 ^ 3;
                 const byte1 = if (xor1 < vmem.len) vmem[xor1] else 0;
                 const raw1 = if (addr1 < vmem.len) vmem[addr1] else 0;
-
-                std.debug.print("DEBUG JUMPX: PC=0x{x}, offset_byte=0x{x} ({}), PC+offset=0x{x}\n", .{ pc, offset_byte, offset_byte, pc + @as(LispPTR, @intCast(offset_byte)) });
+                std.debug.print("DEBUG JUMPX: PC=0x{x}, offset_byte=0x{x} ({})\n", .{ pc, offset_byte, offset_byte });
                 std.debug.print("  Byte at addr=0x{x} (XOR addr=0x{x}): XOR byte=0x{x:0>2}, raw byte=0x{x:0>2}\n", .{ addr1, xor1, byte1, raw1 });
             }
 
-            return offset_byte;
+            return @as(i64, offset_byte);
         },
         .JUMPXX => {
             try opcodes.handleJUMPXX(vm);

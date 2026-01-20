@@ -177,6 +177,10 @@ pub const Opcode = enum(u8) {
     UPCTRACE = 0xFC,
     CL_EQUAL = 0xFF,
 
+    // Context switching
+    CONTEXTSWITCH = 0x7E, // 126 - context switch to new function frame
+    FVARX_N = 0x7F, // 127 - FVARX with byte operand
+
     // Data operations
     CAR = 0x01,
     CDR = 0x02,
