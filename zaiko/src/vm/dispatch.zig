@@ -43,11 +43,6 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
     }
     const tracer = &vm.execution_tracer.?;
 
-    // CRITICAL: Restore CSTKPTRL from CurrentStackPTR at start of each dispatch loop iteration
-    // C: StackPtrRestore is called at the start of nextopcode: label
-    // This ensures CSTKPTRL is correctly aligned with CurrentStackPTR
-    stack.initCSTKPTRLFromCurrentStackPTR(vm);
-
     // Main dispatch loop - continue until error or explicit stop
     // Add instruction counter to prevent infinite loops
     var instruction_count: u64 = 0;
@@ -62,6 +57,11 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
     };
 
     while (true) {
+        // CRITICAL: Restore CSTKPTRL from CurrentStackPTR before each opcode
+        // C: StackPtrRestore is called at the start of nextopcode: label (before each opcode)
+        // This ensures CSTKPTRL is correctly aligned with CurrentStackPTR before execution
+        stack.initCSTKPTRLFromCurrentStackPTR(vm);
+
         // Check instruction limit to prevent infinite loops
         instruction_count += 1;
         if (max_steps_opt) |max_steps| {

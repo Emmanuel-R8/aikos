@@ -1,6 +1,7 @@
 const errors = @import("../../utils/errors.zig");
 const stack = @import("../stack.zig");
 const types = @import("../../utils/types.zig");
+const std = @import("std");
 
 const VM = stack.VM;
 const LispPTR = types.LispPTR;
@@ -78,27 +79,36 @@ pub fn handleBIND(vm: *VM, byte1: u8, byte2: u8) errors.VMError!void {
 /// C: UNBIND macro in maiko/inc/inlineC.h
 /// Unbinds variables by walking backwards through stack to find marker
 /// Stack: [marker, ...] -> []
-pub fn handleUNBIND(vm: *VM) errors.VMError!void {
-    const stack_module = @import("../stack.zig");
+pub fn handleUNBIND(vm_obj: *VM) errors.VMError!void {
     const errors_module = @import("../../utils/errors.zig");
-    // C (tos1defs.h): UNBIND walks *CSTKPTRL (LispPTR cell pointer), NOT CurrentStackPTR.
-    // Also, it does NOT modify TOPOFSTACK.
-    var p = vm.cstkptrl orelse return errors_module.VMError.StackUnderflow;
+    // CRITICAL: CSTKPTRL is a pointer to LispPTR (4-byte) values
+    // C: for (; (((int)*--CSTKPTRL) >= 0););
+    // CSTKPTRL is declared as LispPTR* (see maiko/src/xc.c:133)
+    // So *--CSTKPTRL decrements by 1 LispPTR (4 bytes), NOT 1 DLword (2 bytes)
     var marker: LispPTR = 0;
+
+    // DEBUG: Verify CSTKPTRL is in virtual memory
+    const cstkptrl_addr = @intFromPtr(vm_obj.cstkptrl.?);
+    const vmem_base = if (vm_obj.virtual_memory) |vm| @intFromPtr(vm.ptr) else 0;
+    const vmem_len = if (vm_obj.virtual_memory) |vm| vm.len else 0;
+    std.debug.print("DEBUG UNBIND: CSTKPTRL=0x{x}, vmem_base=0x{x}, vmem_len=0x{x}\n", .{ cstkptrl_addr, vmem_base, vmem_len });
+    std.debug.print("DEBUG UNBIND: CSTKPTRL in vmem range: {}\n", .{cstkptrl_addr >= vmem_base and cstkptrl_addr < vmem_base + vmem_len});
+
     while (true) {
-        p -= 1; // C: *--CSTKPTRL
-        const v = p[0];
+        // C: *--CSTKPTRL - decrement by 1 LispPTR (4 bytes) BEFORE reading
+        vm_obj.cstkptrl = vm_obj.cstkptrl.?;
+        vm_obj.cstkptrl = vm_obj.cstkptrl.? - 1;
+        const v = vm_obj.cstkptrl.?[0];
+        std.debug.print("DEBUG UNBIND: CSTKPTRL=0x{x}, v=0x{x}\n", .{ @intFromPtr(vm_obj.cstkptrl), v });
         if (@as(i32, @bitCast(v)) < 0) {
             marker = v;
-            vm.cstkptrl = p;
+            // C: After loop exits, CSTKPTRL points TO the negative marker
+            // The loop decrements CSTKPTRL before checking, so we're pointing at the marker
             break;
         }
     }
+    // CSTKPTRL now correctly points to the negative marker (matching C behavior)
 
-    // TODO: Implement PVAR/ppvar unbinding correctly.
-    // The C macro mutates PVAR cells based on the marker. Our current VM does not yet
-    // model PVAR precisely, and incorrect pointer math here can corrupt VM state.
-    _ = stack_module;
     if (marker == 0) return errors_module.VMError.StackUnderflow;
 }
 
