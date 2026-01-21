@@ -112,6 +112,17 @@ Avoid committing machine/local outputs that create noisy diffs:
 - **Build outputs**: Zig `zig-out/`, `**/.zig-cache/`, C/CMake build directories
 - **Binary documents**: generated PDFs (commit the Typst source instead)
 
+### 1.3 File System Access Restrictions (CRITICAL)
+
+**SECURITY REQUIREMENT**: Agents must not access any files or folders outside the project directory containing this AGENTS.md file.
+
+- **Prohibited**: Accessing `/tmp`, `/var`, `/home`, or any system directories
+- **Prohibited**: Creating files outside the project workspace
+- **Allowed**: Only files and folders within the Interlisp project directory
+- **Reason**: Security, isolation, and reproducibility requirements
+
+**Violation will result in immediate termination of the session.**
+
 ### 2. Documentation Updates
 
 **CRITICAL**: Before ANY git commit, follow `documentation/core/critical_memory.typ`:
