@@ -34,6 +34,12 @@ pub const GC = struct {
     htbig: []OverflowEntry, // Overflow table
     reclamation_list: std.ArrayList(LispPTR), // T066: Free list for reclaimed memory
 
+    // GC trigger mechanism (matches C Reclaim_cnt, ReclaimMin, GcDisabled)
+    reclaim_countdown: u32, // Countdown until next GC (C: Reclaim_cnt)
+    reclaim_min: u32, // Reset value after GC (C: ReclaimMin)
+    gc_enabled: bool, // GC enabled flag (C: GcDisabled inverted)
+    gc_run_count: u32, // Statistics: how many times GC has run
+
     pub fn init(allocator: std.mem.Allocator, table_size: usize) !GC {
         const htmain_table = try allocator.alloc(HashEntry, table_size);
         @memset(htmain_table, HashEntry{
@@ -59,6 +65,10 @@ pub const GC = struct {
             .htcoll = htcoll_table,
             .htbig = htbig_table,
             .reclamation_list = try std.ArrayList(LispPTR).initCapacity(allocator, 100),
+            .reclaim_countdown = 100, // Default: trigger after 100 allocations
+            .reclaim_min = 50, // Default: reset to 50 after GC
+            .gc_enabled = true, // Default: GC enabled
+            .gc_run_count = 0, // Statistics
         };
     }
 
@@ -312,6 +322,69 @@ pub fn getReferenceCount(gc: *GC, ptr: LispPTR) u32 {
     }
 
     return 0;
+}
+
+/// Increment allocation count and trigger GC if countdown reaches zero
+/// Matches C Increment_Allocation_Count macro behavior
+/// C: if (*Reclaim_cnt_word != NIL) { if (*Reclaim_cnt_word > (n)) (*Reclaim_cnt_word) -= (n); else { *Reclaim_cnt_word = NIL; doreclaim(); } }
+pub fn incrementAllocationCount(gc: *GC, n: u32) void {
+    if (!gc.gc_enabled) {
+        // GC disabled - ignore countdown
+        return;
+    }
+
+    if (gc.reclaim_countdown > 0) {
+        if (gc.reclaim_countdown > n) {
+            gc.reclaim_countdown -= n;
+        } else {
+            // Countdown reached zero - trigger GC
+            gc.reclaim_countdown = 0;
+            runGC(gc) catch |err| {
+                // In a real implementation, we might log this error
+                // but for now, continue execution
+                std.debug.print("GC error during allocation-triggered GC: {}\n", .{err});
+            };
+            // Reset countdown to reclaim_min after GC (matches C behavior)
+            gc.reclaim_countdown = gc.reclaim_min;
+            gc.gc_run_count += 1;
+        }
+    }
+}
+
+/// Check for storage pressure and trigger GC if needed
+/// Matches C checkfor_storagefull logic
+/// C: checks pagesleft against GUARDSTORAGEFULL and sets STORAGEFULL flags
+pub fn checkStoragePressure(gc: *GC, storage: *const @import("storage.zig").Storage, pages_needed: usize) bool {
+    _ = gc;
+
+    // Constants matching C implementation
+    const GUARDSTORAGEFULL: u32 = 500; // C: maiko/src/storage.c
+
+    // Calculate available pages
+    const pages_used = storage.pages_allocated;
+    const pages_left = storage.max_pages - pages_used;
+
+    // Check if we're getting close to full
+    return (pages_left < GUARDSTORAGEFULL) or (pages_needed > 0 and pages_left <= pages_needed);
+}
+
+/// Handle storage pressure by triggering GC
+/// Called when checkStoragePressure returns true
+pub fn handleStoragePressure(gc: *GC, storage: *const @import("storage.zig").Storage) void {
+    _ = storage;
+
+    if (!gc.gc_enabled) {
+        return;
+    }
+
+    // Force GC due to storage pressure
+    runGC(gc) catch |err| {
+        std.debug.print("GC error during storage-pressure GC: {}\n", .{err});
+    };
+    gc.gc_run_count += 1;
+
+    // Reset countdown to a higher value after storage pressure (more conservative)
+    gc.reclaim_countdown = @max(gc.reclaim_min, 100); // Give more room after pressure
 }
 
 /// Run GC

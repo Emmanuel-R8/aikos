@@ -62,7 +62,7 @@ pub fn lispPTRToOffset(storage: *const Storage, lisp_addr: LispPTR) ?usize {
 
 /// Allocate cons cell
 /// Per contracts/memory-interface.zig
-pub fn allocateConsCell(storage: *Storage) errors.MemoryError!LispPTR {
+pub fn allocateConsCell(storage: *Storage, gc: ?*@import("gc.zig").GC) errors.MemoryError!LispPTR {
     const cons_size = @sizeOf(cons.ConsCell);
 
     if (@intFromPtr(storage.heap_ptr) + cons_size > @intFromPtr(storage.heap_end)) {
@@ -80,13 +80,21 @@ pub fn allocateConsCell(storage: *Storage) errors.MemoryError!LispPTR {
     const offset = @intFromPtr(storage.heap_ptr) - @intFromPtr(storage.heap_base);
     storage.heap_ptr += cons_size;
 
+    // Trigger GC countdown if GC is available
+    if (gc) |gc_inst| {
+        // Simulate allocation triggering incrementAllocationCount
+        // Cons cells are typically 2 words = 8 bytes
+        const gc_module = @import("gc.zig");
+        gc_module.incrementAllocationCount(gc_inst, 1);
+    }
+
     // Convert offset to LispPTR
     return offsetToLispPTR(storage, offset);
 }
 
 /// Allocate array
 /// Per contracts/memory-interface.zig
-pub fn allocateArray(storage: *Storage, size: usize, array_type: array.ArrayType) errors.MemoryError!LispPTR {
+pub fn allocateArray(storage: *Storage, size: usize, type_code: u8, gc: ?*@import("gc.zig").GC) errors.MemoryError!LispPTR {
     const header_size = @sizeOf(array.ArrayHeader);
     const total_size = header_size + (size * @sizeOf(LispPTR));
 
@@ -94,15 +102,23 @@ pub fn allocateArray(storage: *Storage, size: usize, array_type: array.ArrayType
         return error.StorageFull;
     }
 
-    const header: *array.ArrayHeader = @as(*array.ArrayHeader, @ptrCast(storage.heap_ptr));
+    const header: *array.ArrayHeader = @ptrCast(@alignCast(storage.heap_ptr));
     header.* = array.ArrayHeader{
-        .type_code = @intFromEnum(array_type),
+        .type_code = type_code,
         .fill_pointer = 0,
         .length = @as(types.DLword, @intCast(size)),
     };
 
-    const addr = @as(LispPTR, @intCast(@intFromPtr(storage.heap_ptr)));
+    const addr = @as(LispPTR, @truncate(@intFromPtr(storage.heap_ptr)));
     storage.heap_ptr += total_size;
+
+    // Trigger GC countdown if GC is available
+    if (gc) |gc_inst| {
+        // Arrays can be large - allocate more countdown units
+        const gc_module = @import("gc.zig");
+        const allocation_units = @as(u32, @intCast((size + header_size + 7) / 8)); // Round up to 8-byte units
+        gc_module.incrementAllocationCount(gc_inst, allocation_units);
+    }
 
     return addr;
 }

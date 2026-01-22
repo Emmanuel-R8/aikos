@@ -1,6 +1,7 @@
 const std = @import("std");
 const testing = std.testing;
 const gc_module = @import("../src/memory/gc.zig");
+const storage_module = @import("../src/memory/storage.zig");
 const types = @import("../src/utils/types.zig");
 
 const LispPTR = types.LispPTR;
@@ -18,8 +19,8 @@ test "GC initialization" {
     try testing.expect(gc.htbig.len == 256); // table_size / 4
 }
 
-/// T070: Test ADDREF operation tracking reference counts correctly
-/// Per tasks.md T070: Add test case for ADDREF operation tracking reference counts correctly
+// T070: Test ADDREF operation tracking reference counts correctly
+// Per tasks.md T070: Add test case for ADDREF operation tracking reference counts correctly
 test "T070: ADDREF - increment reference count" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -79,8 +80,8 @@ test "T070: ADDREF - NIL pointer" {
     try testing.expect(count == 0);
 }
 
-/// T071: Test DELREF operation removing references correctly
-/// Per tasks.md T071: Add test case for DELREF operation removing references correctly
+// T071: Test DELREF operation removing references correctly
+// Per tasks.md T071: Add test case for DELREF operation removing references correctly
 test "T071: DELREF - decrement reference count" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -141,8 +142,8 @@ test "T071: DELREF - NIL pointer" {
     try testing.expect(count == 0);
 }
 
-/// T072: Test reclamation when count reaches zero
-/// Per tasks.md T072: Add test case for reclamation when count reaches zero
+// T072: Test reclamation when count reaches zero
+// Per tasks.md T072: Add test case for reclamation when count reaches zero
 test "T072: Reclamation - zero count marks for reclamation" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -204,8 +205,8 @@ test "T072: Reclamation - only zero-count objects reclaimed" {
     try testing.expect(gc.reclamation_list.items.len == 2);
 }
 
-/// T073: Test referenced objects not being reclaimed
-/// Per tasks.md T073: Add test case for referenced objects not being reclaimed
+// T073: Test referenced objects not being reclaimed
+// Per tasks.md T073: Add test case for referenced objects not being reclaimed
 test "T073: Referenced objects not reclaimed" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -264,8 +265,8 @@ test "T073: Stack reference prevents reclamation" {
     _ = gc.reclamation_list.items.len;
 }
 
-/// T074: Integration test for extended Medley session without memory leaks
-/// Per tasks.md T074: Add integration test for extended Medley session without memory leaks
+// T074: Integration test for extended Medley session without memory leaks
+// Per tasks.md T074: Add integration test for extended Medley session without memory leaks
 test "T074: Extended session - no memory leaks" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -306,4 +307,51 @@ test "T074: Extended session - no memory leaks" {
 
     // All should be in reclamation list
     try testing.expect(gc.reclamation_list.items.len == 100);
+}
+
+// GC Trigger Mechanism Tests - Now Implemented
+// These tests verify the countdown-based GC trigger mechanism matches C implementation
+
+test "allocation functions should trigger GC when memory pressure detected" {
+    const gpa = testing.allocator;
+
+    var storage = try storage_module.Storage.init(gpa, 1024 * 1024, 1000, 0x00200000);
+    defer storage.deinit();
+
+    var gc = try gc_module.GC.init(gpa, 1024);
+    defer gc.deinit();
+
+    gc.reclaim_countdown = 10;
+    gc.reclaim_min = 5;
+    gc.gc_enabled = true;
+
+    // These should fail because the integration doesn't exist
+    try gc_module.incrementAllocationCount(&gc, 5);
+    try testing.expect(gc.reclaim_countdown == 5);
+
+    try gc_module.incrementAllocationCount(&gc, 5);
+    try testing.expect(gc.gc_run_count == 1);
+    try testing.expect(gc.reclaim_countdown == 5);
+}
+
+test "storage pressure detection should trigger GC when memory is low" {
+    const gpa = testing.allocator;
+
+    var storage = try storage_module.Storage.init(gpa, 1024, 100, 0x00200000);
+    defer storage.deinit();
+
+    var gc = try gc_module.GC.init(gpa, 1024);
+    defer gc.deinit();
+
+    gc.reclaim_countdown = 50;
+    gc.reclaim_min = 25;
+    gc.gc_enabled = true;
+
+    // This should fail because pressure detection doesn't exist
+    // C equivalent: checkfor_storagefull logic
+    const storage_pressure = gc_module.checkStoragePressure(&gc, &storage, 10);
+    try testing.expect(storage_pressure == true);
+
+    try gc_module.handleStoragePressure(&gc, &storage);
+    try testing.expect(gc.gc_run_count == 1);
 }
