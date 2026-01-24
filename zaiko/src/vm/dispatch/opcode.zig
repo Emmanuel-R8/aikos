@@ -142,6 +142,14 @@ pub const Opcode = enum(u8) {
     MYALINK = 0x66,
     STKSCAN = 0x2F,
     SLRETURN = 0x3F,
+
+    // GC operations (0x70-0x74 range)
+    UNUSED_112 = 0x70, // 112 - UNUSED per C opcodes.h
+    READFLAGS = 0x71,  // 113 - Read flags 
+    RECLAIMCELL = 0x72, // 114 - Manual GC trigger
+    GCSCAN1 = 0x73,    // 115 - GC scan phase 1
+    GCSCAN2 = 0x74,    // 116 - GC scan phase 2
+    SUBRCALL = 0x75,   // 117 - Subroutine call
     POP = 0xBF,
     POP_N = 0xC0,
     ATOMCELL_N = 0xC1,
@@ -178,8 +186,6 @@ pub const Opcode = enum(u8) {
     CL_EQUAL = 0xFF,
 
     // Context switching
-    CONTEXTSWITCH = 0x7E, // 126 - context switch to new function frame
-    FVARX_N = 0x7F, // 127 - FVARX with byte operand
 
     // Data operations
     CAR = 0x01,

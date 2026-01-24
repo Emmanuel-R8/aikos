@@ -6,7 +6,7 @@ This directory contains documentation for alternative implementations of the Mai
 
 == Implementations
 
-=== [Common Lisp Implementation](lisp-implementation.md)
+=== [Common Lisp Implementation](lisp-implementation.typ)
 
 Complete implementation of the Maiko emulator in Common Lisp (SBCL).
 
@@ -28,7 +28,7 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL).
 - Comprehensive error handling
 - Platform-specific support (endianness, pathnames)
 
-=== [C Implementation (Reference)](c-emulator-memory-loading-analysis.typ)
+=== [C Implementation (Reference)](c/c-emulator-memory-loading-analysis.typ)
 
 Reference implementation of the Maiko emulator in C.
 
@@ -39,28 +39,30 @@ Reference implementation of the Maiko emulator in C.
 - *Opcodes*: All 256 implemented
 - *Source Files*: Complete C implementation
 
-*Key Documentation*:
+*Key Documentation* (in `c/`):
 
-- [Memory Loading Analysis](c-emulator-memory-loading-analysis.typ) - FPtoVP table, page loading, byte-swapping
-- [PC Calculation Logic](c-emulator-pc-calculation.typ) - Program counter calculation from frame data
-- [PC Advancement Fix](c-emulator-pc-advancement-fix.typ) - Critical bug fix for PC synchronization (2026-01-12)
-- [Byte-Swapping Logic](c-emulator-byte-swapping.typ) - FPtoVP and page content byte-swapping
-- [Execution Byte Mismatch](c-emulator-execution-byte-mismatch.typ) - Investigation of execution vs loading bytes
-- [Unified Logging Format](unified-logging-format.typ) - Execution log format for C/Zig comparison
-- [Execution Comparison Results](execution-comparison-results.typ) - C vs Zig execution comparison results
-- [Code Refactoring](c-emulator-refactoring.typ) - Extraction of tracing code to reduce xc.c file size (2026-01-13)
+- [Memory Loading Analysis](c/c-emulator-memory-loading-analysis.typ) - FPtoVP table, page loading, byte-swapping
+- [PC Calculation Logic](c/c-emulator-pc-calculation.typ) - Program counter calculation from frame data
+- [PC Advancement Fix](c/c-emulator-pc-advancement-fix.typ) - Critical bug fix for PC synchronization (2026-01-12)
+- [Byte-Swapping Logic](c/c-emulator-byte-swapping.typ) - FPtoVP and page content byte-swapping
+- [Execution Byte Mismatch](c/c-emulator-execution-byte-mismatch.typ) - Investigation of execution vs loading bytes
+- [Trace and Logging Formats](../specifications/vm-core/trace-and-logging-formats.typ) - Execution trace and log formats for C/Zig comparison
+- [Execution Comparison Results](c/execution-comparison-results.typ) - C vs Zig execution comparison results
+- [Execution Comparison Analysis](c/execution-comparison-analysis.typ) - Divergence analysis and remediation plan
+- [Critical Runtime Issue](c/critical-runtime-issue-stack-initialization.typ) - Stack/frame initialization divergence
+- [Code Refactoring](c/c-emulator-refactoring.typ) - Extraction of tracing code to reduce xc.c file size (2026-01-13)
 
-*Opcode Tracing* (2025-01-27):
+*Opcode Tracing* (2025-01-27, in `c/`):
 
-- [GVAR Opcode Tracing](c-emulator-address-xor-tracing.typ) - XOR addressing mechanism for BIGATOMS mode
-- [UNBIND Opcode Tracing](c-emulator-unbind-tracing.typ) - Stack unwinding and variable unbinding
-- [GETBASEPTR_N Opcode Tracing](c-emulator-getbaseptr-tracing.typ) - Base pointer access and memory reading
-- [COPY Opcode Tracing](c-emulator-copy-tracing.typ) - Stack duplication mechanism
-- [TJUMP1 Opcode Tracing](c-emulator-tjump1-tracing.typ) - Conditional jump mechanism (true jump)
-- [CONST_1 Opcode Tracing](c-emulator-const1-tracing.typ) - Constant push mechanism (small positive integer 1)
-- [EQ Opcode Tracing](c-emulator-eq-tracing.typ) - Pointer equality comparison mechanism
-- [FJUMP7 Opcode Tracing](c-emulator-fjump7-tracing.typ) - Conditional false jump mechanism (jump if NIL)
-- [MYARGCOUNT Opcode Tracing](c-emulator-myargcount-tracing.typ) - Argument count calculation from frame (2026-01-13)
+- [GVAR Opcode Tracing](c/c-emulator-address-xor-tracing.typ) - XOR addressing mechanism for BIGATOMS mode
+- [UNBIND Opcode Tracing](c/c-emulator-unbind-tracing.typ) - Stack unwinding and variable unbinding
+- [GETBASEPTR_N Opcode Tracing](c/c-emulator-getbaseptr-tracing.typ) - Base pointer access and memory reading
+- [COPY Opcode Tracing](c/c-emulator-copy-tracing.typ) - Stack duplication mechanism
+- [TJUMP1 Opcode Tracing](c/c-emulator-tjump1-tracing.typ) - Conditional jump mechanism (true jump)
+- [CONST_1 Opcode Tracing](c/c-emulator-const1-tracing.typ) - Constant push mechanism (small positive integer 1)
+- [EQ Opcode Tracing](c/c-emulator-eq-tracing.typ) - Pointer equality comparison mechanism
+- [FJUMP7 Opcode Tracing](c/c-emulator-fjump7-tracing.typ) - Conditional false jump mechanism (jump if NIL)
+- [MYARGCOUNT Opcode Tracing](c/c-emulator-myargcount-tracing.typ) - Argument count calculation from frame (2026-01-13)
 
 *Verified Logic* (2025-01-27):
 
@@ -101,7 +103,12 @@ Implementation of the Maiko emulator in Zig programming language.
 - ⚠️ TOS values wrong (all zeros vs actual values)
 - ⚠️ Execution stops early (30 lines vs 1000+)
 
-*See*: Execution Debugging for detailed investigation and fixes
+*Further notes* (in `zig/`): Frame initialization, CSTKPTRL fix, GVAR/BIGATOMS, opcode findings, enhanced tracing, parity debugging, execution comparison. *See*: `zig/` for detailed investigation and fixes:
+
+- `zig/zig-parity-debugging-success.typ`
+- `zig/zig-jumpx-divergence.typ`
+- `zig/zig-mylink-overflow-fix.typ`
+- `zig/zig-vs-c-execution-comparison.typ`
 
 == Implementation Status
 

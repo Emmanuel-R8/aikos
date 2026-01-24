@@ -1,3 +1,5 @@
+#import "../../prelude.typ": codeblock
+
 = Execution Semantics
 
 *Navigation*: README | Instruction Format | Opcodes
@@ -39,22 +41,11 @@ sequenceDiagram
 
 *Push Operation*:
 
-#codeblock(lang: "pseudocode", [
-function PushStack(value):
-    CurrentStackPTR = CurrentStackPTR - 2  // Move stack pointer down
-    *CurrentStackPTR = value
-    TopOfStack = value
-])
+#codeblock(lang: "pseudocode", [#raw("function PushStack(value):\n    CurrentStackPTR = CurrentStackPTR - 2  // Move stack pointer down\n    *CurrentStackPTR = value\n    TopOfStack = value")])
 
 *Pop Operation*:
 
-#codeblock(lang: "pseudocode", [
-function PopStack():
-    value = *CurrentStackPTR
-    CurrentStackPTR = CurrentStackPTR + 2  // Move stack pointer up
-    TopOfStack = *(CurrentStackPTR - 2)  // New top
-    return value
-])
+#codeblock(lang: "pseudocode", [#raw("function PopStack():\n    value = *CurrentStackPTR\n    CurrentStackPTR = CurrentStackPTR + 2  // Move stack pointer up\n    TopOfStack = *(CurrentStackPTR - 2)  // New top\n    return value")])
 
 === Stack Effects Notation
 

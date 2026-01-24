@@ -275,14 +275,63 @@ pub fn markStackReference(gc: *GC, ptr: LispPTR) errors.MemoryError!void {
 /// Find in hash table
 /// Per rewrite documentation memory/garbage-collection.md
 pub fn findInHashTable(gc: *GC, ptr: LispPTR, operation: GCOperation) errors.MemoryError!void {
-    _ = gc;
-    _ = ptr;
-    _ = operation;
-    // TODO: Implement hash table lookup
-    // 1. Hash pointer
-    // 2. Check HTmain
-    // 3. Follow collision chain if needed
-    // 4. Check overflow table if needed
+    if (ptr == 0) {
+        // NIL pointer - no operation needed
+        return;
+    }
+
+    const table_size = gc.htmain.len;
+    const hash_index = hashAddress(ptr, table_size);
+    const ptr_segnum = @as(u15, @intCast(ptr & 0x7FFF));
+
+    // Check main table
+    const entry = &gc.htmain[hash_index];
+    if (entry.segnum == ptr_segnum) {
+        // Found in main table
+        switch (operation) {
+            .ADD => try addReference(gc, ptr),
+            .DELETE => try deleteReference(gc, ptr),
+            .FIND => {}, // Just check existence
+        }
+        return;
+    }
+
+    // Check collision table if collision flag set
+    if (entry.collision == 1) {
+        var coll_index = hash_index;
+        while (coll_index < gc.htcoll.len) {
+            if (gc.htcoll[coll_index] == ptr) {
+                // Found in collision table
+                switch (operation) {
+                    .ADD => try addReference(gc, ptr),
+                    .DELETE => try deleteReference(gc, ptr),
+                    .FIND => {}, // Just check existence
+                }
+                return;
+            }
+            coll_index += 1;
+        }
+    }
+
+    // Check overflow table
+    for (gc.htbig) |overflow_entry| {
+        if (overflow_entry.ptr == ptr) {
+            // Found in overflow table
+            switch (operation) {
+                .ADD => try addReference(gc, ptr),
+                .DELETE => try deleteReference(gc, ptr),
+                .FIND => {}, // Just check existence
+            }
+            return;
+        }
+    }
+
+    // Pointer not found
+    switch (operation) {
+        .ADD => try addReference(gc, ptr), // Will create new entry
+        .DELETE => {}, // No-op if not found
+        .FIND => {}, // Not found
+    }
 }
 
 /// T065, T066: Reclamation logic and free list management

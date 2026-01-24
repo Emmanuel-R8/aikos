@@ -40,7 +40,7 @@ function ExecuteFN(arg_count, atom_index):
 
     // Lookup function definition from atom table
     // C: defcell = GetDEFCELL68k(atom_index)
-    // See data-structures/atom-table.md for detailed calculation
+    // See data-structures/atom-table.typ for detailed calculation
     // For BIGVM+BIGATOMS: GetDEFCELLlitatom(index) = AtomSpace + (5 * index + 2) * sizeof(LispPTR)
     defcell = GetDEFCELL(atom_index)
     

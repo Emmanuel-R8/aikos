@@ -17,6 +17,9 @@ pub fn handleBIND(vm: *VM, byte1: u8, byte2: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
     const errors_module = @import("../../utils/errors.zig");
 
+    // Save current TOPOFSTACK for restoration during UNBIND
+    const saved_topofstack = stack_module.getTopOfStack(vm);
+
     // Parse byte1: n1 (high 4 bits), n2 (low 4 bits)
     const n1 = byte1 >> 4;
     const n2 = byte1 & 0xF;
@@ -68,6 +71,9 @@ pub fn handleBIND(vm: *VM, byte1: u8, byte2: u8) errors.VMError!void {
         }
     }
 
+    // Push saved TOPOFSTACK for restoration during UNBIND
+    try stack_module.pushStack(vm, saved_topofstack);
+
     // Set TOS to marker: ((~(n1 + n2)) << 16) | (offset << 1)
     const total = n1 + n2;
     const marker: LispPTR = (@as(LispPTR, ~total) << 16) | (@as(LispPTR, offset) << 1);
@@ -101,8 +107,7 @@ pub fn handleBIND(vm: *VM, byte1: u8, byte2: u8) errors.VMError!void {
 ///
 /// Variables are cleared by setting *--ppvar = 0xffffffff (unbound marker)
 ///
-/// NOTE: TOPOFSTACK restoration currently hardcoded to 0x140000 based on C trace.
-/// TODO: Determine proper source of this value (likely saved environment base).
+/// NOTE: TOPOFSTACK restoration now properly implemented by saving/restoring from stack during BIND/UNBIND.
 pub fn handleUNBIND(vm_obj: *VM) errors.VMError!void {
     const errors_module = @import("../../utils/errors.zig");
 
@@ -186,11 +191,10 @@ pub fn handleUNBIND(vm_obj: *VM) errors.VMError!void {
     }
 
     // PHASE 5: Restore environment (TOPOFSTACK)
-    // TODO: Currently hardcoded to 0x140000 based on C trace analysis
-    // This should be restored from a saved environment base address
-    // In C trace: UNBIND sets TOPOFSTACK from unknown source to 0x140000
-    vm_obj.top_of_stack = 0x140000;
-    // std.debug.print("DEBUG UNBIND: restored TOPOFSTACK to 0x140000 (TODO: determine proper source)\n", .{});
+    // Restore from saved value pushed during BIND
+    // The saved TOPOFSTACK is at CSTKPTRL[1] (after the marker at CSTKPTRL[0])
+    vm_obj.top_of_stack = vm_obj.cstkptrl.?[1];
+    // std.debug.print("DEBUG UNBIND: restored TOPOFSTACK to 0x{x} from stack\n", .{vm_obj.top_of_stack});
 
     if (marker == 0) return errors_module.VMError.StackUnderflow;
 }

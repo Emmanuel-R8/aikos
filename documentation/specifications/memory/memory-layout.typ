@@ -6,7 +6,7 @@ Complete specification of memory regions, their organization, and memory layout.
 
 == Overview
 
-Maiko memory is organized into distinct regions, each serving a specific purpose. Memory regions are mapped to virtual addresses and managed independently.
+Maiko memory is organized into distinct regions, each serving a specific purpose. Memory regions are mapped to virtual addresses using the address translation system documented in `@maiko_untouched/inc/adr68k.h`. Each region serves specific functions and has distinct management characteristics.
 
 == Memory Regions
 

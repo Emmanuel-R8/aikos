@@ -50,32 +50,68 @@ pub fn handleMAKENUMBER(vm: *VM) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleIPLUS_N(vm: *VM, count: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
-    // TODO: Proper implementation - add count values
-    var sum: LispPTR = 0;
-    var i: u8 = 0;
+    const types_module = @import("../../utils/types.zig");
+
+    if (count == 0) {
+        try stack_module.pushStack(vm, 0); // NIL for zero args
+        return;
+    }
+
+    // Pop first value
+    const first_value = try stack_module.popStack(vm);
+    var sum = types_module.extractInteger(first_value) catch {
+        return errors.VMError.InvalidNumberType;
+    };
+
+    // Add remaining values
+    var i: u8 = 1;
     while (i < count) : (i += 1) {
         const value = try stack_module.popStack(vm);
-        sum += value;
+        const int_value = types_module.extractInteger(value) catch {
+            return errors.VMError.InvalidNumberType;
+        };
+        sum += int_value;
     }
-    try stack_module.pushStack(vm, sum);
+
+    // Create result number
+    const result = types_module.createInteger(sum) catch {
+        return errors.VMError.InvalidNumberType;
+    };
+    try stack_module.pushStack(vm, result);
 }
 
 /// IDIFFERENCE_N: Integer difference N
 /// Per rewrite documentation instruction-set/opcodes.md
 pub fn handleIDIFFERENCE_N(vm: *VM, count: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
-    // TODO: Proper implementation
+    const types_module = @import("../../utils/types.zig");
+
     if (count == 0) {
-        try stack_module.pushStack(vm, 0);
+        try stack_module.pushStack(vm, 0); // NIL for zero args
         return;
     }
-    var result = try stack_module.popStack(vm);
+
+    // Pop first value (minuend)
+    const first_value = try stack_module.popStack(vm);
+    var result = types_module.extractInteger(first_value) catch {
+        return errors.VMError.InvalidNumberType;
+    };
+
+    // Subtract remaining values (subtrahends)
     var i: u8 = 1;
     while (i < count) : (i += 1) {
         const value = try stack_module.popStack(vm);
-        result -= value;
+        const int_value = types_module.extractInteger(value) catch {
+            return errors.VMError.InvalidNumberType;
+        };
+        result -= int_value;
     }
-    try stack_module.pushStack(vm, result);
+
+    // Create result number
+    const result_num = types_module.createInteger(result) catch {
+        return errors.VMError.InvalidNumberType;
+    };
+    try stack_module.pushStack(vm, result_num);
 }
 
 /// BOXIPLUS: Box integer plus

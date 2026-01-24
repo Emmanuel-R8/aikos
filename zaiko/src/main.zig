@@ -252,7 +252,41 @@ fn parseCommandLine(args: []const []const u8) !Options {
     return options;
 }
 
+/// Main entry point for Medley Interlisp Zig emulator
+///
+/// EXECUTION SEQUENCE OVERVIEW:
+/// 1. Parse command-line arguments
+/// 2. Load sysout file (contains frozen Lisp image)
+/// 3. Initialize VM state from IFPAGE (Interface Page)
+/// 4. Initialize SDL2 display system
+/// 5. Initialize memory management (storage, GC)
+/// 6. Initialize system state (I/O, timers, etc.)
+/// 7. Enter main dispatch loop (execute bytecode + handle events)
+///
+/// COMPONENT INTERACTIONS:
+/// - main.zig: Orchestrates initialization and main loop
+/// - sysout: Loads frozen Lisp image from disk
+/// - vm/stack.zig: Virtual machine state and stack management
+/// - vm/dispatch.zig: Bytecode execution and VM control
+/// - memory/storage.zig: Dynamic memory allocation
+/// - memory/gc.zig: Garbage collection
+/// - display/sdl_backend.zig: SDL2 graphics and windowing
+/// - display/events.zig: Input event handling
+/// - io/keyboard.zig & io/mouse.zig: Input device management
+///
+/// MEMORY LAYOUT:
+/// - Virtual memory: Loaded from sysout file
+/// - Stack: Separate allocation within virtual memory
+/// - Heap: Managed by storage/GC system
+/// - Display buffer: SDL texture for graphics
+///
+/// EVENT LOOP:
+/// - Poll SDL events (keyboard, mouse, window)
+/// - Execute VM instructions (dispatch loop)
+/// - Update display when needed
+/// - Handle errors gracefully
 pub fn main() !void {
+    // Memory allocator for the entire application
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
@@ -277,9 +311,11 @@ pub fn main() !void {
         return;
     }
 
-    // Determine sysout path
+    // PHASE 1: DETERMINE SYSOUT FILE
+    // Sysout file contains the frozen Lisp image with pre-compiled code and data
+    // This is the "operating system image" that gets loaded into memory
     const sysout_path = options.sysout_path orelse blk: {
-        // Check environment variable
+        // Check environment variable (matches C emulator behavior)
         if (std.process.getEnvVarOwned(allocator, "LDESRCESYSOUT")) |env_path| {
             break :blk env_path;
         } else |_| {
@@ -308,7 +344,10 @@ pub fn main() !void {
         std.debug.print("Memory size: {} MB\n", .{size});
     }
 
-    // Load sysout file FIRST (before initializing VM, so we know memory requirements)
+    // PHASE 2: LOAD SYSOUT FILE
+    // Load the frozen Lisp image from disk into memory
+    // This includes: virtual memory, IFPAGE (interface page), FPtoVP table
+    // CRITICAL: Must load before VM initialization to know memory layout
     var sysout_result = sysout.loadSysout(allocator, sysout_path) catch |err| {
         std.debug.print("Failed to load sysout file '{s}': {}\n", .{ sysout_path, err });
         std.debug.print("Please ensure the sysout file exists and is a valid Medley sysout file.\n", .{});
@@ -316,12 +355,17 @@ pub fn main() !void {
     };
     defer sysout_result.deinit();
 
-    // Initialize VM (after sysout is loaded, so we can use sysout memory size)
+    // PHASE 3: INITIALIZE VIRTUAL MACHINE
+    // Create VM instance with stack management
+    // Stack is separate from sysout virtual memory but points into it
     const stack_size = 1024 * 1024; // 1MB stack
     var vm = try stack.VM.init(allocator, stack_size);
     defer vm.deinit();
 
-    // Initialize memory management
+    // PHASE 4: INITIALIZE MEMORY MANAGEMENT
+    // Set up dynamic memory allocation and garbage collection
+    // Storage manages the heap in the DS (Dynamic Storage) region
+    // GC handles reference counting and memory reclamation
     const heap_size = if (options.memory_size_mb) |mb| mb * 1024 * 1024 else 10 * 1024 * 1024; // Default 10MB
     // CRITICAL: Use DS_OFFSET as the lisp_base for storage (matches C implementation)
     // Storage is allocated in the DS (Dynamic Storage) region of the Lisp address space
@@ -334,7 +378,10 @@ pub fn main() !void {
 
     std.debug.print("Sysout loaded: version={}, keyval=0x{x}\n", .{ sysout_result.ifpage.lversion, sysout_result.ifpage.key });
 
-    // T091: Initialize SDL2 display (before VM initialization)
+    // PHASE 5: INITIALIZE DISPLAY SYSTEM
+    // Set up SDL2 window, renderer, and texture for graphics output
+    // Display shows the Lisp system's graphical user interface
+    // CRITICAL: Initialize before VM to ensure display is ready for graphics operations
     const screen_width = options.screen_width orelse 1024;
     const screen_height = options.screen_height orelse 768;
     const pixel_scale = options.pixel_scale orelse 1;
@@ -365,9 +412,10 @@ pub fn main() !void {
     };
     _ = &mouse_state; // Used in event polling
 
-    // CRITICAL: Initialize system state before start_lisp()
-    // Equivalent to: build_lisp_map(), init_ifpage(), init_iopage(), init_miscstats(), init_storage()
-    // C: maiko/src/main.c:725-729
+    // PHASE 6: INITIALIZE SYSTEM STATE
+    // Set up low-level system structures before VM execution
+    // Equivalent to C: build_lisp_map(), init_ifpage(), init_iopage(), init_miscstats(), init_storage()
+    // Prepares virtual memory layout and system tables
     const init_module = @import("vm/init.zig");
     const sysout_size = sysout_result.ifpage.process_size;
     init_module.initializeSystem(
@@ -380,7 +428,10 @@ pub fn main() !void {
     };
     std.debug.print("System state initialized\n", .{});
 
-    // Initialize VM state from IFPAGE
+    // PHASE 7: INITIALIZE VM STATE FROM IFPAGE
+    // Set up VM registers, stack pointers, and program counter from IFPAGE data
+    // This is equivalent to C's start_lisp() function
+    // CRITICAL: Establishes the initial execution state for the Lisp system
     dispatch.initializeVMState(&vm, &sysout_result.ifpage, sysout_result.virtual_memory, &sysout_result.fptovp) catch |err| {
         std.debug.print("Failed to initialize VM state: {}\n", .{err});
         return;
@@ -393,11 +444,16 @@ pub fn main() !void {
         sysout_result.ifpage.currentfxp,
     });
 
-    // TODO: Initialize timer with timer_interval if specified
+    // Timer initialization not yet implemented (requires timer subsystem)
 
     std.debug.print("VM initialized, entering dispatch loop\n", .{});
 
-    // T091: Main loop with event polling and VM execution
+    // PHASE 8: MAIN DISPATCH LOOP
+    // Core execution loop that alternates between:
+    // 1. Polling SDL events (keyboard, mouse, window events)
+    // 2. Executing VM instructions (bytecode interpretation)
+    // 3. Updating display when needed
+    // This is the heart of the emulator - equivalent to C's main event loop
     var quit_requested = false;
     var instruction_count: u64 = 0;
     const max_instructions: u64 = 1000000; // Safety limit to prevent infinite loops
@@ -422,9 +478,18 @@ pub fn main() !void {
         }
 
         // Execute VM instructions
+        // ERROR HANDLING STRATEGY:
+        // - Critical VM errors (stack/pointer corruption): Stop execution immediately
+        //   Rationale: Memory corruption could cause crashes or data loss
+        //   Implication: Emulator exits safely rather than continuing with invalid state
+        // - InvalidOpcode: Log and continue
+        //   Rationale: Allows debugging missing opcode implementations
+        //   Implication: Execution continues to identify all missing opcodes
+        // - Other errors: Log and continue (for debugging incomplete implementations)
         dispatch.dispatch(&vm) catch |err| {
-            // Critical errors that should stop execution
             switch (err) {
+                // CRITICAL ERRORS: Stop execution immediately
+                // These indicate severe VM state corruption that cannot be safely continued
                 errors.VMError.StackOverflow, errors.VMError.StackUnderflow, errors.VMError.InvalidAddress, errors.VMError.MemoryAccessFailed, errors.VMError.InvalidStackPointer, errors.VMError.InvalidFramePointer => {
                     std.debug.print("CRITICAL VM ERROR: {}\n", .{err});
                     std.debug.print("Stopping execution due to critical error\n", .{});
@@ -432,11 +497,16 @@ pub fn main() !void {
                     quit_requested = true;
                     break;
                 },
+                // NON-CRITICAL: Invalid opcode - log and continue
+                // Rationale: Allows systematic discovery of missing opcode implementations
+                // Implication: Execution continues to find all unimplemented opcodes
                 errors.VMError.InvalidOpcode => {
-                    // InvalidOpcode is handled in dispatch loop, but log it
                     std.debug.print("VM dispatch error: {}\n", .{err});
                     // Continue execution to see what happens
                 },
+                // OTHER ERRORS: Log and continue (for debugging)
+                // Rationale: During development, continue execution to identify all issues
+                // Implication: May lead to cascading errors but helps complete debugging
                 else => {
                     std.debug.print("VM dispatch error: {}\n", .{err});
                     // For other errors, continue execution (for debugging)

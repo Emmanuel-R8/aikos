@@ -6,10 +6,9 @@ const VM = stack.VM;
 const LispPTR = types.LispPTR;
 
 /// Arithmetic opcode handlers
-/// Per rewrite documentation opcodes.md
-
+/// See specifications/instruction-set/opcodes-arithmetic.typ
 /// IPLUS2: Integer plus 2 operands
-/// Per rewrite documentation instruction-set/opcodes.md
+/// See specifications/instruction-set/opcodes-arithmetic.typ §IPLUS2
 /// Matches C implementation: maiko/src/arithops.c:N_OP_iplus2
 pub fn handleIPLUS2(vm: *VM) errors.VMError!void {
     const stack_module = @import("../stack.zig");
@@ -20,6 +19,9 @@ pub fn handleIPLUS2(vm: *VM) errors.VMError!void {
     const tosm1 = try stack_module.popStack(vm);
 
     // Extract integers using N_IGETNUMBER equivalent
+    // ERROR HANDLING: InvalidNumberType if operands are not integers
+    // Rationale: IPLUS2 requires integer operands, non-integers indicate programming error
+    // Implication: Execution stops with InvalidNumberType error
     const arg1 = types_module.extractInteger(tosm1) catch return error.InvalidNumberType;
     const arg2 = types_module.extractInteger(tos) catch return error.InvalidNumberType;
 
@@ -27,6 +29,9 @@ pub fn handleIPLUS2(vm: *VM) errors.VMError!void {
     const result_int = arg1 + arg2;
 
     // Check for overflow (matches C overflow detection)
+    // ERROR HANDLING: InvalidOpcode on overflow
+    // Rationale: Integer overflow indicates computation error, matches C ERROR_EXIT
+    // Implication: Execution stops - overflow cannot be safely continued
     if (((arg1 >= 0) == (arg2 >= 0)) and ((result_int >= 0) != (arg1 >= 0))) {
         return error.InvalidOpcode; // Overflow - matches C ERROR_EXIT behavior
     }
@@ -240,26 +245,26 @@ pub fn handleIPLUS_N(vm: *VM, n: u8) errors.VMError!void {
     const errors_module = @import("../../utils/errors.zig");
 
     const tos = stack_module.getTopOfStack(vm);
-    
+
     // Extract integer from TOS
     // C: N_IGETNUMBER(tos, arg1, do_ufn);
     const arg1 = types_module.extractInteger(tos) catch {
         return errors_module.VMError.InvalidNumberType;
     };
-    
+
     // Perform addition with overflow checking
     // C: result = arg1 + n; if ((result < 0) && (arg1 >= 0)) { ERROR_EXIT(tos); }
     const n_signed = @as(i32, @intCast(n));
     const result_int = arg1 + n_signed;
-    
+
     // Check for overflow
     if ((result_int < 0) and (arg1 >= 0)) {
         return errors_module.VMError.InvalidNumberType; // Overflow
     }
-    
+
     // Encode result using N_ARITH_SWITCH
     const result = try types_module.encodeIntegerResult(result_int);
-    
+
     // Set TOS to result
     stack_module.setTopOfStack(vm, result);
 }
@@ -275,26 +280,26 @@ pub fn handleIDIFFERENCE_N(vm: *VM, n: u8) errors.VMError!void {
     const errors_module = @import("../../utils/errors.zig");
 
     const tos = stack_module.getTopOfStack(vm);
-    
+
     // Extract integer from TOS
     // C: N_IGETNUMBER(tos, arg1, do_ufn);
     const arg1 = types_module.extractInteger(tos) catch {
         return errors_module.VMError.InvalidNumberType;
     };
-    
+
     // Perform subtraction with overflow checking
     // C: result = arg1 - n; if ((result >= 0) && (arg1 < 0)) { ERROR_EXIT(tos); }
     const n_signed = @as(i32, @intCast(n));
     const result_int = arg1 - n_signed;
-    
+
     // Check for overflow
     if ((result_int >= 0) and (arg1 < 0)) {
         return errors_module.VMError.InvalidNumberType; // Overflow
     }
-    
+
     // Encode result using N_ARITH_SWITCH
     const result = try types_module.encodeIntegerResult(result_int);
-    
+
     // Set TOS to result
     stack_module.setTopOfStack(vm, result);
 }

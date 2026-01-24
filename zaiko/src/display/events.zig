@@ -253,14 +253,49 @@ pub fn pollEvents(
 /// Per contracts/display-interface.zig
 pub fn processMouseEvent(display: *sdl_backend.DisplayInterface, sdl_event: *const anyopaque) mouse.MouseEvent {
     _ = display;
-    _ = sdl_event;
-    // TODO: Translate SDL mouse event to Lisp mouse event format
-    return mouse.MouseEvent{
-        .event_type = .MOTION,
-        .button = 0,
-        .x = 0,
-        .y = 0,
-        .modifiers = 0,
-        .timestamp = 0,
-    };
+    const event: *const sdl2.SDL_Event = @ptrCast(@alignCast(sdl_event));
+
+    switch (event.type) {
+        sdl2.SDL_MOUSEBUTTONDOWN => {
+            return mouse.MouseEvent{
+                .event_type = .BUTTON_PRESS,
+                .button = @intCast(event.button.button),
+                .x = event.button.x,
+                .y = event.button.y,
+                .modifiers = 0, // TODO: Get modifier state
+                .timestamp = event.button.timestamp,
+            };
+        },
+        sdl2.SDL_MOUSEBUTTONUP => {
+            return mouse.MouseEvent{
+                .event_type = .BUTTON_RELEASE,
+                .button = @intCast(event.button.button),
+                .x = event.button.x,
+                .y = event.button.y,
+                .modifiers = 0, // TODO: Get modifier state
+                .timestamp = event.button.timestamp,
+            };
+        },
+        sdl2.SDL_MOUSEMOTION => {
+            return mouse.MouseEvent{
+                .event_type = .MOTION,
+                .button = 0,
+                .x = event.motion.x,
+                .y = event.motion.y,
+                .modifiers = 0, // TODO: Get modifier state
+                .timestamp = event.motion.timestamp,
+            };
+        },
+        else => {
+            // Unknown mouse event type, return motion with zeros
+            return mouse.MouseEvent{
+                .event_type = .MOTION,
+                .button = 0,
+                .x = 0,
+                .y = 0,
+                .modifiers = 0,
+                .timestamp = 0,
+            };
+        },
+    }
 }

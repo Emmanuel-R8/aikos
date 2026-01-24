@@ -85,7 +85,7 @@ Control flow and memory operation opcodes (0x00-0x7F).
 
 === Variable Access
 - *IVAR0-IVAR6 (0x40-0x46)* [1] Push local variable 0-6.
-  - Uses LispPTR offset (index * 4 bytes)
+  - Uses LispPTR offset (index \* 4 bytes)
 - *IVARX (0x47)* [2] Push indexed local variable.
   - *Stack*: `[] -> [value]`
   - *Operand*: `x` (1B, DLword offset)
@@ -96,7 +96,7 @@ Control flow and memory operation opcodes (0x00-0x7F).
   - *Element Size*: Reads 2 DLwords (4 bytes) as LispPTR using `GetLongWord()`
   - *Byte Order*: Handles big-endian byte order from sysout format
 - *PVAR0-PVAR6 (0x48-0x4E)* [2] Push parameter 0-6.
-  - Uses LispPTR offset (index * 4 bytes)
+  - Uses LispPTR offset (index \* 4 bytes)
 - *PVARX (0x4F)* [2] Push indexed parameter.
   - *Stack*: `[] -> [value]`
   - *Operand*: `x` (1B, DLword offset)
@@ -109,7 +109,7 @@ Control flow and memory operation opcodes (0x00-0x7F).
 - *FVAR0-FVAR6 (0x50-0x56)* [1] Push free variable 0-6.
 - *FVARX (0x57)* [2] Push indexed free variable.
 - *PVAR_0-PVAR_6 (0x58-0x5E)* [1] Alternative PVAR access.
-- *PVARX_ (0x5F)* [2] Alternative indexed PVAR.
+- *PVARX\_ (0x5F)* [2] Alternative indexed PVAR.
   - *Stack*: `[value] -> []`
   - *Operand*: `x` (1B, DLword offset)
   - *CRITICAL*: Uses DLword offset, NOT LispPTR offset
@@ -118,14 +118,14 @@ Control flow and memory operation opcodes (0x00-0x7F).
   - *Byte Order*: Writes in big-endian byte order for sysout format
 - *GVAR (0x60)* [3] Atom index (2B). Push global variable value.
 - *ARG0 (0x61)* [1] Push argument 0.
-- *IVARX_ (0x62)* [2] Set indexed local variable.
+- *IVARX\_ (0x62)* [2] Set indexed local variable.
   - *Stack*: `[value] -> []`
   - *Operand*: `x` (1B, DLword offset)
   - *CRITICAL*: Uses DLword offset, NOT LispPTR offset
   - *C*: `IVARX_(x): *((LispPTR *)((DLword *)IVAR + (x))) = TOPOFSTACK;`
   - *Access*: Writes LispPTR to `(DLword *)IVAR + x` (x is in DLword units)
   - *Byte Order*: Writes in big-endian byte order for sysout format
-- *GVAR_ (0x63)* [3] Atom index (2B). Set global variable value.
+- *GVAR\_ (0x63)* [3] Atom index (2B). Set global variable value.
   - *Stack*: `[value] -> []`
   - *Operand*: atom_index (2B)
   - *CRITICAL*: Updates GC refs when setting global variable values

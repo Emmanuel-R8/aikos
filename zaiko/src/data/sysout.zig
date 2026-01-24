@@ -13,6 +13,8 @@ const IFPAGE_KEYVAL = types.IFPAGE_KEYVAL;
 const IFPAGE_ADDRESS = types.IFPAGE_ADDRESS;
 const BYTESPER_PAGE = types.BYTESPER_PAGE;
 
+/// Sysout file loading and validation
+/// See specifications/data-structures/sysout-format.typ
 /// Sysout validation key (matches C IFPAGE_KEYVAL)
 /// CRITICAL: Must be 0x15e3 to match C implementation (maiko/inc/ifpage.h:15)
 pub const SYSOUT_KEYVAL: u16 = IFPAGE_KEYVAL;

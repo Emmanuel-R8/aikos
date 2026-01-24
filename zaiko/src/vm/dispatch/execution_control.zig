@@ -133,6 +133,18 @@ pub fn handleControlFlow(vm: *VM, opcode: Opcode, instruction: Instruction) erro
             try opcodes.handleGCREF(vm, instruction.getByteOperand(0));
             return null;
         },
+        .RECLAIMCELL => {
+            try opcodes.handleRECLAIMCELL(vm);
+            return null;
+        },
+        .GCSCAN1 => {
+            try opcodes.handleGCSCAN1(vm);
+            return null;
+        },
+        .GCSCAN2 => {
+            try opcodes.handleGCSCAN2(vm);
+            return null;
+        },
         .ASSOC => try opcodes.handleASSOC(vm),
         // Note: No generic JUMP opcode - use JUMPX, JUMPXX, or JUMP0-JUMP15
         // Optimized jump variants (offset encoded in opcode).

@@ -157,7 +157,8 @@ pub fn initializeVMState(
     // This is a simplified version - full implementation would use proper address translation
 
     // Initialize program counter (will be set from function entry point or sysout state)
-    vm.pc = 0; // TODO: Set from sysout state or function entry point
+    // For now, start at 0 - full implementation will set from sysout state
+    vm.pc = 0;
 
     // Note: Full implementation would:
     // 1. Convert LispPTR addresses to native pointers using address translation

@@ -16,9 +16,9 @@ Sysout files are binary files containing a complete Lisp system state. They are 
 
 *Related Maiko Documentation*:
 
-- `../rewrite-spec/data-structures/sysout-format.md` - Complete sysout format specification
-- `../components/memory-management.md` - Memory management and sysout loading
-- `../architecture.md` - Maiko system architecture
+- `../specifications/data-structures/sysout-format-overview.typ` - Complete sysout format specification
+- `../../components/memory-management.typ` - Memory management and sysout loading
+- `../../core/architecture.typ` - Maiko system architecture
 
 === File Structure
 
@@ -63,7 +63,7 @@ Located at fixed address: `IFPAGE_ADDRESS`
 
 *Validation*: Maiko validates IFPAGE key and version compatibility before loading.
 
-*Related Maiko Documentation*: `../rewrite-spec/data-structures/sysout-format.md#interface-page-ifpage` - IFPAGE structure details
+*Related Maiko Documentation*: `../specifications/data-structures/sysout-format-overview.typ#interface-page-ifpage` - IFPAGE structure details
 
 === FPtoVP Table
 
@@ -77,7 +77,7 @@ Maps file page numbers to virtual page numbers.
 
 *Location*: Offset `ifpage.fptovpstart`, size `nactivepages` entries
 
-*Related Maiko Documentation*: `../rewrite-spec/data-structures/sysout-format.md#fptovp-table` - FPtoVP table details
+*Related Maiko Documentation*: `../specifications/data-structures/sysout-format-overview.typ#fptovp-table` - FPtoVP table details
 
 === Memory Regions
 
@@ -88,7 +88,7 @@ Sysout files contain these memory regions:
 - *Heap Space (MDS)*: Cons cells, arrays, code
 - *Interface Page*: VM state
 
-*Related Maiko Documentation*: `../rewrite-spec/data-structures/sysout-format.md#memory-regions-in-sysout` - Memory region details
+*Related Maiko Documentation*: `../specifications/data-structures/sysout-format-overview.typ#memory-regions-in-sysout` - Memory region details
 
 === Byte Order
 
@@ -96,7 +96,7 @@ Sysout files contain these memory regions:
 - *Word order*: 16-bit words in little-endian
 - *Byte swapping*: Maiko handles byte swapping if host byte order differs from file byte order
 
-*Related Maiko Documentation*: `../rewrite-spec/data-structures/sysout-format.md#byte-swapping` - Byte swapping details
+*Related Maiko Documentation*: `../specifications/data-structures/sysout-format-overview.typ#byte-swapping` - Byte swapping details
 
 === Version Compatibility
 
@@ -105,7 +105,7 @@ Sysout files include version information:
 - *Lisp version*: Must be compatible with Maiko
 - *Bytecode version*: Must be supported by Maiko
 
-*Related Maiko Documentation*: `../rewrite-spec/data-structures/sysout-format.md#version-compatibility` - Version checking details
+*Related Maiko Documentation*: `../specifications/data-structures/sysout-format-overview.typ#version-compatibility` - Version checking details
 
 == Vmem File Format
 
@@ -144,8 +144,8 @@ Default location: `LOGINDIR/vmem/lisp_{run-id}.virtualmem` or `LOGINDIR/vmem/lis
 
 *Related Maiko Documentation*:
 
-- `../components/memory-management.md` - Virtual memory management
-- `../rewrite-spec/memory/virtual-memory.md` - Virtual memory specification
+- `../../components/memory-management.typ` - Virtual memory management
+- `../specifications/memory/virtual-memory.typ` - Virtual memory specification
 
 == Config File Format
 
@@ -291,5 +291,5 @@ REM.CM files are executed:
 - *Virtual Memory Files*: Virtual Memory Files Component - Vmem file usage
 - *Configuration Files*: Configuration Files Component - Config file usage
 - *Greet Files*: Greet Files Component - Greet file usage
-- *Maiko Sysout Format*: `../rewrite-spec/data-structures/sysout-format.md` - Complete sysout format specification
+- *Maiko Sysout Format*: `../specifications/data-structures/sysout-format-overview.typ` - Complete sysout format specification
 - *Maiko Virtual Memory*: See Maiko documentation for vmem file structure

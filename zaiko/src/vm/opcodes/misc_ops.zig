@@ -98,38 +98,58 @@ pub fn handleMISCN(vm: *VM, misc_index: u8, arg_count: u8) errors.VMError!void {
 
 /// MISC3: Miscellaneous 3
 /// Per rewrite documentation instruction-set/opcodes.md
+/// C: opc_MISC3 in maiko/inc/opcodes.h
+/// Placeholder for miscellaneous operation 3
 pub fn handleMISC3(vm: *VM) errors.VMError!void {
-    // TODO: Proper implementation
-    _ = vm;
+    const stack_module = @import("../stack.zig");
+    // TODO: Implement specific MISC3 operation (array element reference with explicit type)
+    // For now, return NIL to maintain stack balance
+    try stack_module.pushStack(vm, 0);
 }
 
 /// MISC4: Miscellaneous 4
 /// Per rewrite documentation instruction-set/opcodes.md
+/// C: opc_MISC4 in maiko/inc/opcodes.h
+/// Placeholder for miscellaneous operation 4
 pub fn handleMISC4(vm: *VM) errors.VMError!void {
-    // TODO: Proper implementation
-    _ = vm;
+    const stack_module = @import("../stack.zig");
+    // TODO: Implement specific MISC4 operation
+    // For now, return NIL to maintain stack balance
+    try stack_module.pushStack(vm, 0);
 }
 
 /// MISC7: Miscellaneous 7
 /// Per rewrite documentation instruction-set/opcodes.md
+/// C: opc_MISC7 in maiko/inc/opcodes.h
+/// Placeholder for miscellaneous operation 7
 pub fn handleMISC7(vm: *VM, arg: u8) errors.VMError!void {
-    // TODO: Proper implementation
-    _ = vm;
+    const stack_module = @import("../stack.zig");
+    // TODO: Implement specific MISC7 operation
+    // For now, return NIL to maintain stack balance
+    try stack_module.pushStack(vm, 0);
     _ = arg;
 }
 
 /// MISC8: Miscellaneous 8
 /// Per rewrite documentation instruction-set/opcodes.md
+/// C: opc_MISC8 in maiko/inc/opcodes.h
+/// Placeholder for miscellaneous operation 8
 pub fn handleMISC8(vm: *VM) errors.VMError!void {
-    // TODO: Proper implementation
-    _ = vm;
+    const stack_module = @import("../stack.zig");
+    // TODO: Implement specific MISC8 operation
+    // For now, return NIL to maintain stack balance
+    try stack_module.pushStack(vm, 0);
 }
 
 /// MISC10: Miscellaneous 10
 /// Per rewrite documentation instruction-set/opcodes.md
+/// C: opc_MISC10 in maiko/inc/opcodes.h
+/// Placeholder for miscellaneous operation 10
 pub fn handleMISC10(vm: *VM) errors.VMError!void {
-    // TODO: Proper implementation
-    _ = vm;
+    const stack_module = @import("../stack.zig");
+    // TODO: Implement specific MISC10 operation
+    // For now, return NIL to maintain stack balance
+    try stack_module.pushStack(vm, 0);
 }
 
 /// UPCTRACE: Up counter trace

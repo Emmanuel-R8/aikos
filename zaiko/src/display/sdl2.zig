@@ -6,10 +6,12 @@ const c = @cImport({
     @cInclude("SDL2/SDL.h");
 });
 
-pub const SDL_INIT_VIDEO = c.SDL_INIT_VIDEO;
-pub const SDL_WINDOWPOS_UNDEFINED = c.SDL_WINDOWPOS_UNDEFINED;
-pub const SDL_RENDERER_ACCELERATED = c.SDL_RENDERER_ACCELERATED;
-pub const SDL_TEXTUREACCESS_STREAMING = c.SDL_TEXTUREACCESS_STREAMING;
+// SDL constants used by Medley Interlisp
+// These are the minimal set of SDL constants actually used by the Lisp system
+pub const SDL_INIT_VIDEO = c.SDL_INIT_VIDEO; // Used: Initialize SDL video subsystem
+pub const SDL_WINDOWPOS_UNDEFINED = c.SDL_WINDOWPOS_UNDEFINED; // Used: Position window at undefined location
+pub const SDL_RENDERER_ACCELERATED = c.SDL_RENDERER_ACCELERATED; // Used: Hardware-accelerated rendering
+pub const SDL_TEXTUREACCESS_STREAMING = c.SDL_TEXTUREACCESS_STREAMING; // Used: Streaming texture access for display updates
 
 pub const SDL_Window = c.SDL_Window;
 pub const SDL_Renderer = c.SDL_Renderer;
@@ -22,14 +24,18 @@ pub const SDL_KeyboardEvent = c.SDL_KeyboardEvent;
 pub const SDL_MouseMotionEvent = c.SDL_MouseMotionEvent;
 pub const SDL_MouseButtonEvent = c.SDL_MouseButtonEvent;
 
-pub const SDL_QUIT = c.SDL_QUIT;
-pub const SDL_KEYDOWN = c.SDL_KEYDOWN;
-pub const SDL_KEYUP = c.SDL_KEYUP;
-pub const SDL_MOUSEMOTION = c.SDL_MOUSEMOTION;
-pub const SDL_MOUSEBUTTONDOWN = c.SDL_MOUSEBUTTONDOWN;
-pub const SDL_MOUSEBUTTONUP = c.SDL_MOUSEBUTTONUP;
+// SDL event types used by Medley Interlisp
+pub const SDL_QUIT = c.SDL_QUIT; // Used: Window close/quit events
+pub const SDL_KEYDOWN = c.SDL_KEYDOWN; // Used: Keyboard key press events
+pub const SDL_KEYUP = c.SDL_KEYUP; // Used: Keyboard key release events
+pub const SDL_MOUSEMOTION = c.SDL_MOUSEMOTION; // Used: Mouse movement events
+pub const SDL_MOUSEBUTTONDOWN = c.SDL_MOUSEBUTTONDOWN; // Used: Mouse button press events
+pub const SDL_MOUSEBUTTONUP = c.SDL_MOUSEBUTTONUP; // Used: Mouse button release events
 
-// SDL keycodes
+// SDL keycodes used by Medley Interlisp
+// These 74 keycodes are specifically mapped to Lisp keycodes via the KEYMAP in events.zig
+// Only these keycodes are recognized by the Lisp system - others are ignored
+// The mapping covers standard ASCII keys, function keys, modifiers, and special keys
 pub const SDLK_5 = c.SDLK_5;
 pub const SDLK_4 = c.SDLK_4;
 pub const SDLK_6 = c.SDLK_6;
@@ -106,15 +112,17 @@ pub const SDLK_KP_3 = c.SDLK_KP_3;
 pub const SDLK_KP_ENTER = c.SDLK_KP_ENTER;
 
 // SDL mouse buttons
-pub const SDL_BUTTON_LEFT = c.SDL_BUTTON_LEFT;
-pub const SDL_BUTTON_MIDDLE = c.SDL_BUTTON_MIDDLE;
-pub const SDL_BUTTON_RIGHT = c.SDL_BUTTON_RIGHT;
+// SDL mouse button constants used by Medley Interlisp
+pub const SDL_BUTTON_LEFT = c.SDL_BUTTON_LEFT; // Used: Left mouse button (maps to Lisp button 1)
+pub const SDL_BUTTON_MIDDLE = c.SDL_BUTTON_MIDDLE; // Used: Middle mouse button (maps to Lisp button 2)
+pub const SDL_BUTTON_RIGHT = c.SDL_BUTTON_RIGHT; // Used: Right mouse button (maps to Lisp button 3)
 
 // SDL key modifiers
-pub const KMOD_SHIFT = c.KMOD_SHIFT;
-pub const KMOD_CTRL = c.KMOD_CTRL;
-pub const KMOD_ALT = c.KMOD_ALT;
-pub const KMOD_GUI = c.KMOD_GUI;
+// SDL modifier constants used by Medley Interlisp
+pub const KMOD_SHIFT = c.KMOD_SHIFT; // Used: Detect Shift key modifier
+pub const KMOD_CTRL = c.KMOD_CTRL; // Used: Detect Control key modifier
+pub const KMOD_ALT = c.KMOD_ALT; // Used: Detect Alt key modifier
+pub const KMOD_GUI = c.KMOD_GUI; // Used: Detect GUI/Meta key modifier (maps to Lisp META)
 
 pub fn SDL_Init(flags: u32) c_int {
     return c.SDL_Init(flags);

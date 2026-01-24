@@ -18,6 +18,8 @@ const DLword = types.DLword;
 const IFPAGE = types.IFPAGE;
 const VM = stack.VM;
 
+/// VM dispatch and execution control
+/// See specifications/vm-core/execution-model.typ
 /// C equivalent: RET macro (tos1defs.h:83-88)
 /// Initializes local cache variables from global state at start of dispatch
 /// This is only called ONCE at the start, not before every opcode.

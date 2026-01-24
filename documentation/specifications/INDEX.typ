@@ -32,47 +32,47 @@ Quick reference guide to all rewrite specification documents.
 
 ==== Bytecode Execution
 
-- *Instruction Format*: instruction-set/instruction-format.md
-- *Opcode Semantics*: instruction-set/opcodes.md
-- *Execution Model*: vm-core/execution-model.md
-- *Dispatch Loop*: vm-core/execution-model.md#dispatch-loop
+- *Instruction Format*: instruction-set/instruction-format.typ
+- *Opcode Semantics*: instruction-set/opcodes.typ
+- *Execution Model*: vm-core/execution-model.typ
+- *Dispatch Loop*: vm-core/execution-model.typ#dispatch-loop
 
 ==== Memory Management
 
-- *GC Algorithm*: memory/garbage-collection.md
-- *Address Translation*: memory/address-translation.md
-- *Memory Layout*: memory/memory-layout.md
-- *Virtual Memory*: memory/virtual-memory.md
+- *GC Algorithm*: memory/garbage-collection.typ
+- *Address Translation*: memory/address-translation.typ
+- *Memory Layout*: memory/memory-layout.typ
+- *Virtual Memory*: memory/virtual-memory.typ
 
 ==== Data Structures
 
-- *Cons Cells*: data-structures/cons-cells.md
-- *Arrays*: data-structures/arrays.md
-- *Function Headers*: data-structures/function-headers.md
-- *Sysout Format*: data-structures/sysout-format.md
+- *Cons Cells*: data-structures/cons-cells.typ
+- *Arrays*: data-structures/arrays.typ
+- *Function Headers*: data-structures/function-headers.typ
+- *Sysout Format*: data-structures/sysout-format.typ
 
 ==== Display and Graphics
 
-- *Display Interface*: display/interface-abstraction.md
-- *Graphics Operations*: display/graphics-operations.md
-- *Event Protocols*: display/event-protocols.md
+- *Display Interface*: display/interface-abstraction.typ
+- *Graphics Operations*: display/graphics-operations.typ
+- *Event Protocols*: display/event-protocols.typ
 
 ==== I/O Systems
 
-- *Keyboard*: io/keyboard-protocol.md
-- *Mouse*: io/mouse-protocol.md
-- *File System*: io/file-system.md
-- *Network*: io/network-protocol.md
+- *Keyboard*: io/keyboard-protocol.typ
+- *Mouse*: io/mouse-protocol.typ
+- *File System*: io/file-system.typ
+- *Network*: io/network-protocol.typ
 
 ==== Platform Requirements
 
-- *Required Behaviors*: platform-abstraction/required-behaviors.md
-- *Implementation Choices*: platform-abstraction/implementation-choices.md
+- *Required Behaviors*: platform-abstraction/required-behaviors.typ
+- *Implementation Choices*: platform-abstraction/implementation-choices.typ
 
 ==== Validation
 
-- *Reference Behaviors*: validation/reference-behaviors.md
-- *Compatibility Criteria*: validation/compatibility-criteria.md
+- *Reference Behaviors*: validation/reference-behaviors.typ
+- *Compatibility Criteria*: validation/compatibility-criteria.typ
 
 == File-to-Specification Mapping
 
@@ -80,56 +80,56 @@ Quick reference guide to all rewrite specification documents.
 
 ==== VM Core (`src/xc.c`, `src/main.c`, etc.)
 
-- Dispatch loop → vm-core/execution-model.md
-- Stack operations → vm-core/stack-management.md
-- Function calls → vm-core/function-calls.md
-- Interrupts → vm-core/interrupt-handling.md
+- Dispatch loop → vm-core/execution-model.typ
+- Stack operations → vm-core/stack-management.typ
+- Function calls → vm-core/function-calls.typ
+- Interrupts → vm-core/interrupt-handling.typ
 
 ==== Instruction Handlers (`src/arithops.c`, `src/car-cdr.c`, etc.)
 
-- Opcode implementations → instruction-set/opcodes.md
-- Execution semantics → instruction-set/execution-semantics.md
+- Opcode implementations → instruction-set/opcodes.typ
+- Execution semantics → instruction-set/execution-semantics.typ
 
 ==== Memory Management (`src/gc*.c`, `src/storage.c`)
 
-- GC algorithm → memory/garbage-collection.md
-- Memory allocation → memory/memory-layout.md
-- Address translation → memory/address-translation.md
+- GC algorithm → memory/garbage-collection.typ
+- Memory allocation → memory/memory-layout.typ
+- Address translation → memory/address-translation.typ
 
 ==== Display (`src/xinit.c`, `src/sdl.c`, `src/xbbt.c`)
 
-- Display interface → display/interface-abstraction.md
-- Graphics operations → display/graphics-operations.md
-- Events → display/event-protocols.md
+- Display interface → display/interface-abstraction.typ
+- Graphics operations → display/graphics-operations.typ
+- Events → display/event-protocols.typ
 
 ==== I/O (`src/kbdif.c`, `src/mouseif.c`, `src/dir.c`)
 
-- Keyboard → io/keyboard-protocol.md
-- Mouse → io/mouse-protocol.md
-- File system → io/file-system.md
+- Keyboard → io/keyboard-protocol.typ
+- Mouse → io/mouse-protocol.typ
+- File system → io/file-system.typ
 
 == Common Tasks
 
 === Implementing a New Opcode
 
-1. Check instruction-set/opcodes.md for opcode specification
-2. Review instruction-set/execution-semantics.md for execution rules
+1. Check instruction-set/opcodes.typ for opcode specification
+2. Review instruction-set/execution-semantics.typ for execution rules
 3. Verify stack effects and side effects
-4. Test against validation/reference-behaviors.md
+4. Test against validation/reference-behaviors.typ
 
 === Implementing GC
 
-1. Read memory/garbage-collection.md for algorithm
-2. Understand memory/memory-layout.md for data structures
+1. Read memory/garbage-collection.typ for algorithm
+2. Understand memory/memory-layout.typ for data structures
 3. Implement reference counting per specification
-4. Validate with validation/compatibility-criteria.md
+4. Validate with validation/compatibility-criteria.typ
 
 === Implementing Display Backend
 
-1. Review display/interface-abstraction.md for contract
+1. Review display/interface-abstraction.typ for contract
 2. Implement required operations
-3. Follow display/graphics-operations.md for rendering
-4. Handle events per display/event-protocols.md
+3. Follow display/graphics-operations.typ for rendering
+4. Handle events per display/event-protocols.typ
 
 == Documentation Status
 

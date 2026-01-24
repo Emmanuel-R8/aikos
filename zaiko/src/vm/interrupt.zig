@@ -21,8 +21,9 @@ pub const InterruptState = struct {
 /// Check for interrupts
 /// Per contracts/vm-core-interface.zig
 pub fn checkInterrupts(vm: *VM) bool {
+    // Basic implementation: no interrupts supported yet
+    // TODO: Check VM interrupt state
     _ = vm;
-    // TODO: Check for pending interrupts
     return false;
 }
 

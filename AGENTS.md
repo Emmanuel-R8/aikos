@@ -20,7 +20,7 @@ This repository contains the **Interlisp** project, which includes:
 
 1. When **compressing or summarizing context**, follow **§7**: Phase 1 (aggressive compression of tool/command/trace/linter outputs only) is mandatory and first; Phase 2 (re-read AGENTS.md, then compress the remainder) only if further compression is needed.
 
-1. **`documentation/core/critical_memory.typ`** - **CRITICAL**: Rules for documentation updates
+1. **`documentation/core/critical-memory.typ`** - **CRITICAL**: Rules for documentation updates
    - All documentation improvements MUST be emulator-independent in `specifications/`
    - Language-specific details go in `implementations/`
    - **ALWAYS** write documentation using the Typst document format
@@ -43,7 +43,7 @@ Interlisp/
 │   ├── specifications/        # Emulator-independent specifications
 │   ├── implementations/       # Language-specific implementation notes
 │   └── core/
-│       └── critical_memory.typ # ⚠️ MUST READ AND ABIDE BY - Documentation rules
+│       └── critical-memory.typ # ⚠️ MUST READ AND ABIDE BY - Documentation rules
 ├── maiko/                     # Maiko VM source code
 │   ├── src/                   # C implementation (reference)
 │   └── alternatives/zig/      # Zig implementation (in progress)
@@ -125,7 +125,7 @@ Avoid committing machine/local outputs that create noisy diffs:
 
 ### 2. Documentation Updates
 
-**CRITICAL**: Before ANY git commit, follow `documentation/core/critical_memory.typ`:
+**CRITICAL**: Before ANY git commit, follow `documentation/core/critical-memory.typ`:
 
 1. ✅ Review discoveries and learnings
 2. ✅ Update general documentation (`specifications/`) with emulator-independent findings
@@ -523,7 +523,7 @@ medley/scripts/build/build-c-emulator.sh
 ## Best Practices
 
 1. **Always check C implementation first** when implementing new features
-2. **Update documentation** before committing (follow `documentation/core/critical_memory.typ`)
+2. **Update documentation** before committing (follow `documentation/core/critical-memory.typ`)
 3. **Keep files under 500 lines** for better maintainability
 4. **Test incrementally** - don't wait until everything is done
 5. **Document findings** in `documentation` for future reference

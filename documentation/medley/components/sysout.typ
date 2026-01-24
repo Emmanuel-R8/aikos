@@ -61,7 +61,7 @@ Sysout files are binary files containing:
 - *Execution State*: Stack frames, program counters (if applicable)
 - *System State*: System variables, configuration pointerFormat Specification: Binary format compatible with Maiko virtual memory format.
 
-*See*: Interface - File Formats for detailed format specification pointerRelated Maiko Documentation: - `../../rewrite-spec/data-structures/sysout-format.md` - Complete sysout format specification
+*See*: Interface - File Formats for detailed format specification pointerRelated Maiko Documentation: - `../../specifications/data-structures/sysout-format-overview.typ` - Complete sysout format specification
 - `../../components/memory-management.md` - Memory management and sysout loading
 - `../../architecture.md` - Maiko system architecture
 

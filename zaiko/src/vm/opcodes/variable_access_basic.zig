@@ -169,8 +169,13 @@ pub fn handleFVAR(vm: *VM, index: u8) errors.VMError!void {
     const high_word = high_word_ptr.*;
 
     // Check if unbound (LSB of low word indicates unbound)
-    // For now, we'll skip the lookup and just return the value
-    // TODO: Implement nfvlookup for unbound variables
+    if ((low_word & 1) != 0) {
+        // Variable is unbound - should call nfvlookup
+        // TODO: Implement nfvlookup for unbound variables
+        // For now, push NIL (0) to indicate unbound
+        try stack_module.pushStack(vm, 0);
+        return;
+    }
 
     // Construct LispPTR from two words: (high_word << 16) | low_word
     const fvar_value: LispPTR = (@as(LispPTR, high_word) << 16) | @as(LispPTR, low_word);

@@ -1,3 +1,5 @@
+#import "../prelude.typ": codeblock
+
 = CRITICAL: Documentation Improvement Memory
 
 *Date*: 2025-12-12 15:59
@@ -20,7 +22,7 @@ For EACH value, consider:
 2. The value divided by 2 (decimal and hexadecimal)
 3. The value multiplied by 2 (decimal and hexadecimal)
 
-*See*: `documentation/CRITICAL_DEBUGGING_TECHNIQUE.md` for full details and examples.
+*See*: `../CRITICAL_DEBUGGING_TECHNIQUE.typ` for full details and examples.
 
 This technique helps identify:
 - Byte vs DLword confusion (values off by factors of 2)
@@ -86,14 +88,14 @@ See `zaiko/src/utils/endianness.zig` and `zaiko/src/data/sysout.zig` for example
 
 === Documentation Structure
 
-- *`documentation/rewrite-spec/`*: Contains emulator-independent specifications
+- *`documentation/specifications/`*: Contains emulator-independent specifications
   - All opcodes, data structures, algorithms, and behaviors documented here
   - No language-specific implementation details
   - Focus on "what" and "why", not "how" in a specific language
 
 - *`documentation/implementations/`*: Contains language-specific implementation notes
   - Document challenges, workarounds, and solutions specific to each language
-  - Reference general documentation in `rewrite-spec/` for concepts
+  - Reference general documentation in `specifications/` for concepts
   - Focus on "how" in that specific language
 
 === Pre-Commit Checklist
@@ -102,7 +104,7 @@ See `zaiko/src/utils/endianness.zig` and `zaiko/src/data/sysout.zig` for example
 
 1. ✅ *Review Discoveries*: Consider what you have discovered or learned
 2. ✅ *Identify General Findings*: Extract emulator-independent insights
-3. ✅ *Update General Documentation*: Improve `rewrite-spec/` with general findings
+3. ✅ *Update General Documentation*: Improve `specifications/` with general findings
 4. ✅ *Update Language-Specific Documentation*: Document language-specific details in `implementations/`
 5. ✅ *Verify Separation*: Ensure general and language-specific content are properly separated
 6. ✅ *Make Comprehensive Commit*: Include all documentation improvements in the commit message
@@ -125,8 +127,8 @@ Language-Specific Documentation Updates:
 - Updated [file]: [language-specific detail 2]
 
 Key Findings Documented:
-1. [General finding 1] - documented in rewrite-spec/
-2. [General finding 2] - documented in rewrite-spec/
+1. [General finding 1] - documented in specifications/
+2. [General finding 2] - documented in specifications/
 3. [Language-specific finding] - documented in implementations/
 
 All critical insights are now documented for future reference.
@@ -143,7 +145,7 @@ All critical insights are now documented for future reference.
 *CRITICAL*: Before making ANY git commit, ALWAYS:
 
 1. ✅ Review discoveries and learnings
-2. ✅ Update general documentation (rewrite-spec/)
+2. ✅ Update general documentation (specifications/)
 3. ✅ Update language-specific documentation (implementations/)
 4. ✅ Make comprehensive commit with documentation updates
 

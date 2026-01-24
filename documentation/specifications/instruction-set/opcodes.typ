@@ -22,7 +22,7 @@ This document provides a high-level overview. For detailed opcode specifications
 - Other control: UNWIND, BIND, UNBIND, DUNBIND
 
 === Memory Operations (0x40-0x7F)
-- Variable access: IVAR0-IVAR6, IVARX, PVAR0-PVAR6, PVARX, FVAR0-FVAR6, FVARX, GVAR, GVAR_
+- Variable access: IVAR0-IVAR6, IVARX, PVAR0-PVAR6, PVARX, FVAR0-FVAR6, FVARX, GVAR, GVAR\_
 - Variable setting: PVARSETPOP0-PVARSETPOP6
 - Stack operations: POP, POP_N
 

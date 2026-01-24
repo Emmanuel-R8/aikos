@@ -362,7 +362,7 @@ See `specs/005-zig-completion/` for detailed completion plan:
       - *C Implementation*: `GetDEFCELLlitatom(index) = ((LispPTR *)AtomSpace + (5 * index) + 2)`
       - *Zig Implementation*: `ATOMS_OFFSET + (index * 20) + (2 * 4) = 0x2c0000 + (index * 20) + 8`
       - *Verification*: For index=10, both calculate `0x2c00d0` ✓
-      - *Documentation*: Created `rewrite-spec/data-structures/atom-table.md` with complete specification
+      - *Documentation*: Created `specifications/data-structures/atom-table.typ` with complete specification
     - ✅ *DefPointer = 0 Handling* (2025-12-17 12:29): Fixed crash when atom has no function definition
       - *Issue*: Crash when `defpointer = 0` (atom has no function definition)
       - *Root Cause*: `readFunctionHeader` attempted to translate address 0, causing integer overflow

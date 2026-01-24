@@ -1,3 +1,5 @@
+#import "../../prelude.typ": codeblock
+
 = Instruction Format Specification
 
 *Navigation*: README | Opcodes | Execution Semantics

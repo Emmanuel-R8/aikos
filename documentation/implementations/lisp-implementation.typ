@@ -8,7 +8,7 @@
 
 == Overview
 
-Complete implementation of the Maiko emulator in Common Lisp (SBCL), following the rewrite specifications in `documentation/rewrite-spec/`. The implementation maintains exact compatibility with the C implementation while leveraging Common Lisp's strengths.
+Complete implementation of the Maiko emulator in Common Lisp (SBCL), following the rewrite specifications in `documentation/specifications/`. The implementation maintains exact compatibility with the C implementation while leveraging Common Lisp's strengths.
 
 == Implementation Statistics
 
@@ -257,7 +257,7 @@ alternatives/lisp/
 - *Specification*: `specs/002-lisp-implementation/spec.md`
 - *Plan*: `specs/002-lisp-implementation/plan.md`
 - *Tasks*: `specs/002-lisp-implementation/tasks.md`
-- *Rewrite Spec*: `documentation/rewrite-spec/`
+- *Rewrite Spec*: `documentation/specifications/`
 - *Implementation Notes*: `alternatives/lisp/docs/IMPLEMENTATION.md`
 
 == Related Documentation

@@ -1,3 +1,5 @@
+#import "../prelude.typ": codeblock
+
 = Quickstart: Using the Rewrite Documentation
 
 *Navigation*: README | Index
@@ -20,58 +22,9 @@ This guide helps developers use the rewrite documentation to implement a Maiko-c
 
 === Documentation Structure
 
-The rewrite documentation is organized in `documentation/rewrite-spec/`:
+The rewrite documentation is organized in `documentation/specifications/`:
 
-#codeblock(lang: "text", [
-rewrite-spec/
-├── README.md                    # Start here - overview and navigation
-├── INDEX.md                     # Quick reference index
-├── CONTRIBUTING.md              # Documentation standards
-├── COMPLETENESS.md              # Completeness checklist
-├── quickstart.md                # This file
-├── instruction-set/             # Bytecode specifications
-│   ├── README.md
-│   ├── opcodes.md              # All 256 opcodes
-│   ├── instruction-format.md   # Encoding
-│   └── execution-semantics.md   # Execution rules
-├── vm-core/                     # Execution engine specifications
-│   ├── README.md
-│   ├── execution-model.md       # Dispatch loop
-│   ├── stack-management.md     # Stack frames
-│   ├── function-calls.md       # Call/return
-│   └── interrupt-handling.md   # Interrupts
-├── memory/                      # Memory management specifications
-│   ├── README.md
-│   ├── virtual-memory.md       # Address spaces
-│   ├── address-translation.md  # LispPTR translation
-│   ├── garbage-collection.md   # GC algorithm
-│   └── memory-layout.md        # Memory regions
-├── data-structures/             # Data structure formats
-│   ├── README.md
-│   ├── cons-cells.md           # Cons cells and CDR coding
-│   ├── arrays.md               # Array formats
-│   ├── function-headers.md      # Function metadata
-│   └── sysout-format.md        # Sysout file format
-├── display/                     # Display interface specifications
-│   ├── README.md
-│   ├── interface-abstraction.md # Display contract
-│   ├── graphics-operations.md  # BitBLT and rendering
-│   └── event-protocols.md      # Event handling
-├── io/                          # I/O interface specifications
-│   ├── README.md
-│   ├── keyboard-protocol.md    # Keycode translation
-│   ├── mouse-protocol.md       # Mouse events
-│   ├── file-system.md          # File I/O
-│   └── network-protocol.md     # Network communication
-├── platform-abstraction/        # Platform requirements
-│   ├── README.md
-│   ├── required-behaviors.md   # Must-match behaviors
-│   └── implementation-choices.md # May-differ choices
-└── validation/                   # Test cases and validation
-    ├── README.md
-    ├── reference-behaviors.md   # Test cases
-    └── compatibility-criteria.md # Compatibility requirements
-])
+#codeblock(lang: "text", [#raw("specifications/\n├── README.typ                   # Start here - overview and navigation\n├── INDEX.typ                    # Quick reference index\n├── CONTRIBUTING.typ             # Documentation standards\n├── COMPLETENESS.typ             # Completeness checklist\n├── quickstart.typ               # This file\n├── instruction-set/             # Bytecode specifications\n│   ├── README.typ\n│   ├── opcodes.typ              # All 256 opcodes\n│   ├── instruction-format.typ   # Encoding\n│   └── execution-semantics.typ  # Execution rules\n├── vm-core/                     # Execution engine specifications\n│   ├── README.typ\n│   ├── execution-model.typ      # Dispatch loop\n│   ├── stack-management.typ     # Stack frames\n│   ├── function-calls.typ       # Call/return\n│   └── interrupt-handling.typ   # Interrupts\n├── memory/                      # Memory management specifications\n│   ├── README.typ\n│   ├── virtual-memory.typ       # Address spaces\n│   ├── address-translation.typ  # LispPTR translation\n│   ├── garbage-collection.typ   # GC algorithm\n│   └── memory-layout.typ        # Memory regions\n├── data-structures/             # Data structure formats\n│   ├── README.typ\n│   ├── cons-cells.typ           # Cons cells and CDR coding\n│   ├── arrays.typ               # Array formats\n│   ├── function-headers.typ     # Function metadata\n│   └── sysout-format-overview.typ # Sysout file format\n├── display/                     # Display interface specifications\n│   ├── README.typ\n│   ├── interface-abstraction.typ # Display contract\n│   ├── graphics-operations.typ  # BitBLT and rendering\n│   └── event-protocols.typ      # Event handling\n├── io/                          # I/O interface specifications\n│   ├── README.typ\n│   ├── keyboard-protocol.typ    # Keycode translation\n│   ├── mouse-protocol.typ       # Mouse events\n│   ├── file-system.typ          # File I/O\n│   └── network-protocol.typ     # Network communication\n├── platform-abstraction/        # Platform requirements\n│   ├── README.typ\n│   ├── required-behaviors.typ   # Must-match behaviors\n│   └── implementation-choices.typ # May-differ choices\n└── validation/                   # Test cases and validation\n    ├── README.typ\n    ├── reference-behaviors.typ   # Test cases\n    └── compatibility-criteria.typ # Compatibility requirements")])
 
 == Implementation Path
 

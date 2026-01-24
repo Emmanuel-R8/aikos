@@ -1,3 +1,5 @@
+#import "../../prelude.typ": codeblock
+
 = Execution Model Specification
 
 *Navigation*: README | Stack Management | Function Calls | Interrupt Handling
@@ -248,30 +250,7 @@ Each opcode handler:
 
 *Implementation*:
 
-#codeblock(lang: "pseudocode", [
-function dispatch_computed_goto():
-    // Jump table with labels
-    static label_table[256] = {
-        &&case_000, &&case_001, &&case_002, ...
-    }
-
-    opcode = ReadByte(PC)
-    goto *label_table[opcode]
-
-case_001:
-    ExecuteCAR()
-    goto next_instruction
-
-case_002:
-    ExecuteCDR()
-    goto next_instruction
-
-// ... cases for all opcodes ...
-
-next_instruction:
-    PC = PC + instruction_length
-    goto dispatch_computed_goto
-])
+#codeblock(lang: "pseudocode", [#raw("function dispatch_computed_goto():\n    // Jump table with labels\n    static label_table[256] = {\n        &&case_000, &&case_001, &&case_002, ...\n    }\n\n    opcode = ReadByte(PC)\n    goto *label_table[opcode]\n\ncase_001:\n    ExecuteCAR()\n    goto next_instruction\n\ncase_002:\n    ExecuteCDR()\n    goto next_instruction\n\n// ... cases for all opcodes ...\n\nnext_instruction:\n    PC = PC + instruction_length\n    goto dispatch_computed_goto")])
 
 *Advantages*:
 
@@ -348,32 +327,11 @@ function CheckInterrupts():
 
 === State Structure
 
-#codeblock(lang: "pseudocode", [
-struct ExecutionState:
-    PC: ByteCode*              // Program counter
-    CurrentFrame: Frame*       // Current stack frame
-    FunctionObject: Function*  // Current function
-    TopOfStack: LispPTR        // Top of stack value
-    StackPointer: DLword*      // Current stack pointer
-    EndOfStack: DLword*        // End of stack
-    ErrorExit: boolean         // Error exit flag
-])
+#codeblock(lang: "pseudocode", [#raw("struct ExecutionState:\n    PC: ByteCode*              // Program counter\n    CurrentFrame: Frame*       // Current stack frame\n    FunctionObject: Function*  // Current function\n    TopOfStack: LispPTR        // Top of stack value\n    StackPointer: DLword*      // Current stack pointer\n    EndOfStack: DLword*        // End of stack\n    ErrorExit: boolean         // Error exit flag")])
 
 === State Transitions
 
-#codeblock(lang: "mermaid", [
-stateDiagram-v2
-    [*] --> Initialized: VM Start
-    Initialized --> Running: Enter Dispatch
-    Running --> Running: Execute Instruction
-    Running --> Interrupted: Interrupt Pending
-    Interrupted --> Running: Handle Interrupt
-    Running --> Error: Execution Error
-    Error --> Running: Error Recovery
-    Error --> Terminated: Fatal Error
-    Running --> Terminated: Normal Exit
-    Terminated --> [*]
-])
+#codeblock(lang: "mermaid", [#raw("stateDiagram-v2\n    [*] --> Initialized: VM Start\n    Initialized --> Running: Enter Dispatch\n    Running --> Running: Execute Instruction\n    Running --> Interrupted: Interrupt Pending\n    Interrupted --> Running: Handle Interrupt\n    Running --> Error: Execution Error\n    Error --> Running: Error Recovery\n    Error --> Terminated: Fatal Error\n    Running --> Terminated: Normal Exit\n    Terminated --> [*]")])
 
 == Performance Optimizations
 

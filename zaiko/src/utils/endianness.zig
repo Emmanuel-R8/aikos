@@ -39,8 +39,8 @@
 /// References:
 /// - C implementation: maiko/src/byteswap.c:31-34 (word_swap_page)
 /// - C usage: maiko/src/ldsout.c:118, 306, 437, 708
-/// - Documentation: documentation/specifications/data-structures/sysout-byte-swapping.typ
-/// - Debugging technique: documentation/CRITICAL_DEBUGGING_TECHNIQUE.typ
+/// - Documentation: specifications/data-structures/sysout-byte-swapping.typ
+/// - Debugging technique: CRITICAL_DEBUGGING_TECHNIQUE.typ
 const std = @import("std");
 
 /// Swap 32-bit longword from big-endian to little-endian

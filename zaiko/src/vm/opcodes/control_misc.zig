@@ -119,45 +119,50 @@ pub fn handleRPLPTR_N(vm: *VM, offset: u8) errors.VMError!void {
 
 /// EVAL: Evaluate expression
 /// Per rewrite documentation instruction-set/opcodes.md
+/// C: opc_EVAL in maiko/inc/opcodes.h
+/// Evaluates Lisp expression from stack
 pub fn handleEVAL(vm: *VM) errors.VMError!void {
-    // EVAL requires:
-    // 1. Expression on stack
-    // 2. Evaluate expression
-    // 3. Push result
+    const stack_module = @import("../stack.zig");
 
-    // TODO: Proper implementation needs:
-    // 1. Pop expression
-    // 2. Call evaluator
-    // 3. Push result
+    // Pop expression from stack
+    const expression = try stack_module.popStack(vm);
 
-    // Placeholder: return expression as-is
-    _ = vm;
+    // TODO: Call Lisp evaluator on expression
+    // For now, return expression as-is (no evaluation)
+    // This maintains stack balance but doesn't perform evaluation
+
+    // Push result back (placeholder: same as input)
+    try stack_module.pushStack(vm, expression);
 }
 
 /// ENVCALL: Environment call
 /// Per rewrite documentation instruction-set/opcodes.md
+/// C: opc_ENVCALL in maiko/inc/opcodes.h
+/// Calls function in environment context
 pub fn handleENVCALL(vm: *VM) errors.VMError!void {
-    // ENVCALL requires:
-    // 1. Function and arguments on stack
-    // 2. Call in environment context
-    // 3. Push result
+    const stack_module = @import("../stack.zig");
 
-    // TODO: Proper implementation needs:
-    // 1. Get function and arguments
-    // 2. Set up environment
-    // 3. Call function
-    // 4. Push result
+    // Pop function and arguments from stack
+    const function = try stack_module.popStack(vm);
+    // TODO: Pop additional arguments as needed
 
-    // Placeholder: similar to CALL but with environment
-    _ = vm;
+    // TODO: Set up environment context
+    // For now, treat as regular function call
+
+    // TODO: Call function in environment context
+    // Placeholder: push function back as result
+    try stack_module.pushStack(vm, function);
 }
 
 /// JUMPXX: Extended jump XX
 /// Per rewrite documentation instruction-set/opcodes.md
+/// C: opc_JUMPXX in maiko/inc/opcodes.h
+/// Extended jump with different operand format than JUMPX
 pub fn handleJUMPXX(vm: *VM) errors.VMError!void {
-    // Similar to JUMPX but with different semantics
-    // Placeholder: same as JUMPX
-    _ = vm;
+    // JUMPXX uses different operand encoding than JUMPX
+    // For now, implement as unconditional jump with 0 offset
+    // TODO: Implement proper operand extraction for JUMPXX
+    vm.pc = @as(types.LispPTR, @intCast(@as(i64, @intCast(vm.pc)) + 0));
 }
 
 /// NFJUMPX: Not false jump extended
@@ -167,8 +172,11 @@ pub fn handleNFJUMPX(vm: *VM, offset: i16) errors.VMError!void {
     // NFJUMPX jumps if TOS is not false (not NIL)
     // Similar to TJUMPX but inverted logic
     const tos = stack_module.getTopOfStack(vm);
-    _ = tos;
-    _ = offset;
+    if (tos != 0) {
+        // Not false - perform jump
+        vm.pc = @as(types.LispPTR, @intCast(@as(i64, @intCast(vm.pc)) + offset));
+    }
+    // If false (NIL), continue to next instruction
 }
 
 /// NTJUMPX: Not true jump extended
@@ -178,6 +186,9 @@ pub fn handleNTJUMPX(vm: *VM, offset: i16) errors.VMError!void {
     // NTJUMPX jumps if TOS is not true (is NIL)
     // Similar to FJUMPX but inverted logic
     const tos = stack_module.getTopOfStack(vm);
-    _ = tos;
-    _ = offset;
+    if (tos == 0) {
+        // Not true (NIL) - perform jump
+        vm.pc = @as(types.LispPTR, @intCast(@as(i64, @intCast(vm.pc)) + offset));
+    }
+    // If true (non-NIL), continue to next instruction
 }

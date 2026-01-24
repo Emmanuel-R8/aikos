@@ -33,16 +33,32 @@ pub const VirtualMemory = struct {
 
     /// Map page
     pub fn mapPage(self: *VirtualMemory, page_num: u32) errors.MemoryError!void {
-        _ = self;
-        _ = page_num;
-        // TODO: Implement page mapping
+        // Allocate a new page (512 bytes)
+        const page_size = 512;
+        const page_data = try self.allocator.alloc(u8, page_size);
+        @memset(page_data, 0);
+
+        // Add to pages list
+        try self.pages.append(@ptrCast(page_data));
+
+        // Update FPtoVP table
+        const vp_num = self.pages.items.len - 1; // Virtual page number
+        self.fptovp[page_num] = @as(LispPTR, @intCast(vp_num));
     }
 
     /// Get page
     pub fn getPage(self: *VirtualMemory, page_num: u32) errors.MemoryError![*]u8 {
-        _ = self;
-        _ = page_num;
-        return error.PageMappingFailed; // Placeholder
+        // Look up virtual page number in FPtoVP table
+        if (page_num >= self.fptovp.len) {
+            return error.PageMappingFailed;
+        }
+
+        const vp_num = self.fptovp[page_num];
+        if (vp_num >= self.pages.items.len) {
+            return error.PageMappingFailed;
+        }
+
+        return self.pages.items[vp_num];
     }
 };
 

@@ -34,7 +34,7 @@ Vmem files are binary files containing:
 - *Session State*: Session-specific state pointerFormat Specification: Binary format, platform-specific.
 
 *See*: Interface - File Formats for detailed format specification pointerRelated Maiko Documentation: - `../../components/memory-management.md` - Virtual memory management
-- `../../rewrite-spec/memory/virtual-memory.md` - Virtual memory specification
+- `../../specifications/memory/virtual-memory.typ` - Virtual memory specification
 
 == Vmem File Resolution
 

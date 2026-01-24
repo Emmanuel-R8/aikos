@@ -51,12 +51,52 @@ pub const KeyEventQueue = struct {
 /// Translate OS keycode to Lisp keycode
 /// Per contracts/io-interface.zig
 pub fn translateKeycode(os_keycode: u32, modifiers: u16) u16 {
-    _ = os_keycode;
-    _ = modifiers;
-    // TODO: Implement keycode translation
-    // 1. Look up base keycode in map
-    // 2. Apply modifier transformations
-    return 0;
+    // Basic mapping for common keys
+    // Map SDL keycodes to Lisp keycodes (ASCII for printable, special for others)
+
+    var lisp_keycode: u16 = 0;
+
+    // Handle printable ASCII characters
+    if (os_keycode >= 'a' and os_keycode <= 'z') {
+        lisp_keycode = @intCast(os_keycode);
+        if (modifiers & Modifiers.SHIFT != 0) {
+            lisp_keycode -= 32; // Convert to uppercase
+        }
+    } else if (os_keycode >= 'A' and os_keycode <= 'Z') {
+        lisp_keycode = @intCast(os_keycode);
+        if (modifiers & Modifiers.SHIFT == 0) {
+            lisp_keycode += 32; // Convert to lowercase
+        }
+    } else if (os_keycode >= '0' and os_keycode <= '9') {
+        lisp_keycode = @intCast(os_keycode);
+    } else {
+        // Special keys mapping (basic)
+        switch (os_keycode) {
+            13 => lisp_keycode = 13, // Enter
+            32 => lisp_keycode = 32, // Space
+            8 => lisp_keycode = 8,   // Backspace
+            9 => lisp_keycode = 9,   // Tab
+            27 => lisp_keycode = 27, // Escape
+            // Add more special keys as needed
+            else => lisp_keycode = 0, // Unknown
+        }
+    }
+
+    // Apply control modifier
+    if (modifiers & Modifiers.CONTROL != 0) {
+        if (lisp_keycode >= 'a' and lisp_keycode <= 'z') {
+            lisp_keycode -= 96; // Control-a = 1, etc.
+        } else if (lisp_keycode >= 'A' and lisp_keycode <= 'Z') {
+            lisp_keycode -= 64; // Control-A = 1, etc.
+        }
+    }
+
+    // Meta modifier (basic - just set high bit for now)
+    if (modifiers & Modifiers.META != 0) {
+        lisp_keycode |= 0x80;
+    }
+
+    return lisp_keycode;
 }
 
 /// Enqueue key event

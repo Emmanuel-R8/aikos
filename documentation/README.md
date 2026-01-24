@@ -1,73 +1,46 @@
 # Maiko Documentation - Typst Format
 
-This directory contains the complete Maiko Virtual Machine documentation converted to Typst format for PDF generation.
+This directory contains the complete Maiko Virtual Machine documentation in Typst format for PDF generation.
 
 ## Structure
 
-- `main.typ` - Main document that includes all sections
-- `core/` - Core documentation (introduction, architecture, build system)
-- `components/` - Component documentation (VM core, memory, display, I/O)
-- `specifications/` - Emulator-independent specifications
-- `implementations/` - Language-specific implementation notes
-- `medley/` - Medley Interlisp documentation
-- `reference/` - Reference materials (glossary, API, index)
+- `main.typ` — Main document including all sections
+- `core/` — Introduction, architecture, build system, documentation policy (`critical-memory.typ`)
+- `components/` — VM core, memory, display, I/O
+- `specifications/` — Emulator-independent specifications (instruction set, vm-core, memory, data-structures, display, io, platform-abstraction, validation)
+- `implementations/` — Language-specific notes: `zig-implementation.typ`, `lisp-implementation.typ`, `README.typ`; detailed C and Zig notes in `c/` and `zig/`
+- `reviews/` — Coverage reports and source-to-doc mapping (implementation-dependent)
+- `medley/` — Medley Interlisp (architecture, components, interface, platform)
+- `reference/` — Glossary, API overview, auto-generated index
+- `scripts/` — Python and helper scripts (e.g. `generate_index.py`, `CONVERSION_STATUS.md`)
+- `scratch/` — Scratch/test Typst files (not part of the main build)
 
 ## Generating PDF
-
-To generate the PDF document:
 
 ```bash
 cd documentation
 typst compile main.typ maiko-documentation.pdf
 ```
 
-## File Statistics
-
-- **Total Files**: 101 Typst files
-- **Total Lines**: ~43,000 lines
-- **Largest File**: 475 lines (all files under 500 line limit)
-- **Index**: Auto-generated from all content
-
-## Conversion Status
-
-✅ **Completed**:
-- All 94 markdown files converted to Typst
-- File splitting completed (sysout-format split into 3 files)
-- Index generation system created
-- Main document structure created
-
-⚠️ **Needs Manual Review**:
-- Mermaid diagrams (marked with TODO comments) - need conversion to Typst diagram syntax
-- Tables (marked with TODO comments) - need conversion to Typst table syntax
-- Some complex formatting may need adjustment
-
-## Mermaid Diagrams
-
-Files containing Mermaid diagrams that need manual conversion:
-- `core/architecture.typ` - System architecture diagrams
-- `components/vm-core.typ` - VM core diagrams
-- `components/memory-management.typ` - Memory diagrams
-- `components/display.typ` - Display diagrams
-- `components/io.typ` - I/O diagrams
-- `specifications/vm-core/execution-model.typ` - Execution diagrams
-- `specifications/vm-core/stack-management.typ` - Stack diagrams
-- `specifications/memory/memory-layout.typ` - Memory layout diagrams
-- `specifications/memory/garbage-collection.typ` - GC diagrams
-- And several others in medley/ and specifications/
+Or with Nix: `nix-shell -p typst --run "typst compile main.typ maiko-documentation.pdf"`
 
 ## Index
 
-The index is auto-generated and includes:
-- Terms (from glossary)
-- Functions (from code blocks)
-- Opcodes (OP_* patterns)
-- Concepts (key terms and types)
+The index is auto-generated. From the *project root*:
 
-Run `python3 generate_index.py` to regenerate the index after making changes.
+```bash
+python3 documentation/scripts/generate_index.py
+```
+
+Output: `documentation/reference/index.typ`.
+
+## Policy and Debugging
+
+- `core/critical-memory.typ` — Documentation rules (date format, spec vs implementation, commit checklist)
+- `CRITICAL_DEBUGGING_TECHNIQUE.typ` — Systematic debugging for parity and VM issues
 
 ## Notes
 
-- All files are kept under 500 lines as required
-- Cross-references use Typst's native linking system
-- Code blocks use Typst's `#codeblock` syntax
-- Navigation sections from markdown have been removed (PDF has its own navigation)
+- Keep Typst files under 500 lines where possible
+- Emulator-independent content belongs in `specifications/`; language- or project-specific notes in `implementations/` (and `implementations/c/`, `implementations/zig/`)
+- Generated PDFs under `documentation/` are ignored by `.gitignore`; commit only Typst (and other source) files

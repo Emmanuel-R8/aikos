@@ -3,6 +3,8 @@
 #set heading(numbering: "1.")
 #set par(justify: true, leading: 0.65em)
 
+#import "prelude.typ": codeblock
+
 #align(center)[
   #[Maiko Virtual Machine Documentation]
   
@@ -35,25 +37,111 @@
 
 #pagebreak()
 
-= Components
+= Project and Documentation Policy
+
+== Documentation Rules
+#include "core/critical-memory.typ"
+
+== Critical Debugging Technique
+#include "core/critical-debugging-technique.typ"
+
+#pagebreak()
+
+= Subsystems
 
 == VM Core
-#include "components/vm-core.typ"
+
+=== Specification
+#include "subsystems/vm-core/spec.typ"
+
+#pagebreak()
+
+=== Implementations
+
+==== C Implementation
+#include "subsystems/vm-core/implementations/c.typ"
+
+#pagebreak()
+
+==== Zig Implementation
+#include "subsystems/vm-core/implementations/zig.typ"
+
+#pagebreak()
+
+==== Common Lisp Implementation
+#include "subsystems/vm-core/implementations/lisp.typ"
 
 #pagebreak()
 
 == Memory Management
-#include "components/memory-management.typ"
+
+=== Specification
+#include "subsystems/memory/spec.typ"
+
+#pagebreak()
+
+=== Implementations
+
+==== C Implementation
+#include "subsystems/memory/implementations/c.typ"
+
+#pagebreak()
+
+==== Zig Implementation
+#include "subsystems/memory/implementations/zig.typ"
+
+#pagebreak()
+
+==== Common Lisp Implementation
+#include "subsystems/memory/implementations/lisp.typ"
 
 #pagebreak()
 
 == Display
-#include "components/display.typ"
+
+=== Specification
+#include "subsystems/display/spec.typ"
+
+#pagebreak()
+
+=== Implementations
+
+==== C Implementation
+#include "subsystems/display/implementations/c.typ"
+
+#pagebreak()
+
+==== Zig Implementation
+#include "subsystems/display/implementations/zig.typ"
+
+#pagebreak()
+
+==== Common Lisp Implementation
+#include "subsystems/display/implementations/lisp.typ"
 
 #pagebreak()
 
 == I/O Systems
-#include "components/io.typ"
+
+=== Specification
+#include "subsystems/io/spec.typ"
+
+#pagebreak()
+
+=== Implementations
+
+==== C Implementation
+#include "subsystems/io/implementations/c.typ"
+
+#pagebreak()
+
+==== Zig Implementation
+#include "subsystems/io/implementations/zig.typ"
+
+#pagebreak()
+
+==== Common Lisp Implementation
+#include "subsystems/io/implementations/lisp.typ"
 
 #pagebreak()
 
@@ -61,6 +149,9 @@
 
 == Overview
 #include "specifications/README.typ"
+
+== Quickstart
+#include "specifications/quickstart.typ"
 
 #pagebreak()
 
@@ -106,6 +197,15 @@
 === Interrupt Handling
 #include "specifications/vm-core/interrupt-handling.typ"
 
+=== Execution Trace Format
+#include "specifications/vm-core/execution-trace.typ"
+
+=== Trace and Logging Formats
+#include "specifications/vm-core/trace-and-logging-formats.typ"
+
+=== Type Checking
+#include "specifications/vm-core/type-checking.typ"
+
 #pagebreak()
 
 == Memory Specifications
@@ -122,6 +222,9 @@
 === Address Translation
 #include "specifications/memory/address-translation.typ"
 
+=== Centralized Memory Design
+#include "specifications/memory/centralized-memory-design.typ"
+
 #pagebreak()
 
 == Data Structures
@@ -137,6 +240,9 @@
 
 === Number Types
 #include "specifications/data-structures/number-types.typ"
+
+=== Atom Table
+#include "specifications/data-structures/atom-table.typ"
 
 === Sysout Format Overview
 #include "specifications/data-structures/sysout-format-overview.typ"
@@ -206,11 +312,40 @@
 
 = Implementations
 
+== Implementations Overview
+#include "implementations/README.typ"
+
+#pagebreak()
+
 == Zig Implementation
 #include "implementations/zig-implementation.typ"
 
 == Lisp Implementation
 #include "implementations/lisp-implementation.typ"
+
+#pagebreak()
+
+= Reviews
+
+== Documentation Review
+#include "reviews/DOCUMENTATION_REVIEW.typ"
+
+== Source Code Mapping
+
+=== Mapping Index
+#include "reviews/SOURCE_CODE_MAPPING.typ"
+
+=== VM Core Mapping
+#include "reviews/SOURCE_CODE_MAPPING-VM-Core.typ"
+
+=== Memory Mapping
+#include "reviews/SOURCE_CODE_MAPPING-Memory.typ"
+
+=== Display & I/O Mapping
+#include "reviews/SOURCE_CODE_MAPPING-Display-IO.typ"
+
+=== Utility & Support Mapping
+#include "reviews/SOURCE_CODE_MAPPING-Utility.typ"
 
 #pagebreak()
 
@@ -277,6 +412,11 @@
 #pagebreak()
 
 = Reference
+
+== Overview
+#include "reference/overview.typ"
+
+#pagebreak()
 
 == Glossary
 #include "reference/glossary.typ"
