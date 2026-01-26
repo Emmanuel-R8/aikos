@@ -484,11 +484,14 @@ pub fn loadFPtoVPTable(
         const before_swap = std.mem.readInt(u32, entry_array[0..4], .big); // Read as big-endian
         entries[i] = endianness_utils.swapFPtoVPEntry(entry_array, i, swap_boundary);
 
+        // Add comprehensive FPtoVP logging for comparison
+        const vpage = @as(u16, @truncate(entries[i]));
+        const pageok = @as(u16, @truncate(entries[i] >> 16));
+        std.debug.print("FPtoVP[{}] = file_page {} -> virtual_page {}\n", .{ i, i, vpage });
+
         // ENHANCED TRACING: Log critical entries (file page 5178, 2937, 9427)
         if (ENHANCED_TRACING and (i == 5178 or i == 2937 or i == 9427)) {
             const after_swap = entries[i];
-            const vpage = @as(u16, @truncate(after_swap));
-            const pageok = @as(u16, @truncate(after_swap >> 16));
             std.debug.print("DEBUG FPtoVP: Entry {} - BEFORE swap: 0x{x:0>8}, AFTER swap: 0x{x:0>8}\n", .{ i, before_swap, after_swap });
             std.debug.print("  GETFPTOVP = {} (0x{x}), GETPAGEOK = 0x{x:0>4}\n", .{ vpage, vpage, pageok });
         }
