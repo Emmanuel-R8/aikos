@@ -1,5 +1,5 @@
 === Memory Loading Trace ===
-File: /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/medley/internal/loadups/starter.sysout
+File: medley/internal/loadups/starter.sysout
 File size: 8517120 bytes
 Number of pages: 16635
 

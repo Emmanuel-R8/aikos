@@ -138,7 +138,7 @@ fn extractModifiers(sdl_mod: u16) u16 {
 /// Poll SDL2 events (T084)
 /// Per maiko/src/sdl.c:process_SDLevents()
 pub fn pollEvents(
-    display: *sdl_backend.DisplayInterface,
+    display: ?*sdl_backend.DisplayInterface,
     key_queue: *keyboard.KeyEventQueue,
     mouse_state: *mouse.MouseState,
     allocator: std.mem.Allocator,
@@ -181,8 +181,8 @@ pub fn pollEvents(
                     };
                     keyboard.enqueueKeyEvent(key_queue, kb_event) catch {};
                 } else {
-                    // No mapping found (C: printf("No mapping for key %s\n", SDL_GetKeyName(k)))
-                    std.debug.print("No mapping for key {}\n", .{key_event.keysym.sym});
+                    // Other events (window events, etc.) - return false for now
+                    return false;
                 }
             },
 
@@ -203,19 +203,19 @@ pub fn pollEvents(
             // T088: Handle mouse events
             sdl2.SDL_MOUSEMOTION => {
                 const motion_event = sdl_event.motion;
-                // T089: Translate coordinates (divide by pixel_scale)
-                const x = @divTrunc(@as(i32, @intCast(motion_event.x)), @as(i32, @intCast(display.pixel_scale)));
-                const y = @divTrunc(@as(i32, @intCast(motion_event.y)), @as(i32, @intCast(display.pixel_scale)));
-
                 // T090: Update mouse state
-                mouse.updateMousePosition(mouse_state, x, y);
+                if (display) |d| {
+                    const x = @divTrunc(@as(i32, @intCast(motion_event.x)), @as(i32, @intCast(d.pixel_scale)));
+                    const y = @divTrunc(@as(i32, @intCast(motion_event.y)), @as(i32, @intCast(d.pixel_scale)));
+                    mouse.updateMousePosition(mouse_state, x, y);
+                }
             },
 
             sdl2.SDL_MOUSEBUTTONDOWN => {
                 const button_event = sdl_event.button;
                 // T089: Translate coordinates
-                const x = @divTrunc(@as(i32, @intCast(button_event.x)), @as(i32, @intCast(display.pixel_scale)));
-                const y = @divTrunc(@as(i32, @intCast(button_event.y)), @as(i32, @intCast(display.pixel_scale)));
+                const x = @divTrunc(@as(i32, @intCast(button_event.x)), @as(i32, @intCast(display.?.pixel_scale)));
+                const y = @divTrunc(@as(i32, @intCast(button_event.y)), @as(i32, @intCast(display.?.pixel_scale)));
 
                 // T090: Create mouse event
                 // TODO: Use button_num for event delivery to Lisp
@@ -234,8 +234,8 @@ pub fn pollEvents(
             sdl2.SDL_MOUSEBUTTONUP => {
                 const button_event = sdl_event.button;
                 // T089: Translate coordinates
-                const x = @divTrunc(@as(i32, @intCast(button_event.x)), @as(i32, @intCast(display.pixel_scale)));
-                const y = @divTrunc(@as(i32, @intCast(button_event.y)), @as(i32, @intCast(display.pixel_scale)));
+                const x = @divTrunc(@as(i32, @intCast(button_event.x)), @as(i32, @intCast(display.?.pixel_scale)));
+                const y = @divTrunc(@as(i32, @intCast(button_event.y)), @as(i32, @intCast(display.?.pixel_scale)));
 
                 mouse.updateMousePosition(mouse_state, x, y);
                 // Note: Button release handling similar to button down

@@ -26,6 +26,7 @@ const Options = struct {
     show_help: bool = false,
     no_fork: bool = false,
     init_mode: bool = false,
+    headless: bool = false,
 };
 
 const help_string =
@@ -42,6 +43,7 @@ const help_string =
     \\-timer <interval>       Timer interval (undocumented)
     \\-m <size>               Virtual memory size in Mega Bytes (undocumented)
     \\-NF                      Don't fork (for debugging)
+    \\-HEADLESS                Run without SDL2 display (for testing)
     \\-INIT                    Init sysout, no packaged (undocumented)
     \\
 ;
@@ -110,7 +112,7 @@ fn parseCommandLine(args: []const []const u8) !Options {
             // Find 'x' separator
             if (std.mem.indexOfScalar(u8, geometry, 'x')) |x_pos| {
                 const width_str = geometry[0..x_pos];
-                const height_str = geometry[x_pos + 1..];
+                const height_str = geometry[x_pos + 1 ..];
                 const width = std.fmt.parseInt(u32, width_str, 10) catch {
                     std.debug.print("Could not parse width in -sc argument {s}\n", .{geometry});
                     return error.InvalidArgument;
@@ -221,6 +223,12 @@ fn parseCommandLine(args: []const []const u8) !Options {
         // -NF (no fork)
         if (std.mem.eql(u8, arg, "-NF")) {
             options.no_fork = true;
+            i += 1;
+            continue;
+        }
+        // -HEADLESS (no display)
+        if (std.mem.eql(u8, arg, "-HEADLESS") or std.mem.eql(u8, arg, "-headless")) {
+            options.headless = true;
             i += 1;
             continue;
         }
@@ -337,7 +345,8 @@ pub fn main() !void {
     const pixel_scale = options.pixel_scale orelse 1;
     const window_title = options.window_title orelse "Medley Interlisp (Zig)";
 
-    const display = sdl_backend.initDisplay(
+    // Skip SDL2 initialization for headless mode
+    const display = if (options.headless) null else sdl_backend.initDisplay(
         window_title,
         screen_width,
         screen_height,
@@ -347,9 +356,13 @@ pub fn main() !void {
         std.debug.print("Failed to initialize SDL2 display: {}\n", .{err});
         return;
     };
-    defer sdl_backend.destroyDisplay(display, allocator);
+    defer if (!options.headless and display != null) sdl_backend.destroyDisplay(display.?, allocator);
 
-    std.debug.print("SDL2 display initialized: {}x{} (scale: {})\n", .{ screen_width, screen_height, pixel_scale });
+    if (!options.headless) {
+        std.debug.print("SDL2 display initialized: {}x{} (scale: {})\n", .{ screen_width, screen_height, pixel_scale });
+    } else {
+        std.debug.print("Running in headless mode - SDL2 disabled\n", .{});
+    }
 
     // Initialize event queues
     var key_queue = try keyboard.KeyEventQueue.init(allocator, 256);
@@ -398,7 +411,7 @@ pub fn main() !void {
     var quit_requested = false;
     var instruction_count: u64 = 0;
     const max_instructions: u64 = 1000000; // Safety limit to prevent infinite loops
-    
+
     while (!quit_requested) {
         // Safety check: prevent infinite loops
         instruction_count += 1;
@@ -422,12 +435,7 @@ pub fn main() !void {
         dispatch.dispatch(&vm) catch |err| {
             // Critical errors that should stop execution
             switch (err) {
-                errors.VMError.StackOverflow,
-                errors.VMError.StackUnderflow,
-                errors.VMError.InvalidAddress,
-                errors.VMError.MemoryAccessFailed,
-                errors.VMError.InvalidStackPointer,
-                errors.VMError.InvalidFramePointer => {
+                errors.VMError.StackOverflow, errors.VMError.StackUnderflow, errors.VMError.InvalidAddress, errors.VMError.MemoryAccessFailed, errors.VMError.InvalidStackPointer, errors.VMError.InvalidFramePointer => {
                     std.debug.print("CRITICAL VM ERROR: {}\n", .{err});
                     std.debug.print("Stopping execution due to critical error\n", .{});
                     std.debug.print("Executed {} instructions before error\n", .{instruction_count});

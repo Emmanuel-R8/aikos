@@ -4,7 +4,6 @@ const stack = @import("../stack.zig");
 const VM = stack.VM;
 
 /// Control flow opcodes
-
 /// JUMP: Unconditional jump
 /// Per rewrite documentation instruction-set/opcodes.md
 /// Note: PC update is handled by dispatch loop based on returned offset
@@ -31,6 +30,89 @@ pub fn handleTJUMP(vm: *VM, offset: i8) errors.VMError!void {
     // This handler exists for consistency and potential side effects
     _ = vm;
     _ = offset;
+}
+
+/// JUMP0-JUMP15: Jump variants (0-15 offsets)
+/// Per rewrite documentation instruction-set/opcodes.md
+/// Note: PC update is handled by dispatch loop based on returned offset
+pub fn handleJUMP0(vm: *VM) errors.VMError!void {
+    // JUMP0 is unconditional - dispatch loop handles PC update
+    _ = vm;
+}
+
+pub fn handleJUMP1(vm: *VM) errors.VMError!void {
+    // JUMP1 is unconditional - dispatch loop handles PC update
+    _ = vm;
+}
+
+pub fn handleJUMP2(vm: *VM) errors.VMError!void {
+    // JUMP2 is unconditional - dispatch loop handles PC update
+    _ = vm;
+}
+
+pub fn handleJUMP3(vm: *VM) errors.VMError!void {
+    // JUMP3 is unconditional - dispatch loop handles PC update
+    _ = vm;
+}
+
+pub fn handleJUMP4(vm: *VM) errors.VMError!void {
+    // JUMP4 is unconditional - dispatch loop handles PC update
+    _ = vm;
+}
+
+pub fn handleJUMP5(vm: *VM) errors.VMError!void {
+    // JUMP5 is unconditional - dispatch loop handles PC update
+    _ = vm;
+}
+
+pub fn handleJUMP6(vm: *VM) errors.VMError!void {
+    // JUMP6 is unconditional - dispatch loop handles PC update
+    _ = vm;
+}
+
+pub fn handleJUMP7(vm: *VM) errors.VMError!void {
+    // JUMP7 is unconditional - dispatch loop handles PC update
+    _ = vm;
+}
+
+pub fn handleJUMP8(vm: *VM) errors.VMError!void {
+    // JUMP8 is unconditional - dispatch loop handles PC update
+    _ = vm;
+}
+
+pub fn handleJUMP9(vm: *VM) errors.VMError!void {
+    // JUMP9 is unconditional - dispatch loop handles PC update
+    _ = vm;
+}
+
+pub fn handleJUMP10(vm: *VM) errors.VMError!void {
+    // JUMP10 is unconditional - dispatch loop handles PC update
+    _ = vm;
+}
+
+pub fn handleJUMP11(vm: *VM) errors.VMError!void {
+    // JUMP11 is unconditional - dispatch loop handles PC update
+    _ = vm;
+}
+
+pub fn handleJUMP12(vm: *VM) errors.VMError!void {
+    // JUMP12 is unconditional - dispatch loop handles PC update
+    _ = vm;
+}
+
+pub fn handleJUMP13(vm: *VM) errors.VMError!void {
+    // JUMP13 is unconditional - dispatch loop handles PC update
+    _ = vm;
+}
+
+pub fn handleJUMP14(vm: *VM) errors.VMError!void {
+    // JUMP14 is unconditional - dispatch loop handles PC update
+    _ = vm;
+}
+
+pub fn handleJUMP15(vm: *VM) errors.VMError!void {
+    // JUMP15 is unconditional - dispatch loop handles PC update
+    _ = vm;
 }
 
 /// JUMPX: Extended jump (16-bit offset)
