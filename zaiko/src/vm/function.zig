@@ -26,7 +26,8 @@ pub const FunctionHeader = packed struct {
 /// Per contracts/vm-core-interface.zig and rewrite documentation vm-core/function-calls.md
 pub fn callFunction(vm: *VM, func_header: *FunctionHeader, arg_count: u8) errors.VMError!void {
     // Save current PC (will be restored on return)
-    if (vm.current_frame) |frame| {
+    const previous_frame = vm.current_frame;
+    if (previous_frame) |frame| {
         // Save PC in current frame before calling new function
         // CRITICAL: PC is stored in frame.pc field (DLword)
         frame.pc = @as(DLword, @truncate(vm.pc));
@@ -35,6 +36,18 @@ pub fn callFunction(vm: *VM, func_header: *FunctionHeader, arg_count: u8) errors
     // Allocate new frame for called function
     const frame_size = @as(u32, @intCast(func_header.nlocals));
     const new_frame = try stack.allocateStackFrame(vm, frame_size);
+
+    // Set activation link to previous frame
+    if (previous_frame) |prev| {
+        // CRITICAL: alink is a DLword offset from Stackspace, not a native address
+        const STK_OFFSET: u32 = 0x00010000; // DLword offset from Lisp_world
+        const stackspace_byte_offset = STK_OFFSET * 2;
+        const prev_frame_addr = @intFromPtr(prev);
+        const alink_dlword_offset = @as(DLword, @intCast((prev_frame_addr - stackspace_byte_offset) / 2));
+        new_frame.alink = alink_dlword_offset;
+    } else {
+        new_frame.alink = 0; // Top level frame
+    }
 
     // Set function header in frame
     // CRITICAL: fnheader is 24-bit (non-BIGVM): hi2fnheader (8 bits) + lofnheader (16 bits)
@@ -71,9 +84,8 @@ pub fn returnFromFunction(vm: *VM) errors.VMError!LispPTR {
     // Get previous frame from activation link
     const previous_frame_addr = stack.getAlink(current_frame);
     if (previous_frame_addr == 0) {
-        // No previous frame - this is top level return
-        vm.current_frame = null;
-        vm.pc = 0; // End execution
+        // No previous frame - this is top level return, just return value without changing PC
+        // Dispatch loop will advance PC by instruction length
         return return_value;
     }
 
@@ -82,11 +94,11 @@ pub fn returnFromFunction(vm: *VM) errors.VMError!LispPTR {
     const STK_OFFSET: u32 = 0x00010000; // DLword offset from Lisp_world
     const stackspace_byte_offset = STK_OFFSET * 2;
     const previous_frame_byte_offset = stackspace_byte_offset + (@as(usize, @intCast(previous_frame_addr)) * 2);
-    
+
     if (vm.virtual_memory == null or previous_frame_byte_offset + @sizeOf(FX) > vm.virtual_memory.?.len) {
         return error.InvalidAddress;
     }
-    
+
     const virtual_memory_mut: []u8 = @constCast(vm.virtual_memory.?);
     const previous_frame: *align(1) FX = @ptrFromInt(@intFromPtr(virtual_memory_mut.ptr) + previous_frame_byte_offset);
     vm.current_frame = previous_frame;
