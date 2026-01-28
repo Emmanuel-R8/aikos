@@ -43,6 +43,26 @@
 #include "returndefs.h"
 #include "commondefs.h"
 
+/* FILE: return.c - Function Return Mechanisms for Maiko Lisp Emulator
+ *
+ * This file implements the RETURN and related opcodes that handle
+ * function return processing, stack unwinding, and context switching.
+ * These operations are critical for proper function call/return semantics.
+ *
+ * HIGH CONFIDENCE: Return mechanisms are fundamental to Lisp execution.
+ * The stack unwinding and frame restoration logic is well documented
+ * in stack.h frame structures and extensively used throughout the codebase.
+ *
+ * KEY CONCEPTS:
+ * 1. NORMAL RETURN: Standard function return with value on TOS
+ * 2. HARD RETURN: Exception/throw mechanism with stack unwinding
+ * 3. CONTEXT SWITCH: Process switching and interrupt handling
+ * 4. STACK CLEANUP: Frame deallocation and link restoration
+ *
+ * CROSS-REFERENCE: See stack.h:132-167 for frame structure definitions.
+ * CROSS-REFERENCE: See binds.c for BIND/UNBIND operations that create frames.
+ */
+
 /***********************************************************************/
 /*
                 Func Name :	OP_contextsw
