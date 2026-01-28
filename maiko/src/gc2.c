@@ -22,6 +22,29 @@
 */
 /**********************************************************************/
 
+/* FILE: gc2.c - Garbage Collection Scan Operations
+ *
+ * This file implements the SCAN1, SCAN2, and GCRECLAIMCELL opcodes
+ * for the garbage collector. These operations support incremental
+ * garbage collection by scanning memory regions for live objects.
+ *
+ * HIGH CONFIDENCE: The scan operations are fundamental to the GC's
+ * incremental collection strategy. The algorithm is well-documented
+ * and has been stable for many years.
+ *
+ * OPERATIONS:
+ * - SCAN1: First-pass scan of a memory region
+ * - SCAN2: Second-pass scan for incremental collection
+ * - GCRECLAIMCELL: Reclaim individual cells during GC
+ *
+ * The scan operations work with positive integers representing
+ * memory addresses. They use the LOLOC macro to extract the
+ * low 16 bits of a Lisp pointer for indexing into memory.
+ *
+ * CROSS-REFERENCE: See gcscandefs.h for gcscan1() and gcscan2()
+ * CROSS-REFERENCE: See address.h for LOLOC macro
+ */
+
 #include <stdio.h>         // for printf
 #include "address.h"       // for LOLOC
 #include "emlglob.h"

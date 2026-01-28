@@ -52,6 +52,52 @@
 
 #include "version.h"
 
+/* FILE: gcr.c - Garbage Collection Reclamation Controller
+ *
+ * This file implements the top-level functions that control garbage
+ * collection invocation. It provides the interface between the Lisp
+ * system and the garbage collector, managing stack arrangement and
+ * GC triggering.
+ *
+ * HIGH CONFIDENCE: The reclamation control functions are critical for
+ * system stability. The implementation has been stable for many years.
+ *
+ * FUNCTIONS:
+ * - gcarrangementstack: Prepare stack for GC scanning
+ * - doreclaim: Top-level GC invocation (currently unused)
+ * - dogc01: Main GC caller from Lisp
+ * - disablegc1: Disable GC on overflow/error
+ *
+ * STACK ARRANGEMENT:
+ * gcarrangementstack() prepares the stack for GC by:
+ * 1. Creating a free stack block (FSB) from the remaining stack area
+ * 2. Updating frame links
+ * 3. Ensuring the stack is in a consistent state for scanning
+ *
+ * This bridges the gap between context switch and SUBR call handling.
+ *
+ * GC INVOCATION:
+ * dogc01() is the main entry point called from Lisp. It coordinates:
+ * - gcscanstack(): Scan stack for references
+ * - gcmapscan(): Scan hash table
+ * - gcmapunscan(): Cleanup after scanning
+ *
+ * INTERRUPT STATE:
+ * The interruptstate structure tracks system conditions:
+ * - gcdisabled: GC is disabled due to error
+ * - vmemfull: Virtual memory is full
+ * - stackoverflow: Stack has overflowed
+ * - storagefull: Storage is exhausted
+ * - waitinginterrupt: Interrupt is pending
+ *
+ * BYTESWAP CONSIDERATIONS:
+ * The interruptstate structure has different layouts for BYTESWAP
+ * vs native architectures due to endianness differences.
+ *
+ * CROSS-REFERENCE: See gcmain3defs.h for gcmapscan, gcmapunscan, gcscanstack
+ * CROSS-REFERENCE: See stack.h for STK_FSB_WORD, frame structures
+ */
+
 #include "address.h"       // for LOLOC
 #include "adr68k.h"        // for NativeAligned4FromLAddr, LAddrFromNative
 #include "commondefs.h"    // for error

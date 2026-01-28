@@ -27,6 +27,39 @@
 /*                                                               \Tomtom */
 /*************************************************************************/
 
+/* FILE: gcoflow.c - Garbage Collection Overflow Handling
+ *
+ * This file implements overflow handling for the garbage collector's
+ * hash table operations. When the hash table overflows, pending
+ * operations are queued and processed later.
+ *
+ * HIGH CONFIDENCE: The overflow handling is critical for GC stability
+ * under memory pressure. The implementation has been tested extensively.
+ *
+ * FUNCTIONS:
+ * - gc_handleoverflow: Process queued overflow entries for list types
+ * - gcmaptable: Process overflow entries for all types
+ *
+ * OVERFLOW MECHANISM:
+ * When the GC hash table cannot immediately process a reference count
+ * operation, the operation is queued in the HToverflow table. These
+ * functions process the queued operations when the system has resources.
+ *
+ * INCREMENTAL ALLOCATION:
+ * The Increment_Allocation_Count macro tracks memory allocation and
+ * triggers garbage collection when thresholds are reached. This
+ * prevents unbounded memory growth.
+ *
+ * TYPE DESCRIPTOR PROCESSING:
+ * gcmaptable iterates through all type descriptors (dtd), updating
+ * old counts and resetting current counts. This is part of the
+ * generational GC strategy.
+ *
+ * CROSS-REFERENCE: See gcdata.h for htooverflow, REC_GCLOOKUP
+ * CROSS-REFERENCE: See lsptypes.h for dtd structure, GetDTD
+ * CROSS-REFERENCE: See gcrdefs.h for doreclaim
+ */
+
 #include "version.h"
 
 #include "arith.h"        // for GetSmalldata

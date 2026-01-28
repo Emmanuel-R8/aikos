@@ -10,6 +10,41 @@
 
 #include "version.h"
 
+/* FILE: gchtfind.c - Garbage Collection Hash Table Find Operations
+ *
+ * This file implements the core hash table operations for the garbage
+ * collector's reference counting system. It provides functions for
+ * finding, adding, and modifying entries in the GC hash table.
+ *
+ * HIGH CONFIDENCE: The hash table algorithms are fundamental to the
+ * GC's operation. The implementation has been stable for many years
+ * and is well-tested.
+ *
+ * HASH TABLE STRUCTURE:
+ * The GC uses a two-level hash table structure:
+ * - HTmain: Primary hash table for quick lookups
+ * - HTcoll: Collision table for handling hash collisions
+ *
+ * Each entry contains:
+ * - Reference count (shifted by HTCNTSHIFT)
+ * - Stack reference bit (HTSTKMASK)
+ * - High bits of the pointer (HTHIMASK)
+ *
+ * KEY MACROS:
+ * - GetLink: Allocate a new entry from the collision table
+ * - NewEntry: Create a new hash table entry
+ * - RecNewEntry: Create entry during reclamation
+ *
+ * BIGVM vs Standard:
+ * BIGVM uses larger pointer fields and different bit positions:
+ * - HTCNTSHIFT: 17 (BIGVM) vs 10 (standard)
+ * - HTCNTMASK: 0xFFFE0000 (BIGVM) vs 0xFC00 (standard)
+ * - STKREFBIT: 0x10000 (BIGVM) vs 0x200 (standard)
+ *
+ * CROSS-REFERENCE: See gcdata.h for GETGC, GCENTRY, ADDREF, DELREF
+ * CROSS-REFERENCE: See lispmap.h for HTCOLL_SIZE, HTMAIN_SIZE
+ */
+
 #include "address.h"       // for LOLOC
 #include "adr68k.h"        // for LAddrFromNative
 #include "commondefs.h"    // for error

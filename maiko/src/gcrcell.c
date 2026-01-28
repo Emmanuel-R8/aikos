@@ -12,7 +12,7 @@
 
 /*************************************************************************/
 /*                                                                       */
-/*                       File Name : gcrcell.c                    	 */
+/*                       File Name : gcrcell.c                     	 */
 /*                                                                       */
 /*************************************************************************/
 /*                                                                       */
@@ -42,7 +42,7 @@
 /*              UFN function is not. The gcreccell function's		 */
 /*              behavior is same as the UFN function for speed and 	 */
 /*		simplicity,this is, this function is closed in this level*/
-/*		)							 */
+/*		)								 */
 /*		This function may reclaim the data of all types that is  */
 /*		Garbage.Especially, the data whose types are ARRAYBLOCK  */
 /*		(= 0), STACKP(= 8),VMEMPAGEP(= 10) and CODEBLOCK(= 54,55,*/
@@ -52,16 +52,56 @@
 /*		processed in this function actually and only then the 	 */
 /*		function "freelistcell" may be called for making linkage */
 /*		of free list.						 */
-/*									 */
+/*										 */
 /*	freelistcell(cell)	LispPTR cell				 */
 /*		This function may make the linkage of free list of the	 */
 /*		cons cell.The header of this linkage is DTD->NEXTPAGE of */
 /*		LISTP and each cons page has its internal linkage of free*/
 /*		cells.This return value is not considered as not used.	 */
-/*									 */
+/*										 */
 /*************************************************************************/
 /*                                                               \Tomtom */
 /*************************************************************************/
+
+/* FILE: gcrcell.c - Garbage Collection Cell Reclamation
+ *
+ * This file implements the core cell reclamation functions for the
+ * garbage collector. It handles reclaiming individual cells of
+ * various types, with special handling for complex types like
+ * arrays, stacks, and code blocks.
+ *
+ * HIGH CONFIDENCE: The cell reclamation logic is fundamental to GC
+ * operation. The implementation has been stable and well-tested.
+ *
+ * FUNCTIONS:
+ * - gcreccell: Main cell reclamation function
+ * - freelistcell: Add a cons cell to the free list
+ *
+ * RECLAMATION STRATEGY:
+ * gcreccell() handles different data types with specialized logic:
+ * - ARRAYBLOCK (type 0): Reclaim array storage via reclaimarrayblock()
+ * - STACKP (type 8): Reclaim stack pointers via reclaimstackp()
+ * - VMEMPAGEP (type 10): Release VM pages via releasingvmempage()
+ * - CODEBLOCK (types 54-63): Reclaim compiled code via reclaimcodeblock()
+ * - LISTP: Add to free list via freelistcell()
+ *
+ * TODO QUEUE:
+ * The ADD_TO_DO macro implements a work queue for deferred processing.
+ * This prevents deep recursion and allows batch processing of references.
+ *
+ * CONS PAGE MANAGEMENT:
+ * freelistcell() maintains the free list within cons pages. Each page
+ * has its own internal free list, with DTD->NEXTPAGE as the header.
+ *
+ * NEWCDRCODING:
+ * Different CONSPAGE_LAST values are used depending on NEWCDRCODING:
+ * - NEWCDRCODING: 0x0ffffffff (32-bit)
+ * - Standard: 0x0ffff (16-bit)
+ *
+ * CROSS-REFERENCE: See gcfinaldefs.h for reclaimarrayblock, reclaimstackp
+ * CROSS-REFERENCE: See gccodedefs.h for reclaimcodeblock
+ * CROSS-REFERENCE: See cell.h for conspage structure
+ */
 
 #include <stdio.h>        // for printf
 #include "address.h"      // for POINTER_PAGE

@@ -36,11 +36,50 @@
 /*************************************************************************/
 /*           Description :                                               */
 /*                                                                       */
-/*  									 */
+/*  										 */
 /*                                                                       */
 /*************************************************************************/
 /*                                                               \Tomtom */
 /*************************************************************************/
+
+/* FILE: gcfinal.c - Final GC Reclamation Functions
+ *
+ * This file implements the final phase of garbage collection reclamation,
+ * including stack pointer reclamation, array block reclamation, and
+ * virtual memory page management. These functions complete the GC cycle
+ * by actually freeing memory and updating data structures.
+ *
+ * HIGH CONFIDENCE: The reclamation algorithms are mature and well-tested.
+ * The array block management uses standard free-list algorithms with
+ * forward and backward merging for fragmentation reduction.
+ *
+ * FUNCTIONS:
+ * - reclaimstackp: Reclaim stack pointers and frames
+ * - reclaimarrayblock: Reclaim array storage blocks
+ * - releasingvmempage: Release virtual memory pages
+ * - deleteblock: Remove block from free list
+ * - linkblock: Add block to free list
+ * - mergeforward: Merge with next adjacent block
+ * - mergebackward: Merge with previous adjacent block
+ * - arrayblockmerger: Main array block reclamation
+ * - checkarrayblock: Validate array block integrity
+ * - findptrsbuffer: Find buffer references
+ *
+ * ARRAY BLOCK MANAGEMENT:
+ * Array blocks are managed using a bucket-based free list system.
+ * The BucketIndex macro determines which free list to use based on
+ * block size. Blocks are merged with adjacent free blocks to reduce
+ * fragmentation.
+ *
+ * BUFFER STRUCTURE:
+ * The buffer structure must match the Lisp BUFFER datatype in PMAP.
+ * It contains file page, virtual memory page, and buffer chain links
+ * along with reference and dirty flags.
+ *
+ * CROSS-REFERENCE: See gccode.c for reclaimcodeblock()
+ * CROSS-REFERENCE: See array.h for arrayblock structure
+ * CROSS-REFERENCE: See gcdata.h for DELREF, REC_GCLOOKUP macros
+ */
 
 #include <stdio.h>        // for printf
 #include "address.h"      // for HILOC

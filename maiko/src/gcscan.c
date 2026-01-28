@@ -46,6 +46,45 @@
 /*                                                               \Tomtom */
 /*************************************************************************/
 
+/* FILE: gcscan.c - Garbage Collection Hash Table Scanning
+ *
+ * This file implements the hash table scanning functions for the
+ * garbage collector. These functions are called by the GCSCAN1 and
+ * GCSCAN2 opcodes to traverse the hash table and find entries
+ * that need processing.
+ *
+ * HIGH CONFIDENCE: The scanning algorithms are simple and well-tested.
+ * They provide the foundation for the GC's mark phase.
+ *
+ * FUNCTIONS:
+ * - gcscan1: Scan for existing entries (used in first pass)
+ * - gcscan2: Scan for entries with stack references (used in second pass)
+ *
+ * SCANNING ALGORITHM:
+ * Both functions scan backwards through the HTmain table from the
+ * given probe position. They return the offset of matching entries
+ * or -1 when no more entries exist.
+ *
+ * gcscan1 returns entries that:
+ * - Have collision bit set, OR
+ * - Have zero stack count (not on stack)
+ *
+ * gcscan2 returns entries that:
+ * - Have stack reference bit set (HTSTKBIT), OR
+ * - Have collision bit set
+ *
+ * BIGVM SUPPORT:
+ * Different bit positions are used for BIGVM:
+ * - HTSTKBIT: 0x10000 (BIGVM) vs 0x200 (standard)
+ * - GetStkCnt: Right shift 16 (BIGVM) vs 9 (standard)
+ *
+ * The HTENDS and HTLPTR macros provide overlay access to hash table
+ * entries with different interpretations (htlinkptr vs hashentry).
+ *
+ * CROSS-REFERENCE: See gcdata.h for GCENTRY, HTmain
+ * CROSS-REFERENCE: See gc2.c for OP_gcscan1, OP_gcscan2 opcodes
+ */
+
 #include "lispemul.h"
 #include "lspglob.h"
 #include "gcdata.h"

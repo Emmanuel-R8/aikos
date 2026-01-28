@@ -11,23 +11,59 @@
 #include "version.h"
 
 /************************************************************************/
-/* File Name : gccode.c						*/
-/*									*/
+/* File Name : gccode.c							*/
+/*										*/
 /************************************************************************/
-/*									*/
+/*										*/
 /* Creation Date : Sep-25-1987						*/
 /* Written by Tomoru Teruuchi						*/
 /* Edit by Larry Masinter						*/
 /************************************************************************/
-/*									*/
-/* Functions :								*/
+/*										*/
+/* Functions :									*/
 /* reclaimcodeblock();							*/
-/*									*/
-/*									*/
-/*									*/
+/*										*/
+/*										*/
+/*										*/
 /************************************************************************/
-/* \Tomtom								*/
+/* \Tomtom									*/
 /************************************************************************/
+
+/* FILE: gccode.c - Code Block Reclamation for Garbage Collection
+ *
+ * This file implements the reclaimcodeblock() function for reclaiming
+ * compiled code blocks during garbage collection. It handles the
+ * complex task of identifying and reclaiming code blocks while
+ * maintaining reference counts and hash table entries.
+ *
+ * HIGH CONFIDENCE: The code block reclamation logic is critical for
+ * proper memory management. The implementation has been stable and
+ * well-tested over many years.
+ *
+ * OPCODE LENGTH TABLES:
+ * The file contains three versions of opcode length tables:
+ * - BIGVM: 4-byte atom opcodes (maximum 5 bytes per instruction)
+ * - BIGATOMS: 3-byte atom opcodes (maximum 4 bytes per instruction)
+ * - Default: 2-byte atom opcodes (maximum 3 bytes per instruction)
+ *
+ * These tables are used to determine instruction boundaries when
+ * scanning code blocks for references.
+ *
+ * IMPLICIT KEY HASH TABLES:
+ * The file defines the Ikhashtbl structure for implicit key hash
+ * tables, with different layouts for BYTESWAP and non-BYTESWAP
+ * architectures.
+ *
+ * KEY MACROS:
+ * - Reprobefn: Compute reprobe distance for hash collisions
+ * - Fn16bits: 16-bit arithmetic helper
+ * - Hashingbits: Compute hash value from Lisp pointer
+ * - Getikvalue: Access implicit key hash table entries
+ *
+ * CROSS-REFERENCE: See gcdata.h for REC_GCLOOKUP, DELREF, ADDREF
+ * CROSS-REFERENCE: See gchtfinddefs.h for htfind, rec_htfind
+ * CROSS-REFERENCE: See stack.h for fnhead structure
+ */
 
 #include <stdio.h>       // for sprintf
 #include "address.h"     // for LOLOC, HILOC

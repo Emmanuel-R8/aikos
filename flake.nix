@@ -100,7 +100,6 @@
                 pkgs.sdl3
                 pkgs.xorg.libX11
                 pkgs.xorg.libXext
-                pkgs.glibc
               ]
             }:$LD_LIBRARY_PATH"
 

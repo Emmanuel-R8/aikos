@@ -33,6 +33,46 @@
 /*                                                               \Tomtom */
 /*************************************************************************/
 
+/* FILE: gcmain3.c - Main Garbage Collection Scanning Functions
+ *
+ * This file implements the core scanning functions for the garbage
+ * collector. It provides the main entry points for GC map scanning,
+ * unscanning, and stack scanning operations.
+ *
+ * HIGH CONFIDENCE: The scanning algorithms are critical to GC correctness.
+ * The implementation has been stable for many years and is well-tested.
+ *
+ * FUNCTIONS:
+ * - gcmapscan: Scan the GC hash table map for entries to process
+ * - gcmapunscan: Reverse scan for cleanup operations
+ * - gcscanstack: Scan the Lisp stack for references
+ *
+ * SCANNING ALGORITHM:
+ * The GC uses a mark-and-sweep style algorithm with reference counting.
+ * The scan functions traverse:
+ * 1. Hash table entries (HTmain) for global references
+ * 2. Stack frames for local references
+ * 3. Binding stack for dynamic bindings
+ *
+ * BIGVM SUPPORT:
+ * Different bit masks and shifts are used for BIGVM vs standard:
+ * - BIND_BITS: Extract binding count (28 vs 24 bit shift)
+ * - BF_FLAGS: Extract frame flags (29 bit shift)
+ * - PTR_BITS: Mask to get pointer bits
+ * - STKREFBIT: Stack reference indicator (0x10000 vs 0x200)
+ *
+ * STACK SCANNING:
+ * The stack scanner walks frame by frame, checking for references
+ * that need to be processed. It handles different frame types:
+ * - Basic frames (STK_BF)
+ * - Frame extensions (frameex1)
+ * - Free stack blocks (STK_FSB)
+ *
+ * CROSS-REFERENCE: See gcscandefs.h for gcscan1, gcscan2
+ * CROSS-REFERENCE: See gcrcelldefs.h for gcreccell
+ * CROSS-REFERENCE: See stack.h for frame structures
+ */
+
 #include <stdio.h>        // for sprintf
 #include "address.h"      // for VAG2
 #include "adr68k.h"       // for NativeAligned4FromLAddr, NativeAligned2FromStackOffset

@@ -42,6 +42,43 @@
 /*                                                               \Tomtom */
 /*************************************************************************/
 
+/* FILE: gcarray.c - Array Access and Symbol Lookup Functions
+ *
+ * This file provides utility functions for array access and symbol
+ * lookup in the Lisp package system. These functions bridge the gap
+ * between Lisp-level operations and C implementation.
+ *
+ * HIGH CONFIDENCE: The array access and symbol lookup functions are
+ * well-tested and fundamental to the package system. The hash table
+ * algorithms are standard and well-documented.
+ *
+ * FUNCTIONS:
+ * - aref1: Access one-dimensional arrays (simple vectors)
+ * - find_symbol: Lookup symbol in a package hashtable
+ * - get_package_atom: Create or find atom in a package
+ * - with_symbol: C implementation of WITH-SYMBOL macro
+ *
+ * PACKAGE HASHTABLE STRUCTURE:
+ * Each package maintains two hashtables:
+ * - Internal symbols: Private to the package
+ * - External symbols: Exported from the package
+ *
+ * The hashtable structure contains:
+ * - table: Pointer to the hash table array
+ * - hash: Hash function data
+ * - size: Total number of slots
+ * - free: Number of free slots
+ * - deleted: Number of deleted entries
+ *
+ * HASHING ALGORITHM:
+ * The symbol hash uses a combination of string length and sxhash
+ * values, with reprobing for collision resolution. The Entry_hash
+ * macro computes the initial hash bucket.
+ *
+ * CROSS-REFERENCE: See package.h for package structure definitions
+ * CROSS-REFERENCE: See mkatom.c for atom creation functions
+ */
+
 #include <stdio.h>         // for printf
 #include <string.h>        // for strncmp
 #include "adr68k.h"        // for NativeAligned2FromLAddr, NativeAligned4FromLAddr
