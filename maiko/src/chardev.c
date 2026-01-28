@@ -18,6 +18,44 @@
 /*                                                                      */
 /************************************************************************/
 
+/* FILE: chardev.c - Character Device Support
+ *
+ * This file implements character device operations for Medley,
+ * providing low-level access to serial ports, terminals, and other
+ * character-oriented devices. It supports both input and output
+ * operations with proper error handling.
+ *
+ * HIGH CONFIDENCE: Character device operations use standard POSIX
+ * APIs. The implementation is straightforward and well-tested.
+ *
+ * KEY FEATURES:
+ * - Character device open/close operations
+ * - Raw and cooked mode support
+ * - Terminal control operations
+ * - Error handling with Lisp errno
+ *
+ * DEVICE OPERATIONS:
+ * - CHAR_openfile: Open a character device with specified access
+ * - CHAR_closefile: Close an open character device
+ * - CHAR_readfile: Read from character device
+ * - CHAR_writefile: Write to character device
+ * - CHAR_ioctl: Device-specific control operations
+ *
+ * ACCESS MODES:
+ * - ACCESS_INPUT: Read-only access
+ * - ACCESS_OUTPUT: Write-only access, create if needed
+ * - ACCESS_APPEND: Append mode with read/write
+ * - ACCESS_BOTH: Read/write access, create if needed
+ *
+ * TIMEOUT HANDLING:
+ * All operations use the TIMEOUT macro for interrupt safety,
+ * allowing operations to be interrupted by Lisp signals.
+ *
+ * CROSS-REFERENCE: See ufs.c for file system operations
+ * CROSS-REFERENCE: See timeout.h for timeout macros
+ * CROSS-REFERENCE: See locfile.h for Lisp string conversion
+ */
+
 #include <errno.h>
 #include <fcntl.h>
 #include <setjmp.h>

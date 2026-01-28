@@ -12,7 +12,46 @@
 
 /*
  *	file	:	initdsp.c
- *	Author	:	Osamu Nakamura
+ * 	Author	:	Osamu Nakamura
+ */
+
+/* FILE: initdsp.c - Display Initialization and Management
+ *
+ * This file implements display initialization and management for Medley.
+ * It handles setup of the display region, cursor initialization, and
+ * platform-specific display configuration (X11, SDL, or native framebuffer).
+ *
+ * HIGH CONFIDENCE: Display initialization follows standard patterns for
+ * each platform. The display region management is straightforward.
+ *
+ * KEY FEATURES:
+ * - Display region allocation and setup
+ * - Cursor initialization
+ * - Platform-specific display backends (X11, SDL, framebuffer)
+ * - Display buffer management
+ *
+ * DISPLAY REGION:
+ * DisplayRegion68k points to the Lisp display bitmap in memory.
+ * The display is organized as a bitmap with DLword (16-bit) elements.
+ * Display dimensions are stored in displaywidth and displayheight.
+ *
+ * PLATFORM SUPPORT:
+ * - XWINDOW: X11 display support
+ * - SDL: SDL2 display support
+ * - DOS: DOS display support
+ * - Native framebuffer (Sun, etc.)
+ *
+ * DISPLAYBUFFER:
+ * When DISPLAYBUFFER is defined, DisplayRegion68k_end_addr marks
+ * the end of the Lisp display region for bounds checking.
+ *
+ * COLOR SUPPORT:
+ * Color display is supported via ColorDisplayRegion68k and
+ * MonoOrColor flag for selecting between monochrome and color.
+ *
+ * CROSS-REFERENCE: See display.h for display constants
+ * CROSS-REFERENCE: See devif.h for device interface structures
+ * CROSS-REFERENCE: See dspsubrs.c for display subroutines
  */
 
 #include <unistd.h>       // for getpagesize

@@ -11,6 +11,41 @@
 
 #include "version.h"
 
+/* FILE: dspsubrs.c - Display Subroutines
+ *
+ * This file implements display-related subroutines (SUBRs) for Medley.
+ * These functions are called from Lisp code to control display output,
+ * cursor operations, and video attributes.
+ *
+ * HIGH CONFIDENCE: The display subroutines are simple wrappers around
+ * lower-level display functions. They have been stable for many years.
+ *
+ * KEY SUBRS:
+ * - DSP_dspbout (SUBRCALL 9 1): Output a character to the display
+ * - DSP_showdisplay (SUBRCALL 19 2): Show/hide the display
+ * - DSP_VideoColor (SUBRCALL 66 1): Set video color (black/white invert)
+ * - DSP_Cursor (SUBRCALL): Set cursor position and bitmap
+ * - DSP_ScreenWidth/DSP_ScreenHeight: Get display dimensions
+ *
+ * DISPLAY OUTPUT:
+ * DSP_dspbout handles character output, translating CR to LF for
+ * Unix compatibility. Characters are written to BCPLDISPLAY stream.
+ *
+ * VIDEO COLOR:
+ * DSP_VideoColor controls black/white inversion for the entire display.
+ * This is used for highlighting and visual effects.
+ *
+ * PLATFORM SUPPORT:
+ * The file includes platform-specific code for:
+ * - XWINDOW: X11 display support
+ * - SDL: SDL2 display support
+ * - Native display (if neither X11 nor SDL)
+ *
+ * CROSS-REFERENCE: See initdsp.c for display initialization
+ * CROSS-REFERENCE: See display.h for display constants
+ * CROSS-REFERENCE: See xcursordefs.h for X11 cursor functions
+ */
+
 #include <stdio.h>         // for putc
 #include "arith.h"         // for GetSmalldata
 #include "display.h"       // for BCPLDISPLAY, CURSORHEIGHT
