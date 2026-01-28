@@ -38,6 +38,23 @@ error
 
 ******************************************************************/
 
+/* FILE: common.c - Common Utility Functions and Error Handling
+ *
+ * This file provides common utility functions used throughout the Maiko
+ * emulator, including error handling, debugging support, and system
+ * interface functions.
+ *
+ * HIGH CONFIDENCE: These are utility functions that are well understood
+ * and extensively used throughout the codebase.
+ *
+ * FUNCTIONS:
+ * - stab(): Debug stub function
+ * - error(): Fatal error handler that enters URaid debugger
+ * - warn(): Warning message handler
+ *
+ * CROSS-REFERENCE: URaid debugger in uraid.c
+ */
+
 extern fd_set LispReadFds;
 extern int LispKbdFd;
 extern struct screen LispScreen;
