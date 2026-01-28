@@ -20,6 +20,44 @@ Unix Interface Communications
 /*									*/
 /************************************************************************/
 
+/* FILE: unixcomm.c - Unix Interprocess Communication Interface
+ *
+ * This file implements Unix interprocess communication for Medley,
+ * including PTY shells, subprocess management, and socket communication.
+ * It allows Lisp to spawn and communicate with Unix processes.
+ *
+ * HIGH CONFIDENCE: The Unix process management uses standard POSIX
+ * APIs. PTY handling follows established Unix conventions.
+ *
+ * KEY FEATURES:
+ * - PTY shell support: Lisp can open interactive Unix shells
+ * - Subprocess management: Spawn and control Unix processes
+ * - Socket communication: Unix domain sockets for IPC
+ * - Process status tracking: Monitor subprocess exit codes
+ *
+ * UNIXJOB STRUCTURE:
+ * The unixjob structure tracks active Unix processes:
+ * - pathname: For direct socket access
+ * - PID: Process ID for signal/wait operations
+ * - status: Exit status from subprocess
+ * - type: UJTYPE enumeration (shell, process, socket, etc.)
+ *
+ * UJTYPE ENUMERATION:
+ * - UJUNUSED: Unused slot
+ * - UJSHELL: PTY shell connection
+ * - UJPROCESS: Generic subprocess
+ * - UJSOCKET: Listening socket
+ * - UJSOSTREAM: Accepted socket connection
+ *
+ * SAFEREAD MACRO:
+ * Wraps read() with EINTR/EAGAIN handling for robust I/O
+ * in the presence of signals.
+ *
+ * CROSS-REFERENCE: See unixfork.c for process forking
+ * CROSS-REFERENCE: See stream.h for stream structures
+ * CROSS-REFERENCE: See timeout.h for timeout handling
+ */
+
 #include "version.h"
 
 #include "lispemul.h"

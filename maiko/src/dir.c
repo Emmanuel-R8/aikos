@@ -9,6 +9,38 @@
 
 #include "version.h"
 
+/* FILE: dir.c - Directory Enumeration and File Information
+ *
+ * This file implements directory enumeration and file information
+ * retrieval for the Medley file system. It provides Lisp-accessible
+ * functions for listing directories and getting file attributes.
+ *
+ * HIGH CONFIDENCE: The directory operations are standard POSIX/Unix
+ * operations with well-defined behavior. Pattern matching follows
+ * standard shell glob conventions.
+ *
+ * KEY FEATURES:
+ * - Directory enumeration with pattern matching
+ * - File information retrieval (size, dates, attributes)
+ * - Support for wildcards in file names
+ * - Case-insensitive matching for Medley compatibility
+ *
+ * PATTERN MATCHING:
+ * The SetupMatch and MatchP macros implement pattern matching for
+ * directory listings. Patterns can include:
+ * - * wildcard (matches any characters)
+ * - ? wildcard (matches single character)
+ * - Version specifications
+ *
+ * DIRECTORY SEPARATOR:
+ * Medley uses '>' as directory separator (LISPDIRCHAR), which is
+ * translated to/from the host's native separator.
+ *
+ * CROSS-REFERENCE: See dsk.c for disk device operations
+ * CROSS-REFERENCE: See ufs.c for Unix file system interface
+ * CROSS-REFERENCE: See locfile.h for file name manipulation macros
+ */
+
 #ifndef DOS
 #include <dirent.h>         // for closedir, MAXNAMLEN, dirent, readdir, ope...
 #include <pwd.h>            // for getpwuid, passwd

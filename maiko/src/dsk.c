@@ -9,6 +9,40 @@
 
 #include "version.h"
 
+/* FILE: dsk.c - Disk Device File System Operations
+ *
+ * This file implements the {DSK} device driver for Medley, providing
+ * file system operations with Lisp-style version numbers. It presents
+ * a case-insensitive (to Medley) but case-preserving (to the host)
+ * file system interface.
+ *
+ * HIGH CONFIDENCE: The file system operations are mature and well-tested.
+ * The version number handling and directory caching are critical features.
+ *
+ * KEY FEATURES:
+ * - Version number support: Files can have multiple versions (foo.~1~, foo.~2~)
+ * - Directory caching: VA (Version Array) caches directory contents
+ * - Case preservation: Original case is preserved on disk
+ * - Case insensitivity: File lookup is case-insensitive
+ *
+ * VERSION ARRAY (VA):
+ * The VA structure caches directory information to optimize version
+ * lookups. It stores:
+ * - Directory inode and modification time
+ * - Array of files with version numbers
+ * - Last used index for quick access
+ *
+ * FILE OPERATIONS:
+ * - File creation with version management
+ * - File deletion with version cleanup
+ * - Directory listing with pattern matching
+ * - File attribute retrieval
+ *
+ * CROSS-REFERENCE: See ufs.c for Unix file system interface
+ * CROSS-REFERENCE: See dir.c for directory enumeration
+ * CROSS-REFERENCE: See locfile.h for file name parsing macros
+ */
+
 #include <errno.h>          // for errno, EINTR, ENOENT, ENFILE, EPERM
 #include <fcntl.h>          // for O_RDWR, O_CREAT, open, O_RDONLY, O_TRUNC
 #include <stdio.h>          // for NULL, snprintf, size_t, rename, SEEK_SET

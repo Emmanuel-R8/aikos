@@ -9,6 +9,43 @@
 
 #include "version.h"
 
+/* FILE: ufs.c - Unix File System Interface
+ *
+ * This file implements the Unix file system interface for Medley,
+ * providing low-level file operations and path name translation
+ * between Lisp and Unix conventions.
+ *
+ * HIGH CONFIDENCE: The Unix file system interface uses standard POSIX
+ * calls. Path translation follows well-established conventions.
+ *
+ * KEY FEATURES:
+ * - Path name translation (Lisp <-> Unix)
+ * - File open/read/write/close operations
+ * - Error handling with Lisp errno
+ * - DOS compatibility support (8.3 filenames)
+ *
+ * PATH TRANSLATION:
+ * Lisp uses '>' as directory separator and supports version numbers.
+ * This file translates between Lisp pathnames and Unix pathnames:
+ * - Lisp: {DSK}<usr>local>file.txt.~1~
+ * - Unix: /usr/local/file.txt.~1~
+ *
+ * ERROR HANDLING:
+ * File operations set Lisp_errno for error reporting to Lisp code.
+ * If Lisp_errno is not provided by the Lisp system, Dummy_errno
+ * is used as a fallback.
+ *
+ * DOS SUPPORT:
+ * When compiled for DOS:
+ * - 8.3 filename restrictions are enforced
+ * - Int24 handler bypasses "Abort, Retry, Fail?" messages
+ * - Different header files are included
+ *
+ * CROSS-REFERENCE: See dsk.c for disk device operations
+ * CROSS-REFERENCE: See dir.c for directory operations
+ * CROSS-REFERENCE: See stream.h for stream structures
+ */
+
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
