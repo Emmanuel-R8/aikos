@@ -18,6 +18,45 @@
 
 #include "version.h"
 
+/* FILE: timer.c - Timer and Interrupt Handling
+ *
+ * This file implements timer handling and interrupt management for Medley.
+ * It provides time conversion between Lisp and Unix formats, signal
+ * handling, and timeout mechanisms for various operations.
+ *
+ * HIGH CONFIDENCE: Timer handling uses standard Unix signals and time
+ * APIs. Time conversion constants are well-established.
+ *
+ * KEY FEATURES:
+ * - Lisp/Unix time conversion
+ * - Signal handling for interrupts
+ * - Timeout mechanisms for file operations
+ * - Platform-specific timer support (DOS, Haiku, etc.)
+ *
+ * TIME CONVERSION:
+ * Lisp time and Unix time have different epochs:
+ * - Lisp 0 = "19-Jan-69 12:14:08 PST"
+ * - Unix 0 = " 1-Jan-70 00:00:00 GMT"
+ * - LISP_UNIX_TIME_DIFF = 29969152 (seconds to add to Lisp time)
+ *
+ * Alto time is unsigned with epoch "01-JAN-01 00:00:00 GMT":
+ * - UNIX_ALTO_TIME_DIFF = 2177452800U (seconds to add to Unix time)
+ *
+ * INTERRUPT HANDLING:
+ * The file sets up signal handlers for:
+ * - Timer interrupts (SIGALRM)
+ * - I/O interrupts (SIGIO)
+ * - DOS timer interrupt (int 1c)
+ *
+ * TIMEOUT:
+ * TIMEOUT_TIME controls file system operation timeouts (default 10 seconds).
+ * IO_Signalled tracks pending I/O interrupts.
+ *
+ * CROSS-REFERENCE: See timeout.h for timeout macros
+ * CROSS-REFERENCE: See miscstat.h for statistics gathering
+ * CROSS-REFERENCE: See keyeventdefs.h for keyboard event handling
+ */
+
 #include <errno.h>
 #include <fcntl.h>
 #include <setjmp.h>

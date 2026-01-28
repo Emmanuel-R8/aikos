@@ -41,6 +41,45 @@
 
 
 */
+
+/* FILE: testtool.c - Debugging and Testing Utilities
+ *
+ * This file implements various debugging aids and testing utilities
+ * for Medley. These functions are used during development and debugging
+ * to inspect Lisp data structures, atoms, types, and memory.
+ *
+ * HIGH CONFIDENCE: The debugging functions are straightforward utilities
+ * that print or dump internal state. They don't affect normal operation.
+ *
+ * DEBUGGING FUNCTIONS:
+ * - print_atomname: Print the name of an atom given its index
+ * - dump_dtd: Dump type descriptor table information
+ * - dump_conspage: Dump a cons page showing free list structure
+ * - dump_fnobj: Dump a function object
+ * - dump_fnbody: Dump function body (bytecode)
+ * - all_stack_dump: Dump stack contents from start to end
+ *
+ * UTILITY FUNCTIONS:
+ * - a68k: Convert Lisp pointer to 68k address
+ * - laddr: Convert 68k address to Lisp pointer
+ * - doko: Print current location (Japanese for "where")
+ * - dumpl: Dump Lisp address contents
+ * - printPC: Print program counter (PC) information
+ *
+ * TYPE CHECKING:
+ * - check_type_68k: Verify type of object at address
+ * - type_num: Get type number from Lisp pointer
+ * - trace_listpDTD: Trace list pointer DTD entries
+ *
+ * URSCAN MODES:
+ * - URSCAN_ALINK: Scan using alink (access link)
+ * - URSCAN_CLINK: Scan using clink (control link)
+ *
+ * CROSS-REFERENCE: See dbgtooldefs.h for additional debugging tools
+ * CROSS-REFERENCE: See cell.h for cell structure definitions
+ * CROSS-REFERENCE: See stack.h for frame structure definitions
+ */
+
 #include <inttypes.h>      // for PRIoPTR, PRIuPTR
 #include <setjmp.h>        // for longjmp, jmp_buf
 #include <stdint.h>        // for int8_t, uint8_t, uintptr_t
