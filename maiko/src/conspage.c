@@ -12,6 +12,23 @@
 
 /**
  *  @file conspage.c
+ *
+ *  FILE: conspage.c - CONS Cell Page Management
+ *
+ *  This file manages pages of CONS cells, including initialization,
+ *  allocation, and chaining of cells for efficient memory management.
+ *
+ *  HIGH CONFIDENCE: The CONS cell management is fundamental to Lisp
+ *  memory management. The page layout and cell chaining are well
+ *  understood and critical for performance.
+ *
+ *  PAGE LAYOUT:
+ *  - Each page contains multiple CONS cells
+ *  - Cells are chained through their high bits
+ *  - Free list management for efficient allocation
+ *
+ *  CROSS-REFERENCE: See cell.h for CONS cell structure definitions
+ *  CROSS-REFERENCE: See allocmds.c for memory allocation
  */
 
 #include <stddef.h>        // for NULL
