@@ -1,0 +1,6 @@
+[submodule "maiko_untouched"]
+	path = maiko_untouched
+	url = https://github.com/Interlisp/maiko.git
+[submodule "medley"]
+	path = medley
+	url = https://github.com/Interlisp/medley.git
