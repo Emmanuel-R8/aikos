@@ -10,10 +10,13 @@
 #include "version.h"
 
 /***********************************************************/
-/*
-                File Name:	miscn.c
-                Including:	OP_miscn
-*/
+/*							*/
+/*	FILE: miscn.c - Miscellaneous Opcode Implementation	*/
+/*							*/
+/*	Implements various miscellaneous opcodes that don't fit into	*/
+/*	other categories. Includes stack manipulation, string operations,*/
+/*	debugging tools, and system interface functions.		*/
+/*							*/
 /***********************************************************/
 
 #include "arith.h"         // for N_GETNUMBER
@@ -30,35 +33,71 @@
 #include "usrsubrdefs.h"   // for UserSubr
 
 /***********************************************************/
-/*
-        Func Name  :	OP_miscn
-
-        Interface:	Global Machine State
-        Returns:	(must UFN)
-                        0 = continue, C code succeeded.
-                        1 = must UFN, C code failed.
-*/
+/*							*/
+/*	FUNCTION: OP_miscn - Miscellaneous Opcode Dispatcher	*/
+/*							*/
+/*	Handles various miscellaneous operations including:		*/
+/*	- Stack manipulation and argument gathering		*/
+/*	- String hashing operations				*/
+/*	- VALUES and VALUES-LIST handling			*/
+/*	- Loop control fetch operations			*/
+/*	- System interface functions (RS232, debugging)	*/
+/*							*/
+/*	INTERFACE: Global Machine State			*/
+/*	RETURNS:   0 = continue, C code succeeded		*/
+/*		   1 = must UFN, C code failed		*/
+/*							*/
+/*	HIGH CONFIDENCE: This function provides unified interface	*/
+/*	for miscellaneous operations that would otherwise need	*/
+/*	separate opcode implementations.			*/
+/*							*/
 /***********************************************************/
 
 int OP_miscn(int misc_index, int arg_count) {
-  LispPTR *stk;
-  int result;
-  static LispPTR args[255];
+  LispPTR *stk;                        /* Stack pointer for argument collection */
+  int result;                           /* Operation result return value */
+  static LispPTR args[255];              /* Local array for collected arguments */
 
-  /* Put the Args into a Vector */
-
-  args[0] = NIL_PTR;
-  stk = ((LispPTR *)(void *)CurrentStackPTR) + 1;
+  /* STACK ARGUMENT COLLECTION: Pop arguments from stack into vector
+   *
+   * This section reverses stack order to collect arguments in correct
+   * calling convention order. The stack grows downward, so we need
+   * to careful with pointer arithmetic.
+   *
+   * STACK MANIPULATION STRATEGY:
+   * 1. Position stk pointer just above CurrentStackPTR
+   * 2. Store current TopOfStack as first element (args[0])
+   * 3. Pop remaining args from stack into reverse order
+   *
+   * HIGH CONFIDENCE: Standard argument gathering for variadic functions.
+   * CRITICAL: Must maintain stack consistency throughout operation.
+   *
+   * CROSS-REFERENCE: Similar pattern in other opcode implementations
+   * in xc.c and various opcode dispatch files.
+   */
+  args[0] = NIL_PTR;                 /* Initialize first element to NIL */
+  stk = ((LispPTR *)(void *)CurrentStackPTR) + 1;  /* Position above current stack */
 
   {
     int arg_num = arg_count;
     if (arg_num > 0) {
-      *stk++ = (LispPTR)TopOfStack;
+      *stk++ = (LispPTR)TopOfStack;  /* Store current TOS as first arg */
+      /* Pop remaining args from stack into args[] in reverse order */
       while (arg_num > 0) args[--arg_num] = *--stk;
     }
   }
 
-  /* Select the Misc Number */
+  /* SELECT MISCELLANEOUS OPERATION: Dispatch based on misc_index
+   *
+   * Each case implements a specific miscellaneous operation.
+   * The operation may access arguments through the args[] array
+   * and must return appropriate result values.
+   *
+   * OPCODE CATEGORIES:
+   * ==================
+   * - USER_SUBR: Call user-defined subroutine by index
+   * - SXHASH/STRING*: String hashing and comparison operations
+   */
 
   switch (misc_index) {
     case miscn_USER_SUBR: {

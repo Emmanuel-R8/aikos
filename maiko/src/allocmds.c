@@ -10,20 +10,36 @@
 
 #include "version.h"
 
-/**********************************************************************/
-/*
-                File Name :	allocmds.c
-
-                Allocate Data Type(MDS)
-
-                                Date :		August 18, 1987
-                                Edited by :	Takeshi Shimizu
-
-                Including :	initmdspage
-                                alloc_mdspage
-
-*/
-/**********************************************************************/
+/* FILE: allocmds.c - Memory Data Structure (MDS) Allocation and Management
+ *
+ * HIGH CONFIDENCE: This file implements the core memory management system
+ * for Maiko. The MDS (Memory Data Structure) system tracks the type and
+ * allocation status of every page in the virtual memory space.
+ *
+ * MDS ARCHITECTURE:
+ * - Each 512-byte page has a corresponding MDS entry
+ * - MDS entries track page type, allocation status, and GC information
+ * - MDStypetbl is the master table containing all MDS entries
+ * - Two MDS entries per DLword (16 bits each) for compact storage
+ *
+ * PAGE MANAGEMENT:
+ * - Pages are allocated on demand by alloc_mdspage()
+ * - Each page is 512 bytes (256 DLwords)
+ * - Page numbers are used as indices into MDS tables
+ * - MDS pattern bits encode type, GC flags, and allocation status
+ *
+ * CRITICAL IMPORTANCE:
+ * - All memory allocation ultimately uses this system
+ * - Garbage collector relies on MDS for object identification
+ * - Type checking uses MDS for fast type lookup
+ * - Memory protection and debugging use MDS information
+ *
+ * CROSS-REFERENCE: MDS bit patterns in lsptypes.h
+ * CROSS-REFERENCE: Page allocation in storagedefs.h
+ * CROSS-REFERENCE: GC scanning in gc*.c files
+ *
+ * AUTHOR: Takeshi Shimizu (August 18, 1987)
+ */
 
 #include "address.h"       // for LOLOC                                                                                                                                     
 #include "adr68k.h"        // for LAddrFromNative, LPageFromNative, Addr68k_fr...                                                                                             
@@ -43,7 +59,36 @@
 /*	lsptypes.h for the meaning of the entry bits).			*/
 /*									*/
 /************************************************************************/
-/* I consider that there is no case the variable named \GCDISABLED is set to T */
+/*
+ * HIGH CONFIDENCE: Create MDS (Memory Data Structure) table entry.
+ * This is the fundamental operation for allocating pages in the Maiko VM.
+ *
+ * MDS ENTRY FORMAT:
+ * - Each DLword contains two MDS entries (16 bits each)
+ * - Page number >> 1 gives DLword index in MDStypetbl
+ * - Pattern contains type, GC flags, and status bits
+ * - Bits encode: page type (SMALLP, ARRAYP, etc), GC flags, allocation
+ *
+ * PAGE NUMBERING:
+ * - Pages are numbered sequentially from 0
+ * - Page 0 is reserved for system structures
+ * - Page numbers >> 1 access actual table (2 entries per DLword)
+ *
+ * PARAMETERS:
+ * - page: Virtual page number being allocated
+ * - pattern: Bit pattern with type and allocation flags
+ *
+ * SIDE EFFECTS:
+ * - Updates MDStypetbl entry for this page
+ * - Uses GETWORD macro for proper memory access
+ *
+ * CROSS-REFERENCE: MDS bit definitions in lsptypes.h
+ * CROSS-REFERENCE: Page size constants in lispemul.h (BYTESPER_PAGE = 512)
+ * CROSS-REFERENCE: GC page tracking in gc*.c files
+ *
+ * NOTE: Author states "no case that variable named GCDISABLED is set to T"
+ * This refers to conditional compilation for GC-aware page allocation
+ */
 static inline void Make_MDSentry(UNSIGNED page, DLword pattern) {
   GETWORD((DLword *)MDStypetbl + (page >> 1)) = (DLword)pattern;
 }

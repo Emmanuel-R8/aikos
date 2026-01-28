@@ -9,16 +9,82 @@
 
 #include "version.h"
 
-/************************************************************************/
-/*									*/
-/*		  M A I N   D I S P A T C H   L O O P			*/
-/*									*/
-/*	This file contains the main dispatch loop for the emulator.	*/
-/*									*/
-/*									*/
-/*									*/
-/*									*/
-/************************************************************************/
+/* FILE: xc.c - Main Dispatch Loop for Maiko Lisp Emulator
+ *
+ * This file contains the core execution engine of the Maiko Interlisp emulator.
+ * The dispatch loop fetches, decodes, and executes bytecode instructions in a
+ * continuous cycle until termination.
+ *
+ * INSTRUCTION SET OVERVIEW:
+ * ========================
+ *
+ * The Maiko emulator implements Interlisp's bytecode instruction set. Each
+ * instruction is a single byte opcode followed by operand bytes. Instructions
+ * are categorized into the following classes:
+ *
+ * 1. LIST OPERATIONS (001-003, 030-032, 046, 062):
+ *    - OPCAR, OPCDR: Access car/cdr of cons cells with CDR decoding
+ *    - RPLACA, RPLACD: Destructive list modification
+ *    - CONS: Create new cons cells
+ *    - LISTP: Type checking for lists
+ *
+ * 2. TYPE OPERATIONS (004-007, 063):
+ *    - NTYPEX, TYPEP, DTEST: Type checking and testing
+ *    - TYPEMASK: Extract type information from objects
+ *
+ * 3. FUNCTION CALLS (010-017):
+ *    - FN0-FN4, FNX: Direct function calls with 0-4 args or variable args
+ *    - APPLY, CHECKAPPLY: Apply functions to argument lists
+ *
+ * 4. CONTROL FLOW (020, 054-055, 077):
+ *    - RETURN: Return from function calls
+ *    - EVAL, ENVCALL: Evaluation operations
+ *    - UNWIND: Stack unwinding for exception handling
+ *
+ * 5. VARIABLE BINDING (021-023):
+ *    - BIND, UNBIND, DUNBIND: Lexical variable binding/unbinding
+ *
+ * 6. MEMORY OPERATIONS (024-027, 037, 057):
+ *    - RPLPTR, GCREF: Pointer manipulation with GC awareness
+ *    - ASSOC, GVAR_: Variable access operations
+ *    - CREATECELL: Allocate new memory cells
+ *    - STKSCAN: Stack scanning operations
+ *
+ * 7. SEARCH OPERATIONS (033-036):
+ *    - CLASSOC, FMEMB, CLFMEMB, FINDKEY: List searching and membership
+ *
+ * 8. ARITHMETIC/LOGIC (040, 072):
+ *    - BIN: Binary operations
+ *    - EQLOP: Equality operations
+ *
+ * 9. I/O AND DISPLAY (041-042, 060-061, 070-073):
+ *    - DRAWLINE, MISC7: Graphics and display operations
+ *    - UBFLOAT3: Floating point operations
+ *
+ * 10. STACK OPERATIONS (043-044, 074-075):
+ *     - RESTLIST: List construction from stack
+ *     - STOREN, COPYN: Stack manipulation
+ *     - MISCN: Miscellaneous stack operations
+ *
+ * 11. VARIABLE ACCESS (0100-0177):
+ *     - IVARMACRO, PVARMACRO, GVAR, etc.: Variable get/set operations
+ *
+ * OPCODE DOCUMENTATION FORMAT:
+ * ===========================
+ * Each opcode is documented with:
+ * - CLASS: Instruction category
+ * - STACK EFFECTS: Push/pop behavior and net change
+ * - REGISTER EFFECTS: Changes to PC, TOPOFSTACK, CSTKPTRL
+ * - POINTER EFFECTS: Changes to frame/variable pointers
+ * - FLAGS: Any status flags affected
+ * - OPERANDS: Description of immediate operand bytes
+ * - CONFIDENCE LEVEL: Understanding certainty
+ * - CROSS-REFERENCE: Related opcodes and files
+ *
+ * HIGH CONFIDENCE: This is the heart of the emulator - all Lisp execution goes
+ * through this loop. The bytecode dispatch mechanism is well understood from
+ * documentation and code analysis.
+ */
 
 #ifdef MAIKO_OS_EMSCRIPTEN
 #include <emscripten.h>

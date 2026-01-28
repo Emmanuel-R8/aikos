@@ -57,6 +57,37 @@ int Storage_expanded; /*  T or NIL */
 extern DspInterface currentdsp;
 #endif /* DOS || XWINDOW */
 
+/* FUNCTION: sysout_loader() - Load Lisp System Image into Virtual Memory
+ *
+ * This function loads a pre-compiled Interlisp system image (sysout file) into
+ * the emulator's virtual memory space. It performs critical initialization including:
+ * 1. Interface Page (IFPAGE) loading and validation
+ * 2. Virtual memory allocation and mapping
+ * 3. File Page to Virtual Page (FPtoVP) table construction
+ * 4. Byte-swapping for little-endian hosts
+ * 5. Memory space validation and setup
+ *
+ * PARAMETERS:
+ * - sysout_file_name: Path to the .sysout file containing Lisp system image
+ * - sys_size: Requested virtual memory size in MB (0 = use default from IFPAGE)
+ *
+ * RETURNS: System size in pages on success, exits on error
+ *
+ * HIGH CONFIDENCE: This is core system initialization - critical for emulator startup.
+ * CRITICAL: All memory operations depend on proper initialization here.
+ *
+ * MEMORY LOADING STRATEGY:
+ * ========================
+ * 1. Load IFPAGE (Interface Page) at offset 512 bytes - contains system config
+ * 2. Validate version compatibility between sysout and emulator
+ * 3. Allocate virtual memory space using mmap()
+ * 4. Load FPtoVP table to map file pages to virtual pages
+ * 5. Load actual Lisp memory pages using FPtoVP mapping
+ * 6. Apply byte-swapping if needed for host endianness
+ *
+ * CROSS-REFERENCE: See memory layout in lispmap.h, address translation in adr68k.h
+ * DOCUMENTATION: See specifications/memory/sysout-loading.typ
+ */
 /* sys_size is sysout size in megabytes */
 unsigned sysout_loader(const char *sysout_file_name, unsigned sys_size) {
   int sysout; /* SysoutFile descriptor */
