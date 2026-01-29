@@ -11,10 +11,10 @@
 /************************************************************************/
 #include "lispemul.h" /* for DLword */
 
-#define BCPLDISPLAY	stdout
+#define BCPLDISPLAY stdout
 
-#define	CURSORWIDTH	16
-#define	CURSORHEIGHT	16
+#define CURSORWIDTH 16
+#define CURSORHEIGHT 16
 
 /* Max address for HI-RES DISPLAY */
 /* Osamu '90/02/08
@@ -23,11 +23,11 @@
  */
 extern DLword *DISP_MAX_Address;
 
-	/* Is the bitmap in the display region? */
+/* Is the bitmap in the display region? */
 
-#define IN_DISPLAY_BANK(hiaddr) (((hiaddr)==DISPLAY_HI)|((hiaddr)==(DISPLAY_HI+1)))
+#define IN_DISPLAY_BANK(hiaddr) (((hiaddr) == DISPLAY_HI) | ((hiaddr) == (DISPLAY_HI + 1)))
 
-#define DLWORD_PERLINE	(displaywidth/16)
+#define DLWORD_PERLINE (displaywidth / 16)
 #define HARD_CURSORWIDTH 16
 #define HARD_CURSORHEIGHT 16
 #define COLOR_BITSPER_PIXEL 8
@@ -36,22 +36,9 @@ extern DLword *DISP_MAX_Address;
 #define COLOR_MAX_Address (ColorDisplayRegion68k + 1152 * 900)
 
 /* Replicate a 4-bit pattern to fill a word */
-#define Expand4Bit(BITS)	\
-		((BITS) | ((BITS) << 4) | ((BITS) << 8) | ((BITS) << 12))
+#define Expand4Bit(BITS) \
+  ((BITS) | ((BITS) << 4) | ((BITS) << 8) | ((BITS) << 12))
 
-#ifdef XWINDOW
-#define DISPLAYBUFFER
-#endif /* XWINDOW */
-
-#ifdef SDL
-#define DISPLAYBUFFER
-#endif /* SDL */
-
-#ifdef DOS
-#define DISPLAYBUFFER
-#endif /* DOS */
-
-#ifdef DISPLAYBUFFER
 /************************************************************************/
 /*									*/
 /*		    i n _ d i s p l a y _ s e g m e n t			*/
@@ -68,13 +55,10 @@ extern DLword *DISP_MAX_Address;
  *********************************************************************/
 extern DLword *DisplayRegion68k;
 
-#define in_display_segment(baseaddr)  \
-    (((DisplayRegion68k <= (baseaddr)) &&               \
-      ((baseaddr) <= DISP_MAX_Address)) ? T : NIL )
-#endif
-
-#ifdef XWINDOW
-#undef DISPLAYBUFFER
-#endif /* XWINDOW */
+#define in_display_segment(baseaddr)    \
+  (((DisplayRegion68k <= (baseaddr)) && \
+    ((baseaddr) <= DISP_MAX_Address))   \
+       ? T                              \
+       : NIL)
 
 #endif

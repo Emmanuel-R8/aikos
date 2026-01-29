@@ -17,34 +17,32 @@
 
 #include "version.h"
 
-#ifndef DOS
-#include <pwd.h>           // for getpwuid, passwd
-#endif
-#include <stdio.h>         // for fprintf, NULL, stderr
-#include <stdlib.h>        // for malloc, exit
-#include <string.h>        // for strlen, strncpy
-#include <time.h>          // for time_t
-#include <unistd.h>        // for gethostid, getuid
-#include "adr68k.h"        // for NativeAligned2FromLAddr, NativeAligned4FromLAddr
+#include <pwd.h>    // for getpwuid, passwd
+#include <stdio.h>  // for fprintf, NULL, stderr
+#include <stdlib.h> // for malloc, exit
+#include <string.h> // for strlen, strncpy
+#include <time.h>   // for time_t
+#include <unistd.h> // for gethostid, getuid
+#include "adr68k.h" // for NativeAligned2FromLAddr, NativeAligned4FromLAddr
 #ifdef BYTESWAP
-#include "byteswapdefs.h"   // for word_swap_page
+#include "byteswapdefs.h" // for word_swap_page
 #endif
-#include "cell.h"          // for GetVALCELL68k
-#include "dbprint.h"       // for DBPRINT
-#include "etherdefs.h"     // for init_ifpage_ether
-#include "gcarraydefs.h"   // for get_package_atom
-#include "gcdata.h"        // for ADDREF, GCLOOKUP
-#include "gchtfinddefs.h"  // for htfind, rec_htfind
-#include "ifpage.h"        // for IFPAGE, MACHINETYPE_MAIKO
-#include "initsoutdefs.h"  // for build_lisp_map, fixp_value, init_for_bitblt
-#include "iopage.h"        // for IOPAGE
-#include "lispemul.h"      // for LispPTR, DLword, NIL, BYTESPER_DLWORD, POINTERMASK
-#include "lispmap.h"       // for ATMHT_OFFSET, ATOMS_OFFSET, DEFS_OFFSET
-#include "lspglob.h"       // for InterfacePage, IOPage, AtomHT, Closure_Cac...
-#include "lsptypes.h"      // for GetDTD, TYPE_FIXP, TYPE_LISTP
-#include "miscstat.h"      // for MISCSTATS
-#include "mkcelldefs.h"    // for N_OP_createcell
-#include "testtooldefs.h"  // for MakeAtom68k, MAKEATOM
+#include "cell.h"         // for GetVALCELL68k
+#include "dbprint.h"      // for DBPRINT
+#include "etherdefs.h"    // for init_ifpage_ether
+#include "gcarraydefs.h"  // for get_package_atom
+#include "gcdata.h"       // for ADDREF, GCLOOKUP
+#include "gchtfinddefs.h" // for htfind, rec_htfind
+#include "ifpage.h"       // for IFPAGE, MACHINETYPE_MAIKO
+#include "initsoutdefs.h" // for build_lisp_map, fixp_value, init_for_bitblt
+#include "iopage.h"       // for IOPAGE
+#include "lispemul.h"     // for LispPTR, DLword, NIL, BYTESPER_DLWORD, POINTERMASK
+#include "lispmap.h"      // for ATMHT_OFFSET, ATOMS_OFFSET, DEFS_OFFSET
+#include "lspglob.h"      // for InterfacePage, IOPage, AtomHT, Closure_Cac...
+#include "lsptypes.h"     // for GetDTD, TYPE_FIXP, TYPE_LISTP
+#include "miscstat.h"     // for MISCSTATS
+#include "mkcelldefs.h"   // for N_OP_createcell
+#include "testtooldefs.h" // for MakeAtom68k, MAKEATOM
 
 #if defined(MAIKO_ENABLE_ETHERNET) || defined(MAIKO_ENABLE_NETHUB)
 #include "etherdefs.h"
@@ -75,10 +73,12 @@ DLword REPLACE_atom;
 /************************************************************************/
 
 #ifdef BIGVM
-LispPTR *fixp_value(LispPTR *ptr) {
+LispPTR *fixp_value(LispPTR *ptr)
+{
   LispPTR val = *ptr;
 
-  if (val < (S_NEGATIVE | 0xFFFF)) {
+  if (val < (S_NEGATIVE | 0xFFFF))
+  {
     LispPTR newval = N_OP_createcell(S_POSITIVE | TYPE_FIXP);
     LispPTR *newcell;
     newcell = (LispPTR *)NativeAligned4FromLAddr(newval);
@@ -108,7 +108,8 @@ LispPTR *fixp_value(LispPTR *ptr) {
 
 #define PAGES_IN_MBYTE 2048
 
-void init_ifpage(unsigned sysout_size) {
+void init_ifpage(unsigned sysout_size)
+{
   extern const time_t MDate;
   extern int DisplayType;
   extern int Storage_expanded;
@@ -119,15 +120,18 @@ void init_ifpage(unsigned sysout_size) {
   InterfacePage->machinetype = MACHINETYPE_MAIKO;
 #if defined(MAIKO_ENABLE_ETHERNET) || defined(MAIKO_ENABLE_NETHUB)
   init_ifpage_ether(); /* store ethernet ID in IF page */
-#endif /* MAIKO_ENABLE_ETHERNET or MAIKO_ENABLE_NETHUB */
+#endif                 /* MAIKO_ENABLE_ETHERNET or MAIKO_ENABLE_NETHUB */
   /*InterfacePage->dl24bitaddressable = (sysout_size == 32? 0xffff : 0);*/
   InterfacePage->dl24bitaddressable = (sysout_size == 8 ? 0 : 0xffff);
   new_lastvmem = (sysout_size * PAGES_IN_MBYTE) - 1;
 
-  if ((!Storage_expanded) && (InterfacePage->dllastvmempage != new_lastvmem)) {
+  if ((!Storage_expanded) && (InterfacePage->dllastvmempage != new_lastvmem))
+  {
     (void)fprintf(stderr, "You can't expand VMEM\n");
     exit(-1);
-  } else { /* Set value which will be set to \\LASTVMEMFILEPAGE in LISP */
+  }
+  else
+  { /* Set value which will be set to \\LASTVMEMFILEPAGE in LISP */
     InterfacePage->dllastvmempage = new_lastvmem;
     /* Also you can expand lisp space even if \\STOAGEFULL was T */
     *STORAGEFULL_word = NIL;
@@ -141,15 +145,12 @@ void init_ifpage(unsigned sysout_size) {
 #endif /* BIGVM */
 
   /* unfortunately, Lisp only looks at a 16 bit serial number */
-#if !defined(DOS) && !defined(MAIKO_OS_HAIKU)
   InterfacePage->serialnumber = 0xffff & gethostid();
-#endif /* DOS MAIKO_OS_HAIKU */
 
-/* get user name and stuff into vmem; this is the VMEM buffer;
-This is a BCPL string -- it starts with a length count. C strings
-are null terminated instead */
+  /* get user name and stuff into vmem; this is the VMEM buffer;
+  This is a BCPL string -- it starts with a length count. C strings
+  are null terminated instead */
   InterfacePage->usernameaddr = 0;
-#ifndef DOS
   {
     struct passwd *pwd;
     char *s;
@@ -157,7 +158,8 @@ are null terminated instead */
     /* Get username from getpwuid */
     /* The page/offset we are using is hardcoded in LLFAULT in functions */
     /*  \MAIKO.NEWFAULTINIT and \MAIKO.ASSIGNBUFFERS */
-    if ((pwd = getpwuid(getuid())) != NULL) {
+    if ((pwd = getpwuid(getuid())) != NULL)
+    {
       InterfacePage->usernameaddr = 0155001;
       s = (char *)NativeAligned2FromLAddr(InterfacePage->usernameaddr);
       len = (int)strlen(pwd->pw_name);
@@ -171,9 +173,7 @@ are null terminated instead */
       word_swap_page(NativeAligned2FromLAddr(0155000), (len + 1 + 2 + 3) / 4);
 #endif
     }
-
   }
-#endif /* DOS */
 
   /* Days from Oct-13-87 12:00  It's Takeshi's birthday. */
   /* MDate may be set by vdate.c, generated by mkvdate.c. */
@@ -192,7 +192,8 @@ are null terminated instead */
 /*									*/
 /************************************************************************/
 
-void init_iopage(void) {
+void init_iopage(void)
+{
   /*
    * Initialize IOPAGE
    */
@@ -216,7 +217,8 @@ void init_iopage(void) {
 
 extern int for_makeinit;
 
-void build_lisp_map(void) {
+void build_lisp_map(void)
+{
   DLword index;
 
   Stackspace = (DLword *)NativeAligned2FromLAddr(STK_OFFSET);
@@ -289,7 +291,8 @@ void build_lisp_map(void) {
 
   /* * * Atoms for closure-cache interface * * */
 
-  if (for_makeinit) {
+  if (for_makeinit)
+  {
     Closure_Cache_Enabled_word = (LispPTR *)malloc(4);
     *Closure_Cache_Enabled_word = NIL;
 
@@ -298,7 +301,9 @@ void build_lisp_map(void) {
 
     Deleted_Implicit_Hash_Slot_word = (LispPTR *)malloc(4);
     *Deleted_Implicit_Hash_Slot_word = NIL;
-  } else {
+  }
+  else
+  {
     DBPRINT(("%p %p %p %p %p", (void *)Stackspace, (void *)Plistspace, (void *)DTDspace, (void *)MDStypetbl, (void *)AtomHT));
 
     index = get_package_atom("*CLOSURE-CACHE-ENABLED*", 23, "SI", 2, NIL);
@@ -362,7 +367,8 @@ void build_lisp_map(void) {
 /*									*/
 /************************************************************************/
 
-void init_for_keyhandle(void) {
+void init_for_keyhandle(void)
+{
   DLword index;
   extern DLword *CTopKeyevent;
   extern LispPTR *KEYBOARDEVENTQUEUE68k;
@@ -434,36 +440,19 @@ void init_for_keyhandle(void) {
 /*									*/
 /************************************************************************/
 
-void init_for_bltchar(void) {
-#ifdef COLOR
-  LispPTR index;
-#endif
+void init_for_bltchar(void)
+{
   char *IL;
 
   extern LispPTR *TOPWDS68k;
-#ifdef COLOR
-  extern LispPTR *SCREENBITMAPS68k;
-  extern LispPTR *COLORSCREEN68k; /*  \\COLORSCREEN */
-#endif
   IL = "INTERLISP";
 
-  if (!for_makeinit) {
+  if (!for_makeinit)
+  {
     BLTCHAR_index = get_package_atom("\\MAIKO.PUNTBLTCHAR", 18, IL, 9, NIL);
     TEDIT_BLTCHAR_index = get_package_atom("\\TEDIT.BLTCHAR", 14, IL, 9, NIL);
   }
   TOPWDS68k = MakeAtom68k("\\TOPWDS");
-
-#ifdef COLOR
-  if (!for_makeinit) {
-    SLOWBLTCHAR_index = get_package_atom("\\PUNT.SLOWBLTCHAR", 17, "INTERLISP", 9, NIL);
-
-    index = MAKEATOM("\\SCREENBITMAPS");
-    SCREENBITMAPS68k = GetVALCELL68k(index);
-    COLORSCREEN_index = MAKEATOM("\\COLORSCREEN");
-    COLORSCREEN68k = GetVALCELL68k(COLORSCREEN_index);
-  }
-
-#endif /* COLOR */
 }
 
 /************************************************************************/
@@ -474,18 +463,11 @@ void init_for_bltchar(void) {
 /*									*/
 /************************************************************************/
 
-void init_for_bitblt(void) {
-#ifdef COLOR
-  extern LispPTR *COLORSCREEN68k;
-#endif /* COLOR */
-
-  if (!for_makeinit) {
+void init_for_bitblt(void)
+{
+  if (!for_makeinit)
+  {
     BITBLTBITMAP_index = get_package_atom("\\PUNT.BITBLT.BITMAP", 19, "INTERLISP", 9, NIL);
     BLTSHADEBITMAP_index = get_package_atom("\\PUNT.BLTSHADE.BITMAP", 21, "INTERLISP", 9, NIL);
-
-#ifdef COLOR
-    COLORSCREEN_index = MAKEATOM("\\COLORSCREEN");
-    COLORSCREEN68k = GetVALCELL68k(COLORSCREEN_index);
-#endif /* COLOR */
   }
 }

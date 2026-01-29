@@ -78,7 +78,10 @@ void EnterDosMouse(MouseInterface mouse, DspInterface dsp)
   /* Lock the handler routines */
   _dpmi_lockregion((void *)mouse->Handler, 4096);
 
-  if (mouse->Button.TwoButtonP) { _dpmi_lockregion((void *)&ButtonTimer, 4096); }
+  if (mouse->Button.TwoButtonP)
+  {
+    _dpmi_lockregion((void *)&ButtonTimer, 4096);
+  }
 
   /* Lock the structures used, both pointers to 'em & the whole structure. */
   _dpmi_lockregion((void *)&IOPage, sizeof(IOPage));
@@ -144,7 +147,8 @@ void EnterDosMouse(MouseInterface mouse, DspInterface dsp)
 
 void ExitDosMouse(MouseInterface mouse)
 {
-  if (mouse->device.active) {
+  if (mouse->device.active)
+  {
     /* Unlock myself */
     _dpmi_unlockregion((void *)mouse, sizeof(*mouse));
     _dpmi_unlockregion((void *)&currentmouse, sizeof(currentmouse));
@@ -199,7 +203,9 @@ void DosMouseAfterRaid(MouseInterface mouse, DspInterface dsp)
 }
 
 void DosMouseBeforeRaid(MouseInterface mouse, DspInterface dsp)
-{ mouse->device.active = FALSE; }
+{
+  mouse->device.active = FALSE;
+}
 
 /***************************************************************/
 /*            d o s _ c u r s o r _ i n v i s s i b l e        */
@@ -209,7 +215,9 @@ void DosMouseBeforeRaid(MouseInterface mouse, DspInterface dsp)
 /***************************************************************/
 void dos_cursor_invisible(DspInterface dsp, IOPAGE *iop)
 
-{ (dsp->bitblt_to_screen)(dsp, DisplayRegion68k, iop->dlcursorx, iop->dlcursory, 16, 16); }
+{
+  (dsp->bitblt_to_screen)(dsp, DisplayRegion68k, iop->dlcursorx, iop->dlcursory, 16, 16);
+}
 
 /***************************************************************/
 /*              d o s _ c u r s o r _ v i s s i b l e          */
@@ -232,14 +240,6 @@ set_DOSmouseposition(DspInterface dsp, int x, int y)
 
   dsp->device.locked++;
   currentmouse->device.active++;
-
-#ifdef NEVER
-  /* int 33h, case 0004, cx=col, dx = row */
-  regs.w.eax = 4; /* Function 4 = move cursor */
-  regs.w.ecx = x;
-  regs.w.edx = y;
-  int86(0x33, &regs, &regs);
-#endif /* NEVER */
 
   /* Actually move the cursor image */
   IOPage->dlmousex = x;
@@ -297,15 +297,21 @@ unsigned long dostaking_mouse_up(int newx, int newy)
   sx = newx;
   dx = 0;
 
-  if (currentdsp->Display.width < (newx + 16)) {
+  if (currentdsp->Display.width < (newx + 16))
+  {
     currentmouse->Cursor.Last.width = w = currentdsp->Display.width - newx;
-  } else {
+  }
+  else
+  {
     currentmouse->Cursor.Last.width = w = 16;
   }
 
-  if (currentdsp->Display.height < (newy + 16)) {
+  if (currentdsp->Display.height < (newy + 16))
+  {
     currentmouse->Cursor.Last.height = h = currentdsp->Display.height - newy;
-  } else {
+  }
+  else
+  {
     currentmouse->Cursor.Last.height = h = 16;
   }
 
@@ -385,7 +391,8 @@ void MouseButtonSignal(MouseInterface mouse)
   r = CTopKeyevent->ring.vectorindex.read;
   w = CTopKeyevent->ring.vectorindex.write;
 
-  if (r != w) {
+  if (r != w)
+  {
     kbevent = (KBEVENT *)((DLword *)CTopKeyevent + w);
 
     /* Copy the Hardware bits. */
@@ -398,7 +405,8 @@ void MouseButtonSignal(MouseInterface mouse)
     kbevent->WU = IOPage->dlutilin;
 
     /* If queue was empty, update the read pointer */
-    if (r == 0) CTopKeyevent->ring.vectorindex.read = w;
+    if (r == 0)
+      CTopKeyevent->ring.vectorindex.read = w;
 
     /* Update the write pointer */
     if (w >= mouse->maxkeyevent)
@@ -407,7 +415,8 @@ void MouseButtonSignal(MouseInterface mouse)
       CTopKeyevent->ring.vectorindex.write += mouse->keyeventsize;
   }
 
-  if (*KEYBUFFERING68k == NIL) *KEYBUFFERING68k = ATOM_T;
+  if (*KEYBUFFERING68k == NIL)
+    *KEYBUFFERING68k = ATOM_T;
 
   KBDEventFlg++; /* Signal the emulator to tell Lisp */
   Irq_Stk_Check = 0;
@@ -422,9 +431,11 @@ void MouseButtonSignal(MouseInterface mouse)
 /* timeout happens. We will thus obtain the ``rubbery feeling''*/
 /* that proponents of chording so desire.                      */
 /***************************************************************/
-void ButtonTimer(void) {
+void ButtonTimer(void)
+{
   if (currentmouse->Button.RunTimer)
-    if (currentmouse->Button.tick-- <= 0) {
+    if (currentmouse->Button.tick-- <= 0)
+    {
       currentmouse->Button.RunTimer = FALSE; /* Turn the timer off. */
       currentmouse->Button.Left |= currentmouse->Button.StateLeft;
       currentmouse->Button.Right |= currentmouse->Button.StateRight;
@@ -434,7 +445,8 @@ void ButtonTimer(void) {
          button and bring the others up. */
       /* Are L & R down? */
 
-      if (currentmouse->Button.StateLeft && currentmouse->Button.StateRight) {
+      if (currentmouse->Button.StateLeft && currentmouse->Button.StateRight)
+      {
         currentmouse->Button.Left = FALSE;
         currentmouse->Button.Right = FALSE;
         currentmouse->Button.Middle = TRUE;
@@ -465,14 +477,16 @@ void ButtonTimer(void) {
 /* signals the dispatch loop to take care of the matter. This  */
 /* awkward solution is due to the severe braindamage in DOS.   */
 /***************************************************************/
-void TwoButtonHandler(void) {
+void TwoButtonHandler(void)
+{
   _XSTACK *stk_ptr;
 
   /* First save the stack frame. */
   stk_ptr = (_XSTACK *)_get_stk_frame(); /* Get ptr to V86 _XSTACK frame */
   stk_ptr->opts |= _STK_NOINT;           /* Bypass real-mode handler */
 
-  if (!currentmouse->device.active) return;
+  if (!currentmouse->device.active)
+    return;
 
   if (stk_ptr->eax & LB_PRESS)
     if (currentmouse->Button.RunTimer) /* Prior right-down seen... */
@@ -482,11 +496,14 @@ void TwoButtonHandler(void) {
       currentmouse->Button.Middle = TRUE;
       currentmouse->Button.StateLeft = TRUE;
       MouseButtonSignal(currentmouse);
-    } else if (currentmouse->Button.Right) {
+    }
+    else if (currentmouse->Button.Right)
+    {
       currentmouse->Button.Left = TRUE;
       currentmouse->Button.StateLeft = TRUE;
       MouseButtonSignal(currentmouse);
-    } else /* No other button down... */
+    }
+    else /* No other button down... */
     {
       currentmouse->Button.StateLeft = TRUE;
       currentmouse->Button.tick = currentmouse->Button.StartTime;
@@ -501,7 +518,8 @@ void TwoButtonHandler(void) {
       currentmouse->Button.StateLeft = FALSE;
       /*  currentmouse->Button.Left = FALSE;
         MouseButtonSignal(currentmouse); */
-    } else /* timer wasn't running */
+    }
+    else /* timer wasn't running */
     {
       currentmouse->Button.StateLeft = FALSE;
       currentmouse->Button.Left = FALSE;
@@ -510,7 +528,8 @@ void TwoButtonHandler(void) {
       MouseButtonSignal(currentmouse);
     }
 
-  if ((stk_ptr->eax & CB_PRESS) || (stk_ptr->eax & CB_OFF)) {
+  if ((stk_ptr->eax & CB_PRESS) || (stk_ptr->eax & CB_OFF))
+  {
     currentmouse->Button.Middle =
         ((stk_ptr->eax & CB_PRESS) && TRUE) || currentmouse->Button.FakeMiddle;
     currentmouse->Button.StateMiddle = (stk_ptr->eax & CB_PRESS) && TRUE;
@@ -526,11 +545,15 @@ void TwoButtonHandler(void) {
       currentmouse->Button.Middle = TRUE;
       currentmouse->Button.StateRight = TRUE;
       MouseButtonSignal(currentmouse);
-    } else if (currentmouse->Button.Left) {
+    }
+    else if (currentmouse->Button.Left)
+    {
       currentmouse->Button.Right = TRUE;
       currentmouse->Button.StateRight = TRUE;
       MouseButtonSignal(currentmouse);
-    } else {
+    }
+    else
+    {
       currentmouse->Button.StateRight = TRUE;
       currentmouse->Button.tick = currentmouse->Button.StartTime;
       currentmouse->Button.RunTimer = TRUE;
@@ -544,7 +567,9 @@ void TwoButtonHandler(void) {
       currentmouse->Button.StateRight = FALSE;
       /*  currentmouse->Button.Right = FALSE;
         MouseButtonSignal(currentmouse); */
-    } else {
+    }
+    else
+    {
       currentmouse->Button.StateRight = FALSE;
       currentmouse->Button.Right = FALSE;
       currentmouse->Button.FakeMiddle = FALSE;
@@ -554,7 +579,8 @@ void TwoButtonHandler(void) {
 
   /* The dude moved the mouse. Set the chordstate NOW. */
   /* And turn the timer off. */
-  if ((stk_ptr->eax & MOUSE_MV) && (!currentdsp->device.locked)) {
+  if ((stk_ptr->eax & MOUSE_MV) && (!currentdsp->device.locked))
+  {
     currentmouse->Button.RunTimer = FALSE;
 
     /* Are L & R down? */
@@ -569,11 +595,14 @@ void TwoButtonHandler(void) {
        currentmouse->Cursor.New.y = (DLword)stk_ptr->edx & 0xFFFF; */
     currentmouse->Cursor.Moved = TRUE;
 
-    if (currentmouse->Button.StateLeft && currentmouse->Button.StateRight) {
+    if (currentmouse->Button.StateLeft && currentmouse->Button.StateRight)
+    {
       currentmouse->Button.Left = FALSE;
       currentmouse->Button.Right = FALSE;
       currentmouse->Button.Middle = TRUE;
-    } else {
+    }
+    else
+    {
       currentmouse->Button.Left |= currentmouse->Button.StateLeft;
       currentmouse->Button.Right |= currentmouse->Button.StateRight;
     }
@@ -600,20 +629,28 @@ void ThreeButtonHandler(void)
   stk_ptr = (_XSTACK *)_get_stk_frame(); /* Get ptr to V86 _XSTACK frame */
   stk_ptr->opts |= _STK_NOINT;           /* Bypass real-mode handler */
 
-  if (currentmouse->device.active) {
+  if (currentmouse->device.active)
+  {
     mouse_flags = stk_ptr->eax; /* Save event flags from mouse driver */
 
     /* Decode the transition bits. */
-    if (mouse_flags & LB_PRESS) currentmouse->Button.Left = TRUE;
-    if (mouse_flags & LB_OFF) currentmouse->Button.Left = FALSE;
+    if (mouse_flags & LB_PRESS)
+      currentmouse->Button.Left = TRUE;
+    if (mouse_flags & LB_OFF)
+      currentmouse->Button.Left = FALSE;
 
-    if (mouse_flags & CB_PRESS) currentmouse->Button.Middle = TRUE;
-    if (mouse_flags & CB_OFF) currentmouse->Button.Middle = FALSE;
+    if (mouse_flags & CB_PRESS)
+      currentmouse->Button.Middle = TRUE;
+    if (mouse_flags & CB_OFF)
+      currentmouse->Button.Middle = FALSE;
 
-    if (mouse_flags & RB_PRESS) currentmouse->Button.Right = TRUE;
-    if (mouse_flags & RB_OFF) currentmouse->Button.Right = FALSE;
+    if (mouse_flags & RB_PRESS)
+      currentmouse->Button.Right = TRUE;
+    if (mouse_flags & RB_OFF)
+      currentmouse->Button.Right = FALSE;
 
-    if ((!currentdsp->device.locked) && (mouse_flags & MOUSE_MV)) {
+    if ((!currentdsp->device.locked) && (mouse_flags & MOUSE_MV))
+    {
       currentmouse->Cursor.Moved = TRUE;
       Irq_Stk_Check = 0;
       Irq_Stk_End = 0;

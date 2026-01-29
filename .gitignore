@@ -36,6 +36,12 @@ core
 *.core
 *.swp
 
+
+# build cache 
+maiko/build 
+maiko/build-cmake 
+
+
 # Zig build artifacts
 
 zig-out/

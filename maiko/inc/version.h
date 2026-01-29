@@ -2,8 +2,6 @@
 #define VERSION_H 1
 /* $Id: version.h,v 1.5 2001/12/26 22:17:01 sybalsky Exp $ (C) Copyright Venue, All Rights Reserved  */
 
-
-
 /************************************************************************/
 /*									*/
 /*	(C) Copyright 1989-98 Venue. All Rights Reserved.		*/
@@ -48,14 +46,12 @@
 /*									*/
 /************************************************************************/
 
-
-  /* The current values */
+/* The current values */
 
 #define LVERSION 21000
 #define MINBVERSION 21001
 
-
-  /* But remember old values, if we can figure them out from ifdef's */
+/* But remember old values, if we can figure them out from ifdef's */
 
 #if (RELEASE == 115)
 
@@ -69,7 +65,7 @@
 
 #elif (RELEASE == 200)
 
-  /* Medley 2.0 as released */
+/* Medley 2.0 as released */
 #undef LVERSION
 #undef MINBVERSION
 #define LVERSION 20000
@@ -79,10 +75,9 @@
 #define NOEUROKBD
 #define NOVERSION
 
-#elif (RELEASE == 201 )
+#elif (RELEASE == 201)
 
-
-  /* Medley 2.0 with EUROKBD modification */
+/* Medley 2.0 with EUROKBD modification */
 #undef LVERSION
 #undef MINBVERSION
 #define LVERSION 20100
@@ -94,7 +89,7 @@
 
 #elif (RELEASE == 210)
 
-  /* Medley 2.1, big-vm Medley while in beta-test */
+/* Medley 2.1, big-vm Medley while in beta-test */
 #undef LVERSION
 #undef MINBVERSION
 #define LVERSION 21000
@@ -104,10 +99,9 @@
 #define BIGVM 1
 #define NEWCDRCODING
 
+#elif (RELEASE == 300)
 
-#	elif (RELEASE == 300 )
-
-  /* Medley 301, big-vm Medley in release?? */
+/* Medley 301, big-vm Medley in release?? */
 #undef LVERSION
 #undef MINBVERSION
 #define LVERSION 30000
@@ -117,10 +111,9 @@
 #define BIGVM
 #define NEWCDRCODING
 
-
 #elif (RELEASE == 350)
 
- /* Medley 3.5, 256Mb version */
+/* Medley 3.5, 256Mb version */
 
 #undef LVERSION
 #undef MINBVERSION
@@ -132,10 +125,9 @@
 #define BIGBIGVM
 #define NEWCDRCODING
 
-
 #elif (RELEASE == 351)
 
- /* Medley 3.5, 256Mb version, X cursor hotspot fix 1/00 */
+/* Medley 3.5, 256Mb version, X cursor hotspot fix 1/00 */
 
 #undef LVERSION
 #undef MINBVERSION
@@ -148,103 +140,62 @@
 #define NEWCDRCODING
 #define NEWXCURSOR
 
-
 #else
 error Must specify RELEASE to build Medley.
 #endif
 
+/****************************************************************/
+/*								*/
+/*  There used to be a define NEW_STORAGE, but this wasn't tied */
+/*  clearly to any RELEASE values. There are comments related   */
+/*  to this in LLPARAMS on the Lisp side.			*/
+/*								*/
+/****************************************************************/
 
+/****************************************************************/
+/*								*/
+/*  Architecture-specific flags:  Set flags			*/
+/*  based on thing we know about the architecture		*/
+/*  or idiosyncrasies of the machine we're compiling for.	*/
+/*								*/
+/*  Defaults:	Unaligned fetches OK	UNALIGNED_FETCH_OK	*/
+/*		fp values used with				*/
+/*		pointer-wide unsigned	UNSIGNED		*/
+/*		pointer-wide int	INT	 		*/
+/*								*/
+/*								*/
+/*								*/
+/****************************************************************/
 
-	/****************************************************************/
-	/*								*/
-	/*  There used to be a define NEW_STORAGE, but this wasn't tied */
-	/*  clearly to any RELEASE values. There are comments related   */
-	/*  to this in LLPARAMS on the Lisp side.			*/
-	/*								*/
-	/****************************************************************/
-
-	/****************************************************************/
-	/*								*/
-	/*  Architecture-specific flags:  Set flags			*/
-	/*  based on thing we know about the architecture		*/
-	/*  or idiosyncrasies of the machine we're compiling for.	*/
-	/*								*/
-	/*  Defaults:	Unaligned fetches OK	UNALIGNED_FETCH_OK	*/
-	/*		fp values used with				*/
-	/*		pointer-wide unsigned	UNSIGNED		*/
-	/*		pointer-wide int	INT	 		*/
-	/*								*/
-	/*								*/
-	/*								*/
-	/****************************************************************/
-
-
-
-
-#ifdef NOASM
 #undef OPDISP
 #undef PROFILE
-#endif
 
-	/* Set up defaults */
+/* Set up defaults */
 #define UNALIGNED_FETCH_OK
 typedef uintptr_t UNSIGNED;
 typedef intptr_t INT;
 
-
-
 /* Not all platforms want to do unaligned reads, so
  * we will disable those here. */
-#if defined(MAIKO_ARCH_SPARC) || defined(MAIKO_ARCH_ARM)
+#if defined(MAIKO_ARCH_ARM)
 #undef UNALIGNED_FETCH_OK
 #endif
 
-
-
-
-	/********************************************************/
-	/*							*/
-	/********************************************************/
+/********************************************************/
+/*							*/
+/********************************************************/
 #ifndef __has_builtin
 #define __has_builtin(x) 0
 #endif
 
 #if __has_builtin(__builtin_sadd_overflow) && \
-  __has_builtin(__builtin_ssub_overflow) && \
-  __has_builtin(__builtin_smul_overflow)
+    __has_builtin(__builtin_ssub_overflow) && \
+    __has_builtin(__builtin_smul_overflow)
 #define USE_OVERFLOW_BUILTINS
 #endif
 
-
-
-
-	/********************************************************/
-	/*							*/
-	/********************************************************/
-
-#ifdef DOS
-typedef unsigned char u_char;
-typedef unsigned long u_int;
-typedef unsigned short u_short;
-#undef UNALIGNED_FETCH_OK
-#endif /* DOS */
-
-	/****************************************************************/
-	/* 	    End of architecture-specific flag settings		*/
-	/* 	    --Start of system-specific flags		 	*/
-	/*								*/
-	/****************************************************************/
-#ifdef MAIKO_OS_MACOS
-/* macOS does not follow the POSIX standard for the names of the stat
-   fields that allow access to the nanosecond resolution times
-*/
-#define st_atim st_atimespec
-#define st_mtim st_mtimespec
-#define st_ctim st_ctimespec
-#endif
-
-	/****************************************************************/
-	/* 	    End of system-specific flag settings		*/
-	/****************************************************************/
+/****************************************************************/
+/* 	    End of system-specific flag settings		*/
+/****************************************************************/
 
 #endif /* VERSION_H */

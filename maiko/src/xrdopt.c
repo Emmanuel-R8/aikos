@@ -9,19 +9,19 @@
 /*									*/
 /************************************************************************/
 
-#include "version.h"        // for MAIKO_ENABLE_ETHERNET
+#include "version.h" // for MAIKO_ENABLE_ETHERNET
 
-#include <X11/Xlib.h>       // for XPointer, True, XParseGeometry, XResource...
-#include <X11/Xresource.h>  // for XrmoptionSepArg, XrmGetResource, Xrmoptio...
-#include <errno.h>          // for errno
-#include <limits.h>         // for PATH_MAX
-#include <stdio.h>          // for fprintf, NULL, stderr, sscanf
-#include <stdlib.h>         // for getenv, exit, strtol
-#include <string.h>         // for strncpy, strlcat, strlcpy, strcmp
-#include <sys/types.h>      // for u_char
-#include <unistd.h>         // for access, R_OK
-#include "xdefs.h"          // for WINDOW_NAME
-#include "xrdoptdefs.h"     // for print_Xusage, read_Xoption
+#include <X11/Xlib.h>      // for XPointer, True, XParseGeometry, XResource...
+#include <X11/Xresource.h> // for XrmoptionSepArg, XrmGetResource, Xrmoptio...
+#include <errno.h>         // for errno
+#include <limits.h>        // for PATH_MAX
+#include <stdio.h>         // for fprintf, NULL, stderr, sscanf
+#include <stdlib.h>        // for getenv, exit, strtol
+#include <string.h>        // for strncpy, strlcat, strlcpy, strcmp
+#include <sys/types.h>     // for u_char
+#include <unistd.h>        // for access, R_OK
+#include "xdefs.h"         // for WINDOW_NAME
+#include "xrdoptdefs.h"    // for print_Xusage, read_Xoption
 
 #ifdef MAIKO_ENABLE_ETHERNET
 #if defined(USE_NIT)
@@ -66,7 +66,7 @@ static XrmOptionDescRec opTable[] = {
     {"-m", "*memory", XrmoptionSepArg, (XPointer)NULL},
     {"-NF", "*NoFork", XrmoptionIsArg, (XPointer)NULL},
     {"-NoFork", "*NoFork", XrmoptionIsArg, (XPointer)NULL},
-    {"-noscroll", "*noscroll", XrmoptionIsArg, (XPointer) NULL},
+    {"-noscroll", "*noscroll", XrmoptionIsArg, (XPointer)NULL},
     {"-INIT", "*Init", XrmoptionIsArg, (XPointer)NULL},
     {"-EtherNet", "*EtherNet", XrmoptionSepArg, (XPointer)NULL},
     {"-E", "*EtherNet", XrmoptionSepArg, (XPointer)NULL},
@@ -89,7 +89,6 @@ char cursorColor[255] = {0};
 extern char foregroundColorName[64];
 extern char backgroundColorName[64];
 extern char windowTitle[255];
-
 
 extern char sysout_name_cl[];
 extern char sysout_name_xrm[];
@@ -126,17 +125,17 @@ void print_Xusage(const char *prog)
   (void)fprintf(stderr, " -bg|-background X11-color-spec       -sets background display color\n");
   (void)fprintf(stderr, " -d[isplay] <host>:<display>.<screen>\n");
   (void)fprintf(stderr,
-          " -g[eometry] <geom>                   -size & placement for the medley window on your X "
-          "screen\n");
+                " -g[eometry] <geom>                   -size & placement for the medley window on your X "
+                "screen\n");
   (void)fprintf(stderr,
-          " -sc[reen] <geom>                     -size & placement for the medley display\n");
+                " -sc[reen] <geom>                     -size & placement for the medley display\n");
   (void)fprintf(stderr, " -t[itle] <string>                    -titlebar text for the window manager\n");
   (void)fprintf(stderr, " -icontitle <string> | -it <string>   -text for the medley icon\n");
   (void)fprintf(stderr, " -iconbitmap <path> | -ibm <path>     -bitmap for the medley icon\n");
   (void)fprintf(stderr,
-          " -xsync                               -turn  XSynchronize on. (default is off)\n\n");
+                " -xsync                               -turn  XSynchronize on. (default is off)\n\n");
 #if defined(MAIKO_ENABLE_NETHUB)
-  (void)fprintf(stderr,"\
+  (void)fprintf(stderr, "\
  -nh-host dodo-host        Hostname for Dodo Nethub (no networking if missing)\n\
  -nh-port port-number      Port for Dodo Nethub (optional, default: 3333)\n\
  -nh-mac XX-XX-XX-XX-XX-XX Machine-ID for Maiko-VM (optional, default: CA-FF-EE-12-34-56) \n\
@@ -170,8 +169,10 @@ void read_Xoption(int *argc, char *argv[])
   /*                                            */
   /**********************************************/
 
-  for (i = 1; i < *argc; i++) {
-    if (argv[i] && ((strcmp(argv[i], "-help") == 0) || (strcmp(argv[i], "-HELP") == 0))) {
+  for (i = 1; i < *argc; i++)
+  {
+    if (argv[i] && ((strcmp(argv[i], "-help") == 0) || (strcmp(argv[i], "-HELP") == 0)))
+    {
       print_Xusage(argv[0]);
       exit(0);
     }
@@ -187,11 +188,13 @@ void read_Xoption(int *argc, char *argv[])
 #endif
   XrmParseCommand(&commandlineDB, opTable, sizeof(opTable) / sizeof(opTable[0]), "ldex", argc, argv);
 
-  if (XrmGetResource(commandlineDB, "ldex.help", "Ldex.Help", str_type, &value) == True) {
+  if (XrmGetResource(commandlineDB, "ldex.help", "Ldex.Help", str_type, &value) == True)
+  {
     print_Xusage(argv[0]);
   }
 
-  if (XrmGetResource(commandlineDB, "ldex.sysout", "Ldex.Sysout", str_type, &value) == True) {
+  if (XrmGetResource(commandlineDB, "ldex.sysout", "Ldex.Sysout", str_type, &value) == True)
+  {
     /* Get Sysout from command line only */
     (void)strncpy(sysout_name_cl, value.addr, value.size);
   }
@@ -202,31 +205,46 @@ void read_Xoption(int *argc, char *argv[])
   /* closed and the opening of the other displays will follow the standard */
   /* protocol. */
 
-  if (XrmGetResource(commandlineDB, "ldex.display", "Ldex.Display", str_type, &value) == True) {
+  if (XrmGetResource(commandlineDB, "ldex.display", "Ldex.Display", str_type, &value) == True)
+  {
     (void)strncpy(Display_Name, value.addr, value.size);
-  } else if (getenv("DISPLAY") == (char *)NULL) {
+  }
+  else if (getenv("DISPLAY") == (char *)NULL)
+  {
     (void)fprintf(stderr, "Can't find a display. Either set the shell\n");
     (void)fprintf(stderr, "variable DISPLAY to an appropriate display\n");
     (void)fprintf(stderr, "or provide a -display argument.\n");
     print_Xusage(argv[0]);
-  } else {
+  }
+  else
+  {
     envname = getenv("DISPLAY");
     (void)strlcpy(Display_Name, envname, sizeof(Display_Name));
   }
-  if ((xdisplay = XOpenDisplay(Display_Name)) != NULL) {
+  if ((xdisplay = XOpenDisplay(Display_Name)) != NULL)
+  {
     /* read the other databases */
     /* Start with app-defaults/medley */
     (void)strlcpy(tmp, "/usr/lib/X11/app-defaults/", sizeof(tmp));
     (void)strlcat(tmp, "medley", sizeof(tmp));
     applicationDB = XrmGetFileDatabase(tmp);
-    if (applicationDB != NULL) { (void)XrmMergeDatabases(applicationDB, &rDB); }
+    if (applicationDB != NULL)
+    {
+      (void)XrmMergeDatabases(applicationDB, &rDB);
+    }
     /* Then try the displays defaults */
-    if (XResourceManagerString(xdisplay) != NULL) {
+    if (XResourceManagerString(xdisplay) != NULL)
+    {
       serverDB = XrmGetStringDatabase(XResourceManagerString(xdisplay));
-      if (serverDB != NULL) { (void)XrmMergeDatabases(serverDB, &rDB); }
+      if (serverDB != NULL)
+      {
+        (void)XrmMergeDatabases(serverDB, &rDB);
+      }
     }
     XCloseDisplay(xdisplay);
-  } else {
+  }
+  else
+  {
     (void)fprintf(stderr, "Open_Display: cannot connect to display %s.", XDisplayName(Display_Name));
     exit(-1);
   }
@@ -234,69 +252,89 @@ void read_Xoption(int *argc, char *argv[])
   envname = getenv("HOME");
   (void)strlcpy(tmp, envname, sizeof(tmp));
   (void)strlcat(tmp, "/.Xdefaults", sizeof(tmp));
-  if (access(tmp, R_OK) != 0) {
+  if (access(tmp, R_OK) != 0)
+  {
     serverDB = XrmGetFileDatabase(tmp);
-    if (serverDB != NULL) { (void)XrmMergeDatabases(serverDB, &rDB); }
+    if (serverDB != NULL)
+    {
+      (void)XrmMergeDatabases(serverDB, &rDB);
+    }
   }
 
   /* Now for the commandline */
   (void)XrmMergeDatabases(commandlineDB, &rDB);
 
-  if (XrmGetResource(rDB, "ldex.sysout", "Ldex.Sysout", str_type, &value) == True) {
+  if (XrmGetResource(rDB, "ldex.sysout", "Ldex.Sysout", str_type, &value) == True)
+  {
     /* Get Sysout from x resource manager */
     (void)strncpy(sysout_name_xrm, value.addr, value.size);
   }
 
-  if (XrmGetResource(rDB, "ldex.title", "Ldex.Title", str_type, &value) == True) {
+  if (XrmGetResource(rDB, "ldex.title", "Ldex.Title", str_type, &value) == True)
+  {
     (void)strncpy(windowTitle, value.addr, sizeof(windowTitle) - 1);
-  } else {
+  }
+  else
+  {
     (void)strncpy(windowTitle, WINDOW_NAME, sizeof(windowTitle) - 1);
   }
-  if (XrmGetResource(rDB, "ldex.icontitle", "Ldex.icontitle", str_type, &value) == True) {
+  if (XrmGetResource(rDB, "ldex.icontitle", "Ldex.icontitle", str_type, &value) == True)
+  {
     (void)strncpy(iconTitle, value.addr, value.size);
-  } else {
+  }
+  else
+  {
     (void)strlcpy(iconTitle, "Medley", sizeof(iconTitle));
   }
 
-  if (XrmGetResource(rDB, "ldex.iconbitmap", "Ldex.Iconbitmap", str_type, &value) == True) {
+  if (XrmGetResource(rDB, "ldex.iconbitmap", "Ldex.Iconbitmap", str_type, &value) == True)
+  {
     (void)strncpy(iconpixmapfile, value.addr, value.size);
   }
 
   /* Old style geometry definition. */
-  if (XrmGetResource(rDB, "ldex.geometry", "Ldex.geometry", str_type, &value) == True) {
+  if (XrmGetResource(rDB, "ldex.geometry", "Ldex.geometry", str_type, &value) == True)
+  {
     /* Get Geometry */
     (void)strncpy(tmp, value.addr, value.size);
     bitmask = XParseGeometry(tmp, &LispWindowRequestedX, &LispWindowRequestedY,
                              &LispWindowRequestedWidth, &LispWindowRequestedHeight);
   }
-  if (XrmGetResource(rDB, "ldex.screen", "Ldex.screen", str_type, &value) == True) {
+  if (XrmGetResource(rDB, "ldex.screen", "Ldex.screen", str_type, &value) == True)
+  {
     /* Get Geometry */
     (void)strncpy(tmp, value.addr, value.size);
     bitmask = XParseGeometry(tmp, &LispDisplayRequestedX, &LispDisplayRequestedY,
                              &LispDisplayRequestedWidth, &LispDisplayRequestedHeight);
   }
 
-  if (XrmGetResource(rDB, "ldex.cursorColor", "Ldex.cursorColor", str_type, &value) == True) {
+  if (XrmGetResource(rDB, "ldex.cursorColor", "Ldex.cursorColor", str_type, &value) == True)
+  {
     (void)strncpy(cursorColor, value.addr, sizeof(cursorColor) - 1);
   }
 
-  if (XrmGetResource(rDB, "ldex.foreground", "Ldex.foreground", str_type, &value) == True) {
+  if (XrmGetResource(rDB, "ldex.foreground", "Ldex.foreground", str_type, &value) == True)
+  {
     (void)strncpy(foregroundColorName, value.addr, sizeof(foregroundColorName) - 1);
   }
 
-  if (XrmGetResource(rDB, "ldex.background", "Ldex.background", str_type, &value) == True) {
+  if (XrmGetResource(rDB, "ldex.background", "Ldex.background", str_type, &value) == True)
+  {
     (void)strncpy(backgroundColorName, value.addr, sizeof(backgroundColorName) - 1);
   }
 
-  if (XrmGetResource(rDB, "ldex.NoFork", "Ldex.NoFork", str_type, &value) == True) {
+  if (XrmGetResource(rDB, "ldex.NoFork", "Ldex.NoFork", str_type, &value) == True)
+  {
     please_fork = 0;
   }
 
-  if (XrmGetResource(rDB, "ldex.noscroll", "Ldex.noscroll", str_type, &value) == True) {
+  if (XrmGetResource(rDB, "ldex.noscroll", "Ldex.noscroll", str_type, &value) == True)
+  {
     noscroll = 1;
   }
 
-  if (XrmGetResource(rDB, "ldex.timer", "Ldex.timer", str_type, &value) == True) {
+  if (XrmGetResource(rDB, "ldex.timer", "Ldex.timer", str_type, &value) == True)
+  {
     (void)strncpy(tmp, value.addr, value.size);
     errno = 0;
     i = (int)strtol(tmp, (char **)NULL, 10);
@@ -310,10 +348,11 @@ void read_Xoption(int *argc, char *argv[])
                          str_type, &value) == True) {
         (void)strncpy(tmp, value.addr, value.size);
         maxpages = (unsigned)strtol((tmp, (char **)NULL, 10);
-	// should check no error here 
+  // should check no error here
       }
   */
-  if (XrmGetResource(rDB, "ldex.memory", "Ldex.memory", str_type, &value) == True) {
+  if (XrmGetResource(rDB, "ldex.memory", "Ldex.memory", str_type, &value) == True)
+  {
     (void)strncpy(tmp, value.addr, value.size);
     errno = 0;
     i = (int)strtol(tmp, (char **)NULL, 10);
@@ -321,16 +360,21 @@ void read_Xoption(int *argc, char *argv[])
       sysout_size = (unsigned)i;
   }
 
-  if (XrmGetResource(rDB, "ldex.Init", "Ldex.Init", str_type, &value) == True) { for_makeinit = 1; }
+  if (XrmGetResource(rDB, "ldex.Init", "Ldex.Init", str_type, &value) == True)
+  {
+    for_makeinit = 1;
+  }
 
-  if (XrmGetResource(rDB, "ldex.xsync", "Ldex.xsync", str_type, &value) == True) { xsync = True; }
+  if (XrmGetResource(rDB, "ldex.xsync", "Ldex.xsync", str_type, &value) == True)
+  {
+    xsync = True;
+  }
 #ifdef MAIKO_ENABLE_ETHERNET
-  if (XrmGetResource(rDB, "ldex.EtherNet", "Ldex.EtherNet", str_type, &value) == True) {
+  if (XrmGetResource(rDB, "ldex.EtherNet", "Ldex.EtherNet", str_type, &value) == True)
+  {
     int b0, b1, b2, b3, b4, b5;
     (void)strncpy(tmp, value.addr, value.size);
-#if defined(USE_DLPI)
-    if (sscanf(tmp, "%d:%x:%x:%x:%x:%x:%x", &ether_fd, &b0, &b1, &b2, &b3, &b4, &b5) == 7)
-#elif defined(USE_NIT)
+#if defined(USE_NIT)
     if (sscanf(tmp, "%d:%x:%x:%x:%x:%x:%x:%s", &ether_fd, &b0, &b1, &b2, &b3, &b4, &b5,
                snit.snit_ifname) == 8)
 #endif /* USE_NIT */
@@ -341,7 +385,9 @@ void read_Xoption(int *argc, char *argv[])
       ether_host[3] = b3;
       ether_host[4] = b4;
       ether_host[5] = b5;
-    } else {
+    }
+    else
+    {
       (void)fprintf(stderr, "Missing or bogus -E argument\n");
       ether_fd = -1;
       exit(1);

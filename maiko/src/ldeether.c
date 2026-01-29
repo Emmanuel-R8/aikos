@@ -20,33 +20,10 @@ int main(int argc, char *argv[]) { return (0); }
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-
-#if defined(USE_DLPI)
-#include <sys/stream.h>
-#include <sys/stropts.h>
-#include <sys/pfmod.h>
-#include "dlpidefs.h"
-
-#if defined(SVR4) && !defined(OS5)
-char *devices[] = {"emd0", "emd1", "emd2", "emd3", "emd4", 0};
-#endif
-
-#ifdef OS5
-#include <sys/bufmod.h>
-
-char *devices[] = {"le0",   "le1",   "le2",   "le3",   "le4",   "ie0", "ie1", "ie2", "ie3",
-                   "ie4",   "qe0",   "qe1",   "qe2",   "qe3",   "qe4", "qe5", "qe6", "qe7",
-                   "fddi0", "fddi1", "fddi2", "fddi3", "fddi4", "bf0", "bf1", 0};
-#endif
-#endif /* USE_DLPI */
-
 #include <ctype.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
-#ifdef OS4
-#include <sys/file.h>
-#endif /* OS4 */
 
 #include <net/if.h>
 #include <netdb.h>
@@ -55,11 +32,6 @@ char *devices[] = {"le0",   "le1",   "le2",   "le3",   "le4",   "ie0", "ie1", "i
 #include <sys/ioctl.h>
 #if defined(USE_NIT)
 #include <net/nit.h>
-#ifdef OS4
-#include <stropts.h>
-#include <net/nit_if.h>
-#include <net/nit_pf.h>
-#endif /* OS4 */
 #endif /* USE_NIT */
 
 #include <nlist.h>
@@ -72,13 +44,10 @@ int ether_intf_type = 0;                          /* IF type? from DLPI */
 unsigned char ether_host[6] = {0, 0, 0, 0, 0, 0}; /* 48 bit address */
 char filetorun[30] = "lde";
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   char Earg[30], Ename[30], **newargv;
   int i;
-#if defined(USE_DLPI)
-  static struct packetfilt pf = {0, 1, {ENF_PUSHZERO}};
-  struct strioctl si;
-#endif /* USE_DLPI */
 
   /* Only do the ether kick=-start if we've got to. */
 
@@ -96,42 +65,16 @@ int main(int argc, char *argv[]) {
           Ethernet device as found by SIOCGIFCONF.
   */
 
-  if (!geteuid()) {
-#if defined(USE_DLPI)
-    /* Use DLPI to connect to the ethernet.  This code is stolen
-       from NFSWATCH4.3
-    */
-    char *etherdev = getenv("LDEETHERDEV");
-    ether_fd = setup_dlpi_dev(etherdev);
-    if (ether_fd >= 0) { /* Open an ether interface */
-      ether_intf_type = dlpi_devtype(ether_fd);
-      printf("opened ldeether fd %d.\n", ether_fd);
-      /* first and foremost, get the packet filter module attached
-             (used for ether_suspend and ether_resume) */
+  if (!geteuid())
+  {
 
-      if (ioctl(ether_fd, I_PUSH, "pfmod") < 0) {
-        perror("IOCTL push of pf lost");
-        close(ether_fd);
-        goto I_Give_Up;
-      }
-
-      si.ic_cmd = PFIOCSETF;
-      si.ic_timout = -1;
-      si.ic_len = sizeof(pf);
-      si.ic_dp = (char *)&pf;
-
-      if (ioctl(ether_fd, I_STR, &si) < 0) {
-        perror("ioctl: I_STR PFIOCSETF");
-        return (-1);
-      }
-
-      fcntl(ether_fd, F_SETFL, fcntl(ether_fd, F_GETFL, 0) | O_NONBLOCK);
-
-#elif defined(USE_NIT)
+#if defined(USE_NIT)
 #ifndef OS4
-    if ((ether_fd = socket(AF_NIT, SOCK_RAW, NITPROTO_RAW)) >= 0) {
+    if ((ether_fd = socket(AF_NIT, SOCK_RAW, NITPROTO_RAW)) >= 0)
+    {
 #else  /* OS4 */
-    if ((ether_fd = open("/dev/nit", O_RDWR)) >= 0) {
+    if ((ether_fd = open("/dev/nit", O_RDWR)) >= 0)
+    {
 #endif /* OS4 */
 
       /* it's open, now query it and find out its name and address */
@@ -143,21 +86,11 @@ int main(int argc, char *argv[]) {
       struct ifconf if_data;
       struct ifreq ifbuf[20];
 
-#ifdef OS4
-      /* first and foremost, get the packet filter module attached
-              (used for ether_suspend and ether_resume) */
-
-      if (ioctl(ether_fd, I_PUSH, "pf") < 0) {
-        perror("IOCTL push of pf lost");
-        close(ether_fd);
-        goto I_Give_Up;
-      }
-#endif /* OS4 */
-
       if_data.ifc_len = sizeof(ifbuf);
       if_data.ifc_req = ifbuf;
 #ifndef OS4
-      if (ioctl(ether_fd, SIOCGIFCONF, &if_data) < 0) {
+      if (ioctl(ether_fd, SIOCGIFCONF, &if_data) < 0)
+      {
         perror("Couldn't GIFCONF socket; Net is off");
 #else  /* OS4 */
 
@@ -168,14 +101,16 @@ int main(int argc, char *argv[]) {
         can't bind it without knowing the interface name... */
         int s;
 
-        if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+        {
           perror("No socket for interface name");
           close(s);
           close(ether_fd);
           ether_fd = -1;
           goto I_Give_Up;
         }
-        if (ioctl(s, SIOCGIFCONF, (char *)&if_data) < 0) {
+        if (ioctl(s, SIOCGIFCONF, (char *)&if_data) < 0)
+        {
           perror("Couldn't get interface name from socket");
           close(s);
           close(ether_fd);
@@ -184,7 +119,8 @@ int main(int argc, char *argv[]) {
         }
         (void)close(s);
       }
-      if (ioctl(ether_fd, NIOCBIND, &if_data.ifc_req[0]) < 0) {
+      if (ioctl(ether_fd, NIOCBIND, &if_data.ifc_req[0]) < 0)
+      {
         perror("Couldn't NIOCBIND socket: Net is off");
 #endif /* OS4 */
 
@@ -193,7 +129,8 @@ int main(int argc, char *argv[]) {
         goto I_Give_Up;
       }
       /* now for the address */
-      if (ioctl(ether_fd, SIOCGIFADDR, &if_data.ifc_req[0]) < 0) {
+      if (ioctl(ether_fd, SIOCGIFADDR, &if_data.ifc_req[0]) < 0)
+      {
         perror("Couldn't GIFADDR socket: Net is off");
         close(ether_fd);
         ether_fd = -1;
@@ -204,11 +141,13 @@ int main(int argc, char *argv[]) {
 
       fcntl(ether_fd, F_SETFL, fcntl(ether_fd, F_GETFL, 0) | O_ASYNC | O_NONBLOCK);
 
-#endif /* USE_DLPI  */
+#endif /* USE_NIT  */
 #ifdef DEBUG
       printf("init_ether: **** Ethernet starts ****\n");
 #endif
-    } else {
+    }
+    else
+    {
     I_Give_Up:
       perror("init_ether: can't open NIT socket\n");
       ether_fd = -1;
@@ -222,18 +161,17 @@ int main(int argc, char *argv[]) {
 
   newargv = (char **)malloc((argc + 1 + (ether_fd > 0) * 2) * sizeof(char **));
   newargv[0] = filetorun; /* or whatever... */
-  for (i = 1; i < argc; i++) newargv[i] = argv[i];
+  for (i = 1; i < argc; i++)
+    newargv[i] = argv[i];
 
   /* then if the net is active, spit out the ether info */
-  if (ether_fd > 0) {
+  if (ether_fd > 0)
+  {
     newargv[i++] = "-E";
-#if defined(USE_DLPI)
-    sprintf(Earg, "%d:%x:%x:%x:%x:%x:%x", ether_fd, ether_host[0], ether_host[1], ether_host[2],
-            ether_host[3], ether_host[4], ether_host[5]);
-#elif defined(USE_NIT)
+#if defined(USE_NIT)
     sprintf(Earg, "%d:%x:%x:%x:%x:%x:%x:%s", ether_fd, ether_host[0], ether_host[1], ether_host[2],
             ether_host[3], ether_host[4], ether_host[5], Ename);
-#endif /* USE_DLPI */
+#endif /* USE_NIT */
     newargv[i++] = Earg;
     printf("ether = %d:%x:%x:%x:%x:%x:%x:%s", ether_fd, ether_host[0], ether_host[1], ether_host[2],
            ether_host[3], ether_host[4], ether_host[5], Ename);

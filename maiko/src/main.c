@@ -59,20 +59,13 @@
 #include <sys/select.h>
 #include <sys/types.h>
 #include <time.h>
-
-#ifndef DOS
 #include <sys/param.h>
 #include <unistd.h>
-#else /* DOS */
-#include <i32.h>
-#define MAXPATHLEN 128
-#define R_OK 04
-#endif /* DOS */
 
 #ifdef MAIKO_ENABLE_ETHERNET
 #if defined(USE_NIT)
 #include <net/nit.h> /* needed for Ethernet stuff below */
-#endif               /* USE_DLPI */
+#endif               /* USE_NIT */
 #endif               /* MAIKO_ENABLE_ETHERNET */
 
 #include "emlglob.h"
@@ -267,59 +260,20 @@ int display_max = 65536 * 16 * 2;
 /* diagnostic flag for sysout dumping */
 extern unsigned maxpages;
 
-char sysout_name_cl[MAXPATHLEN] = "\0"; /* sysout name as per -sysout command line arg ; Set by read_Xoption, in the X version. */
-char sysout_name_xrm[MAXPATHLEN] = "\0"; /* sysout name as per X resource manager, if any */
+char sysout_name_cl[MAXPATHLEN] = "\0";        /* sysout name as per -sysout command line arg ; Set by read_Xoption, in the X version. */
+char sysout_name_xrm[MAXPATHLEN] = "\0";       /* sysout name as per X resource manager, if any */
 char sysout_name_first_arg[MAXPATHLEN] = "\0"; /* sysout name as per 1st command line arg, if any */
-char sysout_name[MAXPATHLEN] = "\0"; /* "final" sysout name chosen from above */
+char sysout_name[MAXPATHLEN] = "\0";           /* "final" sysout name chosen from above */
 
-unsigned sysout_size = 0;    /* ditto */
+unsigned sysout_size = 0; /* ditto */
 
 int flushing = FALSE; /* see dbprint.h if set, all debug/trace printing will call fflush(stdout) after each printf */
 
-#if defined(DOS) || defined(XWINDOW)
-#include "devif.h"
-extern DspInterface currentdsp;
-#endif /* DOS || XWINDOW */
-#ifdef SDL
-#include "sdldefs.h"	/* for init_SDL */
-#endif
+#include "sdldefs.h" /* for init_SDL */
 extern const time_t MDate;
 extern const char *MaikoGitVersion;
 extern int nokbdflag;
 extern int nomouseflag;
-#ifdef DOS
-int dosdisplaymode = 0;
-int twobuttonflag = FALSE;
-int eurokbd = TRUE; /* Assume eurokbd by default. */
-const char *helpstring =
-    "\n\
-medley [sysout-name] [<options>] ...\n\
-Where <options> are:\n\
- sysout-name  The filename of your sysout.(see manual.)\n\
- -m <size>    Virtual memory size in  Mega Bytes(from 8 to 32)\n\
- -vga         Use standard VGA 640x480 screen resolution\n\
- -vesa102     Use VESA 800x600 screen resolution\n\
- -vesa104     Use VESA 1024x768 screen resolution\n\
- -2button     Force two button mouse handling\n\
- -3button     Force three button mouse handling\n\
- -noeurokbd   Force old style kbd handling (for 2.0 and earlier sysouts)\n\
- -eurokbd     Force new style kbd handling (for 2.01 and later sysouts)\n\
- -nokbd       Turn the kbd handling off (for debugging only)\n\
- -nomouse     Turn the mouse handling off (for debugging only)\n\
- -info        Print general info about the system\n\
- -help        Print this message\n";
-#elif XWINDOW
-const char *helpstring =
-    "\n\
- either setenv LDESRCESYSOUT or do:\n\
- medley [<sysout-name>] [<options>]\n\
- -info                    Print general info about the system\n\
- -help                    Print this message\n\
- -d[isplay] host:srv.scr  The host, X server and screen you want Medley on\n\
- -bw <pixels>             The Medley screen borderwidth\n\
- -g[eometry] <geom>]      The Medley screen geometry\n\
- -sc[reen] <w>x<h>]       The Medley screen geometry\n";
-#elif SDL
 const char *helpstring =
     "\n\
  either setenv LDESRCESYSOUT or do:\n\
@@ -332,18 +286,10 @@ const char *helpstring =
  -sc[reen] <w>x<h>]       The Medley screen geometry\n\
  -t <title>               The window title\n\
  -title <title>           The window title\n";
-#else  /* not DOS, not XWINDOW, not SDL */
-const char *helpstring =
-    "\n\
- either setenv LDESRCESYSOUT or do:\n\
- lde[ether] [sysout-name] [<options>]\n\
- -info        Print general info about the system\n\
- -help        Print this message\n";
-#endif /* DOS */
 
 #if defined(MAIKO_ENABLE_NETHUB)
 const char *nethubHelpstring =
- "\
+    "\
  -nh-host dodo-host        Hostname for Dodo Nethub (no networking if missing)\n\
  -nh-port port-number      Port for Dodo Nethub (optional, default: 3333)\n\
  -nh-mac XX-XX-XX-XX-XX-XX Machine-ID for Maiko-VM (optional, default: CA-FF-EE-12-34-56) \n\
@@ -357,12 +303,10 @@ const char *nethubHelpstring = "";
 extern int insnsCountdownForTimerAsyncEmulation;
 #endif
 
-#if defined(XWINDOW) || defined(SDL)
 char foregroundColorName[64] = {0};
 extern char foregroundColorName[64];
 char backgroundColorName[64] = {0};
 extern char backgroundColorName[64];
-#endif
 char windowTitle[255] = "Medley";
 extern char windowTitle[255];
 unsigned LispDisplayRequestedWidth = 1024, LispDisplayRequestedHeight = 768;
@@ -388,9 +332,12 @@ int main(int argc, char *argv[])
   long tmpint;
 
 #ifdef MAIKO_ENABLE_FOREIGN_FUNCTION_INTERFACE
-  if (dld_find_executable(argv[0]) == 0) {
+  if (dld_find_executable(argv[0]) == 0)
+  {
     perror("Name of executable not found.");
-  } else if (dld_init(dld_find_executable(argv[0])) != 0) {
+  }
+  else if (dld_init(dld_find_executable(argv[0])) != 0)
+  {
     dld_perror("Can't init DLD.");
   }
 #endif /* MAIKO_ENABLE_FOREIGN_FUNCTION_INTERFACE */
@@ -408,166 +355,180 @@ int main(int argc, char *argv[])
   // First check if the first argument is a sysout name
   // and save it away if it is in case the X windows
   // arg processing changes argc/argv
-  if (argc > 1 && argv[1][0] != '-') {
+  if (argc > 1 && argv[1][0] != '-')
+  {
     strncpy(sysout_name_first_arg, argv[1], MAXPATHLEN);
   }
-
-
-#ifdef XWINDOW
-  read_Xoption(&argc, argv);
-#endif /* XWINDOW */
 
   save_argc = argc;
   save_argv = argv;
 
   i = 1;
 
-  if (argv[i] && ((strcmp(argv[i], "-info") == 0) || (strcmp(argv[i], "-INFO") == 0))) {
+  if (argv[i] && ((strcmp(argv[i], "-info") == 0) || (strcmp(argv[i], "-INFO") == 0)))
+  {
     print_info_lines();
     exit(0);
   }
 
-  if (argv[i] && ((strcmp(argv[i], "-help") == 0) || (strcmp(argv[i], "-HELP") == 0))) {
+  if (argv[i] && ((strcmp(argv[i], "-help") == 0) || (strcmp(argv[i], "-HELP") == 0)))
+  {
     (void)fprintf(stderr, "%s%s", helpstring, nethubHelpstring);
     exit(0);
   }
 
+  for (; i < argc; i += 1)
+  { /* step by 1 in case of typo */
 
-  for (; i < argc; i += 1) { /* step by 1 in case of typo */
+    // NOTE:  in the case of X Windows, some of the args being checked for in this loop
+    // have already been processed (and removed from argv) by the call to read_Xoption()
+    // above.  (See readXoption() in xrdopt.c)
 
-   // NOTE:  in the case of X Windows, some of the args being checked for in this loop
-   // have already been processed (and removed from argv) by the call to read_Xoption()
-   // above.  (See readXoption() in xrdopt.c)
-
-   /* Check for -sysout arg */
-    if (!strcmp(argv[i], "-sysout")) {
-      if (argc > ++i) {
+    /* Check for -sysout arg */
+    if (!strcmp(argv[i], "-sysout"))
+    {
+      if (argc > ++i)
+      {
         strncpy(sysout_name_cl, argv[i], MAXPATHLEN);
       }
     }
 
     /* -timer and -m are undocumented and somewhat dangerous... */
 
-    else if (!strcmp(argv[i], "-timer")) { /**** timer interval	****/
-      if (argc > ++i) {
+    else if (!strcmp(argv[i], "-timer"))
+    { /**** timer interval	****/
+      if (argc > ++i)
+      {
         errno = 0;
         tmpint = strtol(argv[i], (char **)NULL, 10);
-        if (errno == 0 && tmpint > 0) {
+        if (errno == 0 && tmpint > 0)
+        {
           TIMER_INTERVAL = tmpint;
-        } else {
+        }
+        else
+        {
           (void)fprintf(stderr, "Bad value for -timer (integer > 0)\n");
           exit(1);
         }
-      } else {
+      }
+      else
+      {
         (void)fprintf(stderr, "Missing argument after -timer\n");
         exit(1);
       }
     }
 
-    else if (!strcmp(argv[i], "-m")) { /**** sysout size	****/
-      if (argc > ++i) {
+    else if (!strcmp(argv[i], "-m"))
+    { /**** sysout size	****/
+      if (argc > ++i)
+      {
         errno = 0;
         tmpint = strtol(argv[i], (char **)NULL, 10);
-        if (errno == 0 && tmpint > 0) {
+        if (errno == 0 && tmpint > 0)
+        {
           sysout_size = (unsigned)tmpint;
-        } else {
+        }
+        else
+        {
           (void)fprintf(stderr, "Bad value for -m (integer > 0)\n");
           exit(1);
         }
-      } else {
+      }
+      else
+      {
         (void)fprintf(stderr, "Missing argument after -m\n");
         exit(1);
       }
     }
 
-    else if (!strcmp(argv[i], "-NF")) { /****  Don't fork (for dbxing)	****/
+    else if (!strcmp(argv[i], "-NF"))
+    { /****  Don't fork (for dbxing)	****/
       please_fork = 0;
     }
 
-    else if (!strcmp(argv[i], "-INIT")) { /*** init sysout, no packaged */
+    else if (!strcmp(argv[i], "-INIT"))
+    { /*** init sysout, no packaged */
       for_makeinit = 1;
     }
-#ifdef DOS
-    else if ((strcmp(argv[i], "-vga") == 0) || (strcmp(argv[i], "-VGA") == 0)) {
-      dosdisplaymode = 1;
-    } else if ((strcmp(argv[i], "-vesa102") == 0) || (strcmp(argv[i], "-VESA102") == 0)) {
-      dosdisplaymode = 0x102;
-    } else if ((strcmp(argv[i], "-vesa104") == 0) || (strcmp(argv[i], "-VESA104") == 0)) {
-      dosdisplaymode = 0x104;
-    } else if ((strcmp(argv[i], "-2button") == 0) || (strcmp(argv[i], "-2BUTTON") == 0)) {
-      twobuttonflag = TRUE;
-    } else if ((strcmp(argv[i], "-3button") == 0) || (strcmp(argv[i], "-3BUTTON") == 0)) {
-      twobuttonflag = FALSE;
-    } else if ((strcmp(argv[i], "-noeurokbd") == 0) || (strcmp(argv[i], "-NOEUROKBD") == 0)) {
-      eurokbd = FALSE;
-    } else if ((strcmp(argv[i], "-eurokbd") == 0) || (strcmp(argv[i], "-EUROKBD") == 0)) {
-      eurokbd = TRUE;
-    } else if ((strcmp(argv[i], "-nokbd") == 0) || (strcmp(argv[i], "-NOKBD") == 0)) {
-      nokbdflag = TRUE;
-    } else if ((strcmp(argv[i], "-nomouse") == 0) || (strcmp(argv[i], "-NOMOUSE") == 0)) {
-      nomouseflag = TRUE;
-    }
-
-#endif /* DOS */
-#ifdef SDL
-    else if ((strcmp(argv[i], "-sc") == 0) || (strcmp(argv[i], "-SC") == 0)) {
-      if (argc > ++i) {
+    else if ((strcmp(argv[i], "-sc") == 0) || (strcmp(argv[i], "-SC") == 0))
+    {
+      if (argc > ++i)
+      {
         int read = sscanf(argv[i], "%dx%d", &LispDisplayRequestedWidth, &LispDisplayRequestedHeight);
-        if(read != 2) {
+        if (read != 2)
+        {
           (void)fprintf(stderr, "Could not parse -sc argument %s\n", argv[i]);
           exit(1);
         }
-      } else {
+      }
+      else
+      {
         (void)fprintf(stderr, "Missing argument after -sc\n");
         exit(1);
       }
-    } else if ((strcmp(argv[i], "-pixelscale") == 0) || (strcmp(argv[i], "-PIXELSCALE") == 0)) {
-      if (argc > ++i) {
+    }
+    else if ((strcmp(argv[i], "-pixelscale") == 0) || (strcmp(argv[i], "-PIXELSCALE") == 0))
+    {
+      if (argc > ++i)
+      {
         int read = sscanf(argv[i], "%d", &pixelScale);
-        if(read != 1) {
+        if (read != 1)
+        {
           (void)fprintf(stderr, "Could not parse -pixelscale argument %s\n", argv[i]);
           exit(1);
         }
-      } else {
+      }
+      else
+      {
         (void)fprintf(stderr, "Missing argument after -pixelscale\n");
         exit(1);
       }
-    } else if ((strcmp(argv[i], "-t") == 0) || (strcmp(argv[i], "-T") == 0)
-               || (strcmp(argv[i], "-title") == 0) || (strcmp(argv[i], "-TITLE") == 0)) {
-      if (argc > ++i) {
+    }
+    else if ((strcmp(argv[i], "-t") == 0) || (strcmp(argv[i], "-T") == 0) || (strcmp(argv[i], "-title") == 0) || (strcmp(argv[i], "-TITLE") == 0))
+    {
+      if (argc > ++i)
+      {
         strncpy(windowTitle, argv[i], sizeof(windowTitle) - 1);
-      } else {
+      }
+      else
+      {
         (void)fprintf(stderr, "Missing argument after -title\n");
         exit(1);
       }
-    } else if (strcmp(argv[i], "-fg") == 0 || strcmp(argv[i], "-foreground") == 0) {
-      if (argc > ++i) {
+    }
+    else if (strcmp(argv[i], "-fg") == 0 || strcmp(argv[i], "-foreground") == 0)
+    {
+      if (argc > ++i)
+      {
         strncpy(foregroundColorName, argv[i], sizeof(foregroundColorName) - 1);
-      } else {
+      }
+      else
+      {
         (void)fprintf(stderr, "Missing argument after -fg/-foreground\n");
         exit(1);
       }
-    } else if (strcmp(argv[i], "-bg") == 0 || strcmp(argv[i], "-background") == 0) {
-      if (argc > ++i) {
+    }
+    else if (strcmp(argv[i], "-bg") == 0 || strcmp(argv[i], "-background") == 0)
+    {
+      if (argc > ++i)
+      {
         strncpy(backgroundColorName, argv[i], sizeof(backgroundColorName) - 1);
-      } else {
+      }
+      else
+      {
         (void)fprintf(stderr, "Missing argument after -bg/-background\n");
         exit(1);
       }
     }
-#endif /* SDL */
+
     /* Can only do this under SUNOs, for now */
-    else if (!strcmp(argv[i], "-E")) { /**** ethernet info	****/
+    else if (!strcmp(argv[i], "-E"))
+    { /**** ethernet info	****/
 #ifdef MAIKO_ENABLE_ETHERNET
       int b0, b1, b2, b3, b4, b5;
-#if defined(USE_DLPI)
-      if (argc > ++i &&
-          sscanf(argv[i], "%d:%x:%x:%x:%x:%x:%x", &ether_fd, &b0, &b1, &b2, &b3, &b4, &b5) == 7)
-#else
       if (argc > ++i &&
           sscanf(argv[i], "%d:%x:%x:%x:%x:%x:%x:%s", &ether_fd, &b0, &b1, &b2, &b3, &b4, &b5,
                  snit.snit_ifname) == 8)
-#endif /* USE_DLPI */
       {
         ether_host[0] = b0;
         ether_host[1] = b1;
@@ -575,64 +536,90 @@ int main(int argc, char *argv[])
         ether_host[3] = b3;
         ether_host[4] = b4;
         ether_host[5] = b5;
-      } else {
+      }
+      else
+      {
         (void)fprintf(stderr, "Missing or bogus -E argument\n");
         ether_fd = -1;
         exit(1);
       }
 #endif /* MAIKO_ENABLE_ETHERNET */
-
     }
 
 #ifdef MAIKO_ENABLE_NETHUB
-    else if (!strcmp(argv[i], "-nh-host")) {
-      if (argc > ++i) {
+    else if (!strcmp(argv[i], "-nh-host"))
+    {
+      if (argc > ++i)
+      {
         setNethubHost(argv[i]);
-      } else {
+      }
+      else
+      {
         (void)fprintf(stderr, "Missing argument after -nh-host\n");
         exit(1);
       }
     }
-    else if (!strcmp(argv[i], "-nh-port")) {
-      if (argc > ++i) {
+    else if (!strcmp(argv[i], "-nh-port"))
+    {
+      if (argc > ++i)
+      {
         errno = 0;
         tmpint = strtol(argv[i], (char **)NULL, 10);
-        if (errno == 0 && tmpint > 0) {
+        if (errno == 0 && tmpint > 0)
+        {
           setNethubPort(tmpint);
-        } else {
+        }
+        else
+        {
           (void)fprintf(stderr, "Bad value for -nh-port\n");
           exit(1);
         }
-      } else {
+      }
+      else
+      {
         (void)fprintf(stderr, "Missing argument after -nh-port\n");
         exit(1);
       }
     }
-    else if (!strcmp(argv[i], "-nh-mac")) {
-      if (argc > ++i) {
+    else if (!strcmp(argv[i], "-nh-mac"))
+    {
+      if (argc > ++i)
+      {
         int b0, b1, b2, b3, b4, b5;
-        if (sscanf(argv[i], "%x-%x-%x-%x-%x-%x",  &b0, &b1, &b2, &b3, &b4, &b5) == 6) {
+        if (sscanf(argv[i], "%x-%x-%x-%x-%x-%x", &b0, &b1, &b2, &b3, &b4, &b5) == 6)
+        {
           setNethubMac(b0, b1, b2, b3, b4, b5);
-        } else {
+        }
+        else
+        {
           (void)fprintf(stderr, "Invalid argument for -nh-mac\n");
           exit(1);
         }
-      } else {
+      }
+      else
+      {
         (void)fprintf(stderr, "Missing argument after -nh-mac\n");
         exit(1);
       }
     }
-    else if (!strcmp(argv[i], "-nh-loglevel")) {
-      if (argc > ++i) {
+    else if (!strcmp(argv[i], "-nh-loglevel"))
+    {
+      if (argc > ++i)
+      {
         errno = 0;
         tmpint = strtol(argv[i], (char **)NULL, 10);
-        if (errno == 0 && tmpint >= 0) {
+        if (errno == 0 && tmpint >= 0)
+        {
           setNethubLogLevel(tmpint);
-        } else {
+        }
+        else
+        {
           (void)fprintf(stderr, "Bad value for -nh-loglevel\n");
           exit(1);
         }
-      } else {
+      }
+      else
+      {
         (void)fprintf(stderr, "Missing argument after -nh-loglevel\n");
         exit(1);
       }
@@ -640,17 +627,24 @@ int main(int argc, char *argv[])
 #endif /* MAIKO_ENABLE_NETHUB */
 
 #if defined(MAIKO_EMULATE_TIMER_INTERRUPTS) || defined(MAIKO_EMULATE_ASYNC_INTERRUPTS)
-    else if (!strcmp(argv[i], "-intr-emu-insns")) {
-      if (argc > ++i) {
+    else if (!strcmp(argv[i], "-intr-emu-insns"))
+    {
+      if (argc > ++i)
+      {
         errno = 0;
         tmpint = strtol(argv[i], (char **)NULL, 10);
-        if (errno == 0 && tmpint > 1000) {
+        if (errno == 0 && tmpint > 1000)
+        {
           insnsCountdownForTimerAsyncEmulation = tmpint;
-        } else {
+        }
+        else
+        {
           (void)fprintf(stderr, "Bad value for -intr-emu-insns (integer > 1000)\n");
           exit(1);
         }
-      } else {
+      }
+      else
+      {
         (void)fprintf(stderr, "Missing argument after -intr-emu-insns\n");
         exit(1);
       }
@@ -658,17 +652,24 @@ int main(int argc, char *argv[])
 #endif
 
     /* diagnostic flag for big vmem write() calls */
-    else if (!strcmp(argv[i], "-xpages")) {
-      if (argc > ++i) {
+    else if (!strcmp(argv[i], "-xpages"))
+    {
+      if (argc > ++i)
+      {
         errno = 0;
         tmpint = strtol(argv[i], (char **)NULL, 10);
-        if (errno == 0 && tmpint > 0) {
+        if (errno == 0 && tmpint > 0)
+        {
           maxpages = (unsigned)tmpint;
-        } else {
+        }
+        else
+        {
           (void)fprintf(stderr, "Bad value for -xpages (integer > 0)\n");
           exit(1);
         }
-      } else {
+      }
+      else
+      {
         (void)fprintf(stderr, "Missing argument after -xpages\n");
         exit(1);
       }
@@ -685,22 +686,36 @@ int main(int argc, char *argv[])
   //    5. Value as determined by X resource manager, if any
   //    6. Value of $HOME/lisp.virtualmem (or lisp.vm for DOS)
   //
-  if (sysout_name_cl[0] != '\0') { strncpy(sysout_name, sysout_name_cl, MAXPATHLEN); }
-  else if (sysout_name_first_arg[0] != '\0') { strncpy(sysout_name, sysout_name_first_arg, MAXPATHLEN); }
-  else if ((envname = getenv("LDESRCESYSOUT")) != NULL) { strncpy(sysout_name, envname, MAXPATHLEN); }
-  else if ((envname = getenv("LDESOURCESYSOUT")) != NULL) { strncpy(sysout_name, envname, MAXPATHLEN); }
-  else if (sysout_name_xrm[0] != '\0') { strncpy(sysout_name, sysout_name_xrm, MAXPATHLEN); }
-  else {
-#ifdef DOS
-    strncpy(sysout_name, "lisp.vm", MAXPATHLEN);
-#else
-    if ((envname = getenv("HOME")) != NULL) {
+  if (sysout_name_cl[0] != '\0')
+  {
+    strncpy(sysout_name, sysout_name_cl, MAXPATHLEN);
+  }
+  else if (sysout_name_first_arg[0] != '\0')
+  {
+    strncpy(sysout_name, sysout_name_first_arg, MAXPATHLEN);
+  }
+  else if ((envname = getenv("LDESRCESYSOUT")) != NULL)
+  {
+    strncpy(sysout_name, envname, MAXPATHLEN);
+  }
+  else if ((envname = getenv("LDESOURCESYSOUT")) != NULL)
+  {
+    strncpy(sysout_name, envname, MAXPATHLEN);
+  }
+  else if (sysout_name_xrm[0] != '\0')
+  {
+    strncpy(sysout_name, sysout_name_xrm, MAXPATHLEN);
+  }
+  else
+  {
+    if ((envname = getenv("HOME")) != NULL)
+    {
       strncpy(sysout_name, envname, MAXPATHLEN);
       strncat(sysout_name, "/lisp.virtualmem", MAXPATHLEN - 17);
     }
-#endif /* DOS */
   }
-  if ((sysout_name[0] == '\0') || (access(sysout_name, R_OK))) {
+  if ((sysout_name[0] == '\0') || (access(sysout_name, R_OK)))
+  {
     perror("Couldn't find a sysout to run");
     fprintf(stderr, "Looking for: %s\n", sysout_name);
     (void)fprintf(stderr, "%s%s", helpstring, nethubHelpstring);
@@ -708,26 +723,22 @@ int main(int argc, char *argv[])
   }
   /* OK, sysout name is now in sysout_name */
 
-
   //
   //
   // End of command line arg processing
   //
   //
 
-
-/* Sanity checks. */
-#ifdef DOS
-  probemouse(); /* See if the mouse is connected. */
-#else
-  if (getuid() != geteuid()) {
+  /* Sanity checks. */
+  if (getuid() != geteuid())
+  {
     (void)fprintf(stderr, "Effective user is not real user.  Resetting uid\n");
-    if (setuid(getuid()) == -1) {
+    if (setuid(getuid()) == -1)
+    {
       (void)fprintf(stderr, "Unable to reset user id to real user id\n");
       exit(1);
     }
   }
-#endif /* DOS */
 
   FD_ZERO(&LispReadFds);
 
@@ -739,28 +750,21 @@ int main(int argc, char *argv[])
   connectToHub();
 #endif
 
-#ifdef DOS
-  init_host_filesystem();
-#else
   /* Fork Unix was called in kickstarter; if we forked, look up the */
   /* pipe handles to the subprocess and set them up.		      */
 
   if (FindUnixPipes()) /* must call the routine to allocate storage, */
   {                    /* in case we're re-starting a savevm w/open ptys */
-    if (please_fork) (void)fprintf(stderr, "Failed to find UNIXCOMM file handles; no processes\n");
+    if (please_fork)
+      (void)fprintf(stderr, "Failed to find UNIXCOMM file handles; no processes\n");
   }
-#endif /* DOS */
 
-#if defined(DOS) || defined(XWINDOW)
-  make_dsp_instance(currentdsp, 0, 0, 0, 1); /* All defaults the first time */
-#endif                                       /* DOS || XWINDOW */
-#if defined(SDL)
   init_SDL(windowTitle, LispDisplayRequestedWidth, LispDisplayRequestedHeight, pixelScale);
-#endif /* SDL */
+
   /* Load sysout to VM space and returns real sysout_size(not 0) */
   sysout_size = sysout_loader(sysout_name, sysout_size);
 
-  build_lisp_map(); /* build up map */
+  build_lisp_map();         /* build up map */
   init_ifpage(sysout_size); /* init interface page */
   init_iopage();
   init_miscstats();
@@ -769,7 +773,8 @@ int main(int argc, char *argv[])
   set_cursor();
 
   /* file system directory enumeration stuff */
-  if (!init_finfo()) {
+  if (!init_finfo())
+  {
     (void)fprintf(stderr, "Cannot allocate internal data.\n");
     exit(1);
   }
@@ -778,24 +783,13 @@ int main(int argc, char *argv[])
 #endif
 
   /* Get OS message to ~/lisp.log and print the message to prompt window */
-  if (!for_makeinit) {
-
+  if (!for_makeinit)
+  {
     init_keyboard(0); /* can't turn on the keyboard yet or you will die
                          in makeinit.  Pilotbitblt will turn it on if
                          you used the proper switches when building LDE.
                             JDS -- 1/18/90 also BITBLTSUB does it now. */
   }
-
-#ifdef DOS
-  _setrealmode(0x3f); /* Don't interrupt on FP overflows */
-  _getrealerror();
-
-  tzset();
-#endif
-
-#ifdef OS5
-  tzset();
-#endif /* OS5 */
 
   /* now start up lisp */
   start_lisp();
@@ -811,7 +805,8 @@ int main(int argc, char *argv[])
 /*									*/
 /************************************************************************/
 
-void start_lisp(void) {
+void start_lisp(void)
+{
   DLword *freeptr, *next68k;
 
 /*******************************/
@@ -836,9 +831,11 @@ void start_lisp(void) {
 
   freeptr = next68k = NativeAligned2FromStackOffset(CURRENTFX->nextblock);
 
-  if (GETWORD(next68k) != STK_FSB_WORD) error("Starting Lisp: Next stack block isn't free!");
+  if (GETWORD(next68k) != STK_FSB_WORD)
+    error("Starting Lisp: Next stack block isn't free!");
 
-  while (GETWORD(freeptr) == STK_FSB_WORD) EndSTKP = freeptr = freeptr + GETWORD(freeptr + 1);
+  while (GETWORD(freeptr) == STK_FSB_WORD)
+    EndSTKP = freeptr = freeptr + GETWORD(freeptr + 1);
 
   CurrentStackPTR = next68k - 2;
 
@@ -848,13 +845,11 @@ void start_lisp(void) {
   /*       entering the bytecode dispatch loop; interrupts get     */
   /*       unblocked here 					   */
   int_init();
-#ifdef DOS
-  _dpmi_lockregion((void *)&dispatch, 32768);
-#endif /* DOS */
   dispatch();
 }
 
-void print_info_lines(void) {
+void print_info_lines(void)
+{
 #if (RELEASE == 200)
   printf("Emulator for Medley release 2.0\n");
 #elif (RELEASE == 201)

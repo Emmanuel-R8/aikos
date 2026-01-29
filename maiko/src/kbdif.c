@@ -20,20 +20,4 @@
 KbdInterfaceRec curkbd;
 KbdInterface currentkbd = &curkbd;
 
-#ifdef DOS
-extern void Kbd_event(void);
-extern void EnterDosKbd(void);
-extern void ExitDosKbd(void);
-#endif /* DOS */
-
-void make_kbd_instance(KbdInterface kbd) {
-#ifdef DOS
-  kbd->device_event = &Kbd_event; /*  */
-  kbd->device.enter = &EnterDosKbd;
-  kbd->device.exit = &ExitDosKbd;
-  kbd->device.before_raid = &ExitDosKbd;
-  kbd->device.after_raid = &EnterDosKbd;
-  kbd->device.active = FALSE;
-#elif XWINDOW
-#endif /* DOS or XWINDOW */
-}
+void make_kbd_instance(KbdInterface kbd) {}

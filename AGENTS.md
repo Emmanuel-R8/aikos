@@ -159,22 +159,26 @@ Language-Specific Documentation Updates:
 ### 4. Systematic Testing and Validation
 
 #### Core Testing Strategy
+
 - **Fast Smoke Tests**: Use quick test runner by default (user preference)
 - **Comprehensive Tests**: Keep separate for thorough validation
 - **Test Location**: Tests should be next to scripts in `tests/` folders
 
 #### Parity Testing Methodology
+
 - **Cross-Reference C Traces**: Compare execution traces instruction-by-instruction
 - **Step-by-Step Validation**: Run emulators with `EMULATOR_MAX_STEPS=N` for controlled testing
 - **Canonical Comparison Script**: Use `scripts/compare_emulator_execution.sh` for systematic comparison
 - **Unified Trace Format**: Ensure consistent logging format across implementations
 
 #### Regression Testing
+
 - **Commit-Hook Validation**: Run parity tests before commits to catch regressions
 - **Incremental Testing**: Test after each opcode implementation
 - **Boundary Testing**: Validate edge cases and error conditions
 
 #### Debugging Integration
+
 - **Systematic Debugging**: Follow `documentation/CRITICAL_DEBUGGING_TECHNIQUE.typ` hierarchy
 - **Trace Analysis**: Use comparison tools for divergence identification
 - **Performance Profiling**: Monitor execution speed during testing
@@ -192,6 +196,7 @@ Language-Specific Documentation Updates:
 **Key Principle**: Never implement blindly - always validate against C reference first.
 
 **Performance Considerations**:
+
 - VM emulators require careful optimization - profile memory access patterns
 - Stack operations are performance-critical - minimize redundant calculations
 - Memory translation overhead should be amortized across operations
@@ -250,7 +255,7 @@ For repeatable execution-trace parity work:
 ### 5. Build System
 
 - **Zig**: Uses Zig build system (`build.zig`)
-- **C**: Uses traditional Makefile/CMake
+- **C**: Uses traditional Makefile/CMake. Executable built with `./medley/scripts/build/build-c-emulator.sh --display-backend sdl --build-system cmake --force`
 - **Nix**: Project uses Nix for managing dependencies (see `shell.nix`)
 
 ### 6. Code Style
@@ -271,12 +276,12 @@ For repeatable execution-trace parity work:
 
 Aggressively compress the following **without** compressing the rest of the context (conversation, file contents, documentation/spec excerpts, etc.).
 
-| Category | Treatment | Excerpt? |
-|----------|-----------|----------|
-| **Tool outputs** (e.g. `run_terminal_cmd`, `grep`, `list_dir`) | **Option B**: Keep a tiny excerpt (first 2 + last 2 lines, or the critical/failing line) plus a 1–2 line summary; drop the rest. | Yes |
-| **Unix command outputs** (terminal stdout/stderr) | **Option B**: Same — first 2 + last 2 lines, or the error/failure lines if that is the critical part, plus 1–2 line summary. | Yes |
-| **Tracing/debugging** (execution traces, `std.debug.print`/`printf` dumps, unified trace blocks) | **Option B**: Same; for execution traces, the first-divergence or error line is the critical line. | Yes |
-| **Linter/compiler output** | **Do not keep.** Replace with at most a one-line summary (e.g. "zig build: 3 errors", "Linter: 2 issues in X"); drop all raw lines. | No |
+| Category                                                                                         | Treatment                                                                                                                           | Excerpt? |
+| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| **Tool outputs** (e.g. `run_terminal_cmd`, `grep`, `list_dir`)                                   | **Option B**: Keep a tiny excerpt (first 2 + last 2 lines, or the critical/failing line) plus a 1–2 line summary; drop the rest.    | Yes      |
+| **Unix command outputs** (terminal stdout/stderr)                                                | **Option B**: Same — first 2 + last 2 lines, or the error/failure lines if that is the critical part, plus 1–2 line summary.        | Yes      |
+| **Tracing/debugging** (execution traces, `std.debug.print`/`printf` dumps, unified trace blocks) | **Option B**: Same; for execution traces, the first-divergence or error line is the critical line.                                  | Yes      |
+| **Linter/compiler output**                                                                       | **Do not keep.** Replace with at most a one-line summary (e.g. "zig build: 3 errors", "Linter: 2 issues in X"); drop all raw lines. | No       |
 
 Do **not** compress the remainder in Phase 1.
 
@@ -496,26 +501,31 @@ medley/scripts/build/build-c-emulator.sh
 ## Troubleshooting Common Issues
 
 ### Memory Corruption
+
 - **Symptom**: Execution diverges from C traces unexpectedly
 - **Cause**: Incorrect memory access, bounds violations, or type mismatches
 - **Solution**: Use memory integrity verification techniques from `documentation/CRITICAL_DEBUGGING_TECHNIQUE.typ`
 
 ### Stack Corruption
+
 - **Symptom**: Invalid stack pointers or TOPOFSTACK values
 - **Cause**: Incorrect stack manipulation, missing synchronization
 - **Solution**: Validate stack state after each operation, check CSTKPTRL/TOPOFSTACK sync
 
 ### Type Mismatches
+
 - **Symptom**: Compilation errors or runtime crashes
 - **Cause**: LispPTR vs native pointer confusion, signed vs unsigned issues
 - **Solution**: Always cross-reference C code for correct types and casting
 
 ### Performance Issues
+
 - **Symptom**: Execution too slow for practical use
 - **Cause**: Inefficient algorithms, excessive memory allocations
 - **Solution**: Profile with `EMULATOR_MAX_STEPS`, optimize hot paths
 
 ### Submodule Issues
+
 - **Symptom**: Changes not committed or merged properly
 - **Cause**: Incorrect submodule workflow
 - **Solution**: Enter submodule directory for commits, update pointers from parent

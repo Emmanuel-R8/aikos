@@ -17,34 +17,27 @@
 
 #include "version.h"
 
-#include <stddef.h>       // for ptrdiff_t
-#include <stdlib.h>       // for abs
-#include "adr68k.h"       // for NativeAligned2FromLAddr
-#include "bbtmacro.h"       // for MOUSEXR, MOUSEYH
-#include "display.h"      // for DISPLAYBUFFER, DisplayRegion68k, in_display...
-#include "drawdefs.h"     // for N_OP_drawline
+#include <stddef.h>   // for ptrdiff_t
+#include <stdlib.h>   // for abs
+#include "adr68k.h"   // for NativeAligned2FromLAddr
+#include "bbtmacro.h" // for MOUSEXR, MOUSEYH
+#include "display.h"  // for DisplayRegion68k, in_display...
+#include "drawdefs.h" // for N_OP_drawline
 #include "emlglob.h"
-#include "initdspdefs.h"  // for flush_display_region
-#include "lispemul.h"     // for DLword, BITSPER_DLWORD, SEGMASK, state, ERR...
-#include "lispmap.h"      // for S_NEGATIVE, S_POSITIVE
+#include "initdspdefs.h" // for flush_display_region
+#include "lispemul.h"    // for DLword, BITSPER_DLWORD, SEGMASK, state, ERR...
+#include "lispmap.h"     // for S_NEGATIVE, S_POSITIVE
 #include "lspglob.h"
-#include "lsptypes.h"     // for GETWORD
+#include "lsptypes.h" // for GETWORD
 
-#ifdef DISPLAYBUFFER
 extern struct pixrect *ColorDisplayPixrect, *DisplayRegionPixrect;
-#endif
 
 extern int displaywidth, displayheight;
 extern int DisplayRasterWidth;
 extern DLword *DisplayRegion68k_end_addr;
-
 extern int ScreenLocked;
-
-#ifdef COLOR
 extern int MonoOrColor;
-#endif /* COLOR */
 
-#ifdef DISPLAYBUFFER
 LispPTR n_new_cursorin_CG6(int dx, int dy, int w, int h)
 {
   if ((dx < MOUSEXR) && (dx + w > MOUSEXL) && (dy < MOUSEYH) && (dy + h > MOUSEYL))
@@ -52,7 +45,6 @@ LispPTR n_new_cursorin_CG6(int dx, int dy, int w, int h)
   else
     return (NIL);
 }
-#endif
 
 /************************************************************
   #      name        len-1    stk level effect   UFN table entry
@@ -110,21 +102,14 @@ plot:
         numy	step count for Y steps
 */
 
-#ifdef XWINDOW
-#define DISPLAYBUFFER
-#endif /* XWINDOW */
-
 int N_OP_drawline(LispPTR ptr, int curbit, int xsize, int width, int ysize, int op, int delta, int numx, int numy)
 {
   DLword *dataptr;
   ScreenLocked = T;
 
-#ifdef COLOR
   if (MonoOrColor == MONO_SCREEN)
-#endif /* COLOR */
 
-
-  delta &= 0xFFFF;
+    delta &= 0xFFFF;
   op &= 3;
 
   if ((SEGMASK & width) == S_POSITIVE)
@@ -140,133 +125,147 @@ int N_OP_drawline(LispPTR ptr, int curbit, int xsize, int width, int ysize, int 
   numx &= 0xFFFF;
   ysize &= 0xFFFF;
   xsize &= 0xFFFF;
-  if (xsize > ysize) {
+  if (xsize > ysize)
+  {
     delta = xsize - delta - 1;
-    switch (op) {
-      case 0:
-        while (numx && numy) {
-          if (!curbit) {
-            curbit = 0x8000;
-            dataptr++;
-          } /* end if curbit */
-          GETWORD(dataptr) |= curbit;
+    switch (op)
+    {
+    case 0:
+      while (numx && numy)
+      {
+        if (!curbit)
+        {
+          curbit = 0x8000;
+          dataptr++;
+        } /* end if curbit */
+        GETWORD(dataptr) |= curbit;
+        numx--;
+        delta -= ysize;
+        curbit >>= 1;
+        if (delta < 0)
+        {
+          numy--;
+          delta += xsize;
+          dataptr += width;
+        } /* end if delta */
+      } /* end while */
+      break;
+    case 1:
+      while (numx && numy)
+      {
+        if (!curbit)
+        {
+          curbit = 0x8000;
+          dataptr++;
+        } /* end if curbit */
+        GETWORD(dataptr) &= ~curbit;
+        numx--;
+        delta -= ysize;
+        curbit >>= 1;
+        if (delta < 0)
+        {
+          numy--;
+          delta += xsize;
+          dataptr += width;
+        } /* end if delta */
+      } /* end while */
+      break;
+    case 2:
+      while (numx && numy)
+      {
+        if (!curbit)
+        {
+          curbit = 0x8000;
+          dataptr++;
+        }
+        GETWORD(dataptr) ^= curbit;
+        numx--;
+        delta -= ysize;
+        curbit >>= 1;
+        if (delta < 0)
+        {
+          numy--;
+          delta += xsize;
+          dataptr += width;
+        } /* end if delta */
+      } /* end while */
+      break;
+    } /* end switch */
+  } /* end if */
+  else
+  { /* yfirst */
+    delta = ysize - delta - 1;
+    switch (op)
+    {
+    case 0:
+      while (numx && numy)
+      {
+        GETWORD(dataptr) |= curbit;
+        numy--;
+        delta -= xsize;
+        dataptr += width;
+        if (delta < 0)
+        {
           numx--;
-          delta -= ysize;
+          delta += ysize;
           curbit >>= 1;
-          if (delta < 0) {
-            numy--;
-            delta += xsize;
-            dataptr += width;
-          } /* end if delta */
-        }   /* end while */
-        break;
-      case 1:
-        while (numx && numy) {
-          if (!curbit) {
-            curbit = 0x8000;
-            dataptr++;
-          } /* end if curbit */
-          GETWORD(dataptr) &= ~curbit;
-          numx--;
-          delta -= ysize;
-          curbit >>= 1;
-          if (delta < 0) {
-            numy--;
-            delta += xsize;
-            dataptr += width;
-          } /* end if delta */
-        }   /* end while */
-        break;
-      case 2:
-        while (numx && numy) {
-          if (!curbit) {
+          if (!curbit)
+          {
             curbit = 0x8000;
             dataptr++;
           }
-          GETWORD(dataptr) ^= curbit;
+        } /* end if delta */
+      } /* end while */
+      break;
+    case 1:
+      while (numx && numy)
+      {
+        GETWORD(dataptr) &= ~curbit;
+        numy--;
+        delta -= xsize;
+        dataptr += width;
+        if (delta < 0)
+        {
           numx--;
-          delta -= ysize;
+          delta += ysize;
           curbit >>= 1;
-          if (delta < 0) {
-            numy--;
-            delta += xsize;
-            dataptr += width;
-          } /* end if delta */
-        }   /* end while */
-        break;
-    }    /* end switch */
-  }      /* end if */
-  else { /* yfirst */
-    delta = ysize - delta - 1;
-    switch (op) {
-      case 0:
-        while (numx && numy) {
-          GETWORD(dataptr) |= curbit;
-          numy--;
-          delta -= xsize;
-          dataptr += width;
-          if (delta < 0) {
-            numx--;
-            delta += ysize;
-            curbit >>= 1;
-            if (!curbit) {
-              curbit = 0x8000;
-              dataptr++;
-            }
-          } /* end if delta */
-        }   /* end while */
-        break;
-      case 1:
-        while (numx && numy) {
-          GETWORD(dataptr) &= ~curbit;
-          numy--;
-          delta -= xsize;
-          dataptr += width;
-          if (delta < 0) {
-            numx--;
-            delta += ysize;
-            curbit >>= 1;
-            if (!curbit) {
-              curbit = 0x8000;
-              dataptr++;
-            }
-          } /* end if delta */
-        }   /* end while */
-        break;
-      case 2:
-        while (numx && numy) {
-          GETWORD(dataptr) ^= curbit;
-          numy--;
-          delta -= xsize;
-          dataptr += width;
-          if (delta < 0) {
-            numx--;
-            delta += ysize;
-            curbit >>= 1;
-            if (!curbit) {
-              curbit = 0x8000;
-              dataptr++;
-            }
-          } /* end if delta */
-        }   /* end while */
-        break;
+          if (!curbit)
+          {
+            curbit = 0x8000;
+            dataptr++;
+          }
+        } /* end if delta */
+      } /* end while */
+      break;
+    case 2:
+      while (numx && numy)
+      {
+        GETWORD(dataptr) ^= curbit;
+        numy--;
+        delta -= xsize;
+        dataptr += width;
+        if (delta < 0)
+        {
+          numx--;
+          delta += ysize;
+          curbit >>= 1;
+          if (!curbit)
+          {
+            curbit = 0x8000;
+            dataptr++;
+          }
+        } /* end if delta */
+      } /* end while */
+      break;
     } /* end switch */
-  }   /* end else */
-#ifdef COLOR
-  if (MonoOrColor == MONO_SCREEN)
-#endif /* COLOR */
-
-
-#ifdef DISPLAYBUFFER
-#ifdef COLOR
-  if (MonoOrColor == MONO_SCREEN)
-#endif /* COLOR */
+  } /* end else */
 
   {
     DLword *start_addr;
     start_addr = (DLword *)NativeAligned2FromLAddr(ptr);
 
-    if (in_display_segment(start_addr) && in_display_segment(dataptr)) {
+    if (in_display_segment(start_addr) && in_display_segment(dataptr))
+    {
       int start_x, start_y, end_x, end_y, w, h;
       ptrdiff_t temp_s, temp_e;
 
@@ -282,24 +281,17 @@ int N_OP_drawline(LispPTR ptr, int curbit, int xsize, int width, int ysize, int 
       w = abs(start_x - end_x) + 1;
       h = abs(start_y - end_y) + 1;
 
-      if (start_x > end_x) start_x = end_x;
-      if (start_y > end_y) start_y = end_y;
-
-#if defined(XWINDOW) || defined(BYTESWAP)
-      flush_display_region(start_x, start_y, w, h);
-#endif /* XWINDOW */
+      if (start_x > end_x)
+        start_x = end_x;
+      if (start_y > end_y)
+        start_y = end_y;
     }
   }
-#endif /* DISPLAYBUFFER */
 
   ScreenLocked = NIL;
 
   return (0); /* return a value for the error test to check. */
 
 } /* end N_OP_drawline()  */
-
-#ifdef XWINDOW
-#undef DISPLAYBUFFER
-#endif /* XWINDOW */
 
 /* end module */

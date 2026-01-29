@@ -68,32 +68,8 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
-
-#ifdef DOS
-#include <dos.h>
-#include <i32.h>   /* "#pragma interrupt" & '_chain_intr'*/
-/******************************************************************************
-*   Global variables
-******************************************************************************/
-void (*prev_int_1c)(void); /* keeps address of previous 1c handlr*/
-                       /* used for chaining & restore at exit*/
-#pragma interrupt(DOStimer)
-void DOStimer(void);
-
-unsigned long tick_count = 0; /* approx 18 ticks per sec            */
-#else /* DOS */
 #include <sys/resource.h>
 #include <sys/time.h>
-#endif /* DOS */
-
-#ifdef MAIKO_OS_HAIKU
-#include <OS.h>
-#endif
-
-#if defined(USE_DLPI)
-#include <stropts.h>
-extern int ether_fd;
-#endif
 
 #include "lispemul.h"
 #include "emlglob.h"
@@ -110,11 +86,6 @@ extern int ether_fd;
 #include "commondefs.h"
 #include "mkcelldefs.h"
 #include "keyeventdefs.h"
-
-#ifdef XWINDOW
-#include "devif.h"
-extern DspInterface currentdsp;
-#endif /* XWINDOW */
 
 #define LISP_UNIX_TIME_DIFF 29969152
 #define LISP_ALTO_TIME_MASK 0x80000000
@@ -149,19 +120,9 @@ static int gettime(int casep);
 /*									*/
 /************************************************************************/
 
-void update_miscstats(void) {
-#ifdef DOS
-  struct dostime_t dtm; /* holds DOS time, so we can get .01 secs */
-  _dos_gettime(&dtm);
-
-  MiscStats->totaltime = (time(0) * 1000) + (10 * dtm.hsecond);
-  MiscStats->swapwaittime = 0;
-  MiscStats->pagefaults = 0;
-  MiscStats->swapwrites = 0;
-  MiscStats->diskiotime = 0; /* ?? not available ?? */
-  MiscStats->diskops = 0;
-  MiscStats->secondstmp = MiscStats->secondsclock = (time(0) + UNIX_ALTO_TIME_DIFF);
-#elif defined(MAIKO_OS_EMSCRIPTEN)
+void update_miscstats(void)
+{
+#ifdef MAIKO_OS_EMSCRIPTEN
   /* Emscripten does not provide getrusage() functionality */
   struct timeval timev;
 
@@ -175,6 +136,7 @@ void update_miscstats(void) {
   gettimeofday(&timev, NULL);
   MiscStats->secondstmp = MiscStats->secondsclock = (timev.tv_sec + UNIX_ALTO_TIME_DIFF);
 #else
+  /* Standard Linux path - use getrusage */
   struct timeval timev;
   struct rusage ru;
 
@@ -188,7 +150,7 @@ void update_miscstats(void) {
   MiscStats->diskops = ru.ru_inblock + ru.ru_oublock;
   gettimeofday(&timev, NULL);
   MiscStats->secondstmp = MiscStats->secondsclock = (timev.tv_sec + UNIX_ALTO_TIME_DIFF);
-#endif /* DOS */
+#endif /* MAIKO_OS_EMSCRIPTEN */
 }
 
 /************************************************************************/
@@ -201,7 +163,8 @@ void update_miscstats(void) {
 /*									*/
 /************************************************************************/
 
-void init_miscstats(void) {
+void init_miscstats(void)
+{
   MiscStats->starttime = gettime(0);
   MiscStats->gctime = 0;
   update_miscstats();
@@ -223,10 +186,12 @@ LispPTR subr_gettime(LispPTR args[])
 {
   int result;
   result = gettime(args[0] & 0xffff);
-  if (args[1]) {
+  if (args[1])
+  {
     *((int *)NativeAligned4FromLAddr(args[1])) = result;
     return (args[1]);
-  } else
+  }
+  else
     N_ARITH_SWITCH(result);
 }
 
@@ -251,65 +216,46 @@ LispPTR subr_gettime(LispPTR args[])
 
 static int gettime(int casep)
 {
-#ifdef DOS
-  struct dostime_t dtm; /* for hundredths of secs */
-#else
   struct timeval timev;
-#endif /* DOS */
-  switch (casep) {
-    case 0: /* elapsed time in alto milliseconds */
-#ifdef DOS
-      _dos_gettime(&dtm);
-      return ((time(0) + UNIX_ALTO_TIME_DIFF) * 1000) + (10 * dtm.hsecond);
-#else  /* DOS */
-      gettimeofday(&timev, NULL);
-      return ((timev.tv_sec + UNIX_ALTO_TIME_DIFF) * 1000 + timev.tv_usec / 1000);
-#endif /* DOS */
+  switch (casep)
+  {
+  case 0: /* elapsed time in alto milliseconds */
+    gettimeofday(&timev, NULL);
+    return ((timev.tv_sec + UNIX_ALTO_TIME_DIFF) * 1000 + timev.tv_usec / 1000);
 
-    case 1: /* starting elapsed time in milliseconds */ return (MiscStats->starttime);
+  case 1: /* starting elapsed time in milliseconds */
+    return (MiscStats->starttime);
 
-    case 2: /* run time, this process, in milliseconds */
-      update_miscstats();
-      return (MiscStats->totaltime);
+  case 2: /* run time, this process, in milliseconds */
+    update_miscstats();
+    return (MiscStats->totaltime);
 
-    case 3: /* total GC time in milliseconds */ return (MiscStats->gctime);
+  case 3: /* total GC time in milliseconds */
+    return (MiscStats->gctime);
 
-    case 4: /* current time of day in Alto format */
-#ifdef DOS
-      return (time(0) + UNIX_ALTO_TIME_DIFF);
-#else
-      gettimeofday(&timev, NULL);
-      return (timev.tv_sec + UNIX_ALTO_TIME_DIFF);
-#endif
+  case 4: /* current time of day in Alto format */
+    gettimeofday(&timev, NULL);
+    return (timev.tv_sec + UNIX_ALTO_TIME_DIFF);
 
-    case 5: /* current time of day in Interlisp format */
-#ifdef DOS
-      return (time(0) + LISP_UNIX_TIME_DIFF);
-#else
-      gettimeofday(&timev, NULL);
-      return (timev.tv_sec + LISP_UNIX_TIME_DIFF);
-#endif
+  case 5: /* current time of day in Interlisp format */
+    gettimeofday(&timev, NULL);
+    return (timev.tv_sec + LISP_UNIX_TIME_DIFF);
 
-    case 6:
-      return (98); /* this is wrong, only works in PST */
+  case 6:
+    return (98); /* this is wrong, only works in PST */
 
-    case 7:
-      return (305); /* this is wrong, only works in PST */
+  case 7:
+    return (305); /* this is wrong, only works in PST */
 
-    case 8:
-      /* other methods of determining timezone offset are unreliable and/or deprecated */
-      /* timezone is declared in <time.h>; the time mechanisms must be initialized     */
-      /* Unfortunately, FreeBSD does not support the timezone external variable, nor   */
-      /* does gettimeofday() seem to produce the correct timezone values.	       */
-      tzset();
-#if defined(MAIKO_OS_FREEBSD)
-      time_t tv = time(NULL);
-      struct tm *tm = localtime(&tv);
-      return (tm->tm_gmtoff / -3600);
-#else
-      return (timezone / 3600); /* timezone, extern, is #secs diff GMT to local. */
-#endif
-    default: return (0);
+  case 8:
+    /* other methods of determining timezone offset are unreliable and/or deprecated */
+    /* timezone is declared in <time.h>; the time mechanisms must be initialized     */
+    /* Unfortunately, FreeBSD does not support the timezone external variable, nor   */
+    /* does gettimeofday() seem to produce the correct timezone values.	       */
+    tzset();
+    return (timezone / 3600); /* timezone, extern, is #secs diff GMT to local. */
+  default:
+    return (0);
   }
 }
 
@@ -327,26 +273,7 @@ static int gettime(int casep)
 
 void subr_settime(LispPTR args[])
 {
-#ifdef DOS
-  struct dostime_t dostime;
-  struct dosdate_t dosday;
-  struct tm uxtime;
-
-  uxtime = *localtime((time_t *)(*((int *)NativeAligned4FromLAddr(args[0])) - UNIX_ALTO_TIME_DIFF));
-  dostime.hsecond = 0;
-  dostime.second = uxtime.tm_sec;
-  dostime.minute = uxtime.tm_min;
-  dostime.hour = uxtime.tm_hour;
-  _dos_settime(&dostime);
-
-  dosday.day = uxtime.tm_mday;
-  dosday.month = uxtime.tm_mon;
-  dosday.year = uxtime.tm_year;
-  dosday.dayofweek = uxtime.tm_wday;
-  _dos_setdate(&dosday);
-#elif defined(MAIKO_OS_HAIKU)
-  (void)args[0];
-#elif defined(MAIKO_OS_EMSCRIPTEN)
+#if defined(MAIKO_OS_EMSCRIPTEN)
   (void)args[0];
 #else
   struct timeval timev;
@@ -390,19 +317,10 @@ void subr_copytimestats(LispPTR args[])
 LispPTR N_OP_rclk(LispPTR tos)
 {
   unsigned int usec;
-#ifdef DOS
-  struct dostime_t dtm;
-#endif /* DOS */
-
-#ifdef DOS
-  _dos_gettime(&dtm);
-  usec = (time(0) * 1000000) + (10000 * dtm.hsecond);
-#else
   struct timeval timev;
 
   gettimeofday(&timev, NULL);
   usec = (timev.tv_sec * 1000000UL) + timev.tv_usec;
-#endif /* DOS */
   *((unsigned int *)(NativeAligned4FromLAddr(tos))) = usec;
   return (tos);
 } /* end N_OP_rclk */
@@ -421,14 +339,11 @@ LispPTR N_OP_rclk(LispPTR tos)
 /*									*/
 /************************************************************************/
 
-void update_timer(void) {
-#ifdef DOS
-  MiscStats->secondstmp = MiscStats->secondsclock = time(0) + UNIX_ALTO_TIME_DIFF;
-#else
+void update_timer(void)
+{
   struct timeval timev;
   gettimeofday(&timev, NIL);
   MiscStats->secondstmp = MiscStats->secondsclock = (timev.tv_sec + UNIX_ALTO_TIME_DIFF);
-#endif /* DOS */
 }
 
 /************************************************************************/
@@ -494,26 +409,7 @@ static void int_timer_service(int sig)
 /************************************************************************/
 
 static void int_timer_init(void)
-
 {
-#ifdef DOS
-  /******************************************************************************
-  *  All code and data touched during the processing of an interrupt should
-  *  locked prior to receiving any interrupts.  This prevents the Timer
-  *  function from being swapped out during an interrupt.
-  ******************************************************************************/
-  _dpmi_lockregion((void *)Irq_Stk_End, sizeof(Irq_Stk_End));
-  _dpmi_lockregion((void *)Irq_Stk_Check, sizeof(Irq_Stk_Check));
-  _dpmi_lockregion((void *)tick_count, sizeof(tick_count));
-  _dpmi_lockregion((void *)&DOStimer, 4096);
-  _dpmi_lockregion((void *)prev_int_1c, sizeof(prev_int_1c));
-
-  /* Set up the DOS time handler. */
-  prev_int_1c = _dos_getvect(0x1c); /* get addr of current 1c hndlr, */
-                                    /* if any*/
-  _dos_setvect(0x1c, DOStimer);     /* hook our int handler to timer int */
-
-#else
   struct itimerval timert;
   struct sigaction timer_action;
 
@@ -521,7 +417,8 @@ static void int_timer_init(void)
   sigemptyset(&timer_action.sa_mask);
   timer_action.sa_flags = SA_RESTART;
 
-  if (sigaction(SIGVTALRM, &timer_action, NULL) == -1) {
+  if (sigaction(SIGVTALRM, &timer_action, NULL) == -1)
+  {
     perror("sigaction: SIGVTALRM");
   }
 
@@ -531,7 +428,6 @@ static void int_timer_init(void)
   setitimer(ITIMER_VIRTUAL, &timert, NULL);
 
   DBPRINT(("Timer interval set to %ld usec\n", (long)timert.it_value.tv_usec));
-#endif /* DOS */
 }
 
 /************************************************************************/
@@ -548,14 +444,16 @@ static void int_timer_init(void)
 void int_io_open(int fd)
 {
   DBPRINT(("int_io_open %d\n", fd));
-#ifdef DOS
-/* would turn on DOS kbd signal handler here */
-#elif defined(O_ASYNC)
-  if (fcntl(fd, F_SETOWN, getpid()) == -1) perror("fcntl F_SETOWN error");
-  if (fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_ASYNC) == -1) perror("fcntl F_SETFL on error");
+#if defined(O_ASYNC)
+  if (fcntl(fd, F_SETOWN, getpid()) == -1)
+    perror("fcntl F_SETOWN error");
+  if (fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_ASYNC) == -1)
+    perror("fcntl F_SETFL on error");
 #elif defined(FASYNC) && defined(FNDELAY)
-  if (fcntl(fd, F_SETOWN, getpid()) == -1) perror("fcntl F_SETOWN error");
-  if (fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | FNDELAY | FASYNC) == -1) perror("fcntl F_SETFL on error");
+  if (fcntl(fd, F_SETOWN, getpid()) == -1)
+    perror("fcntl F_SETOWN error");
+  if (fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | FNDELAY | FASYNC) == -1)
+    perror("fcntl F_SETFL on error");
 #else
 #warning "No async i/o can be enabled - investigate and remedy this"
 #endif
@@ -564,12 +462,12 @@ void int_io_open(int fd)
 void int_io_close(int fd)
 {
   DBPRINT(("int_io_close %d\n", fd));
-#ifdef DOS
-/* Turn off signaller here */
-#elif defined(O_ASYNC)
-  if (fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) & ~O_ASYNC) == -1) perror("fcntl_F_SETFL off error");
+#if defined(O_ASYNC)
+  if (fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) & ~O_ASYNC) == -1)
+    perror("fcntl_F_SETFL off error");
 #elif defined(FASYNC) && defined(FNDELAY)
-  if (fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) & ~(FNDELAY | FASYNC)) == -1) perror("fcntl F_SETFL off error");
+  if (fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) & ~(FNDELAY | FASYNC)) == -1)
+    perror("fcntl F_SETFL off error");
 #endif
 }
 
@@ -600,32 +498,21 @@ static void int_io_service(int sig)
 /*									*/
 /************************************************************************/
 
-static void int_io_init(void) {
-#if !defined(DOS) || !defined(MAIKO_OS_HAIKU)
+static void int_io_init(void)
+{
   struct sigaction io_action;
   io_action.sa_handler = int_io_service;
   sigemptyset(&io_action.sa_mask);
   io_action.sa_flags = 0;
 
-#ifndef MAIKO_OS_HAIKU
-  if (sigaction(SIGIO, &io_action, NULL) == -1) {
+  if (sigaction(SIGIO, &io_action, NULL) == -1)
+  {
     perror("sigaction: SIGIO");
-  } else {
+  }
+  else
+  {
     DBPRINT(("I/O interrupts enabled\n"));
   }
-#endif
-
-#if defined(USE_DLPI)
-  DBPRINT(("INIT ETHER:  Doing I_SETSIG.\n"));
-  if (ether_fd > 0)
-    if (ioctl(ether_fd, I_SETSIG, S_INPUT) != 0) {
-      perror("init_ether: I_SETSIG failed:\n");
-      close(ether_fd);
-      ether_fd = -1;
-      return;
-    }
-#endif /* USE_DLPI */
-#endif /* DOS MAIKO_OS_HAIKU */
 }
 
 /************************************************************************/
@@ -639,24 +526,19 @@ static void int_io_init(void) {
 /*									*/
 /************************************************************************/
 
-void int_block(void) {
-/* temporarily turn off interrupts */
-#ifdef DOS
-  _dos_setvect(0x1c, prev_int_1c);
-#else /* DOS */
+void int_block(void)
+{
+  /* temporarily turn off interrupts */
   sigset_t signals;
   sigemptyset(&signals);
   sigaddset(&signals, SIGVTALRM);
-#ifndef MAIKO_OS_HAIKU
   sigaddset(&signals, SIGIO);
-#endif
   sigaddset(&signals, SIGALRM);
   sigaddset(&signals, SIGXFSZ);
 #ifdef FLTINT
   sigaddset(&signals, SIGFPE);
 #endif
   sigprocmask(SIG_BLOCK, &signals, NULL);
-#endif /* DOS */
 }
 
 /************************************************************************/
@@ -670,23 +552,18 @@ void int_block(void) {
 /*									*/
 /************************************************************************/
 
-void int_unblock(void) {
-#ifdef DOS
-  _dos_setvect(0x1c, DOStimer);
-#else /* DOS */
+void int_unblock(void)
+{
   sigset_t signals;
   sigemptyset(&signals);
   sigaddset(&signals, SIGVTALRM);
-#ifndef MAIKO_OS_HAIKU
   sigaddset(&signals, SIGIO);
-#endif
   sigaddset(&signals, SIGALRM);
   sigaddset(&signals, SIGXFSZ);
 #ifdef FLTINT
   sigaddset(&signals, SIGFPE);
 #endif
   sigprocmask(SIG_UNBLOCK, &signals, NULL);
-#endif /* DOS */
 }
 
 #ifdef FLTINT
@@ -706,36 +583,42 @@ volatile sig_atomic_t FP_error = 0;
 
 void int_fp_service(int sig, siginfo_t *info, void *context)
 {
-  switch (info->si_code) {
-    case FPE_FLTDIV:
-    case FPE_FLTUND:
-    case FPE_FLTOVF:
-    case FPE_FLTINV:
+  switch (info->si_code)
+  {
+  case FPE_FLTDIV:
+  case FPE_FLTUND:
+  case FPE_FLTOVF:
+  case FPE_FLTINV:
 
-      FP_error = info->si_code;
-      break;
-    default: {
+    FP_error = info->si_code;
+    break;
+  default:
+  {
 #ifdef DEBUG
-      char stuff[100];
-      snprintf(stuff, sizeof(stuff), "Unexpected FP error signal code: %d", info->si_code);
-      perror(stuff);
+    char stuff[100];
+    snprintf(stuff, sizeof(stuff), "Unexpected FP error signal code: %d", info->si_code);
+    perror(stuff);
 #else
-      FP_error = info->si_code;
+    FP_error = info->si_code;
 #endif
-    }
+  }
   }
 }
 
-void int_fp_init(void) {
+void int_fp_init(void)
+{
   struct sigaction fpe_action;
 
   fpe_action.sa_handler = int_fp_service;
   sigemptyset(&fpe_action.sa_mask);
   fpe_action.sa_flags = SA_SIGINFO;
 
-  if (sigaction(SIGFPE, &fpe_action, NULL) == -1) {
+  if (sigaction(SIGFPE, &fpe_action, NULL) == -1)
+  {
     perror("Sigset for FPE failed");
-  } else {
+  }
+  else
+  {
     DBPRINT(("FP interrupts enabled\n"));
   }
 }
@@ -755,7 +638,8 @@ void int_fp_init(void) {
 
 extern jmp_buf jmpbuf;
 jmp_buf jmpbuf;
-static void timeout_error(int sig) {
+static void timeout_error(int sig)
+{
   longjmp(jmpbuf, 1);
 }
 
@@ -770,7 +654,8 @@ static void timeout_error(int sig) {
 /*									*/
 /************************************************************************/
 
-static void int_file_init(void) {
+static void int_file_init(void)
+{
   char *envtime;
   int timeout_time;
   struct sigaction timer_action;
@@ -779,13 +664,15 @@ static void int_file_init(void) {
   sigemptyset(&timer_action.sa_mask);
   timer_action.sa_flags = 0;
 
-  if (sigaction(SIGALRM, &timer_action, NULL) == -1) {
+  if (sigaction(SIGALRM, &timer_action, NULL) == -1)
+  {
     perror("sigaction: SIGALRM");
   }
 
   /* Set Timeout period */
   envtime = getenv("LDEFILETIMEOUT");
-  if (envtime != NULL) {
+  if (envtime != NULL)
+  {
     errno = 0;
     timeout_time = (int)strtol(envtime, (char **)NULL, 10);
     if (errno == 0 && timeout_time > 0)
@@ -811,24 +698,26 @@ static void panicuraid(int sig, siginfo_t *info, void *context)
       "Please record the signal and code information\n\
 and do a 'v' before trying anything else.";
 
-  switch (sig) {
-    case SIGBUS:
-    case SIGILL:
-    case SIGSEGV:
-      snprintf(errormsg, sizeof(errormsg), "%s at address %p.\n%s", strsignal(sig), info->si_addr, stdmsg);
-      break;
-    case SIGPIPE:
-      snprintf(errormsg, sizeof(errormsg), "Broken PIPE.\n%s", stdmsg);
-      break;
-    case SIGHUP:
-      snprintf(errormsg, sizeof(errormsg), "HANGUP signalled.\n%s", stdmsg);
-      /* Assume that a user tried to exit UNIX shell */
-      killpg(getpgrp(), SIGKILL);
-      exit(0);
-    case SIGFPE:
-      snprintf(errormsg, sizeof(errormsg), "%s (%d) at address %p.\n%s", strsignal(sig), info->si_code, info->si_addr, stdmsg);
-      break;
-    default: snprintf(errormsg, sizeof(errormsg), "Uncaught SIGNAL %s (%d).\n%s", strsignal(sig), sig, stdmsg);
+  switch (sig)
+  {
+  case SIGBUS:
+  case SIGILL:
+  case SIGSEGV:
+    snprintf(errormsg, sizeof(errormsg), "%s at address %p.\n%s", strsignal(sig), info->si_addr, stdmsg);
+    break;
+  case SIGPIPE:
+    snprintf(errormsg, sizeof(errormsg), "Broken PIPE.\n%s", stdmsg);
+    break;
+  case SIGHUP:
+    snprintf(errormsg, sizeof(errormsg), "HANGUP signalled.\n%s", stdmsg);
+    /* Assume that a user tried to exit UNIX shell */
+    killpg(getpgrp(), SIGKILL);
+    exit(0);
+  case SIGFPE:
+    snprintf(errormsg, sizeof(errormsg), "%s (%d) at address %p.\n%s", strsignal(sig), info->si_code, info->si_addr, stdmsg);
+    break;
+  default:
+    snprintf(errormsg, sizeof(errormsg), "Uncaught SIGNAL %s (%d).\n%s", strsignal(sig), sig, stdmsg);
   }
 
   error(errormsg);
@@ -844,8 +733,8 @@ and do a 'v' before trying anything else.";
 /*     uraid and get a clue about why you're dying.                     */
 /*                                                                      */
 /************************************************************************/
-static void int_panic_init(void) {
-#ifndef DOS
+static void int_panic_init(void)
+{
   struct sigaction panic_action, ignore_action;
 
   panic_action.sa_sigaction = panicuraid;
@@ -869,7 +758,6 @@ static void int_panic_init(void) {
 
   /* Ignore SIGPIPE */
   sigaction(SIGPIPE, &ignore_action, NULL);
-#endif
 
   DBPRINT(("Panic interrupts enabled\n"));
 }
@@ -882,7 +770,8 @@ static void int_panic_init(void) {
 /*									*/
 /************************************************************************/
 
-void int_init(void) {
+void int_init(void)
+{
   int_timer_init(); /* periodic interrupt timer */
   int_io_init();    /* SIGIO async I/O handlers */
   int_file_init();  /* file-io TIMEOUT support */
@@ -894,42 +783,3 @@ void int_init(void) {
 
   int_unblock(); /* Turn on interrupts */
 }
-
-#ifdef DOS
-/******************************************************************************
-*  DOStimer()
-*
-*  The interrupt 0x1c handler.  This routine must be declared using the
-*  '#pragma interrupt()' statement to ensure that all registers are preserved.
-*  It is also needed to ensure the proper functioning of '_chain_intr()'.
-*
-*  The timer interrupt (normally) occurs 18.2 times per second.  This routine
-*  waits one extra tick every 91 ticks (18.2*5).
-*
-*  Before this interrupt was installed, 'prev_int_1c' was set to the current
-*  0x1c interrupt. 'DOStimer()' chains to this interrupt using '_chain_intr()',
-*  rather than returning back to the caller.
-*
-*  Note that as little as possible should be done within a timer interrupt,
-*  since further clock ticks are disabled until the interrupt returns.
-******************************************************************************/
-void DOStimer(void) {
-  /* if (--tick_count == 0) { */
-  Irq_Stk_Check = 0;
-  Irq_Stk_End = 0;
-  /*   _dos_setvect(0x1c, prev_int_1c);
-   } else if (tick_count <= 0) { */
-  /* I'm dead, uninstall me */
-  /*   _dos_setvect(0x1c, prev_int_1c);
-     tick_count = 0;
-   } */
-  _chain_intr(prev_int_1c); /* call previous int 1c handlr, if any*/
-  /* (pts to 'ret' if no prev installed)*/
-}
-
-void alarm(unsigned long sec)
-{
-  /* tick_count = sec * 18;
-  _dos_setvect(0x1c, DOStimer); */
-}
-#endif /* DOS */

@@ -33,21 +33,10 @@
 #include <stdio.h>
 #include <time.h>
 
-#ifndef DOS
 #include <sys/time.h>
-#endif /* DOS */
-
-#ifdef DOS
-int main(void) {
-  long dtime;
-  time(&dtime);
-  printf("extern const long MDate;\n", dtime);
-  printf("const long MDate = %ld;\n", dtime);
-  return (0);
-}
-#else
 /* Version for every other Unix */
-int main(void) {
+int main(void)
+{
   struct timeval time;
 
   /* On some Unix platforms, time_t is an int and on
@@ -61,5 +50,3 @@ int main(void) {
   printf("const time_t MDate = %ld;\n", (long)time.tv_sec);
   return (0);
 }
-
-#endif /* DOS */

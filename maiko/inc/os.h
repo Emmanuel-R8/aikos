@@ -30,10 +30,10 @@
  *
  * Revision 4.2  93/10/01  10:45:55  mogul
  * Revert to int32, u_int32 names
- * 
+ *
  * Revision 4.1  93/09/28  21:17:14  mogul
  * Added support for DECOSF
- * 
+ *
  * Revision 4.0  1993/03/01  19:59:00  davy
  * NFSWATCH Version 4.0.
  *
@@ -56,50 +56,5 @@
  * Initial revision
  *
  */
-#ifdef OS4
-#ifndef USE_NIT
-#define USE_NIT	1
-#endif
-#define	U_INT32_DECLARED_IN_AUTH	1
-#endif
 
-#ifdef OS5
-#ifndef SVR4
-#define SVR4		1
-#endif
-#ifndef USE_DLPI
-#define USE_DLPI	1
-#endif
-#define	U_INT32_DECLARED_IN_AUTH	1
-#endif
-
-#ifdef OS5
-#ifndef SVR4
-#define SVR4		1
-#endif
-#ifndef USE_DLPI
-#define USE_DLPI	1
-#endif
-#define	U_INT32_DECLARED_IN_AUTH	1
-#endif
-
-#ifdef SUNOS55
-#ifndef SUNOS54
-#define SUNOS54		1
-#endif
-#undef U_INT32_DECLARED_IN_AUTH
-#define bzero(b,n)	memset(b,0,n)
-#define bcmp(a,b,n)	memcmp(a,b,n)
-#define bcopy(a,b,n)	memcpy(b,a,n)
-#endif
-
-#ifdef SVR4
-#ifndef USE_DLPI
-#define USE_DLPI	1
-#endif
-#define signal		sigset
-#define bzero(b,n)	memset(b,0,n)
-#define bcmp(a,b,n)	memcmp(a,b,n)
-#define bcopy(a,b,n)	memcpy(b,a,n)
-#endif
 #endif /* OS_H */

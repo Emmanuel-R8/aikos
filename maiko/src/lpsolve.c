@@ -16,15 +16,8 @@
 
 #include "lispemul.h"
 
-#ifdef DOS
-#include "devif.h"
-#endif /* DOS */
-
 extern int KBDEventFlg;
 extern int *KEYBUFFERING68k;
-#ifdef DOS
-extern MouseInterface currentmouse;
-#endif /* DOS */
 
 /* Globals used by solver */
 short JustInverted;
@@ -33,11 +26,13 @@ short Doiter;
 short DoInvert;
 short Break_bb;
 
-void set_globals(lprec *lp) {
+void set_globals(lprec *lp)
+{
   sstate *st;
   int i;
 
-  if (Lp != NULL) Lp->active = FALSE;
+  if (Lp != NULL)
+    Lp->active = FALSE;
   Lp = lp;
   Rows = lp->rows;
   Columns = lp->columns;
@@ -81,11 +76,13 @@ void set_globals(lprec *lp) {
   lp->active = TRUE;
 }
 
-void ftran(int start, int end, REAL *pcol) {
+void ftran(int start, int end, REAL *pcol)
+{
   int i, j, k, r;
   REAL theta;
 
-  for (i = start; i <= end; i++) {
+  for (i = start; i <= end; i++)
+  {
     k = Eta_col_end[i] - 1;
     r = Eta_row_nr[k];
     theta = pcol[r];
@@ -95,40 +92,51 @@ void ftran(int start, int end, REAL *pcol) {
     pcol[r] *= Eta_value[k];
   }
   /* round small values to zero */
-  for (i = 0; i <= Rows; i++) my_round(pcol[i], Epsel);
+  for (i = 0; i <= Rows; i++)
+    my_round(pcol[i], Epsel);
 } /* ftran */
 
-void btran(REAL *row) {
+void btran(REAL *row)
+{
   int i, j, k;
   REAL f;
 
-  for (i = Eta_size; i >= 1; i--) {
+  for (i = Eta_size; i >= 1; i--)
+  {
     f = 0;
     k = Eta_col_end[i] - 1;
-    for (j = Eta_col_end[i - 1]; j <= k; j++) f += row[Eta_row_nr[j]] * Eta_value[j];
+    for (j = Eta_col_end[i - 1]; j <= k; j++)
+      f += row[Eta_row_nr[j]] * Eta_value[j];
     my_round(f, Epsel);
     row[Eta_row_nr[k]] = f;
   }
 } /* btran */
 
-short Isvalid(lprec *lp) {
+short Isvalid(lprec *lp)
+{
   int i, j, *rownum, *colnum;
   int *num, row_nr;
 
-  if (!lp->row_end_valid) {
+  if (!lp->row_end_valid)
+  {
     MALLOC(num, lp->rows + 1, int);
     MALLOC(rownum, lp->rows + 1, int);
-    for (i = 0; i <= lp->rows; i++) {
+    for (i = 0; i <= lp->rows; i++)
+    {
       num[i] = 0;
       rownum[i] = 0;
     }
-    for (i = 0; i < lp->non_zeros; i++) rownum[lp->mat[i].row_nr]++;
+    for (i = 0; i < lp->non_zeros; i++)
+      rownum[lp->mat[i].row_nr]++;
     lp->row_end[0] = 0;
-    for (i = 1; i <= lp->rows; i++) lp->row_end[i] = lp->row_end[i - 1] + rownum[i];
+    for (i = 1; i <= lp->rows; i++)
+      lp->row_end[i] = lp->row_end[i - 1] + rownum[i];
     for (i = 1; i <= lp->columns; i++)
-      for (j = lp->col_end[i - 1]; j < lp->col_end[i]; j++) {
+      for (j = lp->col_end[i - 1]; j < lp->col_end[i]; j++)
+      {
         row_nr = lp->mat[j].row_nr;
-        if (row_nr != 0) {
+        if (row_nr != 0)
+        {
           num[row_nr]++;
           lp->col_no[lp->row_end[row_nr - 1] + num[row_nr]] = i;
         }
@@ -137,11 +145,13 @@ short Isvalid(lprec *lp) {
     free(rownum);
     lp->row_end_valid = TRUE;
   }
-  if (lp->valid) return (TRUE);
+  if (lp->valid)
+    return (TRUE);
   CALLOC(rownum, lp->rows + 1, int);
   CALLOC(colnum, lp->columns + 1, int);
   for (i = 1; i <= lp->columns; i++)
-    for (j = lp->col_end[i - 1]; j < lp->col_end[i]; j++) {
+    for (j = lp->col_end[i - 1]; j < lp->col_end[i]; j++)
+    {
       colnum[i]++;
       rownum[lp->mat[j].row_nr]++;
     }
@@ -157,7 +167,8 @@ short Isvalid(lprec *lp) {
   return (TRUE);
 }
 
-static void resize_eta(void) {
+static void resize_eta(void)
+{
   Eta_alloc *= 2;
   REALLOC(Eta_value, Eta_alloc, REAL);
   Lp->eta_value = Eta_value;
@@ -165,7 +176,8 @@ static void resize_eta(void) {
   Lp->eta_row_nr = Eta_row_nr;
 } /* resize_eta */
 
-static void condensecol(int row_nr, REAL *pcol) {
+static void condensecol(int row_nr, REAL *pcol)
+{
   int i, elnr;
 
   elnr = Eta_col_end[Eta_size];
@@ -174,7 +186,8 @@ static void condensecol(int row_nr, REAL *pcol) {
     resize_eta();
 
   for (i = 0; i <= Rows; i++)
-    if (i != row_nr && pcol[i] != 0) {
+    if (i != row_nr && pcol[i] != 0)
+    {
       Eta_row_nr[elnr] = i;
       Eta_value[elnr] = pcol[i];
       elnr++;
@@ -185,7 +198,8 @@ static void condensecol(int row_nr, REAL *pcol) {
   Eta_col_end[Eta_size + 1] = elnr;
 } /* condensecol */
 
-static void addetacol(void) {
+static void addetacol(void)
+{
   int i, j, k;
   REAL theta;
 
@@ -194,11 +208,13 @@ static void addetacol(void) {
   k = Eta_col_end[Eta_size];
   theta = 1 / (REAL)Eta_value[k - 1];
   Eta_value[k - 1] = theta;
-  for (i = j; i < k - 1; i++) Eta_value[i] *= -theta;
+  for (i = j; i < k - 1; i++)
+    Eta_value[i] *= -theta;
   JustInverted = FALSE;
 } /* addetacol */
 
-static void setpivcol(short lower, int varin, REAL *pcol) {
+static void setpivcol(short lower, int varin, REAL *pcol)
+{
   int i, colnr;
   REAL f;
 
@@ -206,19 +222,24 @@ static void setpivcol(short lower, int varin, REAL *pcol) {
     f = 1;
   else
     f = -1;
-  for (i = 0; i <= Rows; i++) pcol[i] = 0;
-  if (varin > Rows) {
+  for (i = 0; i <= Rows; i++)
+    pcol[i] = 0;
+  if (varin > Rows)
+  {
     colnr = varin - Rows;
-    for (i = Col_end[colnr - 1]; i < Col_end[colnr]; i++) pcol[Mat[i].row_nr] = Mat[i].value * f;
+    for (i = Col_end[colnr - 1]; i < Col_end[colnr]; i++)
+      pcol[Mat[i].row_nr] = Mat[i].value * f;
     pcol[0] -= Extrad * f;
-  } else if (lower)
+  }
+  else if (lower)
     pcol[varin] = 1;
   else
     pcol[varin] = -1;
   ftran(1, Eta_size, pcol);
 } /* setpivcol */
 
-static void minoriteration(int colnr, int row_nr) {
+static void minoriteration(int colnr, int row_nr)
+{
   int i, j, k, wk, varin, varout, elnr;
   REAL piv, theta;
 
@@ -226,20 +247,24 @@ static void minoriteration(int colnr, int row_nr) {
   elnr = Eta_col_end[Eta_size];
   wk = elnr;
   Eta_size++;
-  if (Extrad != 0) {
+  if (Extrad != 0)
+  {
     Eta_row_nr[elnr] = 0;
     Eta_value[elnr] = -Extrad;
     elnr++;
   }
-  for (j = Col_end[colnr - 1]; j < Col_end[colnr]; j++) {
+  for (j = Col_end[colnr - 1]; j < Col_end[colnr]; j++)
+  {
     k = Mat[j].row_nr;
     if (k == 0 && Extrad != 0)
       Eta_value[Eta_col_end[Eta_size - 1]] += Mat[j].value;
-    else if (k != row_nr) {
+    else if (k != row_nr)
+    {
       Eta_row_nr[elnr] = k;
       Eta_value[elnr] = Mat[j].value;
       elnr++;
-    } else
+    }
+    else
       piv = Mat[j].value;
   }
   Eta_row_nr[elnr] = row_nr;
@@ -247,27 +272,32 @@ static void minoriteration(int colnr, int row_nr) {
   elnr++;
   theta = Rhs[row_nr] / (REAL)piv;
   Rhs[row_nr] = theta;
-  for (i = wk; i < elnr - 1; i++) Rhs[Eta_row_nr[i]] -= theta * Eta_value[i];
+  for (i = wk; i < elnr - 1; i++)
+    Rhs[Eta_row_nr[i]] -= theta * Eta_value[i];
   varout = Bas[row_nr];
   Bas[row_nr] = varin;
   Basis[varout] = FALSE;
   Basis[varin] = TRUE;
-  for (i = wk; i < elnr - 1; i++) Eta_value[i] /= -(REAL)piv;
+  for (i = wk; i < elnr - 1; i++)
+    Eta_value[i] /= -(REAL)piv;
   Eta_col_end[Eta_size] = elnr;
 } /* minoriteration */
 
-static void rhsmincol(REAL theta, int row_nr, int varin) {
+static void rhsmincol(REAL theta, int row_nr, int varin)
+{
   int i, j, k, varout;
   REAL f;
 
-  if (row_nr > Rows + 1) {
+  if (row_nr > Rows + 1)
+  {
     fprintf(stderr, "Error: rhsmincol called with row_nr: %d, rows: %d\n", row_nr, Rows);
     fprintf(stderr, "This indicates numerical instability\n");
     /* exit(1); */ ERROR(ERR_NUM);
   }
   j = Eta_col_end[Eta_size];
   k = Eta_col_end[Eta_size + 1];
-  for (i = j; i < k; i++) {
+  for (i = j; i < k; i++)
+  {
     f = Rhs[Eta_row_nr[i]] - theta * Eta_value[i];
     my_round(f, Epsb);
     Rhs[Eta_row_nr[i]] = f;
@@ -279,7 +309,8 @@ static void rhsmincol(REAL theta, int row_nr, int varin) {
   Basis[varin] = TRUE;
 } /* rhsmincol */
 
-void invert(void) {
+void invert(void)
+{
   int i, j, v, wk, numit, varnr, row_nr, colnr, varin;
   REAL f, theta;
   REAL *pcol;
@@ -300,13 +331,17 @@ void invert(void) {
   CALLOC(fcol, Columns + 1, short);
   CALLOC(colnum, Columns + 1, int);
 
-  for (i = 0; i <= Rows; i++) frow[i] = TRUE;
+  for (i = 0; i <= Rows; i++)
+    frow[i] = TRUE;
 
-  for (i = 0; i < Columns; i++) fcol[i] = FALSE;
+  for (i = 0; i < Columns; i++)
+    fcol[i] = FALSE;
 
-  for (i = 0; i < Rows; i++) rownum[i] = 0;
+  for (i = 0; i < Rows; i++)
+    rownum[i] = 0;
 
-  for (i = 0; i <= Columns; i++) colnum[i] = 0;
+  for (i = 0; i <= Columns; i++)
+    colnum[i] = 0;
 
   for (i = 0; i <= Rows; i++)
     if (Bas[i] > Rows)
@@ -316,67 +351,87 @@ void invert(void) {
 
   for (i = 1; i <= Rows; i++)
     if (frow[i])
-      for (j = Row_end[i - 1] + 1; j <= Row_end[i]; j++) {
+      for (j = Row_end[i - 1] + 1; j <= Row_end[i]; j++)
+      {
         wk = Col_no[j];
-        if (fcol[wk - 1]) {
+        if (fcol[wk - 1])
+        {
           colnum[wk]++;
           rownum[i - 1]++;
         }
       }
-  for (i = 1; i <= Rows; i++) Bas[i] = i;
-  for (i = 1; i <= Rows; i++) Basis[i] = TRUE;
-  for (i = 1; i <= Columns; i++) Basis[i + Rows] = FALSE;
+  for (i = 1; i <= Rows; i++)
+    Bas[i] = i;
+  for (i = 1; i <= Rows; i++)
+    Basis[i] = TRUE;
+  for (i = 1; i <= Columns; i++)
+    Basis[i + Rows] = FALSE;
 
-  for (i = 0; i <= Rows; i++) Rhs[i] = Rh[i];
+  for (i = 0; i <= Rows; i++)
+    Rhs[i] = Rh[i];
 
-  for (i = 1; i <= Columns; i++) {
+  for (i = 1; i <= Columns; i++)
+  {
     varnr = Rows + i;
-    if (!Lower[varnr]) {
+    if (!Lower[varnr])
+    {
       theta = Upbo[varnr];
-      for (j = Col_end[i - 1]; j < Col_end[i]; j++) Rhs[Mat[j].row_nr] -= theta * Mat[j].value;
+      for (j = Col_end[i - 1]; j < Col_end[i]; j++)
+        Rhs[Mat[j].row_nr] -= theta * Mat[j].value;
     }
   }
   for (i = 1; i <= Rows; i++)
-    if (!Lower[i]) Rhs[i] -= Upbo[i];
+    if (!Lower[i])
+      Rhs[i] -= Upbo[i];
   Eta_size = 0;
   v = 0;
   row_nr = 0;
   Num_inv = 0;
   numit = 0;
-  while (v < Rows) {
+  while (v < Rows)
+  {
     row_nr++;
-    if (row_nr > Rows) row_nr = 1;
+    if (row_nr > Rows)
+      row_nr = 1;
     v++;
     if (rownum[row_nr - 1] == 1)
-      if (frow[row_nr]) {
+      if (frow[row_nr])
+      {
         v = 0;
         j = Row_end[row_nr - 1] + 1;
-        while (!(fcol[Col_no[j] - 1])) j++;
+        while (!(fcol[Col_no[j] - 1]))
+          j++;
         colnr = Col_no[j];
         fcol[colnr - 1] = FALSE;
         colnum[colnr] = 0;
         for (j = Col_end[colnr - 1]; j < Col_end[colnr]; j++)
-          if (frow[Mat[j].row_nr]) rownum[Mat[j].row_nr - 1]--;
+          if (frow[Mat[j].row_nr])
+            rownum[Mat[j].row_nr - 1]--;
         frow[row_nr] = FALSE;
         minoriteration(colnr, row_nr);
       }
   }
   v = 0;
   colnr = 0;
-  while (v < Columns) {
+  while (v < Columns)
+  {
     colnr++;
-    if (colnr > Columns) colnr = 1;
+    if (colnr > Columns)
+      colnr = 1;
     v++;
     if (colnum[colnr] == 1)
-      if (fcol[colnr - 1]) {
+      if (fcol[colnr - 1])
+      {
         v = 0;
         j = Col_end[colnr - 1] + 1;
-        while (!(frow[Mat[j - 1].row_nr])) j++;
+        while (!(frow[Mat[j - 1].row_nr]))
+          j++;
         row_nr = Mat[j - 1].row_nr;
         frow[row_nr] = FALSE;
         rownum[row_nr - 1] = 0;
         for (j = Row_end[row_nr - 1] + 1; j <= Row_end[row_nr]; j++)
-          if (fcol[Col_no[j] - 1]) colnum[Col_no[j]]--;
+          if (fcol[Col_no[j] - 1])
+            colnum[Col_no[j]]--;
         fcol[colnr - 1] = FALSE;
         numit++;
         col[numit - 1] = colnr;
@@ -384,14 +439,16 @@ void invert(void) {
       }
   }
   for (j = 1; j <= Columns; j++)
-    if (fcol[j - 1]) {
+    if (fcol[j - 1])
+    {
       fcol[j - 1] = FALSE;
       setpivcol(Lower[Rows + j], j + Rows, pcol);
       row_nr = 1;
       while ((!(frow[row_nr] && pcol[row_nr])) && row_nr <= Rows)
         row_nr++; /* this sometimes sets row_nr to Rows + 1 and makes
                      rhsmincol crash. Solved in 2.0? MB */
-      if (row_nr == Rows + 1) {
+      if (row_nr == Rows + 1)
+      {
         printf("Inverting failed");
         ERROR(ERR_NUM);
       }
@@ -401,19 +458,23 @@ void invert(void) {
       rhsmincol(theta, row_nr, Rows + j);
       addetacol();
     }
-  for (i = numit - 1; i >= 0; i--) {
+  for (i = numit - 1; i >= 0; i--)
+  {
     colnr = col[i];
     row_nr = row[i];
     varin = colnr + Rows;
-    for (j = 0; j <= Rows; j++) pcol[j] = 0;
-    for (j = Col_end[colnr - 1]; j < Col_end[colnr]; j++) pcol[Mat[j].row_nr] = Mat[j].value;
+    for (j = 0; j <= Rows; j++)
+      pcol[j] = 0;
+    for (j = Col_end[colnr - 1]; j < Col_end[colnr]; j++)
+      pcol[Mat[j].row_nr] = Mat[j].value;
     pcol[0] -= Extrad;
     condensecol(row_nr, pcol);
     theta = Rhs[row_nr] / (REAL)pcol[row_nr];
     rhsmincol(theta, row_nr, varin);
     addetacol();
   }
-  for (i = 1; i <= Rows; i++) my_round(Rhs[i], Epsb);
+  for (i = 1; i <= Rows; i++)
+    my_round(Rhs[i], Epsb);
   if (Lp->print_at_invert)
     fprintf(stderr, "End Invert                eta_size %4d rhs[0] %16.4f\n", Eta_size, -Rhs[0]);
 
@@ -428,35 +489,44 @@ void invert(void) {
   free(colnum);
 } /* invert */
 
-static short colprim(int *colnr, short minit, REAL *drow) {
+static short colprim(int *colnr, short minit, REAL *drow)
+{
   int varnr, i, j;
   REAL f, dpiv;
 
   dpiv = -Epsd;
   (*colnr) = 0;
-  if (!minit) {
-    for (i = 1; i <= Sum; i++) drow[i] = 0;
+  if (!minit)
+  {
+    for (i = 1; i <= Sum; i++)
+      drow[i] = 0;
     drow[0] = 1;
     btran(drow);
-    for (i = 1; i <= Columns; i++) {
+    for (i = 1; i <= Columns; i++)
+    {
       varnr = Rows + i;
       if (!Basis[varnr])
-        if (Upbo[varnr] > 0) {
+        if (Upbo[varnr] > 0)
+        {
           f = 0;
-          for (j = Col_end[i - 1]; j < Col_end[i]; j++) f += drow[Mat[j].row_nr] * Mat[j].value;
+          for (j = Col_end[i - 1]; j < Col_end[i]; j++)
+            f += drow[Mat[j].row_nr] * Mat[j].value;
           drow[varnr] = f;
         }
     }
-    for (i = 1; i <= Sum; i++) my_round(drow[i], Epsd);
+    for (i = 1; i <= Sum; i++)
+      my_round(drow[i], Epsd);
   }
   for (i = 1; i <= Sum; i++)
     if (!Basis[i])
-      if (Upbo[i] > 0) {
+      if (Upbo[i] > 0)
+      {
         if (Lower[i])
           f = drow[i];
         else
           f = -drow[i];
-        if (f < dpiv) {
+        if (f < dpiv)
+        {
           dpiv = f;
           (*colnr) = i;
         }
@@ -466,7 +536,8 @@ static short colprim(int *colnr, short minit, REAL *drow) {
       fprintf(stderr, "col_prim:%7d, reduced cost: % 18.10f\n", (*colnr), dpiv);
     else
       fprintf(stderr, "col_prim: no negative reduced costs found, optimality!\n");
-  if (*colnr == 0) {
+  if (*colnr == 0)
+  {
     Doiter = FALSE;
     DoInvert = FALSE;
     Status = OPTIMAL;
@@ -474,77 +545,95 @@ static short colprim(int *colnr, short minit, REAL *drow) {
   return ((*colnr) > 0);
 } /* colprim */
 
-static short rowprim(int colnr, int *row_nr, REAL *theta, REAL *pcol) {
+static short rowprim(int colnr, int *row_nr, REAL *theta, REAL *pcol)
+{
   int i;
   REAL f, quot;
 
   (*row_nr) = 0;
   (*theta) = Infinite;
-  for (i = 1; i <= Rows; i++) {
+  for (i = 1; i <= Rows; i++)
+  {
     f = pcol[i];
-    if (my_abs(f) < TREJ) f = 0;
-    if (f != 0) {
+    if (my_abs(f) < TREJ)
+      f = 0;
+    if (f != 0)
+    {
       quot = 2 * Infinite;
       if (f > 0)
         quot = Rhs[i] / (REAL)f;
       else if (Upbo[Bas[i]] < Infinite)
         quot = (Rhs[i] - Upbo[Bas[i]]) / (REAL)f;
       my_round(quot, Epsel);
-      if (quot < (*theta)) {
+      if (quot < (*theta))
+      {
         (*theta) = quot;
         (*row_nr) = i;
       }
     }
   }
   if ((*row_nr) == 0)
-    for (i = 1; i <= Rows; i++) {
+    for (i = 1; i <= Rows; i++)
+    {
       f = pcol[i];
-      if (f != 0) {
+      if (f != 0)
+      {
         quot = 2 * Infinite;
         if (f > 0)
           quot = Rhs[i] / (REAL)f;
         else if (Upbo[Bas[i]] < Infinite)
           quot = (Rhs[i] - Upbo[Bas[i]]) / (REAL)f;
         my_round(quot, Epsel);
-        if (quot < (*theta)) {
+        if (quot < (*theta))
+        {
           (*theta) = quot;
           (*row_nr) = i;
         }
       }
     }
 
-  if ((*theta) < 0) {
+  if ((*theta) < 0)
+  {
     fprintf(stderr, "Warning: Numerical instability, qout = %f\n", (*theta));
     fprintf(stderr, "pcol[%d] = % 18.10f, rhs[%d] = % 18.8f , upbo = % f\n", (*row_nr), f,
             (*row_nr), Rhs[(*row_nr)], Upbo[Bas[(*row_nr)]]);
   }
-  if ((*row_nr) == 0) {
-    if (Upbo[colnr] == Infinite) {
+  if ((*row_nr) == 0)
+  {
+    if (Upbo[colnr] == Infinite)
+    {
       Doiter = FALSE;
       DoInvert = FALSE;
       Status = UNBOUNDED;
-    } else {
+    }
+    else
+    {
       i = 1;
-      while (pcol[i] >= 0 && i <= Rows) i++;
+      while (pcol[i] >= 0 && i <= Rows)
+        i++;
       if (i > Rows) /* empty column with upperbound! */
       {
         Lower[colnr] = FALSE;
         Rhs[0] += Upbo[colnr] * pcol[0];
         Doiter = FALSE;
         DoInvert = FALSE;
-      } else if (pcol[i] < 0) {
+      }
+      else if (pcol[i] < 0)
+      {
         (*row_nr) = i;
       }
     }
   }
-  if ((*row_nr) > 0) Doiter = TRUE;
+  if ((*row_nr) > 0)
+    Doiter = TRUE;
   if (Lp->trace)
     fprintf(stderr, "row_prim:%7d, pivot element:% 18.10f\n", (*row_nr), pcol[(*row_nr)]);
 
   return ((*row_nr) > 0);
 } /* rowprim */
 
-static short rowdual(int *row_nr) {
+static short rowdual(int *row_nr)
+{
   int i;
   REAL f, g, minrhs;
   short artifs;
@@ -553,55 +642,68 @@ static short rowdual(int *row_nr) {
   minrhs = -Epsb;
   i = 0;
   artifs = FALSE;
-  while (i < Rows && !artifs) {
+  while (i < Rows && !artifs)
+  {
     i++;
     f = Upbo[Bas[i]];
-    if (f == 0 && (Rhs[i] != 0)) {
+    if (f == 0 && (Rhs[i] != 0))
+    {
       artifs = TRUE;
       (*row_nr) = i;
-    } else {
+    }
+    else
+    {
       if (Rhs[i] < f - Rhs[i])
         g = Rhs[i];
       else
         g = f - Rhs[i];
-      if (g < minrhs) {
+      if (g < minrhs)
+      {
         minrhs = g;
         (*row_nr) = i;
       }
     }
   }
 
-  if (Lp->trace) {
-    if ((*row_nr) > 0) {
+  if (Lp->trace)
+  {
+    if ((*row_nr) > 0)
+    {
       fprintf(stderr, "row_dual:%7d, rhs of selected row:           % 18.10f\n", (*row_nr),
               Rhs[(*row_nr)]);
       if (Upbo[Bas[(*row_nr)]] < Infinite)
         fprintf(stderr, "               upper bound of basis variable:    % 18.10f\n",
                 Upbo[Bas[(*row_nr)]]);
-    } else
+    }
+    else
       fprintf(stderr, "row_dual: no infeasibilities found\n");
   }
 
   return ((*row_nr) > 0);
 } /* rowdual */
 
-static short coldual(int row_nr, int *colnr, short minit, REAL *prow, REAL *drow) {
+static short coldual(int row_nr, int *colnr, short minit, REAL *prow, REAL *drow)
+{
   int i, j, r, varnr;
   REAL theta, quot, pivot, d, f, g;
 
   Doiter = FALSE;
-  if (!minit) {
-    for (i = 0; i <= Rows; i++) {
+  if (!minit)
+  {
+    for (i = 0; i <= Rows; i++)
+    {
       prow[i] = 0;
       drow[i] = 0;
     }
     drow[0] = 1;
     prow[row_nr] = 1;
-    for (i = Eta_size; i >= 1; i--) {
+    for (i = Eta_size; i >= 1; i--)
+    {
       d = 0;
       f = 0;
       r = Eta_row_nr[Eta_col_end[i] - 1];
-      for (j = Eta_col_end[i - 1]; j < Eta_col_end[i]; j++) {
+      for (j = Eta_col_end[i - 1]; j < Eta_col_end[i]; j++)
+      {
         /* this is where the program consumes most cpu time */
         f += prow[Eta_row_nr[j]] * Eta_value[j];
         d += drow[Eta_row_nr[j]] * Eta_value[j];
@@ -611,12 +713,15 @@ static short coldual(int row_nr, int *colnr, short minit, REAL *prow, REAL *drow
       my_round(d, Epsel);
       drow[r] = d;
     }
-    for (i = 1; i <= Columns; i++) {
+    for (i = 1; i <= Columns; i++)
+    {
       varnr = Rows + i;
-      if (!Basis[varnr]) {
+      if (!Basis[varnr])
+      {
         d = -Extrad * drow[0];
         f = 0;
-        for (j = Col_end[i - 1]; j < Col_end[i]; j++) {
+        for (j = Col_end[i - 1]; j < Col_end[i]; j++)
+        {
           d = d + drow[Mat[j].row_nr] * Mat[j].value;
           f = f + prow[Mat[j].row_nr] * Mat[j].value;
         }
@@ -624,7 +729,8 @@ static short coldual(int row_nr, int *colnr, short minit, REAL *prow, REAL *drow
         prow[varnr] = f;
       }
     }
-    for (i = 0; i <= Sum; i++) {
+    for (i = 0; i <= Sum; i++)
+    {
       my_round(prow[i], Epsel);
       my_round(drow[i], Epsd);
     }
@@ -636,21 +742,26 @@ static short coldual(int row_nr, int *colnr, short minit, REAL *prow, REAL *drow
   pivot = 0;
   (*colnr) = 0;
   theta = Infinite;
-  for (i = 1; i <= Sum; i++) {
+  for (i = 1; i <= Sum; i++)
+  {
     if (Lower[i])
       d = prow[i] * g;
     else
       d = -prow[i] * g;
-    if ((d < 0) && (!Basis[i]) && (Upbo[i] > 0)) {
+    if ((d < 0) && (!Basis[i]) && (Upbo[i] > 0))
+    {
       if (Lower[i])
         quot = -drow[i] / (REAL)d;
       else
         quot = drow[i] / (REAL)d;
-      if (quot < theta) {
+      if (quot < theta)
+      {
         theta = quot;
         pivot = d;
         (*colnr) = i;
-      } else if ((quot == theta) && (my_abs(d) > my_abs(pivot))) {
+      }
+      else if ((quot == theta) && (my_abs(d) > my_abs(pivot)))
+      {
         pivot = d;
         (*colnr) = i;
       }
@@ -659,58 +770,70 @@ static short coldual(int row_nr, int *colnr, short minit, REAL *prow, REAL *drow
   if (Lp->trace)
     fprintf(stderr, "col_dual:%7d, pivot element:  % 18.10f\n", (*colnr), prow[(*colnr)]);
 
-  if ((*colnr) > 0) Doiter = TRUE;
+  if ((*colnr) > 0)
+    Doiter = TRUE;
 
   return ((*colnr) > 0);
 } /* coldual */
 
 static void iteration(int row_nr, int varin, REAL *theta, REAL up, short *minit, short *low,
-                      short primal, REAL *pcol) {
+                      short primal, REAL *pcol)
+{
   int i, k, varout;
   REAL f;
   REAL pivot;
 
   Lp->iter++;
   (*minit) = (*theta) > (up + Epsb);
-  if ((*minit)) {
+  if ((*minit))
+  {
     (*theta) = up;
     (*low) = !(*low);
   }
   k = Eta_col_end[Eta_size + 1];
   pivot = Eta_value[k - 1];
-  for (i = Eta_col_end[Eta_size]; i < k; i++) {
+  for (i = Eta_col_end[Eta_size]; i < k; i++)
+  {
     f = Rhs[Eta_row_nr[i]] - (*theta) * Eta_value[i];
     my_round(f, Epsb);
     Rhs[Eta_row_nr[i]] = f;
   }
-  if (!(*minit)) {
+  if (!(*minit))
+  {
     Rhs[row_nr] = (*theta);
     varout = Bas[row_nr];
     Bas[row_nr] = varin;
     Basis[varout] = FALSE;
     Basis[varin] = TRUE;
-    if (primal && pivot < 0) Lower[varout] = FALSE;
-    if (!(*low) && up < Infinite) {
+    if (primal && pivot < 0)
+      Lower[varout] = FALSE;
+    if (!(*low) && up < Infinite)
+    {
       (*low) = TRUE;
       Rhs[row_nr] = up - Rhs[row_nr];
-      for (i = Eta_col_end[Eta_size]; i < k; i++) Eta_value[i] = -Eta_value[i];
+      for (i = Eta_col_end[Eta_size]; i < k; i++)
+        Eta_value[i] = -Eta_value[i];
     }
     addetacol();
     Num_inv++;
   }
-  if (Lp->trace) {
+  if (Lp->trace)
+  {
     fprintf(stderr, "Theta = %16.4g ", (*theta));
-    if ((*minit)) {
+    if ((*minit))
+    {
       if (!Lower[varin])
         fprintf(stderr, "Iteration:%6d, variable%5d changed from 0 to its upper bound of %12f\n",
                 Lp->iter, varin, Upbo[varin]);
       else
         fprintf(stderr, "Iteration:%6d, variable%5d changed its upper bound of %12f to 0\n",
                 Lp->iter, varin, Upbo[varin]);
-    } else
+    }
+    else
       fprintf(stderr, "Iteration:%6d, variable%5d entered basis at:% 18.10f\n", Lp->iter, varin,
               Rhs[row_nr]);
-    if (!primal) {
+    if (!primal)
+    {
       f = 0;
       for (i = 1; i <= Rows; i++)
         if (Rhs[i] < 0)
@@ -718,13 +841,15 @@ static void iteration(int row_nr, int varin, REAL *theta, REAL up, short *minit,
         else if (Rhs[i] > Upbo[Bas[i]])
           f += Rhs[i] - Upbo[Bas[i]];
       fprintf(stderr, "feasibility gap of this basis:% 18.10f\n", (double)f);
-    } else
+    }
+    else
       fprintf(stderr, "objective function value of this feasible basis: % 18.10f\n",
               (double)Rhs[0]);
   }
 } /* iteration */
 
-static int solvelp(void) {
+static int solvelp(void)
+{
   int i, j, iter, varnr;
   REAL f, theta;
   short primal;
@@ -745,81 +870,114 @@ static int solvelp(void) {
   Doiter = FALSE;
   i = 0;
   primal = TRUE;
-  while (i != Rows && primal) {
+  while (i != Rows && primal)
+  {
     i++;
     primal = Rhs[i] >= 0 && Rhs[i] <= Upbo[Bas[i]];
   }
-  if (Lp->trace) {
+  if (Lp->trace)
+  {
     if (primal)
       fprintf(stderr, "Start at feasible basis\n");
     else
       fprintf(stderr, "Start at infeasible basis\n");
   }
-  if (!primal) {
+  if (!primal)
+  {
     drow[0] = 1;
-    for (i = 1; i <= Rows; i++) drow[i] = 0;
+    for (i = 1; i <= Rows; i++)
+      drow[i] = 0;
     Extrad = 0;
-    for (i = 1; i <= Columns; i++) {
+    for (i = 1; i <= Columns; i++)
+    {
       varnr = Rows + i;
       drow[varnr] = 0;
       for (j = Col_end[i - 1]; j < Col_end[i]; j++)
-        if (drow[Mat[j].row_nr] != 0) drow[varnr] += drow[Mat[j].row_nr] * Mat[j].value;
-      if (drow[varnr] < Extrad) Extrad = drow[varnr];
+        if (drow[Mat[j].row_nr] != 0)
+          drow[varnr] += drow[Mat[j].row_nr] * Mat[j].value;
+      if (drow[varnr] < Extrad)
+        Extrad = drow[varnr];
     }
-  } else
+  }
+  else
     Extrad = 0;
-  if (Lp->trace) fprintf(stderr, "Extrad = %f\n", Extrad);
+  if (Lp->trace)
+    fprintf(stderr, "Extrad = %f\n", Extrad);
   minit = FALSE;
 
-  while (Status == RUNNING) {
+  while (Status == RUNNING)
+  {
     Doiter = FALSE;
     DoInvert = FALSE;
 
-    if (primal) {
-      if (colprim(&colnr, minit, drow)) {
-        setpivcol(Lower[colnr], colnr, Pcol);
-        if (rowprim(colnr, &row_nr, &theta, Pcol)) condensecol(row_nr, Pcol);
-      }
-    } else /* not primal */
+    if (primal)
     {
-      if (!minit) rowdual(&row_nr);
-      if (row_nr > 0) {
-        if (coldual(row_nr, &colnr, minit, prow, drow)) {
+      if (colprim(&colnr, minit, drow))
+      {
+        setpivcol(Lower[colnr], colnr, Pcol);
+        if (rowprim(colnr, &row_nr, &theta, Pcol))
+          condensecol(row_nr, Pcol);
+      }
+    }
+    else /* not primal */
+    {
+      if (!minit)
+        rowdual(&row_nr);
+      if (row_nr > 0)
+      {
+        if (coldual(row_nr, &colnr, minit, prow, drow))
+        {
           setpivcol(Lower[colnr], colnr, Pcol);
           /* getting div by zero here ... MB */
-          if (Pcol[row_nr] == 0) {
+          if (Pcol[row_nr] == 0)
+          {
             fprintf(stderr, "An attempt was made to divide by zero (Pcol[%d])\n", row_nr);
             fprintf(stderr, "This indicates numerical instability\n");
             Doiter = FALSE;
-            if (!JustInverted) {
+            if (!JustInverted)
+            {
               fprintf(stderr, "Reinverting Eta\n");
               DoInvert = TRUE;
-            } else {
+            }
+            else
+            {
               fprintf(stderr, "Can't reinvert, failure\n");
               Status = FAILURE;
             }
-          } else {
+          }
+          else
+          {
             condensecol(row_nr, Pcol);
             f = Rhs[row_nr] - Upbo[Bas[row_nr]];
-            if (f > 0) {
+            if (f > 0)
+            {
               theta = f / (REAL)Pcol[row_nr];
-              if (theta <= Upbo[colnr]) Lower[Bas[row_nr]] = !Lower[Bas[row_nr]];
-            } else /* f <= 0 */
+              if (theta <= Upbo[colnr])
+                Lower[Bas[row_nr]] = !Lower[Bas[row_nr]];
+            }
+            else /* f <= 0 */
               theta = Rhs[row_nr] / (REAL)Pcol[row_nr];
           }
-        } else
+        }
+        else
           Status = INFEASIBLE;
-      } else {
+      }
+      else
+      {
         primal = TRUE;
         Doiter = FALSE;
         Extrad = 0;
         DoInvert = TRUE;
       }
     }
-    if (Doiter) iteration(row_nr, colnr, &theta, Upbo[colnr], &minit, &Lower[colnr], primal, Pcol);
-    if (Num_inv >= Lp->max_num_inv) DoInvert = TRUE;
-    if (DoInvert) {
-      if (Lp->print_at_invert) fprintf(stderr, "Inverting: Primal = %d\n", primal);
+    if (Doiter)
+      iteration(row_nr, colnr, &theta, Upbo[colnr], &minit, &Lower[colnr], primal, Pcol);
+    if (Num_inv >= Lp->max_num_inv)
+      DoInvert = TRUE;
+    if (DoInvert)
+    {
+      if (Lp->print_at_invert)
+        fprintf(stderr, "Inverting: Primal = %d\n", primal);
       invert();
     }
   }
@@ -834,32 +992,42 @@ static int solvelp(void) {
   return (Status);
 } /* solvelp */
 
-static short is_int(REAL value) {
+static short is_int(REAL value)
+{
   REAL tmp;
 
   tmp = value - (REAL)floor((double)value);
-  if (tmp < Epsilon) return (TRUE);
-  if (tmp > (1 - Epsilon)) return (TRUE);
+  if (tmp < Epsilon)
+    return (TRUE);
+  if (tmp > (1 - Epsilon))
+    return (TRUE);
   return (FALSE);
 } /* is_int */
 
-static void construct_solution(REAL *sol) {
+static void construct_solution(REAL *sol)
+{
   int i, j, basi;
   REAL f;
 
   /* zero all results of rows */
   memset(sol, '\0', (Rows + 1) * sizeof(REAL));
 
-  if (Lp->scaling_used) {
-    for (i = Rows + 1; i <= Sum; i++) sol[i] = Lowbo[i] * Lp->scale[i];
-    for (i = 1; i <= Rows; i++) {
+  if (Lp->scaling_used)
+  {
+    for (i = Rows + 1; i <= Sum; i++)
+      sol[i] = Lowbo[i] * Lp->scale[i];
+    for (i = 1; i <= Rows; i++)
+    {
       basi = Bas[i];
-      if (basi > Rows) sol[basi] += Rhs[i] * Lp->scale[basi];
+      if (basi > Rows)
+        sol[basi] += Rhs[i] * Lp->scale[basi];
     }
     for (i = Rows + 1; i <= Sum; i++)
-      if (!Basis[i] && !Lower[i]) sol[i] += Upbo[i] * Lp->scale[i];
+      if (!Basis[i] && !Lower[i])
+        sol[i] += Upbo[i] * Lp->scale[i];
 
-    for (j = 1; j <= Columns; j++) {
+    for (j = 1; j <= Columns; j++)
+    {
       f = sol[Rows + j];
       if (f != 0)
         for (i = Col_end[j - 1]; i < Col_end[j]; i++)
@@ -867,27 +1035,37 @@ static void construct_solution(REAL *sol) {
               (f / Lp->scale[Rows + j]) * (Mat[i].value / Lp->scale[Mat[i].row_nr]);
     }
 
-    for (i = 0; i <= Rows; i++) {
+    for (i = 0; i <= Rows; i++)
+    {
       if (my_abs(sol[i]) < Epsb)
         sol[i] = 0;
       else if (Lp->ch_sign[i])
         sol[i] = -sol[i];
     }
-  } else {
-    for (i = Rows + 1; i <= Sum; i++) sol[i] = Lowbo[i];
-    for (i = 1; i <= Rows; i++) {
+  }
+  else
+  {
+    for (i = Rows + 1; i <= Sum; i++)
+      sol[i] = Lowbo[i];
+    for (i = 1; i <= Rows; i++)
+    {
       basi = Bas[i];
-      if (basi > Rows) sol[basi] += Rhs[i];
+      if (basi > Rows)
+        sol[basi] += Rhs[i];
     }
     for (i = Rows + 1; i <= Sum; i++)
-      if (!Basis[i] && !Lower[i]) sol[i] += Upbo[i];
-    for (j = 1; j <= Columns; j++) {
+      if (!Basis[i] && !Lower[i])
+        sol[i] += Upbo[i];
+    for (j = 1; j <= Columns; j++)
+    {
       f = sol[Rows + j];
       if (f != 0)
-        for (i = Col_end[j - 1]; i < Col_end[j]; i++) sol[Mat[i].row_nr] += f * Mat[i].value;
+        for (i = Col_end[j - 1]; i < Col_end[j]; i++)
+          sol[Mat[i].row_nr] += f * Mat[i].value;
     }
 
-    for (i = 0; i <= Rows; i++) {
+    for (i = 0; i <= Rows; i++)
+    {
       if (my_abs(sol[i]) < Epsb)
         sol[i] = 0;
       else if (Lp->ch_sign[i])
@@ -896,19 +1074,23 @@ static void construct_solution(REAL *sol) {
   }
 } /* construct_solution */
 
-static void calculate_duals(void) {
+static void calculate_duals(void)
+{
   int i;
 
   /* initialise */
-  for (i = 1; i <= Rows; i++) Lp->duals[i] = 0;
+  for (i = 1; i <= Rows; i++)
+    Lp->duals[i] = 0;
   Lp->duals[0] = 1;
   btran(Lp->duals);
   if (Lp->scaling_used)
-    for (i = 1; i <= Rows; i++) Lp->duals[i] *= Lp->scale[i] / Lp->scale[0];
+    for (i = 1; i <= Rows; i++)
+      Lp->duals[i] *= Lp->scale[i] / Lp->scale[0];
 
   /* the dual values are the reduced costs of the slacks */
   /* When the slack is at its upper bound, change the sign. Can this happen? */
-  for (i = 1; i <= Rows; i++) {
+  for (i = 1; i <= Rows; i++)
+  {
     if (Lp->basis[i])
       Lp->duals[i] = 0;
     else if (Lp->ch_sign[0] == Lp->ch_sign[i])
@@ -916,7 +1098,8 @@ static void calculate_duals(void) {
   }
 }
 
-int milpsolve(sstate *st, REAL *upbo, REAL *lowbo, short *sbasis, short *slower, int *sbas) {
+int milpsolve(sstate *st, REAL *upbo, REAL *lowbo, short *sbasis, short *slower, int *sbas)
+{
   int i, j, failure, notint, is_worse;
   REAL theta, tmpreal;
 
@@ -924,35 +1107,39 @@ int milpsolve(sstate *st, REAL *upbo, REAL *lowbo, short *sbasis, short *slower,
   if (st->next)
     st = st->next;
   else
-    for (i = 0; i < 20; i++) { /* Need more state-saving space, so create 20 more. */
+    for (i = 0; i < 20; i++)
+    { /* Need more state-saving space, so create 20 more. */
       sstate *newst;
       newst = (sstate *)malloc(sizeof(sstate));
-      if (!st) ERROR(ERR_ST);
+      if (!st)
+        ERROR(ERR_ST);
       newst->next = st->next;
       st->next = newst;
       newst->saved = newst->notint = 0;
     }
 
-  if (st->saved) {
-    if (st->saved == ST_SOLN) {
+  if (st->saved)
+  {
+    if (st->saved == ST_SOLN)
+    {
       st->saved = 0;
       return (OPTIMAL);
     }
-  } else if (SolveCount++ > 100)
+  }
+  else if (SolveCount++ > 100)
     return (TIMEOUT); /* Time out every 100 LP solves */
   else if ((KBDEventFlg > 0) && *KEYBUFFERING68k == ATOM_T)
     return (TIMEOUT); /* Time out on key/mouse clicks */
-#ifdef DOS
-  else if (currentmouse->Cursor.Moved)
-    return (TIMEOUT); /* Time out if mouse moves in DOS */
-#endif                /* DOS */
 
-  if (Break_bb) return (BREAK_BB);
+  if (Break_bb)
+    return (BREAK_BB);
   Level++;
   Lp->total_nodes++;
-  if (Level > Lp->max_level) Lp->max_level = Level;
+  if (Level > Lp->max_level)
+    Lp->max_level = Level;
 
-  if (!st->saved) { /* We're coming into this fresh, rather than returnin from a TIMEOUT. */
+  if (!st->saved)
+  { /* We're coming into this fresh, rather than returnin from a TIMEOUT. */
     /* make fresh copies of upbo, lowbo, rh as solving changes them */
     memcpy(Upbo, upbo, (Sum + 1) * sizeof(REAL));
     memcpy(Lowbo, lowbo, (Sum + 1) * sizeof(REAL));
@@ -961,22 +1148,30 @@ int milpsolve(sstate *st, REAL *upbo, REAL *lowbo, short *sbasis, short *slower,
     memcpy(Bas, sbas, (Rows + 1) * sizeof(int));
     memcpy(Rh, Orig_rh, (Rows + 1) * sizeof(REAL));
 
-    if (Lp->anti_degen) {
-      for (i = 1; i <= Columns; i++) {
+    if (Lp->anti_degen)
+    {
+      for (i = 1; i <= Columns; i++)
+      {
         tmpreal = (REAL)(rand() % 100 * 0.00001);
-        if (tmpreal > Epsb) Lowbo[i + Rows] -= tmpreal;
+        if (tmpreal > Epsb)
+          Lowbo[i + Rows] -= tmpreal;
         tmpreal = (REAL)(rand() % 100 * 0.00001);
-        if (tmpreal > Epsb) Upbo[i + Rows] += tmpreal;
+        if (tmpreal > Epsb)
+          Upbo[i + Rows] += tmpreal;
       }
       Lp->eta_valid = FALSE;
     }
 
-    if (!Lp->eta_valid) {
+    if (!Lp->eta_valid)
+    {
       for (i = 1; i <= Columns; i++)
-        if (Lowbo[Rows + i] != 0) {
+        if (Lowbo[Rows + i] != 0)
+        {
           theta = Lowbo[Rows + i];
-          if (Upbo[Rows + i] < Infinite) Upbo[Rows + i] -= theta;
-          for (j = Col_end[i - 1]; j < Col_end[i]; j++) Rh[Mat[j].row_nr] -= theta * Mat[j].value;
+          if (Upbo[Rows + i] < Infinite)
+            Upbo[Rows + i] -= theta;
+          for (j = Col_end[i - 1]; j < Col_end[i]; j++)
+            Rh[Mat[j].row_nr] -= theta * Mat[j].value;
         }
       invert();
       Lp->eta_valid = TRUE;
@@ -984,30 +1179,37 @@ int milpsolve(sstate *st, REAL *upbo, REAL *lowbo, short *sbasis, short *slower,
 
     failure = solvelp();
 
-    if (Lp->anti_degen) {
+    if (Lp->anti_degen)
+    {
       memcpy(Upbo, upbo, (Sum + 1) * sizeof(REAL));
       memcpy(Lowbo, lowbo, (Sum + 1) * sizeof(REAL));
       memcpy(Rh, Orig_rh, (Rows + 1) * sizeof(REAL));
 
       for (i = 1; i <= Columns; i++)
-        if (Lowbo[Rows + i] != 0) {
+        if (Lowbo[Rows + i] != 0)
+        {
           theta = Lowbo[Rows + i];
-          if (Upbo[Rows + i] < Infinite) Upbo[Rows + i] -= theta;
-          for (j = Col_end[i - 1]; j < Col_end[i]; j++) Rh[Mat[j].row_nr] -= theta * Mat[j].value;
+          if (Upbo[Rows + i] < Infinite)
+            Upbo[Rows + i] -= theta;
+          for (j = Col_end[i - 1]; j < Col_end[i]; j++)
+            Rh[Mat[j].row_nr] -= theta * Mat[j].value;
         }
       invert();
       Lp->eta_valid = TRUE;
       failure = solvelp();
     }
 
-    if (failure == INFEASIBLE && Lp->verbose) fprintf(stderr, "level%4d INF\n", Level);
-  } else
+    if (failure == INFEASIBLE && Lp->verbose)
+      fprintf(stderr, "level%4d INF\n", Level);
+  }
+  else
     failure =
         OPTIMAL; /* Coming back thru after a timeout; we got OPTIMAL last time, so do it again. */
 
   if (failure == OPTIMAL) /* there is a solution */
   {
-    if (!st->saved) {
+    if (!st->saved)
+    {
       construct_solution(Solution);
 
       /* if this solution is worse than the best sofar, this branch must die */
@@ -1016,7 +1218,8 @@ int milpsolve(sstate *st, REAL *upbo, REAL *lowbo, short *sbasis, short *slower,
       else /* minimising! */
         is_worse = Solution[0] >= Best_solution[0];
 
-      if (is_worse) {
+      if (is_worse)
+      {
         if (Lp->verbose)
           fprintf(stderr, "level%4d OPT NOB value %f bound %f\n", Level, Solution[0],
                   Best_solution[0]);
@@ -1026,10 +1229,12 @@ int milpsolve(sstate *st, REAL *upbo, REAL *lowbo, short *sbasis, short *slower,
 
       /* check if solution contains enough ints */
       st->notint = notint = 0;
-      if (Lp->bb_rule == FIRST_NI) {
+      if (Lp->bb_rule == FIRST_NI)
+      {
         notint = 0;
         i = Rows + 1;
-        while (i <= Sum && notint == 0) {
+        while (i <= Sum && notint == 0)
+        {
           if (Must_be_int[i] && !is_int(Solution[i]))
             if (lowbo[i] == upbo[i]) /* this var is already fixed */
             {
@@ -1038,29 +1243,36 @@ int milpsolve(sstate *st, REAL *upbo, REAL *lowbo, short *sbasis, short *slower,
                   "Warning: integer var %d is already fixed at %d, but has non-integer value %g\n",
                   i - Rows, (int)lowbo[i], Solution[i]);
               fprintf(stderr, "Perhaps the -e option should be used\n");
-            } else
+            }
+            else
               st->notint = notint = i;
           i++;
         }
       }
-      if (Lp->bb_rule == RAND_NI) {
+      if (Lp->bb_rule == RAND_NI)
+      {
         int nr_not_int, select_not_int;
         nr_not_int = 0;
         for (i = Rows + 1; i <= Sum; i++)
-          if (Must_be_int[i] && !is_int(Solution[i])) nr_not_int++;
+          if (Must_be_int[i] && !is_int(Solution[i]))
+            nr_not_int++;
         if (nr_not_int == 0)
           notint = 0;
-        else {
+        else
+        {
           select_not_int = (rand() % nr_not_int) + 1;
           i = Rows + 1;
-          while (select_not_int > 0) {
-            if (Must_be_int[i] && !is_int(Solution[i])) select_not_int--;
+          while (select_not_int > 0)
+          {
+            if (Must_be_int[i] && !is_int(Solution[i]))
+              select_not_int--;
             i++;
           }
           st->notint = notint = i - 1;
         }
       }
-    } else
+    }
+    else
       notint = st->notint; /* Coming back in, use old value. */
 
     if (Lp->verbose == TRUE)
@@ -1090,7 +1302,8 @@ int milpsolve(sstate *st, REAL *upbo, REAL *lowbo, short *sbasis, short *slower,
       memcpy(new_basis, Basis, (Sum + 1) * sizeof(short));
       memcpy(new_bas, Bas, (Rows + 1) * sizeof(int));
 
-      if (Floor_first) {
+      if (Floor_first)
+      {
         if (st->saved)
           new_bound = st->bound;
         else
@@ -1098,9 +1311,11 @@ int milpsolve(sstate *st, REAL *upbo, REAL *lowbo, short *sbasis, short *slower,
         /* this bound might conflict */
         if (st->saved >= ST_HI)
           resone = st->res1; /* We got the upper bound earlier; skip lower */
-        else if (new_bound < lowbo[notint]) {
+        else if (new_bound < lowbo[notint])
+        {
           resone = MILP_FAIL;
-        } else /* bound feasible */
+        }
+        else /* bound feasible */
         {
           new_upbo[notint] = new_bound;
           Lp->eta_valid = FALSE;
@@ -1108,7 +1323,8 @@ int milpsolve(sstate *st, REAL *upbo, REAL *lowbo, short *sbasis, short *slower,
           resone = milpsolve(st, new_upbo, lowbo, new_basis, new_lower, new_bas);
           Lp->eta_valid = FALSE;
           st->res1 = resone;
-          if ((resone == INT_SOLN) || (resone == TIMEOUT)) {
+          if ((resone == INT_SOLN) || (resone == TIMEOUT))
+          {
             Level--;
             free(new_upbo);
             free(new_lowbo);
@@ -1119,9 +1335,11 @@ int milpsolve(sstate *st, REAL *upbo, REAL *lowbo, short *sbasis, short *slower,
           }
         }
         new_bound += 1;
-        if (new_bound > upbo[notint]) {
+        if (new_bound > upbo[notint])
+        {
           restwo = MILP_FAIL;
-        } else /* bound feasible */
+        }
+        else /* bound feasible */
         {
           new_lowbo[notint] = new_bound;
           st->saved = ST_HI;
@@ -1129,7 +1347,8 @@ int milpsolve(sstate *st, REAL *upbo, REAL *lowbo, short *sbasis, short *slower,
           restwo = milpsolve(st, upbo, new_lowbo, new_basis, new_lower, new_bas);
           Lp->eta_valid = FALSE;
           st->res2 = restwo;
-          if ((restwo == INT_SOLN) || (restwo == TIMEOUT)) {
+          if ((restwo == INT_SOLN) || (restwo == TIMEOUT))
+          {
             Level--;
             free(new_upbo);
             free(new_lowbo);
@@ -1139,13 +1358,16 @@ int milpsolve(sstate *st, REAL *upbo, REAL *lowbo, short *sbasis, short *slower,
             return restwo;
           }
         }
-      } else /* take ceiling first */
+      }
+      else /* take ceiling first */
       {
         new_bound = ceil(Solution[notint]);
         /* this bound might conflict */
-        if (new_bound > upbo[notint]) {
+        if (new_bound > upbo[notint])
+        {
           resone = MILP_FAIL;
-        } else /* bound feasible */
+        }
+        else /* bound feasible */
         {
           new_lowbo[notint] = new_bound;
           Lp->eta_valid = FALSE;
@@ -1153,9 +1375,11 @@ int milpsolve(sstate *st, REAL *upbo, REAL *lowbo, short *sbasis, short *slower,
           Lp->eta_valid = FALSE;
         }
         new_bound -= 1;
-        if (new_bound < lowbo[notint]) {
+        if (new_bound < lowbo[notint])
+        {
           restwo = MILP_FAIL;
-        } else /* bound feasible */
+        }
+        else /* bound feasible */
         {
           new_upbo[notint] = new_bound;
           Lp->eta_valid = FALSE;
@@ -1173,7 +1397,8 @@ int milpsolve(sstate *st, REAL *upbo, REAL *lowbo, short *sbasis, short *slower,
       free(new_basis);
       free(new_lower);
       free(new_bas);
-    } else /* all required values are int */
+    }
+    else /* all required values are int */
     {
       if (Maximise)
         is_worse = Solution[0] < Best_solution[0];
@@ -1187,10 +1412,14 @@ int milpsolve(sstate *st, REAL *upbo, REAL *lowbo, short *sbasis, short *slower,
                   (double)Solution[0]);
         memcpy(Best_solution, Solution, (Sum + 1) * sizeof(REAL));
         calculate_duals();
-        if (Lp->print_sol) print_solution(Lp);
-        if (Lp->break_at_int) {
-          if (Maximise && (Best_solution[0] > Lp->break_value)) Break_bb = TRUE;
-          if (!Maximise && (Best_solution[0] < Lp->break_value)) Break_bb = TRUE;
+        if (Lp->print_sol)
+          print_solution(Lp);
+        if (Lp->break_at_int)
+        {
+          if (Maximise && (Best_solution[0] > Lp->break_value))
+            Break_bb = TRUE;
+          if (!Maximise && (Best_solution[0] < Lp->break_value))
+            Break_bb = TRUE;
         }
         st->saved = INT_SOLN; /* Tell caller we found -a- solution */
         failure = INT_SOLN;   /* & remember that fact for next time. */
@@ -1205,16 +1434,19 @@ int milpsolve(sstate *st, REAL *upbo, REAL *lowbo, short *sbasis, short *slower,
   return (failure);
 } /* milpsolve */
 
-int solve(lprec *lp) {
+int solve(lprec *lp)
+{
   int result, i;
 
-  if (!lp->active) set_globals(lp);
+  if (!lp->active)
+    set_globals(lp);
 
   lp->total_iter = 0;
   lp->max_level = 1;
   lp->total_nodes = 0;
 
-  if (Isvalid(lp)) {
+  if (Isvalid(lp))
+  {
     if (Maximise && lp->obj_bound == Infinite)
       Best_solution[0] = -Infinite;
     else if (!Maximise && lp->obj_bound == -Infinite)
@@ -1224,13 +1456,17 @@ int solve(lprec *lp) {
 
     Level = 0;
 
-    if (!lp->basis_valid) {
-      for (i = 0; i <= lp->rows; i++) {
+    if (!lp->basis_valid)
+    {
+      for (i = 0; i <= lp->rows; i++)
+      {
         lp->basis[i] = TRUE;
         lp->bas[i] = i;
       }
-      for (i = lp->rows + 1; i <= lp->sum; i++) lp->basis[i] = FALSE;
-      for (i = 0; i <= lp->sum; i++) lp->lower[i] = TRUE;
+      for (i = lp->rows + 1; i <= lp->sum; i++)
+        lp->basis[i] = FALSE;
+      for (i = 0; i <= lp->sum; i++)
+        lp->lower[i] = TRUE;
       lp->basis_valid = TRUE;
     }
 

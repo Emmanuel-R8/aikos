@@ -12,35 +12,35 @@
 
 /**********************************************************************/
 /*
- 		File Name :	lspglob.h
+    File Name :	lspglob.h
 
-		Global variables for LispSYSOUT
- 
- 					Date :		December 16, 1986
- 					Edited by :	Takeshi Shimizu
- 					Changed : Jan 13 1987 Take.
-					Changed : Feb 16 1987 Take.
-					Changed : Mar 25 1987 Take.
-					Changed : Apr 24 1987 take
-					Changed : Jul 02 1987 take
+    Global variables for LispSYSOUT
+
+          Date :		December 16, 1986
+          Edited by :	Takeshi Shimizu
+          Changed : Jan 13 1987 Take.
+          Changed : Feb 16 1987 Take.
+          Changed : Mar 25 1987 Take.
+          Changed : Apr 24 1987 take
+          Changed : Jul 02 1987 take
 */
 /**********************************************************************/
-#include "version.h" /* for BIGVM */
-#include "ifpage.h" /* for IFPAGE */
-#include "iopage.h" /* for IOPAGE */
+#include "version.h"  /* for BIGVM */
+#include "ifpage.h"   /* for IFPAGE */
+#include "iopage.h"   /* for IOPAGE */
 #include "lispemul.h" /* for LispPTR, DLword */
 #include "miscstat.h" /* for MISCSTAT */
 
- extern  DLword *Stackspace;		/* STACKSPACE*/
- extern  DLword *Plistspace;		/* PLISTSPACE */
- extern  DLword *DTDspace;		/* DTDSPACE */
- extern  DLword *MDStypetbl;		/* MDSTT  */
- extern  DLword *AtomHT;		/* AtomHashTable */
- extern  DLword *Pnamespace;		/* PNSPACE */
- extern  DLword *AtomSpace;		/* New atoms, initial set */
- extern  DLword *Defspace;		/* DEFSPACE */
- extern  DLword *Valspace;		/* VALSPACE */
- 
+extern DLword *Stackspace; /* STACKSPACE*/
+extern DLword *Plistspace; /* PLISTSPACE */
+extern DLword *DTDspace;   /* DTDSPACE */
+extern DLword *MDStypetbl; /* MDSTT  */
+extern DLword *AtomHT;     /* AtomHashTable */
+extern DLword *Pnamespace; /* PNSPACE */
+extern DLword *AtomSpace;  /* New atoms, initial set */
+extern DLword *Defspace;   /* DEFSPACE */
+extern DLword *Valspace;   /* VALSPACE */
+
 /* For Virtual Mem Management */
 #ifdef BIGVM
 extern LispPTR *FPtoVP;
@@ -62,38 +62,34 @@ extern DLword *UFNTable;
 
 /* Internal Hash Table for GC */
 #ifdef BIGVM
- extern  LispPTR *HTmain;
- extern  LispPTR *HToverflow;
- extern  LispPTR *HTbigcount;
- extern  LispPTR *HTcoll;
+extern LispPTR *HTmain;
+extern LispPTR *HToverflow;
+extern LispPTR *HTbigcount;
+extern LispPTR *HTcoll;
 #else
- extern  DLword *HTmain;
- extern  DLword *HToverflow;
- extern  DLword *HTbigcount;
- extern  DLword *HTcoll;
+extern DLword *HTmain;
+extern DLword *HToverflow;
+extern DLword *HTbigcount;
+extern DLword *HTcoll;
 #endif /* BIGVM */
 
-
 /* DISPLAY */
- extern DLword *DisplayRegion;
-
+extern DLword *DisplayRegion;
 
 /* FLEX STORAGES */
- extern  DLword *MDS_space_bottom;  /* Start of MDS (pre -2) */
- extern  DLword *PnCharspace;	/* Space for PN char codes (Thin only) */
+extern DLword *MDS_space_bottom; /* Start of MDS (pre -2) */
+extern DLword *PnCharspace;      /* Space for PN char codes (Thin only) */
 
- extern  struct dtd *ListpDTD;	/* DTD for LISTP chang. 25-mar-87 take */
- extern  DLword *Next_Array;	/* Next available ARRAY space */
- extern  DLword *Next_MDSpage;	/* Next available MDS space */
-  
- /* Pointers in Cell or any object means DLword offset from Lisp_world.
- So, 24 bit Lisp pointers can points 32Mbyte area.
- But, ATOMSPACE may be treated as special index space for LITATOM.
- In another way, it means that the Pointers points ATOMSPACE has no
- allocated memory, and these are used as index for access one of ATOM's prop. */
-  extern DLword *Lisp_world;  /* Lisp Start BASE  */
- 
+extern struct dtd *ListpDTD; /* DTD for LISTP chang. 25-mar-87 take */
+extern DLword *Next_Array;   /* Next available ARRAY space */
+extern DLword *Next_MDSpage; /* Next available MDS space */
 
+/* Pointers in Cell or any object means DLword offset from Lisp_world.
+So, 24 bit Lisp pointers can points 32Mbyte area.
+But, ATOMSPACE may be treated as special index space for LITATOM.
+In another way, it means that the Pointers points ATOMSPACE has no
+allocated memory, and these are used as index for access one of ATOM's prop. */
+extern DLword *Lisp_world; /* Lisp Start BASE  */
 
 /******* CACHE 68k address for LISP SYSVAL *******/
 extern LispPTR *Next_MDSpage_word;
@@ -180,10 +176,8 @@ extern LispPTR BITBLTBITMAP_index;
 extern LispPTR BLTSHADEBITMAP_index;
 extern LispPTR BLTCHAR_index;
 extern LispPTR TEDIT_BLTCHAR_index;
-#ifdef COLOR
 extern LispPTR SLOWBLTCHAR_index;
 extern LispPTR COLORSCREEN_index;
-#endif
 
 /* BITBLT operation atoms */
 extern DLword TEXTURE_atom;

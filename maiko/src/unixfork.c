@@ -32,11 +32,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#ifdef OS5
-#include <sys/ioctl.h>
-#include <sys/stropts.h>
-#endif
-
 #include "dbprint.h"
 #include "unixfork.h"
 
@@ -51,13 +46,14 @@ static long StartTime;  /* Time, for creating pipe filenames */
 static char shcom[512]; /* Here because I'm suspicious of */
                         /* large allocations on the stack */
 
-
 static inline ssize_t SAFEREAD(int f, char *b, size_t c)
 {
   ssize_t res;
-  do {
+  do
+  {
     res = read(f, b, c);
-    if (res >= 0) return (res);
+    if (res >= 0)
+      return (res);
   } while (errno == EINTR || errno == EAGAIN);
   perror("reading UnixPipeIn");
   return (res);
@@ -85,8 +81,10 @@ static int ForkUnixShell(int slot, char *PtySlave, char *termtype, char *shellar
 
   PID = fork();
 
-  if (PID != 0) {
-    if (shellarg != shcom) free(shellarg);
+  if (PID != 0)
+  {
+    if (shellarg != shcom)
+      free(shellarg);
     return (PID);
   }
 
@@ -95,16 +93,12 @@ static int ForkUnixShell(int slot, char *PtySlave, char *termtype, char *shellar
 
   /* Open the slave side */
   SlaveFD = open(PtySlave, O_RDWR);
-  if (SlaveFD == -1) {
+  if (SlaveFD == -1)
+  {
     perror("Slave Open");
     perror(PtySlave);
     exit(1);
   }
-
-#ifdef OS5
-  ioctl(SlaveFD, I_PUSH, "ptem");
-  ioctl(SlaveFD, I_PUSH, "ldterm");
-#endif /* OS5 */
 
   /* Set up as basic display terminal: canonical erase,
      kill processing, echo, backspace to erase, echo ctrl
@@ -122,23 +116,27 @@ static int ForkUnixShell(int slot, char *PtySlave, char *termtype, char *shellar
      configure the shell appropriately, though this may not be so important any more */
   setenv("LDESHELL", "YES", 1);
 
-  if (termtype[0] != 0) { /* set the TERM environment var */
+  if (termtype[0] != 0)
+  { /* set the TERM environment var */
     setenv("TERM", termtype, 1);
   }
   /* Start up shell -- use SHELL environment variable as long as it's in /etc/shells */
   shell = getenv("SHELL");
   if (shell == NULL) /* shell of last resort */
     shell = "/bin/sh";
-  for (userShell = getusershell(); userShell != NULL && strcmp(shell, userShell) != 0; userShell = getusershell());
-  if (userShell == NULL) {
+  for (userShell = getusershell(); userShell != NULL && strcmp(shell, userShell) != 0; userShell = getusershell())
+    ;
+  if (userShell == NULL)
+  {
     perror("$(SHELL) not found in /etc/shells");
     exit(1);
   }
 
   /* argvec entries initialized to NULL */
   argvec[0] = strrchr(userShell, '/') + 1;
-  if (shellarg[0] != 0) { /* setup to run command */
-    argvec[1] = "-c";     /* read commands from next arg */
+  if (shellarg[0] != 0)
+  {                   /* setup to run command */
+    argvec[1] = "-c"; /* read commands from next arg */
     argvec[2] = shellarg;
   }
 
@@ -171,7 +169,7 @@ static int ForkUnixShell(int slot, char *PtySlave, char *termtype, char *shellar
    Byte 3:   Slot number.
    Byte 4:   unused.
    Byte 5:   unused.
- 
+
 
 In the case of F & P commands, additional data follows the 6 byte packet.
 This consists of 2 bytes representing the length of the shell command
@@ -192,7 +190,8 @@ of the packet received except:
    C:        Always the same
 */
 
-int fork_Unix(void) {
+int fork_Unix(void)
+{
   int LispToUnix[2], /* Incoming pipe from LISP */
       UnixToLisp[2], /* Outgoing pipe to LISP */
       UnixPID, LispPipeIn, LispPipeOut, slot;
@@ -204,11 +203,13 @@ int fork_Unix(void) {
   char *cmdstring;
 
   /* Pipes between LISP subr and process */
-  if (pipe(LispToUnix) == -1) {
+  if (pipe(LispToUnix) == -1)
+  {
     perror("pipe");
     exit(-1);
   }
-  if (pipe(UnixToLisp) == -1) {
+  if (pipe(UnixToLisp) == -1)
+  {
     perror("pipe");
     exit(-1);
   }
@@ -219,20 +220,20 @@ int fork_Unix(void) {
   /* interrupts need to be blocked here so subprocess won't see them */
   sigemptyset(&signals);
   sigaddset(&signals, SIGVTALRM);
-#ifndef MAIKO_OS_HAIKU
   sigaddset(&signals, SIGIO);
-#endif
   sigaddset(&signals, SIGALRM);
   sigaddset(&signals, SIGXFSZ);
   sigaddset(&signals, SIGFPE);
   sigprocmask(SIG_BLOCK, &signals, NULL);
 
-  if ((UnixPID = fork()) == -1) { /* Fork off small version of the emulator */
+  if ((UnixPID = fork()) == -1)
+  { /* Fork off small version of the emulator */
     perror("fork");
     exit(-1);
   }
 
-  if (UnixPID != 0) {
+  if (UnixPID != 0)
+  {
     /* JRB - fork_Unix is now called in ldeboot; leave UnixPipe{In,Out} open
        and put their numbers in the environment so parent can find them */
     /* JDS - NB that sprintf doesn't always return a string! */
@@ -267,177 +268,216 @@ int fork_Unix(void) {
 
   fcntl(LispPipeIn, F_SETFL, fcntl(LispPipeIn, F_GETFL, 0) & ~O_NONBLOCK);
 
-  while (1) {
+  while (1)
+  {
     ssize_t len;
     len = SAFEREAD(LispPipeIn, IOBuf, 6);
     if (len == 0)
       exit(0);
-    if (len < 0) {
+    if (len < 0)
+    {
       perror("Error reading packet by slave");
       exit(1);
-    } else if (len != 6) {
+    }
+    else if (len != 6)
+    {
       DBPRINT(("Input packet wrong length: %zd", len));
       exit(1);
     }
     slot = (int)IOBuf[3];
     IOBuf[3] = 1; /* Start by signalling success in return-code */
 
-    switch (IOBuf[0]) {
-      case 'S':
-      case 'P':          /* Fork PTY shell */
-        if (slot >= 0) { /* Found a free slot */
-          char termtype[64];
-          char slavepty[32]; /* For slave pty name */
+    switch (IOBuf[0])
+    {
+    case 'S':
+    case 'P': /* Fork PTY shell */
+      if (slot >= 0)
+      { /* Found a free slot */
+        char termtype[64];
+        char slavepty[32]; /* For slave pty name */
 
-          if (SAFEREAD(LispPipeIn, (char *)&tmp, 2) < 0) perror("Slave reading slave pty len");
-          if (SAFEREAD(LispPipeIn, slavepty, tmp) < 0) perror("Slave reading slave pty id");
+        if (SAFEREAD(LispPipeIn, (char *)&tmp, 2) < 0)
+          perror("Slave reading slave pty len");
+        if (SAFEREAD(LispPipeIn, slavepty, tmp) < 0)
+          perror("Slave reading slave pty id");
 
-          if (IOBuf[0] == 'P') { /* The new style, which takes term type & command to csh */
-            if (SAFEREAD(LispPipeIn, (char *)&tmp, 2) < 0) perror("Slave reading cmd length");
-            if (tmp > 63) perror("Slave termtype length too long");
-            if (SAFEREAD(LispPipeIn, termtype, tmp) < 0) perror("Slave reading termtype");
-            termtype[tmp] = '\0';
-            if (SAFEREAD(LispPipeIn, (char *)&tmp, 2) < 0) perror("Slave reading cmd length");
-            if (tmp > 510)
-              cmdstring = (char *)malloc(tmp + 5);
-            else
-              cmdstring = shcom;
-
-            if (SAFEREAD(LispPipeIn, cmdstring, tmp) < 0) perror("Slave reading shcom");
-          } else /* old style, no args */
-          {
-            termtype[0] = 0;
-            cmdstring = shcom;
-            cmdstring[0] = 0;
-          }
-
-          /* Alloc a PTY and fork  */
-          pid = ForkUnixShell(slot, slavepty, termtype, cmdstring);
-
-          if (pid == -1) {
-            printf("Impossible failure from ForkUnixShell??\n");
-            fflush(stdout);
-            IOBuf[3] = 0;
-          } else {
-            /* ForkUnixShell sets the pid and standard in/out variables */
-            IOBuf[1] = (pid >> 8) & 0xFF;
-            IOBuf[2] = pid & 0xFF;
-            IOBuf[4] = (pid >> 16) & 0xFF;
-            IOBuf[5] = (pid >> 24) & 0xFF;
-          }
-        } else {
-          printf("Can't get process slot for PTY shell.\n");
-          fflush(stdout);
-          IOBuf[3] = 0;
-        }
-        break;
-
-      case 'F': /* Fork pipe command */
-        if (slot >= 0) {
-          /* Read in the length of the shell command, and then the command */
-          if (SAFEREAD(LispPipeIn, (char *)&tmp, 2) < 0) perror("Slave reading cmd length");
+        if (IOBuf[0] == 'P')
+        { /* The new style, which takes term type & command to csh */
+          if (SAFEREAD(LispPipeIn, (char *)&tmp, 2) < 0)
+            perror("Slave reading cmd length");
+          if (tmp > 63)
+            perror("Slave termtype length too long");
+          if (SAFEREAD(LispPipeIn, termtype, tmp) < 0)
+            perror("Slave reading termtype");
+          termtype[tmp] = '\0';
+          if (SAFEREAD(LispPipeIn, (char *)&tmp, 2) < 0)
+            perror("Slave reading cmd length");
           if (tmp > 510)
             cmdstring = (char *)malloc(tmp + 5);
           else
             cmdstring = shcom;
-          if (SAFEREAD(LispPipeIn, cmdstring, tmp) < 0) perror("Slave reading cmd");
-          DBPRINT(("Cmd len = %d.\n", tmp));
-          DBPRINT(("Rev'd cmd string: %s\n", cmdstring));
-          pid = fork(); /* Fork */
 
-          if (pid == 0) {
-            int i;
-            int status, sock;
-            struct sockaddr_un addr;
-            char PipeName[40];
-            sock = socket(AF_UNIX, SOCK_STREAM, 0);
-            if (sock < 0) {
-              perror("slave socket");
-              exit(1);
-            }
-            (void)snprintf(PipeName, sizeof(PipeName), "/tmp/LPU%ld-%d", StartTime, slot);
-            memset(&addr, 0, sizeof(struct sockaddr_un));
-            addr.sun_family = AF_UNIX;
-            strlcpy(addr.sun_path, PipeName, sizeof(addr.sun_path));
-            status =
-                connect(sock, (struct sockaddr *)&addr, sizeof(struct sockaddr_un));
-            if (status < 0) {
-              perror("slave connect");
-              printf("Name = %s.\n", PipeName);
-              fflush(stdout);
-              exit(1);
-            } else {
-              DBPRINT(("Slave connected on %s.\n", PipeName));
-            }
-
-            /* Copy the pipes onto stdin, stdout, and stderr */
-            dup2(sock, 0);
-            dup2(sock, 1);
-            dup2(sock, 2);
-
-            /* Make sure everything else is closed. */
-            for (i = 3; i < sysconf(_SC_OPEN_MAX); i++) close(i);
-
-            /* Run the shell command and get the result */
-            status = system(cmdstring);
-            if (cmdstring != shcom) free(cmdstring);
-            /* Comment out to fix USAR 11302 (FXAR 320)
-            unlink(PipeName);
-            */
-            _exit((status & ~0xff) ? (status >> 8) : status);
-          }
-
-          /* Check for error doing the fork */
-          if (pid == (pid_t)-1) {
-            perror("unixcomm: fork");
-            IOBuf[3] = 0;
-          } else {
-            IOBuf[1] = (pid >> 8) & 0xFF;
-            IOBuf[2] = pid & 0xFF;
-            IOBuf[4] = (pid >> 16) & 0xFF;
-            IOBuf[5] = (pid >> 24) & 0xFF;
-          }
-        } else {
-          printf("No process slots available.\n");
-          IOBuf[3] = 0; /* Couldn't get a process slot */
+          if (SAFEREAD(LispPipeIn, cmdstring, tmp) < 0)
+            perror("Slave reading shcom");
         }
-        break;
+        else /* old style, no args */
+        {
+          termtype[0] = 0;
+          cmdstring = shcom;
+          cmdstring[0] = 0;
+        }
 
-      case 'W': /* Wait for a process to die. */
-      {
-        int status;
+        /* Alloc a PTY and fork  */
+        pid = ForkUnixShell(slot, slavepty, termtype, cmdstring);
 
-        status = 0;
-
-        IOBuf[0] = 0;
-        IOBuf[1] = 0;
-        DBPRINT(("About to wait for processes.\n"));
-      retry1:
-        pid = waitpid(-1, &status, WNOHANG);
-        if (pid == -1 && errno == EINTR) goto retry1;
-        if (pid > 0) {
-          /* Ignore processes which are suspended but haven't exited
-             (this shouldn't happen) */
-          if (WIFSTOPPED(status)) break;
-          IOBuf[5] = (pid >> 24) & 0xFF;
+        if (pid == -1)
+        {
+          printf("Impossible failure from ForkUnixShell??\n");
+          fflush(stdout);
+          IOBuf[3] = 0;
+        }
+        else
+        {
+          /* ForkUnixShell sets the pid and standard in/out variables */
+          IOBuf[1] = (pid >> 8) & 0xFF;
+          IOBuf[2] = pid & 0xFF;
           IOBuf[4] = (pid >> 16) & 0xFF;
-          IOBuf[3] = status >> 8;
-          IOBuf[2] = status & 0xFF;
-          IOBuf[1] = pid & 0xFF;
-          IOBuf[0] = (pid >> 8) & 0xFF;
+          IOBuf[5] = (pid >> 24) & 0xFF;
         }
-        DBPRINT(("wait3 returned pid = %ld.\n", (long)pid));
       }
-
+      else
+      {
+        printf("Can't get process slot for PTY shell.\n");
+        fflush(stdout);
+        IOBuf[3] = 0;
+      }
       break;
 
-      case 'C': /* Close stdin to subprocess */ break;
+    case 'F': /* Fork pipe command */
+      if (slot >= 0)
+      {
+        /* Read in the length of the shell command, and then the command */
+        if (SAFEREAD(LispPipeIn, (char *)&tmp, 2) < 0)
+          perror("Slave reading cmd length");
+        if (tmp > 510)
+          cmdstring = (char *)malloc(tmp + 5);
+        else
+          cmdstring = shcom;
+        if (SAFEREAD(LispPipeIn, cmdstring, tmp) < 0)
+          perror("Slave reading cmd");
+        DBPRINT(("Cmd len = %d.\n", tmp));
+        DBPRINT(("Rev'd cmd string: %s\n", cmdstring));
+        pid = fork(); /* Fork */
 
-      case 'K': /* Kill subprocess */ break;
+        if (pid == 0)
+        {
+          int i;
+          int status, sock;
+          struct sockaddr_un addr;
+          char PipeName[40];
+          sock = socket(AF_UNIX, SOCK_STREAM, 0);
+          if (sock < 0)
+          {
+            perror("slave socket");
+            exit(1);
+          }
+          (void)snprintf(PipeName, sizeof(PipeName), "/tmp/LPU%ld-%d", StartTime, slot);
+          memset(&addr, 0, sizeof(struct sockaddr_un));
+          addr.sun_family = AF_UNIX;
+          strlcpy(addr.sun_path, PipeName, sizeof(addr.sun_path));
+          status =
+              connect(sock, (struct sockaddr *)&addr, sizeof(struct sockaddr_un));
+          if (status < 0)
+          {
+            perror("slave connect");
+            printf("Name = %s.\n", PipeName);
+            fflush(stdout);
+            exit(1);
+          }
+          else
+          {
+            DBPRINT(("Slave connected on %s.\n", PipeName));
+          }
+
+          /* Copy the pipes onto stdin, stdout, and stderr */
+          dup2(sock, 0);
+          dup2(sock, 1);
+          dup2(sock, 2);
+
+          /* Make sure everything else is closed. */
+          for (i = 3; i < sysconf(_SC_OPEN_MAX); i++)
+            close(i);
+
+          /* Run the shell command and get the result */
+          status = system(cmdstring);
+          if (cmdstring != shcom)
+            free(cmdstring);
+          /* Comment out to fix USAR 11302 (FXAR 320)
+          unlink(PipeName);
+          */
+          _exit((status & ~0xff) ? (status >> 8) : status);
+        }
+
+        /* Check for error doing the fork */
+        if (pid == (pid_t)-1)
+        {
+          perror("unixcomm: fork");
+          IOBuf[3] = 0;
+        }
+        else
+        {
+          IOBuf[1] = (pid >> 8) & 0xFF;
+          IOBuf[2] = pid & 0xFF;
+          IOBuf[4] = (pid >> 16) & 0xFF;
+          IOBuf[5] = (pid >> 24) & 0xFF;
+        }
+      }
+      else
+      {
+        printf("No process slots available.\n");
+        IOBuf[3] = 0; /* Couldn't get a process slot */
+      }
+      break;
+
+    case 'W': /* Wait for a process to die. */
+    {
+      int status;
+
+      status = 0;
+
+      IOBuf[0] = 0;
+      IOBuf[1] = 0;
+      DBPRINT(("About to wait for processes.\n"));
+    retry1:
+      pid = waitpid(-1, &status, WNOHANG);
+      if (pid == -1 && errno == EINTR)
+        goto retry1;
+      if (pid > 0)
+      {
+        /* Ignore processes which are suspended but haven't exited
+           (this shouldn't happen) */
+        if (WIFSTOPPED(status))
+          break;
+        IOBuf[5] = (pid >> 24) & 0xFF;
+        IOBuf[4] = (pid >> 16) & 0xFF;
+        IOBuf[3] = status >> 8;
+        IOBuf[2] = status & 0xFF;
+        IOBuf[1] = pid & 0xFF;
+        IOBuf[0] = (pid >> 8) & 0xFF;
+      }
+      DBPRINT(("wait3 returned pid = %ld.\n", (long)pid));
+    }
+
+    break;
+
+    case 'C': /* Close stdin to subprocess */
+      break;
+
+    case 'K': /* Kill subprocess */
+      break;
     } /* End of switch */
 
     /* Return the status/data packet */
     write(LispPipeOut, IOBuf, 6);
   }
 }
-

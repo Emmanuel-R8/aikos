@@ -140,7 +140,8 @@ char *gettitlestring(LispPTR medleywin)
 
   if (((MedleyWindow)Cptr(medleywin))->WTITLE == NIL)
     titlestring = NULL;
-  else {
+  else
+  {
     strlen = LispStringSimpleLength(((MedleyWindow)Cptr(medleywin))->WTITLE);
     titlestring = (char *)malloc(strlen + 1);
     LispStringToCStr(((MedleyWindow)Cptr(medleywin))->WTITLE, titlestring);
@@ -157,7 +158,8 @@ int gettitleheight(LispPTR medleywin)
 {
   if (((MedleyWindow)Cptr(medleywin))->WTITLE == NIL)
     return (0);
-  else {
+  else
+  {
     DISPLAYDATA *dd;
     dd = TitleDDFromMw(medleywin);
     return (abs(LispIntToCInt(dd->ddlinefeed)));
@@ -170,7 +172,7 @@ int gettitleheight(LispPTR medleywin)
 /* Lisp and X.                                                */
 /**************************************************************/
 void setlineattributes(Display *display, DspInterface dspif, WindowInterface wif, DISPLAYDATA *dd,
-		       LispPTR mwidth, LispPTR mdash)
+                       LispPTR mwidth, LispPTR mdash)
 {
   int l, lw, ls;
   unsigned char *dash_list;
@@ -178,39 +180,54 @@ void setlineattributes(Display *display, DspInterface dspif, WindowInterface wif
   lw = (mwidth == NIL) ? 0 : LispIntToCInt(mwidth);
   ls = (mdash == NIL) ? LineSolid : LineOnOffDash;
 
-  if (dd->ddoperation == INVERT_atom) {
+  if (dd->ddoperation == INVERT_atom)
+  {
     XSetLineAttributes(display, wif->InvertGC, lw, ls, CapRound, JoinBevel);
     XSetLineAttributes(display, dspif->PixIGC, lw, ls, CapRound, JoinBevel);
-  } else if (dd->ddoperation == ERASE_atom) {
+  }
+  else if (dd->ddoperation == ERASE_atom)
+  {
     XSetLineAttributes(display, wif->EraseGC1, lw, ls, CapRound, JoinBevel);
     XSetLineAttributes(display, wif->EraseGC2, lw, ls, CapRound, JoinBevel);
     XSetLineAttributes(display, dspif->PixEGC, lw, ls, CapRound, JoinBevel);
-  } else if (dd->ddoperation == PAINT_atom) {
+  }
+  else if (dd->ddoperation == PAINT_atom)
+  {
     XSetLineAttributes(display, wif->PaintGC1, lw, ls, CapRound, JoinBevel);
     XSetLineAttributes(display, wif->PaintGC2, lw, ls, CapRound, JoinBevel);
     XSetLineAttributes(display, dspif->PixPGC, lw, ls, CapRound, JoinBevel);
-  } else if (dd->ddoperation == REPLACE_atom) {
+  }
+  else if (dd->ddoperation == REPLACE_atom)
+  {
     XSetLineAttributes(display, wif->ReplaceGC, lw, ls, CapRound, JoinBevel);
     XSetLineAttributes(display, dspif->PixRGC, lw, ls, CapRound, JoinBevel);
   }
 
-  if (mdash != NIL) {
+  if (mdash != NIL)
+  {
     l = LispStringSimpleLength(mdash);
     dash_list = (unsigned char *)malloc(l + 1);
     LispStringToCStr(mdash, dash_list);
 
-    if (dd->ddoperation == INVERT_atom) {
+    if (dd->ddoperation == INVERT_atom)
+    {
       XSetDashes(display, wif->InvertGC, 0, dash_list, l);
       XSetDashes(display, dspif->PixIGC, 0, dash_list, l);
-    } else if (dd->ddoperation == ERASE_atom) {
+    }
+    else if (dd->ddoperation == ERASE_atom)
+    {
       XSetDashes(display, wif->EraseGC1, 0, dash_list, l);
       XSetDashes(display, wif->EraseGC2, 0, dash_list, l);
       XSetDashes(display, dspif->PixEGC, 0, dash_list, l);
-    } else if (dd->ddoperation == PAINT_atom) {
+    }
+    else if (dd->ddoperation == PAINT_atom)
+    {
       XSetDashes(display, wif->PaintGC1, 0, dash_list, l);
       XSetDashes(display, wif->PaintGC2, 0, dash_list, l);
       XSetDashes(display, dspif->PixPGC, 0, dash_list, l);
-    } else if (dd->ddoperation == REPLACE_atom) {
+    }
+    else if (dd->ddoperation == REPLACE_atom)
+    {
       XSetDashes(display, wif->ReplaceGC, 0, dash_list, l);
       XSetDashes(display, dspif->PixRGC, 0, dash_list, l);
     }
@@ -306,7 +323,8 @@ void refreshwindow(LispPTR medleywin)
   XtVaSetValues(wif->formwidget, XtNclippX, dd->ddclippingleft, XtNclippY, dd->ddclippingbottom,
                 XtNclippWidth, dd->ddclippingright - dd->ddclippingleft, XtNclippHeight,
                 dd->ddclippingtop - dd->ddclippingbottom, NULL);
-  if (XtIsRealized(wif->topwidget)) {
+  if (XtIsRealized(wif->topwidget))
+  {
     XtConfigureWidget(wif->topwidget, wif->topregion.x, wif->topregion.y, wif->topregion.width,
                       wif->topregion.height, 0);
 
@@ -327,10 +345,14 @@ void refreshwindow(LispPTR medleywin)
 /************************************************************************/
 
 int translate_x(WindowInterface wif, int xval)
-{ return (xval + (wif->xoffset - wif->windowreg.x - (wif->blackborder2 >> 1) - wif->whiteborder)); }
+{
+  return (xval + (wif->xoffset - wif->windowreg.x - (wif->blackborder2 >> 1) - wif->whiteborder));
+}
 
 int translate_y(WindowInterface wif, int yval)
-{ return (yval + wif->yoffset - (wif->windowreg.y + (wif->blackborder2 >> 1) + wif->whiteborder)); }
+{
+  return (yval + wif->yoffset - (wif->windowreg.y + (wif->blackborder2 >> 1) + wif->whiteborder));
+}
 
 extern void SignalVJmpScroll();
 extern void SignalVScroll();
@@ -359,16 +381,19 @@ int scdepth;
   image->height = MBM->bmheight;
 
   /* depth 1 implies that X should colorize */
-  if ((MBM->bmbitperpixel & 0xFFFF) == 1) {
+  if ((MBM->bmbitperpixel & 0xFFFF) == 1)
+  {
     image->depth = MBM->bmbitperpixel & 0xFFFF;
     image->bits_per_pixel = 1;
     image->bytes_per_line =
         (((image->width + (BITSPER_DLWORD - 1)) / BITSPER_DLWORD) * (BITSPER_DLWORD / 8));
-    if (image->format != XYBitmap) {
+    if (image->format != XYBitmap)
+    {
       image->format = XYBitmap;
       _XInitImageFuncPtrs(image);
     }
-  } else /* if(image->format != ZPixmap) */
+  }
+  else /* if(image->format != ZPixmap) */
   {
     image->depth = MBM->bmbitperpixel & 0xFFFF;
     image->format = ZPixmap;
@@ -453,13 +478,17 @@ settexture(medleywin) LispPTR medleywin;
   dd = ImDataFromMw(medleywin);
   display = dspif->handle;
 
-  if (dd->ddtexture != NIL) {
+  if (dd->ddtexture != NIL)
+  {
     if (GetTypeNumber(dd->ddtexture) == TYPE_SMALLP)
-      if (LispIntToCInt(MScrFromMw(medleywin)->SCDEPTH) == 1) {
+      if (LispIntToCInt(MScrFromMw(medleywin)->SCDEPTH) == 1)
+      {
         char id[64];
         dspif->image.data = id; /* Danger zone! read comment for function in next call */
         MakeScratchImageFromInt(dspif, LispIntToCInt(dd->ddtexture));
-      } else {
+      }
+      else
+      {
         unsigned long pixval;
 
         pixval = ~(unsigned long)LispIntToCInt(dd->ddtexture);
@@ -478,16 +507,20 @@ settexture(medleywin) LispPTR medleywin;
         return (NIL);
       }
 
-    else { /* Its a bitmap */
+    else
+    { /* Its a bitmap */
       MakeScratchImageFromBM(dspif, (BITMAP *)Cptr(dd->ddtexture));
     }
-  } else { /* ddtexture is NIL */
+  }
+  else
+  { /* ddtexture is NIL */
     char id[64];
     dspif->image.data = id; /* Danger zone! read comment for function in next call */
     MakeScratchImageFromInt(dspif, 0);
   }
 
-  if (wif->bgpixmap) {
+  if (wif->bgpixmap)
+  {
     /* If we have an fgpixmap, junk it */
     XFreePixmap(display, wif->bgpixmap);
     wif->bgpixmap = 0;
@@ -522,49 +555,53 @@ int srcx, srcy, dstx, dsty, width, height, operation;
   Window window;
   window = XtWindow(wif->windowwidget);
 
-  if ((MBM->bmbitperpixel == 1) || (MBM->bmbitperpixel == DefaultDepthOfScreen(wif->screen))) {
+  if ((MBM->bmbitperpixel == 1) || (MBM->bmbitperpixel == DefaultDepthOfScreen(wif->screen)))
+  {
     InitScratchDepth(&dspif->image, MBM, DefaultDepthOfScreen(wif->screen));
     dspif->image.data = (char *)Cptr((LispPTR)MBM->bmbase);
-    switch (operation) {
-      case REPLACE:
-        if (window)
-          XPutImage(dspif->handle, window, wif->ReplaceGC, &dspif->image, srcx, srcy, dstx, dsty,
-                    width, height);
-        XPutImage(dspif->handle, wif->backing, dspif->PixRGC, &dspif->image, srcx, srcy, dstx, dsty,
+    switch (operation)
+    {
+    case REPLACE:
+      if (window)
+        XPutImage(dspif->handle, window, wif->ReplaceGC, &dspif->image, srcx, srcy, dstx, dsty,
                   width, height);
-        break;
+      XPutImage(dspif->handle, wif->backing, dspif->PixRGC, &dspif->image, srcx, srcy, dstx, dsty,
+                width, height);
+      break;
 
-      case INVERT:
-        if (window)
-          XPutImage(dspif->handle, window, wif->InvertGC, &dspif->image, srcx, srcy, dstx, dsty,
-                    width, height);
-        XPutImage(dspif->handle, wif->backing, dspif->PixIGC, &dspif->image, srcx, srcy, dstx, dsty,
+    case INVERT:
+      if (window)
+        XPutImage(dspif->handle, window, wif->InvertGC, &dspif->image, srcx, srcy, dstx, dsty,
                   width, height);
-        break;
+      XPutImage(dspif->handle, wif->backing, dspif->PixIGC, &dspif->image, srcx, srcy, dstx, dsty,
+                width, height);
+      break;
 
-      case PAINT:
-        if (window)
-          XPutImage(dspif->handle, window, wif->PaintGC1, &dspif->image, srcx, srcy, dstx, dsty,
-                    width, height);
-        if (window)
-          XPutImage(dspif->handle, window, wif->PaintGC2, &dspif->image, srcx, srcy, dstx, dsty,
-                    width, height);
-        XPutImage(dspif->handle, wif->backing, dspif->PixPGC, &dspif->image, srcx, srcy, dstx, dsty,
+    case PAINT:
+      if (window)
+        XPutImage(dspif->handle, window, wif->PaintGC1, &dspif->image, srcx, srcy, dstx, dsty,
                   width, height);
-        break;
+      if (window)
+        XPutImage(dspif->handle, window, wif->PaintGC2, &dspif->image, srcx, srcy, dstx, dsty,
+                  width, height);
+      XPutImage(dspif->handle, wif->backing, dspif->PixPGC, &dspif->image, srcx, srcy, dstx, dsty,
+                width, height);
+      break;
 
-      case ERASE:
-        if (window)
-          XPutImage(dspif->handle, window, wif->EraseGC1, &dspif->image, srcx, srcy, dstx, dsty,
-                    width, height);
-        if (window)
-          XPutImage(dspif->handle, window, wif->EraseGC2, &dspif->image, srcx, srcy, dstx, dsty,
-                    width, height);
-        XPutImage(dspif->handle, wif->backing, dspif->PixEGC, &dspif->image, srcx, srcy, dstx, dsty,
+    case ERASE:
+      if (window)
+        XPutImage(dspif->handle, window, wif->EraseGC1, &dspif->image, srcx, srcy, dstx, dsty,
                   width, height);
-        break;
+      if (window)
+        XPutImage(dspif->handle, window, wif->EraseGC2, &dspif->image, srcx, srcy, dstx, dsty,
+                  width, height);
+      XPutImage(dspif->handle, wif->backing, dspif->PixEGC, &dspif->image, srcx, srcy, dstx, dsty,
+                width, height);
+      break;
     }
-  } else {
+  }
+  else
+  {
     /* JDS 2/22/94:  I'm not sure this part is right; haven't thought about it. */
     int x, y;
     InitScratchDepth(&dspif->image, MBM, DefaultDepthOfScreen(wif->screen));
@@ -577,20 +614,27 @@ int srcx, srcy, dstx, dsty, width, height, operation;
     for (x = 0; x < MBM->bmwidth; x++)
       for (y = 0; y < MBM->bmheight; y++)
         XPutPixel(&dspif->image, x, y, XGetPixel(&dspif->tmpimage, x, y));
-    if (operation == INVERT_atom) {
+    if (operation == INVERT_atom)
+    {
       XPutImage(dspif->handle, window, wif->InvertGC, &dspif->image, srcx, srcy, dstx, dsty, width,
                 height);
-    } else if (operation == ERASE_atom) {
+    }
+    else if (operation == ERASE_atom)
+    {
       XPutImage(dspif->handle, window, wif->EraseGC1, &dspif->image, srcx, srcy, dstx, dsty, width,
                 height);
       XPutImage(dspif->handle, window, wif->EraseGC2, &dspif->image, srcx, srcy, dstx, dsty, width,
                 height);
-    } else if (operation == PAINT_atom) {
+    }
+    else if (operation == PAINT_atom)
+    {
       XPutImage(dspif->handle, window, wif->PaintGC1, &dspif->image, srcx, srcy, dstx, dsty, width,
                 height);
       XPutImage(dspif->handle, window, wif->PaintGC2, &dspif->image, srcx, srcy, dstx, dsty, width,
                 height);
-    } else if (operation == REPLACE_atom) {
+    }
+    else if (operation == REPLACE_atom)
+    {
       XPutImage(dspif->handle, window, wif->ReplaceGC, &dspif->image, srcx, srcy, dstx, dsty, width,
                 height);
     }
@@ -616,53 +660,23 @@ Drawable xdrawable;
 DspInterface dspif;
 int srcx, srcy, dstx, dsty, width, height, op;
 {
-#ifdef NEVER
-  if (MBM->bmbitperpixel == DefaultDepthOfScreen(xscreen)) {
-    InitScratchDepth(&dspif->image, MBM, DefaultDepthOfScreen(xscreen));
-    dspif->image.data = (char *)Cptr((LispPTR)MBM->bmbase);
-    XGetSubImage(dspif->handle, xdrawable, srcx, srcy, width, height, AllPlanes, ZPixmap,
-                 &dspif->image, dstx, dsty);
-  } else {
-    int x, y, scdepth;
-    BITMAP tmp;
 
-    scdepth = DefaultDepthOfScreen(xscreen);
-    tmp.bmwidth = MBM->bmwidth;
-    tmp.bmheight = MBM->bmheight;
-    tmp.bmbitperpixel = scdepth;
-    InitScratchDepth(&dspif->tmpimage, &tmp, scdepth);
-    dspif->tmpimage.depth = scdepth;
-    dspif->tmpimage.data = (char *)malloc(dspif->tmpimage.bytes_per_line * dspif->tmpimage.width *
-                                          dspif->tmpimage.depth);
-    XGetSubImage(dspif->handle, xdrawable, srcx, srcy, width, height, AllPlanes, ZPixmap,
-                 &dspif->tmpimage, dstx, dsty);
-
-    InitScratchDepth(&dspif->image, MBM, MBM->bmbitperpixel);
-
-    dspif->image.data = (char *)Cptr((LispPTR)MBM->bmbase);
-    for (x = 0; x < MBM->bmwidth; x++)
-      for (y = 0; y < MBM->bmheight; y++)
-        XPutPixel(&dspif->image, x, y, !XGetPixel(&dspif->tmpimage, x, y));
-    free(dspif->tmpimage.data);
-  }
-#else  /* NEVER */
   InitScratchDepth(&dspif->image, MBM, 1);
   dspif->image.data = (char *)Cptr((LispPTR)MBM->bmbase);
   XGetSubImage(dspif->handle, xdrawable, srcx, srcy, width, height, AllPlanes, ZPixmap,
                &dspif->image, dstx, dsty);
-#endif /* Never */
 }
 
 MNXBBTToXWindow(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
-                                     /* args[1] = LispPTR to src BITMAP */
-                                     /* args[2] = scr_x */
-                                     /* args[3] = scr_y */
-                                     /* args[4] = dst WINDOW */
-                                     /* args[5] = dst_x */
-                                     /* args[6] = dst_y */
-                                     /* args[7] = width */
-                                     /* args[8] = height */
-                                     /* args[9] = operation */
+                               /* args[1] = LispPTR to src BITMAP */
+                               /* args[2] = scr_x */
+                               /* args[3] = scr_y */
+                               /* args[4] = dst WINDOW */
+                               /* args[5] = dst_x */
+                               /* args[6] = dst_y */
+                               /* args[7] = width */
+                               /* args[8] = height */
+                               /* args[9] = operation */
 {
   WindowInterface wif;
   DspInterface dspif;
@@ -675,7 +689,8 @@ MNXBBTToXWindow(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   display = XDisplayFromMw(args[0]);
   bitmap = (BITMAP *)Cptr(args[1]);
 
-  if (!wif->open) return (NIL); /* If window not open, don't do anything. */
+  if (!wif->open)
+    return (NIL); /* If window not open, don't do anything. */
   /* Transform the coordinates */
   width = LispIntToCInt(args[7]);
   height = LispIntToCInt(args[8]);
@@ -689,14 +704,14 @@ MNXBBTToXWindow(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 }
 
 MNXBBTFromXWindow(LispArgs args) /* args[0] = LispPTR to src WINDOW */
-                                       /* args[1] = scr_x */
-                                       /* args[2] = scr_y */
-                                       /* args[3] = LispPTR to dst BITMAP */
-                                       /* args[4] = dst_x */
-                                       /* args[5] = dst_y */
-                                       /* args[6] = width */
-                                       /* args[7] = height */
-                                       /* args[8] = operation */
+                                 /* args[1] = scr_x */
+                                 /* args[2] = scr_y */
+                                 /* args[3] = LispPTR to dst BITMAP */
+                                 /* args[4] = dst_x */
+                                 /* args[5] = dst_y */
+                                 /* args[6] = width */
+                                 /* args[7] = height */
+                                 /* args[8] = operation */
 /* Things to remember: This function does not handle integer-textures */
 /* The handling of the OPERATION argument is done in lisp */
 {
@@ -711,7 +726,8 @@ MNXBBTFromXWindow(LispArgs args) /* args[0] = LispPTR to src WINDOW */
   display = XDisplayFromMw(args[0]);
   bitmap = (BITMAP *)Cptr(args[3]);
 
-  if (!wif->open) return (NIL); /* If window not open, don't do anything. */
+  if (!wif->open)
+    return (NIL); /* If window not open, don't do anything. */
 
   /* Transform the coordinates */
   srcx = max(0, translate_x(wif, LispIntToCInt(args[1])));
@@ -732,14 +748,14 @@ MNXBBTFromXWindow(LispArgs args) /* args[0] = LispPTR to src WINDOW */
 }
 
 MNXBBTWinWin(LispArgs args) /* args[0] = LispPTR to src WINDOW */
-                                  /* args[1] = scr_x */
-                                  /* args[2] = scr_y */
-                                  /* args[3] = LispPTR to dst WINDOW */
-                                  /* args[4] = dst_x */
-                                  /* args[5] = dst_y */
-                                  /* args[6] = width */
-                                  /* args[7] = height */
-                                  /* args[8] = operation */
+                            /* args[1] = scr_x */
+                            /* args[2] = scr_y */
+                            /* args[3] = LispPTR to dst WINDOW */
+                            /* args[4] = dst_x */
+                            /* args[5] = dst_y */
+                            /* args[6] = width */
+                            /* args[7] = height */
+                            /* args[8] = operation */
 /* Things to remember: This function does not handle integer-textures */
 {
   WindowInterface srcwif, dstwif;
@@ -758,8 +774,10 @@ MNXBBTWinWin(LispArgs args) /* args[0] = LispPTR to src WINDOW */
   swin = XtWindow(srcwif->windowwidget);
   dwin = XtWindow(dstwif->windowwidget);
 
-  if (!srcwif->open) return (NIL); /* If window not open, don't do anything. */
-  if (!dstwif->open) return (NIL); /* If window not open, don't do anything. */
+  if (!srcwif->open)
+    return (NIL); /* If window not open, don't do anything. */
+  if (!dstwif->open)
+    return (NIL); /* If window not open, don't do anything. */
 
   /* Transform the coordinates */
   width = LispIntToCInt(args[6]);
@@ -769,32 +787,33 @@ MNXBBTWinWin(LispArgs args) /* args[0] = LispPTR to src WINDOW */
   srcx = translate_x(srcwif, LispIntToCInt(args[1]));
   dstx = translate_x(dstwif, LispIntToCInt(args[4]));
 
-  switch (args[8] & 0xF) {
-    case INVERT:
-      XCopyArea(display, swin, dwin, srcwif->InvertGC, srcx, srcy, width, height, dstx, dsty);
-      XCopyArea(display, srcwif->backing, dstwif->backing, dspif->PixIGC, srcx, srcy, width, height,
-                dstx, dsty);
-      break;
+  switch (args[8] & 0xF)
+  {
+  case INVERT:
+    XCopyArea(display, swin, dwin, srcwif->InvertGC, srcx, srcy, width, height, dstx, dsty);
+    XCopyArea(display, srcwif->backing, dstwif->backing, dspif->PixIGC, srcx, srcy, width, height,
+              dstx, dsty);
+    break;
 
-    case ERASE:
-      XCopyArea(display, swin, dwin, srcwif->EraseGC1, srcx, srcy, width, height, dstx, dsty);
-      XCopyArea(display, swin, dwin, srcwif->EraseGC2, srcx, srcy, width, height, dstx, dsty);
-      XCopyArea(display, srcwif->backing, dstwif->backing, dspif->PixEGC, srcx, srcy, width, height,
-                dstx, dsty);
-      break;
+  case ERASE:
+    XCopyArea(display, swin, dwin, srcwif->EraseGC1, srcx, srcy, width, height, dstx, dsty);
+    XCopyArea(display, swin, dwin, srcwif->EraseGC2, srcx, srcy, width, height, dstx, dsty);
+    XCopyArea(display, srcwif->backing, dstwif->backing, dspif->PixEGC, srcx, srcy, width, height,
+              dstx, dsty);
+    break;
 
-    case PAINT:
-      XCopyArea(display, swin, dwin, srcwif->PaintGC1, srcx, srcy, width, height, dstx, dsty);
-      XCopyArea(display, swin, dwin, srcwif->PaintGC2, srcx, srcy, width, height, dstx, dsty);
-      XCopyArea(display, srcwif->backing, dstwif->backing, dspif->PixPGC, srcx, srcy, width, height,
-                dstx, dsty);
-      break;
+  case PAINT:
+    XCopyArea(display, swin, dwin, srcwif->PaintGC1, srcx, srcy, width, height, dstx, dsty);
+    XCopyArea(display, swin, dwin, srcwif->PaintGC2, srcx, srcy, width, height, dstx, dsty);
+    XCopyArea(display, srcwif->backing, dstwif->backing, dspif->PixPGC, srcx, srcy, width, height,
+              dstx, dsty);
+    break;
 
-    case REPLACE:
-      XCopyArea(display, swin, dwin, srcwif->ReplaceGC, srcx, srcy, width, height, dstx, dsty);
-      XCopyArea(display, srcwif->backing, dstwif->backing, dspif->PixRGC, srcx, srcy, width, height,
-                dstx, dsty);
-      break;
+  case REPLACE:
+    XCopyArea(display, swin, dwin, srcwif->ReplaceGC, srcx, srcy, width, height, dstx, dsty);
+    XCopyArea(display, srcwif->backing, dstwif->backing, dspif->PixRGC, srcx, srcy, width, height,
+              dstx, dsty);
+    break;
   }
 
   XFlush(display);
@@ -819,8 +838,9 @@ MNXcloseW(LispArgs args)
   dspif = DspIfFromMw(args[0]);
   wif = WIfFromMw(args[0]);
 
-  if (!wif->open) return (NIL); /* If window not open, don't close it. */
-  wif->open = 0;                /* If it is, tell others it's closed.  */
+  if (!wif->open)
+    return (NIL); /* If window not open, don't close it. */
+  wif->open = 0;  /* If it is, tell others it's closed.  */
 
   bitmap = (BITMAP *)Cptr(((MedleyWindow)Cptr(args[0]))->SAVE);
   DrawableToMBM(bitmap, dspif, wif, wif->backing, wif->screen, 0, 0,
@@ -843,14 +863,16 @@ MNXcloseW(LispArgs args)
   return (ATOM_T);
 }
 
-WindowInterface removewif(chain, wif) WindowInterface chain, wif;
+WindowInterface removewif(chain, wif)
+WindowInterface chain, wif;
 {
   /* Recursive unlink off the wif from chain */
   if (chain == (WindowInterface)NULL)
     return (NULL);
   else if (chain == wif)
     return (chain->next);
-  else {
+  else
+  {
     chain->next = removewif(chain->next, wif);
     return (chain);
   }
@@ -863,19 +885,23 @@ WindowInterface removewif(chain, wif) WindowInterface chain, wif;
 /* Return wif if we find wif. Return NIL if we don't find wif.          */
 /*                                                                      */
 /************************************************************************/
-WindowInterface bubblewif(dspif, wif) DspInterface dspif;
+WindowInterface bubblewif(dspif, wif)
+DspInterface dspif;
 WindowInterface wif;
 {
   WindowInterface curr, prev;
 
-  if (dspif->CreatedWifs == (WindowInterface)NULL) return (NIL);
-  if (dspif->CreatedWifs == wif) return (wif);
+  if (dspif->CreatedWifs == (WindowInterface)NULL)
+    return (NIL);
+  if (dspif->CreatedWifs == wif)
+    return (wif);
 
   /* Find the wif we are interested in. */
   for (prev = dspif->CreatedWifs, curr = prev->next;
        ((curr != (WindowInterface)NULL) && (curr != wif)); curr = curr->next, prev = prev->next)
     ;
-  if (curr == (WindowInterface)NULL) return (NIL); /* wif not found */
+  if (curr == (WindowInterface)NULL)
+    return (NIL); /* wif not found */
 
   /* Bubble curr to the head of the list */
   prev->next = curr->next;
@@ -895,13 +921,20 @@ MedleyWindow medleyw;
 
 { /* Tell X to destroy its part. */
 
-  if (wif->topwidget) XtDestroyWidget(wif->topwidget);
-  if (wif->InvertGC) XFreeGC(dspif->handle, wif->InvertGC);
-  if (wif->EraseGC1) XFreeGC(dspif->handle, wif->EraseGC1);
-  if (wif->EraseGC2) XFreeGC(dspif->handle, wif->EraseGC2);
-  if (wif->PaintGC1) XFreeGC(dspif->handle, wif->PaintGC1);
-  if (wif->PaintGC2) XFreeGC(dspif->handle, wif->PaintGC2);
-  if (wif->ReplaceGC) XFreeGC(dspif->handle, wif->ReplaceGC);
+  if (wif->topwidget)
+    XtDestroyWidget(wif->topwidget);
+  if (wif->InvertGC)
+    XFreeGC(dspif->handle, wif->InvertGC);
+  if (wif->EraseGC1)
+    XFreeGC(dspif->handle, wif->EraseGC1);
+  if (wif->EraseGC2)
+    XFreeGC(dspif->handle, wif->EraseGC2);
+  if (wif->PaintGC1)
+    XFreeGC(dspif->handle, wif->PaintGC1);
+  if (wif->PaintGC2)
+    XFreeGC(dspif->handle, wif->PaintGC2);
+  if (wif->ReplaceGC)
+    XFreeGC(dspif->handle, wif->ReplaceGC);
 
   XFreePixmap(dspif->handle, wif->backing);
 
@@ -942,24 +975,27 @@ MNXdestroyDisplay(LispArgs args) /* args[0] = LispPTR to MedleyScreen */
   LispReadFds &= ~(1 << Xfd);
   MNWReadFds &= ~(1 << Xfd);
 
-  if (dspif->cursor) XFreeCursor(dspif->handle, dspif->cursor);
+  if (dspif->cursor)
+    XFreeCursor(dspif->handle, dspif->cursor);
   dspif->cursor = 0;
 
   /* Smash the handles of all the created wifs. */
-  if (dspif != NULL) {
+  if (dspif != NULL)
+  {
     for (i = dspif->CreatedWifs; i != NULL; i = dspif->CreatedWifs)
       destroyw(dspif, i, (MedleyWindow)Cptr(i->MedleyWindow));
 
-    if (dspif->legatewidget) XtDestroyWidget(dspif->legatewidget);
+    if (dspif->legatewidget)
+      XtDestroyWidget(dspif->legatewidget);
     XtCloseDisplay(dspif->handle);
     (void)free(dspif);
   }
 }
 
 MNXmoveW(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
-                              /* args[1] = left */
-                              /* args[2] = bottom */
-                              /* args[3] = non-NIL => skip actually moving it */
+                        /* args[1] = left */
+                        /* args[2] = bottom */
+                        /* args[3] = non-NIL => skip actually moving it */
 {
   Display *dsp;
   WindowInterface wif;
@@ -967,8 +1003,9 @@ MNXmoveW(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   dsp = XDisplayFromMw(args[0]);
   wif = WIfFromMw(args[0]);
 
-  if (!wif) return (NIL); /* no real window, no action. */
-  wif->moving = 1;        /* tell event handler to expect an event */
+  if (!wif)
+    return (NIL);  /* no real window, no action. */
+  wif->moving = 1; /* tell event handler to expect an event */
 
   wif->windowreg.x = LispIntToCInt(args[1]);
   wif->windowreg.y = LispIntToCInt(args[2]);
@@ -977,10 +1014,12 @@ MNXmoveW(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   /* stolen from calculateshape */
 
   /* printf("MOVEW to %d, %d.\n", wif->windowreg.x, wif->windowreg.y); */
-  if (!args[3]) {
+  if (!args[3])
+  {
     if (wif->open)
       XtMoveWidget(wif->topwidget, wif->topregion.x, wif->topregion.y, 0);
-    else {
+    else
+    {
       wif->move_pend = 1; /* Save the move for when we open it. */
     }
     XFlush(dsp);
@@ -989,18 +1028,19 @@ MNXmoveW(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 }
 
 MNXshapeW(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
-                               /* args[1] = left */
-                               /* args[2] = bottom */
-                               /* args[3] = width */
-                               /* args[4] = height */
+                         /* args[1] = left */
+                         /* args[2] = bottom */
+                         /* args[3] = width */
+                         /* args[4] = height */
 {
   Display *dsp;
   WindowInterface wif;
   XtWidgetGeometry geom;
 
   wif = WIfFromMw(args[0]);
-  if (!wif) return (NIL); /* no real window, no action. */
-  wif->reshaping = 1;     /* tell event handler to expect an event */
+  if (!wif)
+    return (NIL);     /* no real window, no action. */
+  wif->reshaping = 1; /* tell event handler to expect an event */
 
   dsp = XDisplayFromMw(args[0]);
   calculateshape(wif, args[1], args[2], args[3], args[4],
@@ -1008,13 +1048,16 @@ MNXshapeW(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
                  wif->topregion.height - wif->outerregion.height);
   /* printf("SHAPEW to %d, %d, %d, %d.\n", args[1]&0xFFFF, args[2]&0xFFFF,
                                  args[3]&0xFFFF, args[4]&0xFFFF); */
-  if (wif->open) {
+  if (wif->open)
+  {
     refreshwindow(args[0]);
     XtVaSetValues(wif->formwidget, XtNextentX, 0, XtNextentY, 0, XtNextentWidth, args[3] & 0xFFFF,
                   XtNextentHeight, args[4] & 0xFFFF, NULL);
     XtMoveWidget(wif->topwidget, args[1] & 0xFFFF,
                  HeightOfScreen(wif->screen) - (args[2] & 0xFFFF) - wif->topregion.height);
-  } else {
+  }
+  else
+  {
     wif->shape_pend = 1;
   }
 
@@ -1033,7 +1076,8 @@ MNXtotopW(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   dsp = XDisplayFromMw(args[0]);
   wif = WIfFromMw(args[0]);
 
-  if (!wif->open) return (NIL); /* If window not open, don't do anything. */
+  if (!wif->open)
+    return (NIL); /* If window not open, don't do anything. */
   XRaiseWindow(dsp, XtWindow(wif->topwidget));
   XFlush(dsp);
   return (ATOM_T);
@@ -1047,18 +1091,19 @@ MNXburyW(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   dsp = XDisplayFromMw(args[0]);
   wif = WIfFromMw(args[0]);
 
-  if (!wif->open) return (NIL); /* If window not open, don't do anything. */
+  if (!wif->open)
+    return (NIL); /* If window not open, don't do anything. */
   XLowerWindow(dsp, XtWindow(wif->topwidget));
   XFlush(dsp);
   return (ATOM_T);
 }
 
 MNXshrinkW(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
-                                /* args[1] = LispPTR to icon MedleyWindow. */
-                                /* args[2] = Iconwindow x */
-                                /* args[3] = Iconwindow y */
-                                /* args[4] = Iconwindow width */
-                                /* args[5] = Iconwindow height */
+                          /* args[1] = LispPTR to icon MedleyWindow. */
+                          /* args[2] = Iconwindow x */
+                          /* args[3] = Iconwindow y */
+                          /* args[4] = Iconwindow width */
+                          /* args[5] = Iconwindow height */
 {
   Screen *screen;
   Display *display;
@@ -1075,7 +1120,8 @@ MNXshrinkW(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   bitmap = (BITMAP *)Cptr(((MedleyWindow)Cptr(args[0]))->SAVE);
   wif = WIfFromMw(args[0]);
 
-  if (!wif->open) return (NIL); /* If window not open, don't do anything. */
+  if (!wif->open)
+    return (NIL); /* If window not open, don't do anything. */
   iconwif = WIfFromMw(args[1]);
 
   XtVaSetValues(wif->topwidget, XtNiconWindow, iconwif->blackframe, NULL);
@@ -1096,8 +1142,10 @@ MNXexpandW(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   wif = WIfFromMw(args[0]);
   dspif = DspIfFromMw(args[0]);
 
-  if (!args[0]) return (NIL);
-  if (!wif->open) return (NIL); /* If window not open, don't do anything. */
+  if (!args[0])
+    return (NIL);
+  if (!wif->open)
+    return (NIL); /* If window not open, don't do anything. */
   XMapWindow(XtDisplay(wif->topwidget), XtWindow(wif->topwidget));
   showtitle(args[0]);
   bitmap = (BITMAP *)Cptr(((MedleyWindow)Cptr(args[0]))->SAVE);
@@ -1108,10 +1156,10 @@ MNXexpandW(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 }
 
 MNXcreateW(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
-                                /* args[1] = left */
-                                /* args[2] = bottom */
-                                /* args[3] = width */
-                                /* args[4] = height */
+                          /* args[1] = left */
+                          /* args[2] = bottom */
+                          /* args[3] = width */
+                          /* args[4] = height */
 {
   XGCValues gcv;
   XVisualInfo vinfo, *vinfo2;
@@ -1157,7 +1205,8 @@ MNXcreateW(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   wif->xoffset = LispIntToCInt(dd->ddxoffset);
   wif->yoffset = LispIntToCInt(dd->ddyoffset);
   /* Special case for Icons and windows with no content and only a titlebar */
-  if (wif->innerregion.height == 0) whiteborder = 0;
+  if (wif->innerregion.height == 0)
+    whiteborder = 0;
 
   calculateshape(wif, args[1], args[2], args[3], args[4], 0, 0);
   /********************************/
@@ -1254,7 +1303,8 @@ showtitle(win) LispPTR win;
   dd = TitleDDFromMw(win);
   tmpstring = gettitlestring(win);
   titleheight = gettitleheight(win);
-  if (tmpstring == NULL) return (ATOM_T);
+  if (tmpstring == NULL)
+    return (ATOM_T);
   stringlen = strlen(tmpstring);
 
   bitmap = (BITMAP *)Cptr(dd->ddpilotbbt);
@@ -1273,7 +1323,8 @@ showtitle(win) LispPTR win;
   /* Add character set switching code... */
 
   if ((bitmap->bmbitperpixel == 1) || (bitmap->bmbitperpixel == DefaultDepthOfScreen(wif->screen)))
-    for (i = 0; i < stringlen; i++) {
+    for (i = 0; i < stringlen; i++)
+    {
       width = GETWORD((DLword *)Cptr(dd->ddwidthscache + tmpstring[i]));
       XPutImage(dspif->handle, wif->blackframe, dspif->TitleGC, &dspif->image,
                 GETWORD(Cptr(dd->ddoffsetscache + tmpstring[i])), /* src x */
@@ -1281,10 +1332,11 @@ showtitle(win) LispPTR win;
                 xpos,                                             /* dst x */
                 dsty,                                             /* ??? dst y */
                 width, bitmap->bmheight                           /* height */
-                );
+      );
       xpos += width;
     }
-  else {
+  else
+  {
     /* Take the long way out. Make an image of the cached bitmap and */
     /* convert it to the depth of the screen. Then dump it to the server */
     int x, y;
@@ -1306,7 +1358,8 @@ showtitle(win) LispPTR win;
     for (x = 0; x < bitmap->bmwidth; x++)
       for (y = 0; y < bitmap->bmheight; y++)
         XPutPixel(&dspif->image, x, y, XGetPixel(&dspif->tmpimage, x, y));
-    for (i = 0; i < stringlen; i++) {
+    for (i = 0; i < stringlen; i++)
+    {
       width = GETWORD((DLword *)Cptr(dd->ddwidthscache + tmpstring[i]));
       XPutImage(dspif->handle, wif->blackframe, dspif->TitleGC, &dspif->image,
                 GETWORD(Cptr(dd->ddoffsetscache + tmpstring[i])), /* src x */
@@ -1314,7 +1367,7 @@ showtitle(win) LispPTR win;
                 xpos,                                             /* dst x */
                 dsty,                                             /* ??? dst y */
                 width, bitmap->bmheight                           /* height */
-                );
+      );
       xpos += width;
     }
     free(dspif->image.data);
@@ -1356,20 +1409,7 @@ MNXopenW(LispArgs args)
   XtAddEventHandler(wif->topwidget, StructureNotifyMask, False, HandleStructure, wif);
 
   XtRealizeWidget(wif->topwidget);
-#ifdef NEVER
-  if (wif->shape_pend) /* We reshaped while closed; do it for real here */
-  {
-    refreshwindow(args[0]);
-    XtVaSetValues(wif->formwidget, XtNextentX, 0, XtNextentY, 0, XtNextentWidth,
-                  wif->windowreg.width, XtNextentHeight, wif->windowreg.height, NULL);
-    XtMoveWidget(wif->topwidget, wif->topregion.x, wif->topregion.y);
-    wif->move_pend = wif->shape_pend = 0;
-  } else if (wif->move_pend) /* We moved while closed; do the move here. */
-  {
-    wif->move_pend = 0;
-    XtMoveWidget(wif->topwidget, wif->topregion.x, wif->topregion.y, 0);
-  }
-#endif
+
   wif->blackframe = XtWindow(wif->framewidget);
   wif->handle = window = XtWindow(wif->windowwidget);
 
@@ -1385,7 +1425,8 @@ MNXopenW(LispArgs args)
   XtSetSensitive(wif->framewidget, True);
   XtSetSensitive(wif->windowwidget, True);
 
-  if (!wif->backing) {
+  if (!wif->backing)
+  {
     wif->backing =
         XCreatePixmap(display, window, wif->outerregion.width, wif->outerregion.height, 1);
   }
@@ -1412,24 +1453,20 @@ MNXresetW(LispArgs args)
   wif = WIfFromMw(args[0]);
   dd = ImDataFromMw(args[0]);
 
-  if (!wif->open) return (NIL); /* if the window is closed, do nothing */
-  if (XtIsRealized(wif->topwidget)) {
-#ifdef NEVER
-    showtitle(args[0]);
-    settexture(args[0]);
-    XClearWindow(display, XtWindow(wif->windowwidget));
-#else
+  if (!wif->open)
+    return (NIL); /* if the window is closed, do nothing */
+  if (XtIsRealized(wif->topwidget))
+  {
     bltshade_internal(display, 0, dd->ddtexture, 0, 0, wif->innerregion.width,
                       wif->innerregion.height, wif, wif->dspif);
-#endif /* NEVER */
   }
   XFlush(display);
   return (ATOM_T);
 }
 
 MNXSetOffsets(LispArgs args) /* args[0] = window XOFFSET/YOFFSET changed in */
-                                   /* args[1] = new XOFFSET */
-                                   /* args[2] = new YOFFSET */
+                             /* args[1] = new XOFFSET */
+                             /* args[2] = new YOFFSET */
 {
   Display *display;
   WindowInterface wif;
@@ -1444,9 +1481,9 @@ MNXSetOffsets(LispArgs args) /* args[0] = window XOFFSET/YOFFSET changed in */
 /*********************/
 
 MNXdrawpoint(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
-                                  /* args[1] = x */
-                                  /* args[2] = y */
-                                  /* args[3] = brush */
+                            /* args[1] = x */
+                            /* args[2] = y */
+                            /* args[3] = brush */
 {
   Display *display;
   Window window;
@@ -1458,7 +1495,8 @@ MNXdrawpoint(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   dspif = DspIfFromMw(args[0]);
   wif = WIfFromMw(args[0]);
 
-  if (!wif->open) MNXopenW(args); /* if window is closed, open it. */
+  if (!wif->open)
+    MNXopenW(args); /* if window is closed, open it. */
 
   dd = ImDataFromMw(args[0]);
   display = dspif->handle;
@@ -1473,18 +1511,25 @@ MNXdrawpoint(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   y = wif->innerregion.height - translate_y(wif, LispIntToCInt(args[2]));
 
   /** Handle the four operation cases **/
-  if (dd->ddoperation == INVERT_atom) {
+  if (dd->ddoperation == INVERT_atom)
+  {
     XDrawPoint(display, window, wif->InvertGC, x, y);
     XDrawPoint(display, wif->backing, dspif->PixIGC, x, y);
-  } else if (dd->ddoperation == ERASE_atom) {
+  }
+  else if (dd->ddoperation == ERASE_atom)
+  {
     XDrawPoint(display, window, wif->EraseGC1, x, y);
     XDrawPoint(display, window, wif->EraseGC2, x, y);
     XDrawPoint(display, wif->backing, dspif->PixEGC, x, y);
-  } else if (dd->ddoperation == PAINT_atom) {
+  }
+  else if (dd->ddoperation == PAINT_atom)
+  {
     XDrawPoint(display, window, wif->PaintGC1, x, y);
     XDrawPoint(display, window, wif->PaintGC2, x, y);
     XDrawPoint(display, wif->backing, dspif->PixPGC, x, y);
-  } else if (dd->ddoperation == REPLACE_atom) {
+  }
+  else if (dd->ddoperation == REPLACE_atom)
+  {
     XDrawPoint(display, window, wif->ReplaceGC, x, y);
     XDrawPoint(display, wif->backing, dspif->PixRGC, x, y);
   }
@@ -1503,12 +1548,12 @@ MNXdrawpoint(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 /* Lisp so we have to fix that there.                         */
 /**************************************************************/
 MNXdrawline(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
-                                 /* args[1] = x1 */
-                                 /* args[2] = y1 */
-                                 /* args[3] = x2 */
-                                 /* args[4] = y2 */
-                                 /* args[5] = width */
-                                 /* Args[6] = dashing */
+                           /* args[1] = x1 */
+                           /* args[2] = y1 */
+                           /* args[3] = x2 */
+                           /* args[4] = y2 */
+                           /* args[5] = width */
+                           /* Args[6] = dashing */
 {
   WindowInterface wif;
   Display *display;
@@ -1519,7 +1564,8 @@ MNXdrawline(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 
   dspif = DspIfFromMw(args[0]);
   wif = WIfFromMw(args[0]);
-  if (!wif->open) MNXopenW(args); /* if window is closed, open it. */
+  if (!wif->open)
+    MNXopenW(args); /* if window is closed, open it. */
   dd = ImDataFromMw(args[0]);
   display = dspif->handle;
   window = XtWindow(wif->windowwidget);
@@ -1532,18 +1578,25 @@ MNXdrawline(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 
   setlineattributes(display, dspif, wif, dd, args[5], args[6]);
 
-  if (dd->ddoperation == INVERT_atom) {
+  if (dd->ddoperation == INVERT_atom)
+  {
     XDrawLine(display, window, wif->InvertGC, x1, y1, x2, y2);
     XDrawLine(display, wif->backing, dspif->PixIGC, x1, y1, x2, y2);
-  } else if (dd->ddoperation == ERASE_atom) {
+  }
+  else if (dd->ddoperation == ERASE_atom)
+  {
     XDrawLine(display, window, wif->EraseGC1, x1, y1, x2, y2);
     XDrawLine(display, window, wif->EraseGC2, x1, y1, x2, y2);
     XDrawLine(display, wif->backing, dspif->PixEGC, x1, y1, x2, y2);
-  } else if (dd->ddoperation == PAINT_atom) {
+  }
+  else if (dd->ddoperation == PAINT_atom)
+  {
     XDrawLine(display, window, wif->PaintGC1, x1, y1, x2, y2);
     XDrawLine(display, window, wif->PaintGC2, x1, y1, x2, y2);
     XDrawLine(display, wif->backing, dspif->PixPGC, x1, y1, x2, y2);
-  } else if (dd->ddoperation == REPLACE_atom) {
+  }
+  else if (dd->ddoperation == REPLACE_atom)
+  {
     XDrawLine(display, window, wif->ReplaceGC, x1, y1, x2, y2);
     XDrawLine(display, wif->backing, dspif->PixRGC, x1, y1, x2, y2);
   }
@@ -1559,11 +1612,11 @@ MNXdrawline(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 /* represents a ROUND brush.                                  */
 /**************************************************************/
 MNXdrawcircle(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
-                                   /* args[1] = centerX */
-                                   /* args[2] = centerY */
-                                   /* args[3] = radius */
-                                   /* args[4] = brush */
-                                   /* args[5] = dashing */
+                             /* args[1] = centerX */
+                             /* args[2] = centerY */
+                             /* args[3] = radius */
+                             /* args[4] = brush */
+                             /* args[5] = dashing */
 {
   int radius, d, x, y;
   WindowInterface wif;
@@ -1576,7 +1629,8 @@ MNXdrawcircle(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   wif = WIfFromMw(args[0]);
   dd = ImDataFromMw(args[0]);
 
-  if (!wif->open) MNXopenW(args); /* if window is closed, open it. */
+  if (!wif->open)
+    MNXopenW(args); /* if window is closed, open it. */
 
   display = dspif->handle;
   window = XtWindow(wif->windowwidget);
@@ -1588,18 +1642,25 @@ MNXdrawcircle(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 
   setlineattributes(display, dspif, wif, dd, args[4], args[5]);
 
-  if (dd->ddoperation == INVERT_atom) {
+  if (dd->ddoperation == INVERT_atom)
+  {
     XDrawArc(display, window, wif->InvertGC, x, y, d, d, 0, 23040);
     XDrawArc(display, wif->backing, dspif->PixIGC, x, y, d, d, 0, 23040);
-  } else if (dd->ddoperation == ERASE_atom) {
+  }
+  else if (dd->ddoperation == ERASE_atom)
+  {
     XDrawArc(display, window, wif->EraseGC1, x, y, d, d, 0, 23040);
     XDrawArc(display, window, wif->EraseGC2, x, y, d, d, 0, 23040);
     XDrawArc(display, wif->backing, dspif->PixEGC, x, y, d, d, 0, 23040);
-  } else if (dd->ddoperation == PAINT_atom) {
+  }
+  else if (dd->ddoperation == PAINT_atom)
+  {
     XDrawArc(display, window, wif->PaintGC1, x, y, d, d, 0, 23040);
     XDrawArc(display, window, wif->PaintGC2, x, y, d, d, 0, 23040);
     XDrawArc(display, wif->backing, dspif->PixPGC, x, y, d, d, 0, 23040);
-  } else if (dd->ddoperation == REPLACE_atom) {
+  }
+  else if (dd->ddoperation == REPLACE_atom)
+  {
     XDrawArc(display, window, wif->ReplaceGC, x, y, d, d, 0, 23040);
     XDrawArc(display, wif->backing, dspif->PixRGC, x, y, d, d, 0, 23040);
   }
@@ -1613,14 +1674,14 @@ MNXdrawcircle(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 /* represents a ROUND brush.                                  */
 /**************************************************************/
 MNXdrawarc(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
-                                /* args[1] = centerX */
-                                /* args[2] = centerY */
-                                /* args[3] = radius */
-                                /* args[4] = startangle in 64'ths degrees */
-                                /* args[5] = ndegrees in 64'ths degrees */
-                                /* args[6] = brush */
-                                /* args[7] = dashing */
-                                /* Brush and dashing args are ignored for the moment. */
+                          /* args[1] = centerX */
+                          /* args[2] = centerY */
+                          /* args[3] = radius */
+                          /* args[4] = startangle in 64'ths degrees */
+                          /* args[5] = ndegrees in 64'ths degrees */
+                          /* args[6] = brush */
+                          /* args[7] = dashing */
+                          /* Brush and dashing args are ignored for the moment. */
 {
   int radius, d, x, y, start, ndeg;
   WindowInterface wif;
@@ -1633,7 +1694,8 @@ MNXdrawarc(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   wif = WIfFromMw(args[0]);
   dd = ImDataFromMw(args[0]);
 
-  if (!wif->open) MNXopenW(args); /* if window is closed, open it. */
+  if (!wif->open)
+    MNXopenW(args); /* if window is closed, open it. */
 
   display = dspif->handle;
   window = XtWindow(wif->windowwidget);
@@ -1647,18 +1709,25 @@ MNXdrawarc(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 
   setlineattributes(display, dspif, wif, dd, args[6], args[7]);
 
-  if (dd->ddoperation == INVERT_atom) {
+  if (dd->ddoperation == INVERT_atom)
+  {
     XDrawArc(display, window, wif->InvertGC, x, y, d, d, start, ndeg);
     XDrawArc(display, wif->backing, dspif->PixIGC, x, y, d, d, start, ndeg);
-  } else if (dd->ddoperation == ERASE_atom) {
+  }
+  else if (dd->ddoperation == ERASE_atom)
+  {
     XDrawArc(display, window, wif->EraseGC1, x, y, d, d, start, ndeg);
     XDrawArc(display, window, wif->EraseGC2, x, y, d, d, start, ndeg);
     XDrawArc(display, wif->backing, dspif->PixEGC, x, y, d, d, start, ndeg);
-  } else if (dd->ddoperation == PAINT_atom) {
+  }
+  else if (dd->ddoperation == PAINT_atom)
+  {
     XDrawArc(display, window, wif->PaintGC1, x, y, d, d, start, ndeg);
     XDrawArc(display, window, wif->PaintGC2, x, y, d, d, start, ndeg);
     XDrawArc(display, wif->backing, dspif->PixPGC, x, y, d, d, start, ndeg);
-  } else if (dd->ddoperation == REPLACE_atom) {
+  }
+  else if (dd->ddoperation == REPLACE_atom)
+  {
     XDrawArc(display, window, wif->ReplaceGC, x, y, d, d, start, ndeg);
     XDrawArc(display, wif->backing, dspif->PixRGC, x, y, d, d, start, ndeg);
   }
@@ -1674,13 +1743,13 @@ MNXdrawarc(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 /* represents a ROUND brush.                                  */
 /**************************************************************/
 MNXdrawelipse(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
-                                   /* args[1] = centerX */
-                                   /* args[2] = centerY */
-                                   /* args[3] = semiminorradius */
-                                   /* args[4] = semimajorradius */
-                                   /* args[5] = orientation */
-                                   /* args[6] = brush */
-                                   /* args[7] = dashing */
+                             /* args[1] = centerX */
+                             /* args[2] = centerY */
+                             /* args[3] = semiminorradius */
+                             /* args[4] = semimajorradius */
+                             /* args[5] = orientation */
+                             /* args[6] = brush */
+                             /* args[7] = dashing */
 
 {
   int radius, d1, d2, x, y;
@@ -1694,7 +1763,8 @@ MNXdrawelipse(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   wif = WIfFromMw(args[0]);
   dd = ImDataFromMw(args[0]);
 
-  if (!wif->open) MNXopenW(args); /* if window is closed, open it. */
+  if (!wif->open)
+    MNXopenW(args); /* if window is closed, open it. */
 
   display = dspif->handle;
   window = XtWindow(wif->windowwidget);
@@ -1706,18 +1776,25 @@ MNXdrawelipse(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 
   setlineattributes(display, dspif, wif, dd, args[6], args[7]);
 
-  if (dd->ddoperation == INVERT_atom) {
+  if (dd->ddoperation == INVERT_atom)
+  {
     XDrawArc(display, window, wif->InvertGC, x, y, d1, d2, 0, 23040);
     XDrawArc(display, wif->backing, dspif->PixIGC, x, y, d1, d2, 0, 23040);
-  } else if (dd->ddoperation == ERASE_atom) {
+  }
+  else if (dd->ddoperation == ERASE_atom)
+  {
     XDrawArc(display, window, wif->EraseGC1, x, y, d1, d2, 0, 23040);
     XDrawArc(display, window, wif->EraseGC2, x, y, d1, d2, 0, 23040);
     XDrawArc(display, wif->backing, dspif->PixEGC, x, y, d1, d2, 0, 23040);
-  } else if (dd->ddoperation == PAINT_atom) {
+  }
+  else if (dd->ddoperation == PAINT_atom)
+  {
     XDrawArc(display, window, wif->PaintGC1, x, y, d1, d2, 0, 23040);
     XDrawArc(display, window, wif->PaintGC2, x, y, d1, d2, 0, 23040);
     XDrawArc(display, wif->backing, dspif->PixPGC, x, y, d1, d2, 0, 23040);
-  } else if (dd->ddoperation == REPLACE_atom) {
+  }
+  else if (dd->ddoperation == REPLACE_atom)
+  {
     XDrawArc(display, window, wif->ReplaceGC, x, y, d1, d2, 0, 23040);
     XDrawArc(display, wif->backing, dspif->PixRGC, x, y, d1, d2, 0, 23040);
   }
@@ -1731,10 +1808,10 @@ MNXdrawelipse(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 /* Note: 23040 is 360 * 64 sixtyfourth degrees                */
 /**************************************************************/
 MNXfillcircle(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
-                                   /* args[1] = centerX */
-                                   /* args[2] = centerY */
-                                   /* args[3] = radius */
-                                   /* Brush and dashing args are ignored for the moment. */
+                             /* args[1] = centerX */
+                             /* args[2] = centerY */
+                             /* args[3] = radius */
+                             /* Brush and dashing args are ignored for the moment. */
 {
   int radius, d, x, y;
   WindowInterface wif;
@@ -1747,7 +1824,8 @@ MNXfillcircle(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   wif = WIfFromMw(args[0]);
   dd = ImDataFromMw(args[0]);
 
-  if (!wif->open) MNXopenW(args); /* if window is closed, open it. */
+  if (!wif->open)
+    MNXopenW(args); /* if window is closed, open it. */
 
   display = dspif->handle;
   window = XtWindow(wif->windowwidget);
@@ -1757,18 +1835,25 @@ MNXfillcircle(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   x = translate_x(wif, LispIntToCInt(args[1])) - radius;
   y = wif->innerregion.height - translate_y(wif, LispIntToCInt(args[2])) - radius;
 
-  if (dd->ddoperation == INVERT_atom) {
+  if (dd->ddoperation == INVERT_atom)
+  {
     XFillArc(display, window, wif->InvertGC, x, y, d, d, 0, 23040);
     XFillArc(display, wif->backing, dspif->PixIGC, x, y, d, d, 0, 23040);
-  } else if (dd->ddoperation == ERASE_atom) {
+  }
+  else if (dd->ddoperation == ERASE_atom)
+  {
     XFillArc(display, window, wif->EraseGC1, x, y, d, d, 0, 23040);
     XFillArc(display, window, wif->EraseGC2, x, y, d, d, 0, 23040);
     XFillArc(display, wif->backing, dspif->PixEGC, x, y, d, d, 0, 23040);
-  } else if (dd->ddoperation == PAINT_atom) {
+  }
+  else if (dd->ddoperation == PAINT_atom)
+  {
     XFillArc(display, window, wif->PaintGC1, x, y, d, d, 0, 23040);
     XFillArc(display, window, wif->PaintGC2, x, y, d, d, 0, 23040);
     XFillArc(display, wif->backing, dspif->PixPGC, x, y, d, d, 0, 23040);
-  } else if (dd->ddoperation == REPLACE_atom) {
+  }
+  else if (dd->ddoperation == REPLACE_atom)
+  {
     XFillArc(display, window, wif->ReplaceGC, x, y, d, d, 0, 23040);
     XFillArc(display, wif->backing, dspif->PixRGC, x, y, d, d, 0, 23040);
   }
@@ -1781,8 +1866,8 @@ MNXfillcircle(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 /* MNXwritepixel                                                */
 /**************************************************************/
 MNXwritepixel(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
-                                   /* args[1] = x */
-                                   /* args[2] = y */
+                             /* args[1] = x */
+                             /* args[2] = y */
 {
   int x, y;
   WindowInterface wif;
@@ -1795,7 +1880,8 @@ MNXwritepixel(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   wif = WIfFromMw(args[0]);
   dd = ImDataFromMw(args[0]);
 
-  if (!wif->open) MNXopenW(args); /* if window is closed, open it. */
+  if (!wif->open)
+    MNXopenW(args); /* if window is closed, open it. */
 
   display = dspif->handle;
   window = XtWindow(wif->windowwidget);
@@ -1803,18 +1889,25 @@ MNXwritepixel(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   x = translate_x(wif, LispIntToCInt(args[1]));
   y = wif->innerregion.height - translate_y(wif, LispIntToCInt(args[2]));
 
-  if (dd->ddoperation == INVERT_atom) {
+  if (dd->ddoperation == INVERT_atom)
+  {
     XDrawPoint(display, window, wif->InvertGC, x, y);
     XDrawPoint(display, wif->backing, dspif->PixIGC, x, y);
-  } else if (dd->ddoperation == ERASE_atom) {
+  }
+  else if (dd->ddoperation == ERASE_atom)
+  {
     XDrawPoint(display, window, wif->EraseGC1, x, y);
     XDrawPoint(display, window, wif->EraseGC2, x, y);
     XDrawPoint(display, wif->backing, dspif->PixEGC, x, y);
-  } else if (dd->ddoperation == PAINT_atom) {
+  }
+  else if (dd->ddoperation == PAINT_atom)
+  {
     XDrawPoint(display, window, wif->PaintGC1, x, y);
     XDrawPoint(display, window, wif->PaintGC2, x, y);
     XDrawPoint(display, wif->backing, dspif->PixPGC, x, y);
-  } else if (dd->ddoperation == REPLACE_atom) {
+  }
+  else if (dd->ddoperation == REPLACE_atom)
+  {
     XDrawPoint(display, window, wif->ReplaceGC, x, y);
     XDrawPoint(display, wif->backing, dspif->PixRGC, x, y);
   }
@@ -1830,8 +1923,8 @@ MNXwritepixel(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 /* vector with the integer values converted to C integers.    */
 /**************************************************************/
 MNXdrawpolygon(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
-                                    /* args[1] = LispPTR to Pointvector */
-                                    /* args[2] = Closedp */
+                              /* args[1] = LispPTR to Pointvector */
+                              /* args[2] = Closedp */
 {
   WindowInterface wif;
   Window window;
@@ -1847,7 +1940,8 @@ MNXdrawpolygon(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   wif = WIfFromMw(args[0]);
   dd = ImDataFromMw(args[0]);
 
-  if (!wif->open) MNXopenW(args); /* if window is closed, open it. */
+  if (!wif->open)
+    MNXopenW(args); /* if window is closed, open it. */
 
   display = dspif->handle;
   window = XtWindow(wif->windowwidget);
@@ -1858,32 +1952,42 @@ MNXdrawpolygon(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 
   /* XPoint is defined as shorts, base is defined as longs. */
   /* Pack the vector. */
-  for (i = 0; i < pv->length; i++) xpt[i] = (short)Mpt[i];
+  for (i = 0; i < pv->length; i++)
+    xpt[i] = (short)Mpt[i];
 
   /* Transmogrify the y coordinates */
   y = (short)wif->innerregion.height;
-  for (i = 1; i < pv->length; i += 2) {
+  for (i = 1; i < pv->length; i += 2)
+  {
     xpt[i] = y - translate_y(wif, xpt[i]);
     xpt[i - 1] = translate_x(wif, xpt[i - 1]);
   }
   /* If CLOSED then set last point are eq to the first. */
-  if (args[2] != NIL) {
+  if (args[2] != NIL)
+  {
     xpt[pv->length++] = xpt[0];
     xpt[pv->length++] = xpt[1];
   }
 
-  if (dd->ddoperation == INVERT_atom) {
+  if (dd->ddoperation == INVERT_atom)
+  {
     XDrawLines(display, window, wif->InvertGC, xpt, (pv->length >> 1), CoordModeOrigin);
     XDrawLines(display, wif->backing, dspif->PixIGC, xpt, (pv->length >> 1), CoordModeOrigin);
-  } else if (dd->ddoperation == ERASE_atom) {
+  }
+  else if (dd->ddoperation == ERASE_atom)
+  {
     XDrawLines(display, window, wif->EraseGC1, xpt, (pv->length >> 1), CoordModeOrigin);
     XDrawLines(display, window, wif->EraseGC2, xpt, (pv->length >> 1), CoordModeOrigin);
     XDrawLines(display, wif->backing, dspif->PixEGC, xpt, (pv->length >> 1), CoordModeOrigin);
-  } else if (dd->ddoperation == PAINT_atom) {
+  }
+  else if (dd->ddoperation == PAINT_atom)
+  {
     XDrawLines(display, window, wif->PaintGC1, xpt, (pv->length >> 1), CoordModeOrigin);
     XDrawLines(display, window, wif->PaintGC2, xpt, (pv->length >> 1), CoordModeOrigin);
     XDrawLines(display, wif->backing, dspif->PixPGC, xpt, (pv->length >> 1), CoordModeOrigin);
-  } else if (dd->ddoperation == REPLACE_atom) {
+  }
+  else if (dd->ddoperation == REPLACE_atom)
+  {
     XDrawLines(display, window, wif->ReplaceGC, xpt, (pv->length >> 1), CoordModeOrigin);
     XDrawLines(display, wif->backing, dspif->PixRGC, xpt, (pv->length >> 1), CoordModeOrigin);
   }
@@ -1893,8 +1997,8 @@ MNXdrawpolygon(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 }
 
 MNXfillpolygon(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
-                                    /* args[1] = LispPTR to Pointvector */
-                                    /* args[2] = Closedp */
+                              /* args[1] = LispPTR to Pointvector */
+                              /* args[2] = Closedp */
 {
   WindowInterface wif;
   Window window;
@@ -1910,7 +2014,8 @@ MNXfillpolygon(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   wif = WIfFromMw(args[0]);
   dd = ImDataFromMw(args[0]);
 
-  if (!wif->open) MNXopenW(args); /* if window is closed, open it. */
+  if (!wif->open)
+    MNXopenW(args); /* if window is closed, open it. */
 
   display = dspif->handle;
   window = XtWindow(wif->windowwidget);
@@ -1921,33 +2026,43 @@ MNXfillpolygon(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 
   /* XPoint is defined as shorts, base is defined as longs. */
   /* Pack the vector. */
-  for (i = 0; i < pv->length; i++) xpt[i] = (short)Mpt[i];
+  for (i = 0; i < pv->length; i++)
+    xpt[i] = (short)Mpt[i];
 
   /* Transmogrify the y coordinates */
   y = (short)wif->innerregion.height;
-  for (i = 1; i < pv->length; i += 2) {
+  for (i = 1; i < pv->length; i += 2)
+  {
     xpt[i] = y - translate_y(wif, xpt[i]);
     xpt[i - 1] = translate_x(wif, xpt[i - 1]);
   }
 
   /* If CLOSED then set last point are eq to the first. */
-  if (args[2] != NIL) {
+  if (args[2] != NIL)
+  {
     xpt[pv->length++] = xpt[0];
     xpt[pv->length++] = xpt[1];
   }
 
-  if (dd->ddoperation == INVERT_atom) {
+  if (dd->ddoperation == INVERT_atom)
+  {
     XFillPolygon(display, window, wif->InvertGC, xpt, (pv->length >> 1), CoordModeOrigin);
     XFillPolygon(display, wif->backing, dspif->PixIGC, xpt, (pv->length >> 1), CoordModeOrigin);
-  } else if (dd->ddoperation == ERASE_atom) {
+  }
+  else if (dd->ddoperation == ERASE_atom)
+  {
     XFillPolygon(display, window, wif->EraseGC1, xpt, (pv->length >> 1), CoordModeOrigin);
     XFillPolygon(display, window, wif->EraseGC2, xpt, (pv->length >> 1), CoordModeOrigin);
     XFillPolygon(display, wif->backing, dspif->PixEGC, xpt, (pv->length >> 1), CoordModeOrigin);
-  } else if (dd->ddoperation == PAINT_atom) {
+  }
+  else if (dd->ddoperation == PAINT_atom)
+  {
     XFillPolygon(display, window, wif->PaintGC1, xpt, (pv->length >> 1), CoordModeOrigin);
     XFillPolygon(display, window, wif->PaintGC2, xpt, (pv->length >> 1), CoordModeOrigin);
     XFillPolygon(display, wif->backing, dspif->PixPGC, xpt, (pv->length >> 1), CoordModeOrigin);
-  } else if (dd->ddoperation == REPLACE_atom) {
+  }
+  else if (dd->ddoperation == REPLACE_atom)
+  {
     XFillPolygon(display, window, wif->ReplaceGC, xpt, (pv->length >> 1), CoordModeOrigin);
     XFillPolygon(display, wif->backing, dspif->PixRGC, xpt, (pv->length >> 1), CoordModeOrigin);
   }
@@ -1964,8 +2079,8 @@ MNXfillpolygon(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 /* vector with the integer values converted to C integers.    */
 /**************************************************************/
 MNXdrawcurve(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
-                                  /* args[1] = LispPTR to Pointvector */
-                                  /* args[2] = Closedp */
+                            /* args[1] = LispPTR to Pointvector */
+                            /* args[2] = Closedp */
 {
   WindowInterface wif;
   Window window;
@@ -1981,7 +2096,8 @@ MNXdrawcurve(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   wif = WIfFromMw(args[0]);
   dd = ImDataFromMw(args[0]);
 
-  if (!wif->open) MNXopenW(args); /* if window is closed, open it. */
+  if (!wif->open)
+    MNXopenW(args); /* if window is closed, open it. */
 
   display = dspif->handle;
   window = XtWindow(wif->windowwidget);
@@ -1992,33 +2108,43 @@ MNXdrawcurve(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 
   /* XPoint is defined as shorts, base is defined as longs. */
   /* Pack the vector. */
-  for (i = 0; i < pv->length; i++) xpt[i] = (short)Mpt[i];
+  for (i = 0; i < pv->length; i++)
+    xpt[i] = (short)Mpt[i];
 
   /* Transmogrify the y coordinates */
   y = (short)wif->innerregion.height;
-  for (i = 1; i < pv->length; i += 2) {
+  for (i = 1; i < pv->length; i += 2)
+  {
     xpt[i] = y - translate_y(wif, xpt[i]);
     xpt[i - 1] = translate_x(wif, xpt[i - 1]);
   }
 
   /* If CLOSED then set last point are eq to the first. */
-  if (args[2] != NIL) {
+  if (args[2] != NIL)
+  {
     xpt[pv->length++] = xpt[0];
     xpt[pv->length++] = xpt[1];
   }
 
-  if (dd->ddoperation == INVERT_atom) {
+  if (dd->ddoperation == INVERT_atom)
+  {
     XDrawLines(display, window, wif->InvertGC, xpt, (pv->length >> 1), CoordModeOrigin);
     XDrawLines(display, wif->backing, dspif->PixIGC, xpt, (pv->length >> 1), CoordModeOrigin);
-  } else if (dd->ddoperation == ERASE_atom) {
+  }
+  else if (dd->ddoperation == ERASE_atom)
+  {
     XDrawLines(display, window, wif->EraseGC1, xpt, (pv->length >> 1), CoordModeOrigin);
     XDrawLines(display, window, wif->EraseGC2, xpt, (pv->length >> 1), CoordModeOrigin);
     XDrawLines(display, wif->backing, dspif->PixEGC, xpt, (pv->length >> 1), CoordModeOrigin);
-  } else if (dd->ddoperation == PAINT_atom) {
+  }
+  else if (dd->ddoperation == PAINT_atom)
+  {
     XDrawLines(display, window, wif->PaintGC1, xpt, (pv->length >> 1), CoordModeOrigin);
     XDrawLines(display, window, wif->PaintGC2, xpt, (pv->length >> 1), CoordModeOrigin);
     XDrawLines(display, wif->backing, dspif->PixPGC, xpt, (pv->length >> 1), CoordModeOrigin);
-  } else if (dd->ddoperation == REPLACE_atom) {
+  }
+  else if (dd->ddoperation == REPLACE_atom)
+  {
     XDrawLines(display, window, wif->ReplaceGC, xpt, (pv->length >> 1), CoordModeOrigin);
     XDrawLines(display, wif->backing, dspif->PixRGC, xpt, (pv->length >> 1), CoordModeOrigin);
   }
@@ -2031,10 +2157,10 @@ MNXdrawcurve(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 /* MNXclippingregion                                          */
 /************************************************************/
 MNXclippingregion(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
-                                       /* args[1] = left */
-                                       /* args[2] = bottom */
-                                       /* args[3] = width */
-                                       /* args[4] = height */
+                                 /* args[1] = left */
+                                 /* args[2] = bottom */
+                                 /* args[3] = width */
+                                 /* args[4] = height */
 
 {
   WindowInterface wif;
@@ -2058,7 +2184,7 @@ MNXclippingregion(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 /* set the new state and once to put the old state back.      */
 /**************************************************************/
 MNXoperation(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
-                                  /* args[1] = Smallp for function. */
+                            /* args[1] = Smallp for function. */
 {
   WindowInterface wif;
   Window window;
@@ -2094,7 +2220,7 @@ MNXoperation(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 /*                                                            */
 /**************************************************************/
 MNXdspcolor(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
-                                 /* args[1] = LispPTR to FIXP or BITMAPP */
+                           /* args[1] = LispPTR to FIXP or BITMAPP */
 {
   WindowInterface wif;
   DspInterface dspif;
@@ -2108,18 +2234,22 @@ MNXdspcolor(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   display = XDisplayFromMw(args[0]);
   dd = ImDataFromMw(args[0]);
 
-  if (wif->fgpixmap) {
+  if (wif->fgpixmap)
+  {
     /* If we have an fgpixmap, junk it */
     XFreePixmap(display, wif->fgpixmap);
     wif->fgpixmap = 0;
   }
 
   if (TYPE_SMALLP == GetTypeNumber(args[1]))
-    if (LispIntToCInt(MScrFromMw(args[0])->SCDEPTH) == 1) {
+    if (LispIntToCInt(MScrFromMw(args[0])->SCDEPTH) == 1)
+    {
       /* A fixp on a BW screen: make a texture of this */
       dspif->image.data = id;
       MakeScratchImageFromInt(dspif, LispIntToCInt(args[1]));
-    } else { /* A fixp on a color screen: color the foreground */
+    }
+    else
+    { /* A fixp on a color screen: color the foreground */
       fgcol = ~LispIntToCInt(args[1]);
       XSetForeground(display, wif->InvertGC, fgcol);
       XSetForeground(display, wif->EraseGC1, fgcol);
@@ -2129,14 +2259,16 @@ MNXdspcolor(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
       XSetForeground(display, wif->ReplaceGC, fgcol);
       return (NIL);
     }
-  else {
+  else
+  {
     BITMAP *bitmap;
 
     bitmap = (BITMAP *)Cptr(args[1]);
     MakeScratchImageFromBM(dspif, bitmap);
   }
 
-  if (dspif->image.depth == 1) {
+  if (dspif->image.depth == 1)
+  {
     wif->fgpixmap = XCreatePixmapFromBitmapData(dspif->handle, XtWindow(wif->windowwidget),
                                                 dspif->image.data, dspif->image.width,
                                                 dspif->image.height, 0, 1, dspif->image.depth);
@@ -2146,7 +2278,9 @@ MNXdspcolor(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
     XSetStipple(display, wif->PaintGC1, wif->fgpixmap);
     XSetStipple(display, wif->PaintGC2, wif->fgpixmap);
     XSetStipple(display, wif->ReplaceGC, wif->fgpixmap);
-  } else {
+  }
+  else
+  {
     wif->fgpixmap = XCreatePixmapFromBitmapData(
         dspif->handle, XtWindow(wif->windowwidget), dspif->image.data, dspif->image.width,
         dspif->image.height, BlackPixelOfScreen(wif->screen), WhitePixelOfScreen(wif->screen),
@@ -2171,7 +2305,9 @@ MNXdspcolor(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 MNXdspbackcolor(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 /* args[1] = background type 0=fixp for color 1=bitmap for stiple. */
 /* args[2] = background, fixp or bitmap */
-{ settexture(args[0]); }
+{
+  settexture(args[0]);
+}
 
 /************************************************************/
 /* MNXBitblt - can only copy from bitmap to window. we need   */
@@ -2180,13 +2316,13 @@ MNXdspbackcolor(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
 MNXBitBltBW() { error("Call to MNXBitBltBW. This function is not in use anymore."); }
 
 MNXbltshadeBW(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
-                                   /* args[1] = LispPTR to TEXTURE */
-                                   /* args[2] = dst_x */
-                                   /* args[3] = dst_y */
-                                   /* args[4] = width */
-                                   /* args[5] = height */
-                                   /* args[6] = operation */
-                                   /* args[7] = background, fixp or bitmap */
+                             /* args[1] = LispPTR to TEXTURE */
+                             /* args[2] = dst_x */
+                             /* args[3] = dst_y */
+                             /* args[4] = width */
+                             /* args[5] = height */
+                             /* args[6] = operation */
+                             /* args[7] = background, fixp or bitmap */
 {
   WindowInterface wif;
   DspInterface dspif;
@@ -2200,7 +2336,8 @@ MNXbltshadeBW(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   dspif = DspIfFromMw(args[0]);
   display = XDisplayFromMw(args[0]);
 
-  if (!wif->open) MNXopenW(args); /* if window is closed, open it. */
+  if (!wif->open)
+    MNXopenW(args); /* if window is closed, open it. */
 
   regheight = LispIntToCInt(args[5]);
   width = LispIntToCInt(args[4]);
@@ -2220,75 +2357,56 @@ DspInterface dspif;
   Pixmap bgpixmap;
   char id[64];
 
-  if (TYPE_SMALLP == GetTypeNumber(texture)) {
-#ifdef NEVER
-    if (dspif->depth == 1) {
-#endif /* NEVER */
-      dspif->image.data = id;
-      MakeScratchImageFromInt(dspif, texture & 0xFFFF);
-#ifdef NEVER
-    } else { /* Medley sez' color the foreground */
-      XSetForeground(display, wif->gc, ~LispIntToCInt(texture));
-      XFillRectangle(display, XtWindow(wif->windowwidget), wif->gc, dstx, dsty, width, regheight);
-      XFlush(display);
-      return (ATOM_T);
-    }
-#endif     /* NEVER */
-  } else { /* Its a bitmap. Medley sez' make a texture of this */
+  if (TYPE_SMALLP == GetTypeNumber(texture))
+  {
+    dspif->image.data = id;
+    MakeScratchImageFromInt(dspif, texture & 0xFFFF);
+  }
+  else
+  { /* Its a bitmap. Medley sez' make a texture of this */
     BITMAP *bitmap;
 
     bitmap = (BITMAP *)Cptr(texture);
     MakeScratchImageFromBM(dspif, bitmap);
   }
-#ifdef NEVER
-  if (dspif->image.depth == 1) {
-#endif /* NEVER */
-    bgpixmap = XCreatePixmapFromBitmapData(dspif->handle, XtWindow(wif->windowwidget),
-                                           dspif->image.data, dspif->image.width,
-                                           dspif->image.height, 0, 1, dspif->image.depth);
-    XSetStipple(display, wif->gc, bgpixmap);
-#ifdef NEVER
-  } else {
-    bgpixmap = XCreatePixmapFromBitmapData(dspif->handle, XtWindow(wif->windowwidget),
-                                           dspif->image.data, dspif->image.width,
-                                           dspif->image.height, BlackPixelOfScreen(wif->screen),
-                                           WhitePixelOfScreen(wif->screen), dspif->image.depth);
-    XSetTile(display, wif->gc, bgpixmap);
-  }
-#endif /* NEVER */
+  bgpixmap = XCreatePixmapFromBitmapData(dspif->handle, XtWindow(wif->windowwidget),
+                                         dspif->image.data, dspif->image.width,
+                                         dspif->image.height, 0, 1, dspif->image.depth);
+  XSetStipple(display, wif->gc, bgpixmap);
 
   XSetFunction(display, wif->gc, bltshade_function[op % 4]);
-  switch (op) {
-    case 0:
-      /* XSetFillStyle(display, wif->gc, FillOpaqueStippled); */
-      XSetFillStyle(display, dspif->PixRGC, FillOpaqueStippled);
-      XSetStipple(display, dspif->PixRGC, bgpixmap);
-      XSetTSOrigin(display, dspif->PixRGC, dstx, dsty);
-      XFillRectangle(display, wif->backing, dspif->PixRGC, dstx, dsty, width, regheight);
-      break;
-    case 1:
-      XSetFillStyle(display, wif->gc, FillStippled);
-      XSetFillStyle(display, dspif->PixRGC, FillStippled);
-      XSetStipple(display, dspif->PixRGC, bgpixmap);
-      XSetTSOrigin(display, dspif->PixRGC, dstx, dsty);
-      XFillRectangle(display, wif->backing, dspif->PixRGC, dstx, dsty, width, regheight);
-      break;
-    case 2:
-      XSetForeground(display, wif->gc, dspif->white ^ dspif->black);
-      XSetFillStyle(display, wif->gc, FillStippled);
-      XSetFillStyle(display, dspif->PixIGC, FillStippled);
-      XSetStipple(display, dspif->PixIGC, bgpixmap);
-      XSetTSOrigin(display, dspif->PixIGC, dstx, dsty);
-      XFillRectangle(display, wif->backing, dspif->PixIGC, dstx, dsty, width, regheight);
-      break;
-    case 3:
-      XSetForeground(display, wif->gc, dspif->white);
-      XSetFillStyle(display, wif->gc, FillStippled);
-      XSetFillStyle(display, dspif->PixEGC, FillStippled);
-      XSetStipple(display, dspif->PixEGC, bgpixmap);
-      XSetTSOrigin(display, dspif->PixEGC, dstx, dsty);
-      XFillRectangle(display, wif->backing, dspif->PixEGC, dstx, dsty, width, regheight);
-      break;
+  switch (op)
+  {
+  case 0:
+    /* XSetFillStyle(display, wif->gc, FillOpaqueStippled); */
+    XSetFillStyle(display, dspif->PixRGC, FillOpaqueStippled);
+    XSetStipple(display, dspif->PixRGC, bgpixmap);
+    XSetTSOrigin(display, dspif->PixRGC, dstx, dsty);
+    XFillRectangle(display, wif->backing, dspif->PixRGC, dstx, dsty, width, regheight);
+    break;
+  case 1:
+    XSetFillStyle(display, wif->gc, FillStippled);
+    XSetFillStyle(display, dspif->PixRGC, FillStippled);
+    XSetStipple(display, dspif->PixRGC, bgpixmap);
+    XSetTSOrigin(display, dspif->PixRGC, dstx, dsty);
+    XFillRectangle(display, wif->backing, dspif->PixRGC, dstx, dsty, width, regheight);
+    break;
+  case 2:
+    XSetForeground(display, wif->gc, dspif->white ^ dspif->black);
+    XSetFillStyle(display, wif->gc, FillStippled);
+    XSetFillStyle(display, dspif->PixIGC, FillStippled);
+    XSetStipple(display, dspif->PixIGC, bgpixmap);
+    XSetTSOrigin(display, dspif->PixIGC, dstx, dsty);
+    XFillRectangle(display, wif->backing, dspif->PixIGC, dstx, dsty, width, regheight);
+    break;
+  case 3:
+    XSetForeground(display, wif->gc, dspif->white);
+    XSetFillStyle(display, wif->gc, FillStippled);
+    XSetFillStyle(display, dspif->PixEGC, FillStippled);
+    XSetStipple(display, dspif->PixEGC, bgpixmap);
+    XSetTSOrigin(display, dspif->PixEGC, dstx, dsty);
+    XFillRectangle(display, wif->backing, dspif->PixEGC, dstx, dsty, width, regheight);
+    break;
   }
 
   /*   XSetTSOrigin(display, wif->gc, dstx, dsty);
@@ -2301,16 +2419,18 @@ DspInterface dspif;
   XFreePixmap(display, bgpixmap);
   switch (op) /* undo the changing of foreground color above */
   {
-    case 0:
-    case 1: XSetFillStyle(display, dspif->PixRGC, FillSolid); break;
-    case 2:
-      XSetForeground(display, wif->gc, dspif->black);
-      XSetFillStyle(display, dspif->PixIGC, FillSolid);
-      break;
-    case 3:
-      XSetForeground(display, wif->gc, dspif->black);
-      XSetFillStyle(display, dspif->PixEGC, FillSolid);
-      break;
+  case 0:
+  case 1:
+    XSetFillStyle(display, dspif->PixRGC, FillSolid);
+    break;
+  case 2:
+    XSetForeground(display, wif->gc, dspif->black);
+    XSetFillStyle(display, dspif->PixIGC, FillSolid);
+    break;
+  case 3:
+    XSetForeground(display, wif->gc, dspif->black);
+    XSetFillStyle(display, dspif->PixEGC, FillSolid);
+    break;
   }
   /* XSetFunction(display, wif->gc, gcfunction[wif->op % 4]);	 */
   XFlush(display);
@@ -2328,7 +2448,8 @@ XClearToEOL(LispArgs args) /* args[0] = MedleyWindow */
   display = XDisplayFromMw(args[0]);
   window = XWindowFromMw(args[0]);
   wif = WIfFromMw(args[0]);
-  if (!wif->open) MNXopenW(args); /* if window is closed, open it. */
+  if (!wif->open)
+    MNXopenW(args); /* if window is closed, open it. */
 
   height = abs(dd->ddlinefeed);
   dstx = translate_x(wif, LispIntToCInt(args[1]));
@@ -2336,7 +2457,7 @@ XClearToEOL(LispArgs args) /* args[0] = MedleyWindow */
   XClearArea(display, window, dstx, dsty, 0, /* Out to the end */
              height,                         /* The height */
              False                           /* Don't generate exposure events */
-             );
+  );
   XFlush(display);
 }
 
@@ -2357,10 +2478,10 @@ MNXNewPage(LispArgs args) /* args[0] = MedleyWindow */
 /* bump into the right margin.                              */
 /************************************************************/
 MNXOutchar(LispArgs args) /* args[0] = MedleyWindow */
-                                /* args[1] = Charcode */
-                                /* args[2] = Stream */
-                                /* args[3] = DD */
-                                /* DSPXOFFSET and DSPYOFFSET are ignored here. */
+                          /* args[1] = Charcode */
+                          /* args[2] = Stream */
+                          /* args[3] = DD */
+                          /* DSPXOFFSET and DSPYOFFSET are ignored here. */
 {
   /* Doesn't switch charsets. */
   Display *display;
@@ -2376,12 +2497,14 @@ MNXOutchar(LispArgs args) /* args[0] = MedleyWindow */
 
   dspif = DspIfFromMw(args[0]);
   wif = WIfFromMw(args[0]);
-  if (!wif->open) MNXopenW(args); /* if window is closed, open it. */
+  if (!wif->open)
+    MNXopenW(args); /* if window is closed, open it. */
 
   display = dspif->handle;
   window = XtWindow(wif->windowwidget);
 
-  if (!window) return (NIL); /* No window, pretend we succeeded. */
+  if (!window)
+    return (NIL); /* No window, pretend we succeeded. */
 
   s = ((Stream *)Cptr(args[2]));
   dd = ((DISPLAYDATA *)Cptr(args[3]));
@@ -2413,21 +2536,28 @@ MNXOutchar(LispArgs args) /* args[0] = MedleyWindow */
   sx = GETWORD(Cptr(dd->ddoffsetscache + char8code));
   sy = 0;
 
-  if (dd->ddoperation == INVERT_atom) {
+  if (dd->ddoperation == INVERT_atom)
+  {
     XPutImage(display, window, wif->InvertGC, &dspif->image, sx, sy, cx, cy, w, bitmap->bmheight);
     XPutImage(display, wif->backing, dspif->PixIGC, &dspif->image, sx, sy, cx, cy, w,
               bitmap->bmheight);
-  } else if (dd->ddoperation == ERASE_atom) {
+  }
+  else if (dd->ddoperation == ERASE_atom)
+  {
     XPutImage(display, window, wif->EraseGC1, &dspif->image, sx, sy, cx, cy, w, bitmap->bmheight);
     XPutImage(display, window, wif->EraseGC2, &dspif->image, sx, sy, cx, cy, w, bitmap->bmheight);
     XPutImage(display, wif->backing, dspif->PixEGC, &dspif->image, sx, sy, cx, cy, w,
               bitmap->bmheight);
-  } else if (dd->ddoperation == PAINT_atom) {
+  }
+  else if (dd->ddoperation == PAINT_atom)
+  {
     XPutImage(display, window, wif->PaintGC1, &dspif->image, sx, sy, cx, cy, w, bitmap->bmheight);
     XPutImage(display, window, wif->PaintGC2, &dspif->image, sx, sy, cx, cy, w, bitmap->bmheight);
     XPutImage(display, wif->backing, dspif->PixPGC, &dspif->image, sx, sy, cx, cy, w,
               bitmap->bmheight);
-  } else if (dd->ddoperation == REPLACE_atom) {
+  }
+  else if (dd->ddoperation == REPLACE_atom)
+  {
     XPutImage(display, window, wif->ReplaceGC, &dspif->image, sx, sy, cx, cy, w, bitmap->bmheight);
     XPutImage(display, wif->backing, dspif->PixRGC, &dspif->image, sx, sy, cx, cy, w,
               bitmap->bmheight);
@@ -2443,11 +2573,12 @@ MNXOutchar(LispArgs args) /* args[0] = MedleyWindow */
 /* The WINDOWPROP interface                                 */
 /************************************************************/
 MNXgetwindowprop(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
-{}
+{
+}
 
 MNXputwindowprop(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
-                                      /* args[1] = Lispint to dispatch on. */
-                                      /* args[n] = args for the method. */
+                                /* args[1] = Lispint to dispatch on. */
+                                /* args[n] = args for the method. */
 {
   int method;
   Window window;
@@ -2463,34 +2594,43 @@ MNXputwindowprop(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
   args[1] = args[0];
   args++;
 
-  switch (method) {
-    case MNWTitle: showtitle(args[0]); break;
-    case MNWScrollFn:
-      XtVaSetValues(WIfFromMw(args[0])->formwidget, XtNbarOnOff, (args[1] != NIL), XtNmedleyWindow,
-                    wif, XtNhScroll, &SignalHScroll, XtNhJmpScroll, &SignalHJmpScroll, XtNvScroll,
-                    &SignalVScroll, XtNvJmpScroll, &SignalVJmpScroll, NULL);
-      if (XtWindow(wif->topwidget)) {
-        XGetWindowAttributes(wif->dspif->handle, XtWindow(wif->topwidget), &attr);
-        wif->topregion.width = attr.width;
-        wif->topregion.height = attr.height;
-      }
-      break;
-    case MNWNoScrollbars:
-      XtVaSetValues(WIfFromMw(args[0])->formwidget, XtNbarOnOff, (args[1] == NIL), NULL);
-      if (XtWindow(wif->topwidget)) {
-        XGetWindowAttributes(wif->dspif->handle, XtWindow(wif->topwidget), &attr);
-        wif->topregion.width = attr.width;
-        wif->topregion.height = attr.height;
-      }
-      break;
-    case MNWScrollExtent:
-      XtVaSetValues(WIfFromMw(args[0])->formwidget, XtNextentX, LispIntToCInt(args[1]), XtNextentY,
-                    LispIntToCInt(args[2]), XtNextentWidth, LispIntToCInt(args[3]), XtNextentHeight,
-                    LispIntToCInt(args[4]), NULL);
-      break;
-    case MNWScrollExtentUse: break;
-    case MNWBorder: refreshwindow(args[0]); break;
-    default: break;
+  switch (method)
+  {
+  case MNWTitle:
+    showtitle(args[0]);
+    break;
+  case MNWScrollFn:
+    XtVaSetValues(WIfFromMw(args[0])->formwidget, XtNbarOnOff, (args[1] != NIL), XtNmedleyWindow,
+                  wif, XtNhScroll, &SignalHScroll, XtNhJmpScroll, &SignalHJmpScroll, XtNvScroll,
+                  &SignalVScroll, XtNvJmpScroll, &SignalVJmpScroll, NULL);
+    if (XtWindow(wif->topwidget))
+    {
+      XGetWindowAttributes(wif->dspif->handle, XtWindow(wif->topwidget), &attr);
+      wif->topregion.width = attr.width;
+      wif->topregion.height = attr.height;
+    }
+    break;
+  case MNWNoScrollbars:
+    XtVaSetValues(WIfFromMw(args[0])->formwidget, XtNbarOnOff, (args[1] == NIL), NULL);
+    if (XtWindow(wif->topwidget))
+    {
+      XGetWindowAttributes(wif->dspif->handle, XtWindow(wif->topwidget), &attr);
+      wif->topregion.width = attr.width;
+      wif->topregion.height = attr.height;
+    }
+    break;
+  case MNWScrollExtent:
+    XtVaSetValues(WIfFromMw(args[0])->formwidget, XtNextentX, LispIntToCInt(args[1]), XtNextentY,
+                  LispIntToCInt(args[2]), XtNextentWidth, LispIntToCInt(args[3]), XtNextentHeight,
+                  LispIntToCInt(args[4]), NULL);
+    break;
+  case MNWScrollExtentUse:
+    break;
+  case MNWBorder:
+    refreshwindow(args[0]);
+    break;
+  default:
+    break;
   }
 }
 
@@ -2535,14 +2675,18 @@ MNXGrabPointer(LispArgs args)
   wif = dspif->promptw; /* handle on the prompt window */
   promptw = XtWindow(wif->framewidget);
 
-  if (args[1]) {
+  if (args[1])
+  {
     src = (unsigned char *)Cptr(args[1]);
-    for (i = 0; i < 32; i++) srcbits[i] = reversedbits[src[i]];
+    for (i = 0; i < 32; i++)
+      srcbits[i] = reversedbits[src[i]];
 
     bits = XCreatePixmapFromBitmapData(display, dspif->root, srcbits, 16, 16, 1, 0, 1);
     grab_cursor = XCreatePixmapCursor(display, bits, bits, &dspif->black, &dspif->white,
                                       args[2] & 0xFFFF, 16 - (args[3] & 0xFFFF));
-  } else {
+  }
+  else
+  {
     grab_cursor = None;
   }
 
@@ -2550,7 +2694,10 @@ MNXGrabPointer(LispArgs args)
       XGrabPointer(display, promptw, False, PointerMotionMask | ButtonPressMask | ButtonReleaseMask,
                    GrabModeAsync, GrabModeAsync, None, grab_cursor, CurrentTime);
 
-  if (grab_cursor != None) { XFreePixmap(display, bits); }
+  if (grab_cursor != None)
+  {
+    XFreePixmap(display, bits);
+  }
   if (res == GrabSuccess)
     return (ATOM_T);
   else
@@ -2576,7 +2723,8 @@ MNXUngrabPointer(LispArgs args)
 
   res = XUngrabPointer(display, CurrentTime);
 
-  if (grab_cursor != None) XFreeCursor(display, grab_cursor);
+  if (grab_cursor != None)
+    XFreeCursor(display, grab_cursor);
 
   grab_cursor = None;
 
@@ -2586,11 +2734,11 @@ MNXUngrabPointer(LispArgs args)
 static int box_drawn = 0; /* T if there's a box on already */
 
 MNXDrawBox(LispArgs args) /* args[0] = Medley SCREEN to draw box on */
-                                /* args[1] = Left of box */
-                                /* args[2] = bottom of box */
-                                /* args[3] = width of box */
-                                /* args[4] = height of box */
-                                /* args[5] = T to force turning box off iff it's on */
+                          /* args[1] = Left of box */
+                          /* args[2] = bottom of box */
+                          /* args[3] = width of box */
+                          /* args[4] = height of box */
+                          /* args[5] = T to force turning box off iff it's on */
 {
   Display *display;
   WindowInterface wif;
@@ -2625,18 +2773,22 @@ MNXDrawBox(LispArgs args) /* args[0] = Medley SCREEN to draw box on */
 
   b = HeightOfScreen(dspif->xscreen) - b - h; /* convert to X's Y-coord */
 
-  if (args[5]) {
-    if (box_drawn) XDrawRectangle(display, root, gc, l, b, w, h);
+  if (args[5])
+  {
+    if (box_drawn)
+      XDrawRectangle(display, root, gc, l, b, w, h);
     box_drawn = 0;
-  } else {
+  }
+  else
+  {
     XDrawRectangle(display, root, gc, l, b, w, h);
     box_drawn = !box_drawn;
   }
 }
 
 MNXMovePointer(LispArgs args) /* args[0] = LispPTR to SCREEN */
-                                    /* args[1] = new pointer X */
-                                    /* args[2] = new pointer Y */
+                              /* args[1] = new pointer X */
+                              /* args[2] = new pointer Y */
 {
   Display *display;
   WindowInterface wif;
@@ -2657,10 +2809,11 @@ MNXMovePointer(LispArgs args) /* args[0] = LispPTR to SCREEN */
 }
 
 MNXmouseconfirm(LispArgs args) /* args[0] = LispPTR to MedleyWindow */
-{ /* Use a DIALOG WIDGET here. */ }
+{                              /* Use a DIALOG WIDGET here. */
+}
 
 MNXgarb(LispArgs args) /* args[0] = LispPTR to MedleyScreen */
-                             /* args[1] = NIL for GC off, non-NIL for GC on */
+                       /* args[1] = NIL for GC off, non-NIL for GC on */
 {
   DspInterface dspif;
 
@@ -2719,9 +2872,9 @@ MNXMakePromptWindow(LispArgs args) /* args[0] = Lisp window, the prompt window *
 static Cursor MNX_cursor = NULL; /* Cursor in active use */
 
 MNXSetCursor(LispArgs args) /* args[0] = Medley screen */
-                                  /* args[1] = bits for new cursor */
-                                  /* args[2] = hot-spot x */
-                                  /* args[3] = hot-spot y */
+                            /* args[1] = bits for new cursor */
+                            /* args[2] = hot-spot x */
+                            /* args[3] = hot-spot y */
 {
   Display *display;
   WindowInterface wif;
@@ -2742,18 +2895,23 @@ MNXSetCursor(LispArgs args) /* args[0] = Medley screen */
   display = dspif->handle;
 
   src = (unsigned char *)Cptr(args[1]);
-  for (i = 0; i < 32; i++) srcbits[i] = reversedbits[src[i]];
+  for (i = 0; i < 32; i++)
+    srcbits[i] = reversedbits[src[i]];
 
   bits = XCreatePixmapFromBitmapData(display, dspif->root, srcbits, 16, 16, 1, 0, 1);
   new_cursor = XCreatePixmapCursor(display, bits, bits, &dspif->black, &dspif->white,
                                    args[2] & 0xFFFF, args[3] & 0xFFFF);
 
   for (wif = dspif->CreatedWifs; wif; wif = wif->next)
-    if (win = XtWindow(wif->windowwidget)) XDefineCursor(display, win, new_cursor);
+    if (win = XtWindow(wif->windowwidget))
+      XDefineCursor(display, win, new_cursor);
 
   XFreePixmap(display, bits);
 
-  if (dspif->cursor) { XFreeCursor(display, dspif->cursor); }
+  if (dspif->cursor)
+  {
+    XFreeCursor(display, dspif->cursor);
+  }
   dspif->cursor = new_cursor;
 
   return (NIL);
@@ -2783,7 +2941,8 @@ InitDsp(LispArgs args) /* arg[0] = LispPTR to MedleyScreen */
   dspif = (DspInterface)malloc(sizeof(DspInterfaceRec));
   SCREEN->NativeIf = dspif;
 
-  if (!xtinitialized) {
+  if (!xtinitialized)
+  {
     XtToolkitInitialize();
     xtinitialized = True;
   }
@@ -2791,18 +2950,21 @@ InitDsp(LispArgs args) /* arg[0] = LispPTR to MedleyScreen */
 
   /* if NATIVE_INFO has a string use it for the hostname */
   /* else use the environment var DISPLAY or "unix:0.0" */
-  if (LispStringP(SCREEN->NATIVE_INFO)) {
+  if (LispStringP(SCREEN->NATIVE_INFO))
+  {
     strlen = LispStringSimpleLength(SCREEN->NATIVE_INFO);
     tmpstring = (char *)alloca(strlen + 1);
     LispStringToCStr(SCREEN->NATIVE_INFO, tmpstring);
     dspif->handle =
         XtOpenDisplay(dspif->xtcontext, tmpstring, NULL, "window", NULL, 0, &save_argc, save_argv);
-  } else
+  }
+  else
     dspif->handle =
         XtOpenDisplay(dspif->xtcontext, NULL, NULL, "window", NULL, 0, &save_argc, save_argv);
 
   /* Set up the native structure here */
-  if (dspif->handle == NULL) return (CIntToLispInt(2));
+  if (dspif->handle == NULL)
+    return (CIntToLispInt(2));
 
   XSetErrorHandler(Xerrhandler);
 
@@ -2941,33 +3103,22 @@ InitDsp(LispArgs args) /* arg[0] = LispPTR to MedleyScreen */
   inverted = 0;
 
   if (diff)
-    for (mask = 1; mask; mask <<= 1) {
-      if (mask & diff) break;
+    for (mask = 1; mask; mask <<= 1)
+    {
+      if (mask & diff)
+        break;
     }
-  else {
+  else
+  {
     mask = 1;
     inverted = 1;
-    for (diff = white & (~black); mask; mask <<= 1) {
-      if (mask & diff) break;
+    for (diff = white & (~black); mask; mask <<= 1)
+    {
+      if (mask & diff)
+        break;
     }
   }
-#ifdef NEVER
-  gcv.function = GXcopy;
-  gcv.foreground = !inverted;
-  gcv.background = inverted;
-  dspif->GetRGC = XCreateGC(display, dspif->root, GCForeground | GCBackground | GCFunction, &gcv);
 
-  gcv.function = GXxor;
-  dspif->GetIGC = XCreateGC(display, dspif->root, GCForeground | GCBackground | GCFunction, &gcv);
-
-  gcv.function = GXor;
-  dspif->GetPGC = XCreateGC(display, dspif->root, GCForeground | GCBackground | GCFunction, &gcv);
-
-  gcv.function = GXandInverted;
-  dspif->GetEGC = XCreateGC(display, dspif->root, GCForeground | GCBackground | GCFunction, &gcv);
-  dspif->bw_plane = mask;
-  dspif->bw_inverted = inverted;
-#endif /* NEVER */
   gcv.function = GXxor;
   gcv.line_style = LineSolid;
   gcv.line_width = 0;
@@ -2980,16 +3131,20 @@ InitDsp(LispArgs args) /* arg[0] = LispPTR to MedleyScreen */
 
   /* Check the requested depth against possibilities */
 
-  if (SCREEN->SCDEPTH) {
+  if (SCREEN->SCDEPTH)
+  {
     int i;
     int *dlist;
     int dcount;
 
     dlist = XListDepths(display, XScreenNumberOfScreen(screen), &dcount);
     for (i = 0; i < dcount; i++)
-      if (dlist[i] == (SCREEN->SCDEPTH & 0xFFFF)) return (NIL);
+      if (dlist[i] == (SCREEN->SCDEPTH & 0xFFFF))
+        return (NIL);
     return (CIntToLispInt(1)); /* Can't find depth */
-  } else {
+  }
+  else
+  {
     SCREEN->SCDEPTH = CIntToLispInt(PlanesOfScreen(screen));
   }
   return (NIL);
@@ -3012,9 +3167,11 @@ init_mnw_instance(args) LispPTR *args;
 
   type = GetTypeNumber(args[0]);
 
-  if (type == MedleyScreenType) {
+  if (type == MedleyScreenType)
+  {
     return (InitDsp(args));
-  } else
+  }
+  else
     error("Bogus type\n");
   return (ATOM_T);
 }
@@ -3039,37 +3196,47 @@ dispatch_mnw_method(args) LispPTR *args;
   index = LispIntToCInt(args[0]);
   type = GetTypeNumber(args[1]);
 
-  if (args[1] == NULL) error("No object to dispatch from\n");
+  if (args[1] == NULL)
+    error("No object to dispatch from\n");
 
-  if (type == MedleyWindowType) {
+  if (type == MedleyWindowType)
+  {
     WindowInterface wif;
 
     wif = WIfFromMw(args[1]);
-    if (wif == NULL) {
+    if (wif == NULL)
+    {
       /* error("Attempt to dispatch on a non-native window.\n"); */
       return (NIL);
     }
-    if ((wif->Dispatch->vector[index]) == NULL) {
+    if ((wif->Dispatch->vector[index]) == NULL)
+    {
       error("Display method not defined.\n");
       return (NIL);
     }
     /* Now, dispatch with the selector (first) arg shave off */
     return ((wif->Dispatch->vector[index])(&args[1]));
-  } else if (type == MedleyScreenType) {
+  }
+  else if (type == MedleyScreenType)
+  {
     DspInterface dspif;
 
     dspif = DspIfFromMscr(args[1]);
-    if (dspif == NULL) {
+    if (dspif == NULL)
+    {
       error("Attempt to dispatch on a non-native screen.\n");
       return (NIL);
     }
-    if ((dspif->Dispatch.vector[index]) == NULL) {
+    if ((dspif->Dispatch.vector[index]) == NULL)
+    {
       error("Display method not defined.\n");
       return (NIL);
     }
     /* Dispatch with selector and screen popped off */
     return ((dspif->Dispatch.vector[index])(&args[2]));
-  } else {
+  }
+  else
+  {
     error("Bogus type\n");
     return (NIL);
   }

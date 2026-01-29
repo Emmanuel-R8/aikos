@@ -29,14 +29,14 @@ rm -f "$REPO_ROOT/zaiko/zaiko/zig_emulator_execution_log.txt"
 
 # Find C emulator
 C_EMULATOR=""
-if [ -f "$REPO_ROOT/maiko/build/c/linux.x86_64/ldesdl" ]; then
-    C_EMULATOR="$REPO_ROOT/maiko/build/c/linux.x86_64/ldesdl"
+if [ -f "$REPO_ROOT/maiko/build-cmake/ldesdl" ]; then
+    C_EMULATOR="$REPO_ROOT/maiko/build-cmake/ldesdl"
 elif [ -f "$REPO_ROOT/maiko/linux.x86_64/ldesdl" ]; then
     C_EMULATOR="$REPO_ROOT/maiko/linux.x86_64/ldesdl"
 else
     echo "ERROR: C emulator (ldesdl) not found"
     echo "  Searched:"
-    echo "    - $REPO_ROOT/maiko/build/c/linux.x86_64/ldesdl"
+    echo "    - $REPO_ROOT/maiko/build-cmake/ldesdl"
     echo "    - $REPO_ROOT/maiko/linux.x86_64/ldesdl"
     exit 1
 fi

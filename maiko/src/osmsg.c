@@ -34,7 +34,6 @@
 #include <termios.h>
 #include <unistd.h>
 
-
 #include "lispemul.h"
 #include "lispmap.h"
 #include "adr68k.h"
@@ -50,10 +49,6 @@
 #include "commondefs.h"
 #include "osmsgdefs.h"
 
-#ifdef OS4
-#include <stropts.h>
-#endif
-
 #ifdef MAIKO_HANDLE_CONSOLE_MESSAGES
 #define MESSAGE_BUFFER_SIZE 1024
 static int cons_tty;
@@ -63,7 +58,7 @@ static char logfile[100];
 static int log_id;
 static int previous_size;
 static int logChanged; /* T if log file has changed since last READ */
-                /* Set by flush_pty, to avoid the stat call  */
+                       /* Set by flush_pty, to avoid the stat call  */
 int LogFileFd = -1;
 extern fd_set LispReadFds;
 #endif
@@ -80,7 +75,8 @@ extern fd_set LispReadFds;
 /*									*/
 /************************************************************************/
 
-void mess_init(void) {
+void mess_init(void)
+{
 #ifdef MAIKO_HANDLE_CONSOLE_MESSAGES
   struct passwd *pwd;
   int ttyfd;
@@ -95,15 +91,18 @@ void mess_init(void) {
   ptynum = 0;
 
 needpty:
-  while (ptynum < 16) {
+  while (ptynum < 16)
+  {
     ptyname[9] = "0123456789abcdef"[ptynum];
-    if ((ptyfd = open(ptyname, 2)) >= 0) goto gotpty;
+    if ((ptyfd = open(ptyname, 2)) >= 0)
+      goto gotpty;
     ptynum++;
   }
   return;
 gotpty:
   ttyname[9] = ptyname[9];
-  if ((ttyfd = open(ttyname, 2)) < 0) {
+  if ((ttyfd = open(ttyname, 2)) < 0)
+  {
     ptynum++;
     close(ptyfd);
     goto needpty;
@@ -115,15 +114,11 @@ gotpty:
 
   /* Get console IO */
   ioctl(ptyfd, FIOCLEX, 0);
-  /* It isn't clear which platforms this #ifndef should
-   * actually apply to. The AIX define used to apply
-   * to a number of platforms, not just AIX-actual. */
-#ifndef AIX
-  if ((ioctl(ttyfd, TIOCCONS, 0)) == -1) {
+  if ((ioctl(ttyfd, TIOCCONS, 0)) == -1)
+  {
     OSMESSAGE_PRINT(printf("TIOCCONS error\n"));
     exit(-1);
   }
-#endif /* AIX */
 
   cons_pty = ptyfd;
   cons_tty = ttyfd;
@@ -131,15 +126,19 @@ gotpty:
   /* Initialize log file */
   pwd = getpwuid(getuid());
   sprintf(logfile, "/tmp/%s-lisp.log", pwd->pw_name);
-  if (unlink(logfile) == -1) { /* delete old log file */
-    if (errno != ENOENT) return;
+  if (unlink(logfile) == -1)
+  { /* delete old log file */
+    if (errno != ENOENT)
+      return;
   }
 
-  if ((log_id = open(logfile, (O_RDWR | O_CREAT), 0666)) < 0) return;
+  if ((log_id = open(logfile, (O_RDWR | O_CREAT), 0666)) < 0)
+    return;
 #ifdef LOGINT
   LogFileFd = cons_pty; /* was kept as an fd_set, but doesn't need to be */
   fcntl(cons_pty, F_SETFL, fcntl(cons_pty, F_GETFL, 0) | O_ASYNC | O_NONBLOCK);
-  if (fcntl(cons_pty, F_SETOWN, getpid()) == -1) {
+  if (fcntl(cons_pty, F_SETOWN, getpid()) == -1)
+  {
 #ifdef DEBUG
     perror("fcntl F_SETOWN of log PTY");
 #endif
@@ -162,7 +161,8 @@ gotpty:
 /*									*/
 /************************************************************************/
 
-void mess_reset(void) {
+void mess_reset(void)
+{
 #ifdef MAIKO_HANDLE_CONSOLE_MESSAGES
   int console_fd;
   close(log_id);
@@ -188,7 +188,8 @@ void mess_reset(void) {
 /*	has been set by flush_pty().					*/
 /*									*/
 /************************************************************************/
-LispPTR mess_readp(void) {
+LispPTR mess_readp(void)
+{
 #ifdef MAIKO_HANDLE_CONSOLE_MESSAGES
   struct stat sbuf;
   int size;
@@ -209,7 +210,8 @@ LispPTR mess_readp(void) {
       if( previous_size < (int)(sbuf.st_size) ) return(ATOM_T);
   * * * * * * * * * * * * * */
 
-  if (logChanged) return (ATOM_T);
+  if (logChanged)
+    return (ATOM_T);
 #endif /* MAIKO_HANDLE_CONSOLE_MESSAGES */
   return (NIL);
 }
@@ -243,9 +245,11 @@ LispPTR mess_read(LispPTR *args)
 
   close(log_id);
   TIMEOUT(log_id = open(logfile, O_RDONLY));
-  if (log_id == -1) return (NIL);
+  if (log_id == -1)
+    return (NIL);
   TIMEOUT(i = fstat(log_id, &sbuf));
-  if (i != 0) {
+  if (i != 0)
+  {
     OSMESSAGE_PRINT(printf("stat err\n"));
     return (NIL);
   }
@@ -256,19 +260,22 @@ LispPTR mess_read(LispPTR *args)
   else
     logChanged = 0; /* only reset msg-pending flag if we cleaned it out! */
   TIMEOUT(i = lseek(log_id, previous_size, SEEK_SET));
-  if (i == -1) {
+  if (i == -1)
+  {
     OSMESSAGE_PRINT(printf("seek err\n"));
     return (NIL);
   }
 
   /* Now, read "console output" */
   TIMEOUT(size = read(log_id, temp_buf, size));
-  if (size == -1) {
+  if (size == -1)
+  {
     OSMESSAGE_PRINT(printf("read err\n"));
     return (NIL);
   }
   TIMEOUT(i = lseek(log_id, save_size, SEEK_SET));
-  if (i == -1) {
+  if (i == -1)
+  {
     OSMESSAGE_PRINT(printf("seek err\n"));
     return (NIL);
   }
@@ -277,8 +284,10 @@ LispPTR mess_read(LispPTR *args)
   */
   previous_size += size;
 
-  for (i = 0; i < size; ++i) {
-    if (temp_buf[i] == '\n') temp_buf[i] = '\000';
+  for (i = 0; i < size; ++i)
+  {
+    if (temp_buf[i] == '\n')
+      temp_buf[i] = '\000';
   }
   /* COPY actual Lisp Buffer(for BYTESWAP magic) */
   MemCpyToLispFromNative(base, temp_buf, size);
@@ -300,7 +309,8 @@ LispPTR mess_read(LispPTR *args)
 /*									*/
 /************************************************************************/
 
-LispPTR flush_pty(void) {
+LispPTR flush_pty(void)
+{
 #ifdef MAIKO_HANDLE_CONSOLE_MESSAGES
   struct stat sbuf;
   char buf[MESSAGE_BUFFER_SIZE]; /* Buffer between pty and log file */
@@ -317,7 +327,8 @@ LispPTR flush_pty(void) {
 /* polling pty nd flush os message to log file */
 #ifndef LOGINT
   FD_SET(cons_pty, &rfds);
-  if (select(32, &rfds, NULL, NULL, &selecttimeout) <= 0) return (NIL);
+  if (select(32, &rfds, NULL, NULL, &selecttimeout) <= 0)
+    return (NIL);
 
   if ((cons_pty >= 0) && FD_ISSET(cons_pty, &rfds))
 #else /* LOGINT */
@@ -328,36 +339,45 @@ LispPTR flush_pty(void) {
     DBPRINT(("Log msgs being printed...\n"));
     close(log_id);
     TIMEOUT(log_id = open(logfile, O_WRONLY | O_APPEND, 0666));
-    if (log_id == -1) return (NIL);
+    if (log_id == -1)
+      return (NIL);
 #ifndef LOGINT
     size = read(cons_pty, buf, MESSAGE_BUFFER_SIZE - 1);
 #endif
-    if (size == -1) return (NIL);
+    if (size == -1)
+      return (NIL);
 
     /* Check free space to avoid printing System Error Message
        to /dev/console */
     TIMEOUT(rval = statvfs("/tmp", &vfsbuf));
-    if (rval != 0) return (NIL);
+    if (rval != 0)
+      return (NIL);
 
-    if (vfsbuf.f_bavail <= (long)0) {
+    if (vfsbuf.f_bavail <= (long)0)
+    {
       /* No Free Space */
       error("osmessage error: No free space on file system (/tmp).");
       return (NIL);
     }
     logChanged = 1; /* Note the change, for READP */
     TIMEOUT(rval = write(log_id, buf, size));
-    if (rval == -1) {
+    if (rval == -1)
+    {
       if (errno == ENOSPC) /* == 28 on Sun, ibm */
       {
         /* No free space, but it's too late to avoid
            print system Error Message. */
         error("osmessage error: No free space on file system (/tmp).");
         return (NIL);
-      } else {
+      }
+      else
+      {
         error("osmessage error: cannot write to log file (/tmp)");
         return (NIL);
       }
-    } else {
+    }
+    else
+    {
       /**
                   close(id);
       **/

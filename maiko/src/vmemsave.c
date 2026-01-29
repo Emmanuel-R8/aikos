@@ -11,32 +11,23 @@
 #include "version.h"
 
 /*
-*	vmemsave.c
-*
-*
-*/
+ *	vmemsave.c
+ *
+ *
+ */
 
 #include <errno.h>
 #include <fcntl.h>
 #include <setjmp.h>
 #include <signal.h>
-#include <stddef.h>	// for ptrdiff_t
+#include <stddef.h> // for ptrdiff_t
 #include <stdio.h>
 #include <stdlib.h>
-#ifndef DOS
 #include <dirent.h>
 #include <string.h>
 #include <sys/param.h>
 #include <pwd.h>
 #include <unistd.h>
-#else
-#include <direct.h>
-#include <stdlib.h>
-#define MAXPATHLEN _MAX_PATH
-#define MAXNAMLEN _MAX_PATH
-#define alarm(x) 1
-#endif /* DOS */
-
 
 #include "lispemul.h"
 #include "lispmap.h"
@@ -47,7 +38,7 @@
 #include "locfile.h"
 #include "dbprint.h"
 #include "devif.h"
-#include "ifpage.h"       // for MACHINETYPE_MAIKO
+#include "ifpage.h" // for MACHINETYPE_MAIKO
 
 #include "vmemsavedefs.h"
 #include "byteswapdefs.h"
@@ -58,11 +49,11 @@
 #include "ufsdefs.h"
 
 /* Definitions incorporated from vmemsave.h (removed) */
-#define	FP_IFPAGE  512			/* IFPAGE address in sysoutfile by Byte */
-#define	DOMINOPAGES  301		/* skip dominopages  in  fptovp */
-#define	SKIPPAGES  301			/* save first filepage  */
-#define	SKIP_DOMINOPAGES  153600	/* Byte size in sysoutfile for dominocode */
-#define	SAVE_IFPAGE	223		/* Virtual address for IFPAGES's buffer page. This value is \EMUSWAPBUFFERS in lisp. */
+#define FP_IFPAGE 512           /* IFPAGE address in sysoutfile by Byte */
+#define DOMINOPAGES 301         /* skip dominopages  in  fptovp */
+#define SKIPPAGES 301           /* save first filepage  */
+#define SKIP_DOMINOPAGES 153600 /* Byte size in sysoutfile for dominocode */
+#define SAVE_IFPAGE 223         /* Virtual address for IFPAGES's buffer page. This value is \EMUSWAPBUFFERS in lisp. */
 
 /* Error return values from VMEMSAVE */
 #define COMPLETESYSOUT NIL
@@ -75,9 +66,6 @@
 
 extern struct pixrect *CursorBitMap, *InvisibleCursorBitMap;
 extern struct cursor CurrentCursor, InvisibleCursor;
-#ifdef DOS
-extern DspInterface currentdsp;
-#endif /* DOS */
 
 extern int *Lisp_errno;
 extern int Dummy_errno; /* Used if errno cell isn't provided by Lisp.*/
@@ -94,11 +82,14 @@ extern int please_fork;
 
 static int lispstringP(LispPTR Lisp)
 {
-  switch (((OneDArray *)(NativeAligned4FromLAddr(Lisp)))->typenumber) {
-    case THIN_CHAR_TYPENUMBER:
-    case FAT_CHAR_TYPENUMBER: return (1);
+  switch (((OneDArray *)(NativeAligned4FromLAddr(Lisp)))->typenumber)
+  {
+  case THIN_CHAR_TYPENUMBER:
+  case FAT_CHAR_TYPENUMBER:
+    return (1);
 
-    default: return (0);
+  default:
+    return (0);
   }
 }
 
@@ -142,49 +133,41 @@ LispPTR vmem_save0(LispPTR *args)
 {
   char *def;
   char pathname[MAXPATHLEN], sysout[MAXPATHLEN], host[MAXNAMLEN];
-#ifdef DOS
-  char pwd[MAXNAMLEN];
-  char drive[1];
-#else
   struct passwd *pwd;
-#endif /* DOS */
 
   Lisp_errno = &Dummy_errno;
 
-  if ((args[0] != NIL) && lispstringP(args[0])) {
+  if ((args[0] != NIL) && lispstringP(args[0]))
+  {
     /* Check of lispstringP is safer for LispStringToCString */
     LispStringToCString(args[0], pathname, MAXPATHLEN);
     separate_host(pathname, host);
-#ifdef DOS
-    if (!unixpathname(pathname, sysout, sizeof(sysout), 0, 0, drive, 0, 0)) return (BADFILENAME);
-#else
-    if (!unixpathname(pathname, sysout, sizeof(sysout), 0, 0)) return (BADFILENAME);
-#endif /* DOS */
+    if (!unixpathname(pathname, sysout, sizeof(sysout), 0, 0))
+      return (BADFILENAME);
     return (vmem_save(sysout));
-  } else {
-    if ((def = getenv("LDEDESTSYSOUT")) == 0) {
-#ifdef DOS
-      if (getcwd(pwd, MAXNAMLEN) == NULL) return (FILETIMEOUT);
-      strlcpy(sysout, pwd, sizeof(sysout));
-      strlcat(sysout, "/lisp.vm", sizeof(sysout));
-#else
+  }
+  else
+  {
+    if ((def = getenv("LDEDESTSYSOUT")) == 0)
+    {
       pwd = getpwuid(getuid()); /* NEED TIMEOUT */
-      if (pwd == (struct passwd *)NULL) return (FILETIMEOUT);
+      if (pwd == (struct passwd *)NULL)
+        return (FILETIMEOUT);
       strlcpy(sysout, pwd->pw_dir, sizeof(sysout));
       strlcat(sysout, "/lisp.virtualmem", sizeof(sysout));
-#endif /* DOS */
-    } else {
-      if (*def == '~' && (*(def + 1) == '/' || *(def + 1) == '\0')) {
-#ifdef DOS
-        if (getcwd(pwd, MAXNAMLEN) == NULL) return (FILETIMEOUT);
-        strlcpy(sysout, pwd, sizeof(sysout));
-#else
+    }
+    else
+    {
+      if (*def == '~' && (*(def + 1) == '/' || *(def + 1) == '\0'))
+      {
         pwd = getpwuid(getuid()); /* NEED TIMEOUT */
-        if (pwd == (struct passwd *)NULL) return (FILETIMEOUT);
+        if (pwd == (struct passwd *)NULL)
+          return (FILETIMEOUT);
         strlcpy(sysout, pwd->pw_dir, sizeof(sysout));
-#endif /* DOS */
         strlcat(sysout, def + 1, sizeof(sysout));
-      } else {
+      }
+      else
+      {
         strlcpy(sysout, def, sizeof(sysout));
       }
     }
@@ -204,7 +187,9 @@ LispPTR vmem_save0(LispPTR *args)
 #ifndef BIGVM
 #ifndef BYTESWAP
 static int twowords(const void *i, const void *j) /* the difference between two  DLwords. */
-{ return (*(const DLword *)i - *(const DLword *)j); }
+{
+  return (*(const DLword *)i - *(const DLword *)j);
+}
 
 #define FPTOVP_ENTRY (FPTOVP_OFFSET >> 8)
 
@@ -217,7 +202,8 @@ static void sort_fptovp(DLword *fptovp, size_t size)
   for (fptr = fptovp, i = 0; GETWORD(fptr) != FPTOVP_ENTRY && i < size; fptr++, i++)
     ;
 
-  if (GETWORD(fptr) != FPTOVP_ENTRY) {
+  if (GETWORD(fptr) != FPTOVP_ENTRY)
+  {
     DBPRINT(("Couldn't find FPTOVP_ENTRY; not munging\n"));
     return;
   }
@@ -232,7 +218,8 @@ ONE_MORE_TIME: /* Tacky, but why repeat code? */
   for (fptr = fptovp, i = 0; GETWORD(fptr) != FPTOVP_ENTRY && i < size; fptr++, i++)
     ;
 
-  if (GETWORD(fptr) != FPTOVP_ENTRY) error("Couldn't find FPTOVP_ENTRY second time!\n");
+  if (GETWORD(fptr) != FPTOVP_ENTRY)
+    error("Couldn't find FPTOVP_ENTRY second time!\n");
   newloc = fptr - fptovp;
 
   /* Supposedly all we have to do is adjust the fptovpstart and nactivepages
@@ -243,7 +230,8 @@ ONE_MORE_TIME: /* Tacky, but why repeat code? */
        fptr--, InterfacePage->nactivepages--, size--)
     ;
 
-  if (size != oldsize) {
+  if (size != oldsize)
+  {
     DBPRINT(("Found %d holes in fptovp table\n", oldsize - size));
   }
 
@@ -251,14 +239,16 @@ ONE_MORE_TIME: /* Tacky, but why repeat code? */
   {
     int dupcount = 0;
     for (fptr = fptovp, i = 1; i < size; i++, fptr++)
-      if (GETWORD(fptr) == GETWORD(fptr + 1)) {
+      if (GETWORD(fptr) == GETWORD(fptr + 1))
+      {
         dupcount++;
         GETWORD(fptr) = 0xffff;
       }
 
     /* if duplicates were found, resort to squeeze them out, then mung the
        size and fptovpstart again (spaghetti-code, HO!) */
-    if (dupcount) {
+    if (dupcount)
+    {
       qsort(fptovp, size, sizeof(DLword), twowords);
       oldloc = newloc;
       DBPRINT(("%d duplicates found\n", dupcount));
@@ -316,22 +306,13 @@ LispPTR vmem_save(char *sysout_file_name)
   ssize_t rsize;
   off_t roff;
   int rval;
-#ifndef DOS
   extern int ScreenLocked;
   extern DLword *EmCursorX68K;
   extern DLword *EmCursorY68K;
   extern DLword NullCursor[];
   extern DLword *EmCursorBitMap68K;
-#endif /* DOS */
 
-/* remove cursor image from screen */
-
-#ifdef   DOS
-  /*  For DOS, must also take the mouse cursor away (it's  */
-  /*  written into the display-region bitmap).	     */
-  currentdsp->device.locked++;
-  (currentdsp->mouse_invisible)(currentdsp, IOPage);
-#endif /* SUNDISPLAY || DOS */
+  /* remove cursor image from screen */
 
   /* set FPTOVP */
   fptovp = FPtoVP + 1;
@@ -347,25 +328,24 @@ LispPTR vmem_save(char *sysout_file_name)
   */
 
   SETJMP(FILETIMEOUT);
-#ifdef DOS
-  /* Bloddy 8 char filenames in dos ... /jarl */
-  make_old_version(tempname, sizeof(tempname), sysout_file_name);
-#else  /* DOS */
   snprintf(tempname, sizeof(tempname), "%s-temp", sysout_file_name);
-#endif /* DOS */
 
   /* Confirm protection of specified file by open/close */
 
   TIMEOUT(sysout = open(sysout_file_name, O_WRONLY, 0666));
-  if (sysout == -1) {
+  if (sysout == -1)
+  {
     /* No file error skip return. */
-    if (errno != ENOENT) return (FILECANNOTOPEN); /* No such file error.*/
-  } else
+    if (errno != ENOENT)
+      return (FILECANNOTOPEN); /* No such file error.*/
+  }
+  else
     TIMEOUT(rval = close(sysout));
 
   /* open temp file */
   TIMEOUT(sysout = open(tempname, O_WRONLY | O_CREAT | O_TRUNC, 0666));
-  if (sysout == -1) {
+  if (sysout == -1)
+  {
     err_mess("open", errno);
     return (FILECANNOTOPEN);
   }
@@ -373,7 +353,8 @@ LispPTR vmem_save(char *sysout_file_name)
   InterfacePage->machinetype = MACHINETYPE_MAIKO;
 
   /* Restore storagefull state */
-  if (((*STORAGEFULLSTATE_word) & 0xffff) == SFS_NOTSWITCHABLE) {
+  if (((*STORAGEFULLSTATE_word) & 0xffff) == SFS_NOTSWITCHABLE)
+  {
     /* This sysout uses only 8 Mbyte lisp space.
        It may be able to use this SYSOUT which has more than
        8 Mbyte lisp space.
@@ -382,7 +363,9 @@ LispPTR vmem_save(char *sysout_file_name)
     */
     *STORAGEFULLSTATE_word = NIL;
     InterfacePage->storagefullstate = NIL;
-  } else {
+  }
+  else
+  {
     /*  Otherwise, just restore storagefullstate in IFPAGE */
     InterfacePage->storagefullstate = (*STORAGEFULLSTATE_word) & 0xffff;
   }
@@ -397,23 +380,29 @@ LispPTR vmem_save(char *sysout_file_name)
 
   /* store vmem to sysoutfile */
 
-  for (i = 0; i < vmemsize; i++) {
-    if (GETPAGEOK(fptovp, i) != 0177777) {
+  for (i = 0; i < vmemsize; i++)
+  {
+    if (GETPAGEOK(fptovp, i) != 0177777)
+    {
       unsigned int oldfptovp = GETFPTOVP(fptovp, i);
       unsigned int saveoldfptovp = oldfptovp;
       unsigned int contig_pages = 0;
       DLword *base_addr;
 
       TIMEOUT(roff = lseek(sysout, i * BYTESPER_PAGE, SEEK_SET));
-      if (roff == -1) {
+      if (roff == -1)
+      {
         err_mess("lseek", errno);
         return (FILECANNOTSEEK);
       }
       base_addr = Lisp_world + (GETFPTOVP(fptovp, i) * DLWORDSPER_PAGE);
 
       /* Now, let's see how many pages we can dump */
-      while (GETFPTOVP(fptovp, i) == oldfptovp && i < vmemsize) {
-        contig_pages++; oldfptovp++; i++;
+      while (GETFPTOVP(fptovp, i) == oldfptovp && i < vmemsize)
+      {
+        contig_pages++;
+        oldfptovp++;
+        i++;
       }
       i--; /* Previous loop always overbumps i */
       DBPRINT(("%4d: writing %d pages from %tx (%d)\n", i, contig_pages, (char *)base_addr - (char *)Lisp_world, saveoldfptovp));
@@ -422,20 +411,26 @@ LispPTR vmem_save(char *sysout_file_name)
       word_swap_page(base_addr, contig_pages * CELLSPER_PAGE);
 #endif /* BYTESWAP */
 
-      if (contig_pages > maxpages) {
+      if (contig_pages > maxpages)
+      {
         DLword *ba = base_addr;
         unsigned int pc = contig_pages;
-        while (pc > maxpages) {
+        while (pc > maxpages)
+        {
           TIMEOUT(rsize = write(sysout, ba, (size_t)maxpages * BYTESPER_PAGE));
-          if (rsize == -1) {
+          if (rsize == -1)
+          {
             err_mess("write", errno);
             return ((errno == ENOSPC) || (errno == EDQUOT)) ? NOFILESPACE : FILECANNOTWRITE;
           }
           ba += maxpages * DLWORDSPER_PAGE;
           pc -= maxpages;
         }
-        if (pc > 0) TIMEOUT(rsize = write(sysout, ba, pc * BYTESPER_PAGE));
-      } else {
+        if (pc > 0)
+          TIMEOUT(rsize = write(sysout, ba, pc * BYTESPER_PAGE));
+      }
+      else
+      {
         unsigned int oldTT = TIMEOUT_TIME;
         /* As we can spend longer than TIMEOUT_TIME doing a big
            write, we adjust the timeout temporarily here */
@@ -447,16 +442,18 @@ LispPTR vmem_save(char *sysout_file_name)
       word_swap_page(base_addr, contig_pages * CELLSPER_PAGE);
 #endif /* BYTESWAP */
 
-      if (rsize == -1) {
+      if (rsize == -1)
+      {
         err_mess("write", errno);
-	return ((errno == ENOSPC) || (errno == EDQUOT)) ? NOFILESPACE : FILECANNOTWRITE;
+        return ((errno == ENOSPC) || (errno == EDQUOT)) ? NOFILESPACE : FILECANNOTWRITE;
       }
     }
   }
 
   /* seek to IFPAGE */
   TIMEOUT(roff = lseek(sysout, (long)FP_IFPAGE, SEEK_SET));
-  if (roff == -1) {
+  if (roff == -1)
+  {
     err_mess("lseek", errno);
     return (FILECANNOTSEEK);
   }
@@ -469,40 +466,32 @@ LispPTR vmem_save(char *sysout_file_name)
   word_swap_page(InterfacePage, CELLSPER_PAGE);
 #endif /* BYTESWAP */
 
-  if (rsize == -1) {
+  if (rsize == -1)
+  {
     err_mess("write", errno);
-	return ((errno == ENOSPC) || (errno == EDQUOT)) ? NOFILESPACE : FILECANNOTWRITE;
+    return ((errno == ENOSPC) || (errno == EDQUOT)) ? NOFILESPACE : FILECANNOTWRITE;
   }
 
-#ifdef OS5
-  /* Seems to write all pages at close, so timeout
-     is WAY to short, no matter how big.  JDS 960925 */
-  rval = close(sysout);
-#else
   TIMEOUT(rval = close(sysout));
-#endif /* OS5 */
-  if (rval == -1) { return (FILECANNOTWRITE); }
+  if (rval == -1)
+  {
+    return (FILECANNOTWRITE);
+  }
 
   TIMEOUT(rval = unlink(sysout_file_name));
-  if (rval == -1) {
+  if (rval == -1)
+  {
     /* No file error skip return. */
     if (errno != ENOENT) /* No such file error.*/
       return (FILECANNOTOPEN);
   }
 
   TIMEOUT(rval = rename(tempname, sysout_file_name));
-  if (rval == -1) {
+  if (rval == -1)
+  {
     (void)fprintf(stderr, "sysout is saved to temp file, %s.", tempname);
     return (FILECANNOTWRITE);
   }
-
-/* restore cursor image to screen */
-#ifdef DOS
-  /* Must also put the mouse back. */
-  (currentdsp->mouse_visible)(IOPage->dlmousex, IOPage->dlmousey);
-  currentdsp->device.locked--;
-
-#endif /* SUNDISPLAY */
 
   /*printf("vmem is saved completely.\n");*/
   return (COMPLETESYSOUT);
@@ -518,13 +507,15 @@ LispPTR vmem_save(char *sysout_file_name)
 
 /* Make sure that we kill off any Unix subprocesses before we go away */
 
-void lisp_finish(int exit_status) {
+void lisp_finish(int exit_status)
+{
   char d[4];
 
   DBPRINT(("finish lisp_finish\n"));
 
-  if (please_fork) { /* if lde runs with -NF(No fork), */
-                     /* following 5 lines don't work well. */
+  if (please_fork)
+  { /* if lde runs with -NF(No fork), */
+    /* following 5 lines don't work well. */
     d[0] = 'E';
     d[3] = 1;
     /* These only happen if the fork really succeeded: */
@@ -533,8 +524,5 @@ void lisp_finish(int exit_status) {
     /* if (UnixPID >= 0) kill(UnixPID, SIGKILL);*/   /* Then kill fork_Unix itself */
   }
   device_before_exit();
-#ifdef DOS
-  exit_host_filesystem();
-#endif /* DOS */
   exit(exit_status);
 }

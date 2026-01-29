@@ -78,28 +78,32 @@ void ufn(DLword bytecode)
     error("UNF not specified");
 #endif
 
-  switch (entry68k->byte_num) {
-    case 0: break;
-    case 1: /*PushStack(SPOS_HI  | Get_BYTE(PC+1));*/
-      CurrentStackPTR += 2;
-      GETWORD(CurrentStackPTR) = SPOS_HI;
-      GETWORD(CurrentStackPTR + 1) = (DLword)Get_code_BYTE(PC + 1);
+  switch (entry68k->byte_num)
+  {
+  case 0:
+    break;
+  case 1: /*PushStack(SPOS_HI  | Get_BYTE(PC+1));*/
+    CurrentStackPTR += 2;
+    GETWORD(CurrentStackPTR) = SPOS_HI;
+    GETWORD(CurrentStackPTR + 1) = (DLword)Get_code_BYTE(PC + 1);
 /* I think we don't have to shift alpha byte eight bit before save it. */
 #ifdef DEBUG
-      printf("***ufn: case 1\n");
+    printf("***ufn: case 1\n");
 #endif
-      break;
+    break;
 
-    case 2: /*PushStack(S_POSITIVE |Get_DLword(PC+1));*/
-      CurrentStackPTR += 2;
-      GETWORD(CurrentStackPTR) = SPOS_HI;
-      GETWORD(CurrentStackPTR + 1) = (DLword)((Get_code_BYTE(PC + 1) << 8) | Get_code_BYTE(PC + 2));
+  case 2: /*PushStack(S_POSITIVE |Get_DLword(PC+1));*/
+    CurrentStackPTR += 2;
+    GETWORD(CurrentStackPTR) = SPOS_HI;
+    GETWORD(CurrentStackPTR + 1) = (DLword)((Get_code_BYTE(PC + 1) << 8) | Get_code_BYTE(PC + 2));
 
 #ifdef DEBUG
-      printf("***ufn: case 2\n");
+    printf("***ufn: case 2\n");
 #endif
-      break;
-    default: error("ufn : Bad UFN MP 9351 "); break;
+    break;
+  default:
+    error("ufn : Bad UFN MP 9351 ");
+    break;
   }
 
   /* Get Next Block offset form OPCODE byte */
@@ -114,7 +118,8 @@ void ufn(DLword bytecode)
   printf(": ");
   {
     int cnt;
-    for (cnt = 0; cnt < arg_num; cnt++) {
+    for (cnt = 0; cnt < arg_num; cnt++)
+    {
       printf(" IVAR%d :", cnt);
       print(*((LispPTR *)(IVar + (cnt * 2))));
     }
@@ -126,7 +131,8 @@ void ufn(DLword bytecode)
 
   defcell68k = (DefCell *)GetDEFCELL68k(entry68k->atom_name);
 
-  if (defcell68k->ccodep == 0) { /* This LispFunc is NOT compiled object . We must use Interpreter*/
+  if (defcell68k->ccodep == 0)
+  { /* This LispFunc is NOT compiled object . We must use Interpreter*/
     printf("UFN: UFN func isn't compiled OBJ \n");
     defcell68k = (DefCell *)GetDEFCELL68k(ATOM_INTERPRETER);
     PushStack(TopOfStack); /* Move AtomIndex to CSTK */
@@ -136,7 +142,8 @@ void ufn(DLword bytecode)
   tmp_fn = (struct fnhead *)NativeAligned4FromLAddr(defcell68k->defpointer);
 
   /* stack overflow check STK_SAFE is redundant?? */
-  if ((UNSIGNED)(CurrentStackPTR + tmp_fn->stkmin + STK_SAFE) >= (UNSIGNED)StkLimO) {
+  if ((UNSIGNED)(CurrentStackPTR + tmp_fn->stkmin + STK_SAFE) >= (UNSIGNED)StkLimO)
+  {
     /**printf("#### STKOVER in UFN case\n");**/
 
     DOSTACKOVERFLOW(entry68k->arg_num, entry68k->byte_num); /* After STKOVR, retry current OPCODE */
@@ -144,12 +151,14 @@ void ufn(DLword bytecode)
 
   FuncObj = tmp_fn;
 
-  if (FuncObj->na >= 0) {
+  if (FuncObj->na >= 0)
+  {
     /* This Function is Spread Type */
     /* Arguments on Stack Adjustment  */
     rest = entry68k->arg_num - FuncObj->na;
 
-    while (rest < 0) {
+    while (rest < 0)
+    {
       PushStack(NIL_PTR);
       rest++;
     }
@@ -180,7 +189,8 @@ void ufn(DLword bytecode)
   /* Set up PVar area */
   pv_num = FuncObj->pv + 1;
 
-  while (pv_num > 0) {
+  while (pv_num > 0)
+  {
     *((LispPTR *)CurrentStackPTR) = 0x0ffff0000;
     CurrentStackPTR += DLWORDSPER_CELL;
     *((LispPTR *)CurrentStackPTR) = 0x0ffff0000;

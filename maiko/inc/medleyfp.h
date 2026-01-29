@@ -2,7 +2,6 @@
 #define MEDLEYFP_H 1
 /* $Id: medleyfp.h,v 1.2 1999/01/03 02:06:16 sybalsky Exp $ (C) Copyright Venue, All Rights Reserved  */
 
-
 /************************************************************************/
 /*									*/
 /*	(C) Copyright 1989-94 Venue. All Rights Reserved.		*/
@@ -36,17 +35,15 @@ extern volatile sig_atomic_t FP_error;
     this test incorrect.
  */
 
-#define FPCLEAR         FP_error = 0;
-#define FPTEST(result)  FP_error
-
-#elif defined(DOS)
-#include <i32.h>
-#define FPCLEAR do {} while (0)
-#define FPTEST(result) (_getrealerror() & ( I87_ZERO_DIVIDE | I87_OVERFLOW | I87_UNDERFLOW))
+#define FPCLEAR FP_error = 0;
+#define FPTEST(result) FP_error
 
 #else
 #include <math.h>
-#define FPCLEAR do {} while (0)
+#define FPCLEAR \
+  do            \
+  {             \
+  } while (0)
 #define FPTEST(result) (!isfinite(result))
 
 #endif /* FLTINT */

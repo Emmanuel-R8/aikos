@@ -61,32 +61,20 @@
 int BT_lines;
 int BT_temp;
 jmp_buf BT_jumpbuf;
-#ifdef DOS
-#define BTMAXLINE 24
-/* DOS has a 25-line screen, and getchar discards ESC for some reason */
-#define BT_morep                                              \
-  do {                                              	      \
-    if ((BT_temp != '!') && (++BT_lines > BTMAXLINE)) {         \
-      printf("Press Return(Esc & Ret to quit, ! don't stop):"); \
-      BT_temp = getch();                                        \
-      fflush(stdin);                                            \
-      BT_lines = 0;                                             \
-      if (BT_temp == 27) longjmp(BT_jumpbuf, 1);                \
-    }                                                           \
-  } while (0)
-#else /* DOS */
 #define BTMAXLINE 30
-#define BT_morep                                  \
-  do {                                            \
-    if (++BT_lines > BTMAXLINE) {                   \
+#define BT_morep                                    \
+  do                                                \
+  {                                                 \
+    if (++BT_lines > BTMAXLINE)                     \
+    {                                               \
       printf("Press Return(to quit Esc and Ret):"); \
       BT_temp = getchar();                          \
       fflush(stdin);                                \
       BT_lines = 0;                                 \
-      if (BT_temp == 27) longjmp(BT_jumpbuf, 1);    \
+      if (BT_temp == 27)                            \
+        longjmp(BT_jumpbuf, 1);                     \
     }                                               \
   } while (0)
-#endif /* DOS */
 
 /***************************************************************/
 /*
@@ -102,7 +90,8 @@ jmp_buf BT_jumpbuf;
 */
 /***************************************************************/
 
-LispPTR get_ivar_name(struct frameex1 *fx_addr68k, DLword offset, int *localivar) {
+LispPTR get_ivar_name(struct frameex1 *fx_addr68k, DLword offset, int *localivar)
+{
   NAMETABLE *first_table;
   NAMETABLE *second_table;
   struct fnhead *fnobj;
@@ -111,9 +100,10 @@ LispPTR get_ivar_name(struct frameex1 *fx_addr68k, DLword offset, int *localivar
   fnobj = (struct fnhead *)NativeAligned4FromLAddr((fx_addr68k)->fnheader);
 #else
   fnobj = (struct fnhead *)NativeAligned4FromLAddr(((int)(fx_addr68k)->hi2fnheader << 16) |
-                                              (fx_addr68k)->lofnheader);
+                                                   (fx_addr68k)->lofnheader);
 #endif /* BIGVM */
-  if (fnobj->ntsize > 0) {
+  if (fnobj->ntsize > 0)
+  {
     /* name table exists */
     first_table = (NAMETABLE *)(fnobj + 1);
     second_table = (NAMETABLE *)((DLword *)first_table + fnobj->ntsize);
@@ -121,11 +111,14 @@ LispPTR get_ivar_name(struct frameex1 *fx_addr68k, DLword offset, int *localivar
     for (i = 0; (i < fnobj->ntsize) && (GetNTEntry(second_table) != offset);
          first_table++, second_table++, i++)
       ;
-    if ((i < fnobj->ntsize) && (GetNTEntry(first_table) != 0)) {
+    if ((i < fnobj->ntsize) && (GetNTEntry(first_table) != 0))
+    {
       /* target ivar was in name table */
       *localivar = 0;
       return ((LispPTR)(GetNTEntry(first_table)));
-    } else {
+    }
+    else
+    {
 /* Target ivar is in locar vars table */
 #ifdef BIGATOMS
       first_table = (NAMETABLE *)(fnobj + 1) + (fnobj->ntsize);
@@ -136,7 +129,9 @@ LispPTR get_ivar_name(struct frameex1 *fx_addr68k, DLword offset, int *localivar
       second_table = first_table + (((DLword *)fnobj + (fnobj->startpc >> 1) - first_table) >> 1);
 #endif
     }
-  } else {
+  }
+  else
+  {
 /* name table doesn't exist, so all ivars are in locar vars table */
 #ifdef BIGATOMS
     int delta;
@@ -180,7 +175,8 @@ LispPTR get_ivar_name(struct frameex1 *fx_addr68k, DLword offset, int *localivar
 */
 /***************************************************************/
 
-LispPTR get_pvar_name(struct frameex1 *fx_addr68k, DLword offset) {
+LispPTR get_pvar_name(struct frameex1 *fx_addr68k, DLword offset)
+{
   NAMETABLE *first_table;
   NAMETABLE *second_table;
   struct fnhead *fnobj;
@@ -190,12 +186,13 @@ LispPTR get_pvar_name(struct frameex1 *fx_addr68k, DLword offset) {
   fnobj = (struct fnhead *)NativeAligned4FromLAddr((fx_addr68k)->fnheader);
 #else
   fnobj = (struct fnhead *)NativeAligned4FromLAddr(((int)(fx_addr68k)->hi2fnheader << 16) |
-                                              (fx_addr68k)->lofnheader);
+                                                   (fx_addr68k)->lofnheader);
 #endif /* BIGVM */
 
   first_table = (NAMETABLE *)(fnobj + 1);
   second_table = (NAMETABLE *)((DLword *)first_table + fnobj->ntsize);
-  if (first_table == second_table) return (LOCAL_PVAR); /* no name table */
+  if (first_table == second_table)
+    return (LOCAL_PVAR); /* no name table */
 
   for (i = 0;
 #ifdef BIGATOMS
@@ -207,9 +204,11 @@ LispPTR get_pvar_name(struct frameex1 *fx_addr68k, DLword offset) {
     ;
 
 #ifdef BIGATOMS
-  if (i < (fnobj->ntsize >> 1)) return ((LispPTR) * (first_table));
+  if (i < (fnobj->ntsize >> 1))
+    return ((LispPTR) * (first_table));
 #else
-  if (i < fnobj->ntsize) return ((LispPTR)GETWORD(first_table));
+  if (i < fnobj->ntsize)
+    return ((LispPTR)GETWORD(first_table));
 #endif
   else
     return (LOCAL_PVAR); /* Pvar was local */
@@ -223,7 +222,8 @@ LispPTR get_pvar_name(struct frameex1 *fx_addr68k, DLword offset) {
 /*									*/
 /************************************************************************/
 
-LispPTR get_fn_fvar_name(struct fnhead *fnobj, DLword offset) {
+LispPTR get_fn_fvar_name(struct fnhead *fnobj, DLword offset)
+{
   NAMETABLE *first_table;
   NAMETABLE *second_table;
 
@@ -255,7 +255,8 @@ LispPTR get_fn_fvar_name(struct fnhead *fnobj, DLword offset) {
 /*									*/
 /************************************************************************/
 
-LispPTR get_fvar_name(struct frameex1 *fx_addr68k, DLword offset) {
+LispPTR get_fvar_name(struct frameex1 *fx_addr68k, DLword offset)
+{
 #ifdef BIGVM
   return (get_fn_fvar_name((struct fnhead *)NativeAligned4FromLAddr((fx_addr68k)->fnheader), offset));
 #else
@@ -276,7 +277,8 @@ LispPTR get_fvar_name(struct frameex1 *fx_addr68k, DLword offset) {
 /*									*/
 /************************************************************************/
 
-int sf(struct frameex1 *fx_addr68k) {
+int sf(struct frameex1 *fx_addr68k)
+{
   Bframe *bf;
   DLword *next68k;
   DLword *ptr;
@@ -294,15 +296,20 @@ int sf(struct frameex1 *fx_addr68k) {
 
   BT_lines = 0;
 
-  if ((UNSIGNED)fx_addr68k == 0) return (-1);
-  if ((fx_addr68k)->flags != STK_FX) {
+  if ((UNSIGNED)fx_addr68k == 0)
+    return (-1);
+  if ((fx_addr68k)->flags != STK_FX)
+  {
     printf("Invalid FX 0x%x, flags = 0x%x.\n", LAddrFromNative(fx_addr68k), (fx_addr68k)->flags);
     return (-1);
   }
 
-  if (((fx_addr68k)->alink & 1) == 0) { /* FAST */
+  if (((fx_addr68k)->alink & 1) == 0)
+  { /* FAST */
     bf = (Bframe *)(((DLword *)fx_addr68k) - 2);
-  } else { /* SLOW */
+  }
+  else
+  { /* SLOW */
     bf = (Bframe *)NativeAligned4FromStackOffset((fx_addr68k)->blink);
   }
 
@@ -312,11 +319,13 @@ int sf(struct frameex1 *fx_addr68k) {
 
   ptr = NativeAligned2FromStackOffset(bf->ivar);
   i = 0;
-  while (ptr != (DLword *)bf) {
+  while (ptr != (DLword *)bf)
+  {
     ptrlo = ptr + 1;
     printf(" %6x : 0x%4x  0x%4x  ", LAddrFromNative(ptr), GETWORD(ptr), GETWORD(ptrlo));
     ivarindex = get_ivar_name(fx_addr68k, i++, &localivar);
-    if (localivar == 1) printf("*local* ");
+    if (localivar == 1)
+      printf("*local* ");
     print_atomname(ivarindex);
     printf("  ");
     print(*(LispPTR *)ptr);
@@ -330,13 +339,16 @@ int sf(struct frameex1 *fx_addr68k) {
   BT_morep;
 
   /* print BF  */
-  if (bf->flags != 4) {
+  if (bf->flags != 4)
+  {
     printf("Invalid frame, NOT a BX\n");
     return (-1);
   }
   putchar('[');
-  if (bf->residual) printf("Res, ");
-  if (bf->padding) printf("Pad, ");
+  if (bf->residual)
+    printf("Res, ");
+  if (bf->padding)
+    printf("Pad, ");
   printf("cnt=%d ]\n", bf->usecnt);
   BT_morep;
   printf("ivar : 0x%x\n", bf->ivar);
@@ -356,15 +368,19 @@ int sf(struct frameex1 *fx_addr68k) {
   printf("## STACK FX at 0x%x ##\n", LAddrFromNative(fx_addr68k));
   BT_morep;
 
-  if ((fx_addr68k)->flags != 6) {
+  if ((fx_addr68k)->flags != 6)
+  {
     printf("Invalid frame, NOT FX\n");
     return (-1);
   }
 
   putchar('[');
-  if ((fx_addr68k)->fast) printf("F, ");
-  if ((fx_addr68k)->incall) printf("incall, ");
-  if (fx_addr68k->validnametable) printf("V, ");
+  if ((fx_addr68k)->fast)
+    printf("F, ");
+  if ((fx_addr68k)->incall)
+    printf("incall, ");
+  if (fx_addr68k->validnametable)
+    printf("V, ");
   printf("cnt = %d ]\n", fx_addr68k->usecount);
   BT_morep;
 
@@ -404,13 +420,13 @@ int sf(struct frameex1 *fx_addr68k) {
   printf(" #clink           0x%x \n", fx_addr68k->clink);
   BT_morep;
 
-/* added by NMitani 26 Aug 87 */
+  /* added by NMitani 26 Aug 87 */
 
 #ifdef BIGVM
   fnobj = (struct fnhead *)NativeAligned4FromLAddr(fx_addr68k->fnheader);
 #else
   fnobj = (struct fnhead *)NativeAligned4FromLAddr(((int)fx_addr68k->hi2fnheader << 16) |
-                                              fx_addr68k->lofnheader);
+                                                   fx_addr68k->lofnheader);
 #endif                                /* BIGVM */
   max_npvar = npvar = fnobj->nlocals; /* npvar is number of Pvars */
   if (fnobj->fvaroffset)
@@ -424,10 +440,12 @@ int sf(struct frameex1 *fx_addr68k) {
   else
     nfvar = 0;
 
-  if (fx_addr68k == CURRENTFX) {
+  if (fx_addr68k == CURRENTFX)
+  {
     ptr = PVar;
     i = 0;
-    while (npvar-- > 0) {
+    while (npvar-- > 0)
+    {
       ptrhi = ptr;
       ptrlo = ptr + 1;
       printf(" %6x : 0x%4x  0x%4x  ", LAddrFromNative(ptr), GETWORD(ptrhi), GETWORD(ptrlo));
@@ -435,10 +453,13 @@ int sf(struct frameex1 *fx_addr68k) {
         printf("*local* [pvar%d] ", (i - 1));
       else
         print_atomname(pvarindex);
-      if (GETWORD(ptr) == 0xFFFF) {
+      if (GETWORD(ptr) == 0xFFFF)
+      {
         printf("  [variable not bound]\n");
         BT_morep;
-      } else {
+      }
+      else
+      {
         printf("  ");
         print(*(LispPTR *)ptr);
         putchar('\n');
@@ -447,23 +468,29 @@ int sf(struct frameex1 *fx_addr68k) {
       ptr += 2;
     }
     i = max_npvar;
-    while (nfvar && nfvar-- >= max_npvar) {
+    while (nfvar && nfvar-- >= max_npvar)
+    {
       ptrhi = ptr;
       ptrlo = ptr + 1;
       printf(" %6x : 0x%4x  0x%4x  ", LAddrFromNative(ptr), GETWORD(ptrhi), GETWORD(ptrlo));
-      if (0xFFFF == GETWORD(ptrhi)) {
+      if (0xFFFF == GETWORD(ptrhi))
+      {
         printf("[not looked up]  ");
         print_atomname(get_fvar_name(fx_addr68k, i));
         putchar('\n');
         BT_morep;
-      } else if ((0xFFFF & GETWORD(ptrlo)) == 1) {
+      }
+      else if ((0xFFFF & GETWORD(ptrlo)) == 1)
+      {
         printf("[fvar  ");
         print_atomname(get_fvar_name(fx_addr68k, i));
         printf("  on stack]  ");
         print(*(LispPTR *)NativeAligned4FromLAddr(((int)(0x0F & GETWORD(ptrlo)) << 16) | GETWORD(ptrhi)));
         putchar('\n');
         BT_morep;
-      } else {
+      }
+      else
+      {
         printf("[fvar  ");
         print_atomname(get_fvar_name(fx_addr68k, i));
         printf("  top value ]   ");
@@ -479,7 +506,8 @@ int sf(struct frameex1 *fx_addr68k) {
 
     else
       next68k = CurrentStackPTR;
-    while (ptr < next68k) {
+    while (ptr < next68k)
+    {
       ptrhi = ptr;
       ptrlo = ptr + 1;
       printf(" %6x : 0x%4x  0x%4x  ", LAddrFromNative(ptr), GETWORD(ptrhi), GETWORD(ptrlo));
@@ -497,7 +525,8 @@ int sf(struct frameex1 *fx_addr68k) {
   ptr = (DLword *)(fx_addr68k + 1);
 
   i = 0;
-  while (npvar-- > 0) {
+  while (npvar-- > 0)
+  {
     ptrhi = ptr;
     ptrlo = ptr + 1;
     printf(" %6x : 0x%4x  0x%4x  ", LAddrFromNative(ptr), GETWORD(ptrhi), GETWORD(ptrlo));
@@ -505,10 +534,13 @@ int sf(struct frameex1 *fx_addr68k) {
       printf("*local* [pvar%d] ", (i - 1));
     else
       print_atomname(pvarindex);
-    if (GETWORD(ptr) == 0xFFFF) {
+    if (GETWORD(ptr) == 0xFFFF)
+    {
       printf("  [variable not bound]\n");
       BT_morep;
-    } else {
+    }
+    else
+    {
       printf("  ");
       print(*(LispPTR *)ptr);
       putchar('\n');
@@ -518,23 +550,29 @@ int sf(struct frameex1 *fx_addr68k) {
   }
   i = max_npvar;
 
-  while (nfvar && nfvar-- >= max_npvar) {
+  while (nfvar && nfvar-- >= max_npvar)
+  {
     ptrhi = ptr;
     ptrlo = ptr + 1;
     printf(" %6x : 0x%4x  0x%4x  ", LAddrFromNative(ptr), GETWORD(ptrhi), GETWORD(ptrlo));
-    if (0xFFFF == GETWORD(ptrhi)) {
+    if (0xFFFF == GETWORD(ptrhi))
+    {
       printf("[not looked up]  ");
       print_atomname(get_fvar_name(fx_addr68k, i));
       putchar('\n');
       BT_morep;
-    } else if ((0xFFFF & GETWORD(ptrlo)) == 1) {
+    }
+    else if ((0xFFFF & GETWORD(ptrlo)) == 1)
+    {
       printf("[fvar  ");
       print_atomname(get_fvar_name(fx_addr68k, i));
       printf("  on stack]  ");
       print(*(LispPTR *)NativeAligned4FromLAddr(((int)(0x0F & GETWORD(ptrlo)) << 16) | GETWORD(ptrhi)));
       putchar('\n');
       BT_morep;
-    } else {
+    }
+    else
+    {
       printf("[fvar  ");
       print_atomname(get_fvar_name(fx_addr68k, i));
       printf("  top value ]   ");
@@ -546,7 +584,8 @@ int sf(struct frameex1 *fx_addr68k) {
     i++;
   }
 
-  while (next68k > ptr) {
+  while (next68k > ptr)
+  {
     ptrhi = ptr;
     ptrlo = ptr + 1;
     printf(" %6x : 0x%4x  0x%4x  ", LAddrFromNative(ptr), GETWORD(ptrhi), GETWORD(ptrlo));
@@ -569,7 +608,8 @@ int sf(struct frameex1 *fx_addr68k) {
 /*									*/
 /************************************************************************/
 
-void bt1(FX *startFX) {
+void bt1(FX *startFX)
+{
   FX *fx;
   struct fnhead *fnobj;
   FX *get_nextFX(FX * fx);
@@ -587,8 +627,10 @@ void bt1(FX *startFX) {
   print(fnobj->framename);
   putchar('\n');
   BT_morep;
-  while ((fnobj->framename != ATOM_T) && (fx->alink != 11)) {
-    if (fnum > URMAXFXNUM - 1) {
+  while ((fnobj->framename != ATOM_T) && (fx->alink != 11))
+  {
+    if (fnum > URMAXFXNUM - 1)
+    {
       /* Internal buf overflow, too many stack frames */
       printf("***There are more than %d stack frames.\n", URMAXFXNUM);
       printf(
@@ -598,10 +640,12 @@ void bt1(FX *startFX) {
         int c;
         c = getchar();
         fflush(stdin);
-        if ((c == 'Y') || (c == 'y')) {
+        if ((c == 'Y') || (c == 'y'))
+        {
           fnum = 0;
           memset(URaid_FXarray, 0, URMAXFXNUM * 4);
-        } else
+        }
+        else
           goto bt1_exit;
       }
     }
@@ -619,7 +663,8 @@ void bt1(FX *startFX) {
     putchar('\n');
     BT_morep;
   }
-  if (fnobj->framename != ATOM_T) {
+  if (fnobj->framename != ATOM_T)
+  {
     printf(">>root frame for contextsw<<\n");
     putchar('\n');
     BT_morep;
@@ -654,7 +699,8 @@ void bt(void) { bt1(CURRENTFX); }
 /*									*/
 /************************************************************************/
 
-void btvv(void) {
+void btvv(void)
+{
   struct frameex1 *fx_addr68k;
   LispPTR atomindex;
   FX *get_nextFX(FX * fx);
@@ -663,7 +709,8 @@ void btvv(void) {
 
   atomindex = get_framename(fx_addr68k);
 
-  while ((atomindex != ATOM_T) && (fx_addr68k->alink != 11)) {
+  while ((atomindex != ATOM_T) && (fx_addr68k->alink != 11))
+  {
     sf(fx_addr68k);
     fx_addr68k = get_nextFX(fx_addr68k);
     atomindex = get_framename(fx_addr68k);
@@ -707,7 +754,8 @@ void nt(LispPTR index)
   fnobj = (struct fnhead *)NativeAligned4FromLAddr(defcell68k->defpointer);
 
   /* check if it's the same index ??*/
-  if (index != (fnobj->framename)) {
+  if (index != (fnobj->framename))
+  {
     printf("DEFCELL says it is ");
     print_atomname(index);
     printf("\n But Func OBJ says ");
@@ -724,7 +772,8 @@ void nt(LispPTR index)
   ntheader(fnobj);
 }
 
-void ntheader(struct fnhead *fnobj) {
+void ntheader(struct fnhead *fnobj)
+{
   LispPTR *localnt1;
   int localntsize;
   LispPTR fnobj_lisp;
@@ -749,7 +798,8 @@ void ntheader(struct fnhead *fnobj) {
   nt1(localnt1, localntsize, "Local args");
 }
 
-void nts(struct frameex1 *fxp) {
+void nts(struct frameex1 *fxp)
+{
   struct fnhead *nt;
 
 #ifdef BIGVM
@@ -772,17 +822,20 @@ void nts(struct frameex1 *fxp) {
 
 #define VAROFFSET(X) ((X) & 0xFFFFFFF)
 
-void nt1(LispPTR *start, int size, char *str) {
+void nt1(LispPTR *start, int size, char *str)
+{
   LispPTR *endp, *entry2p;
 
   printf("\n---- %s ----\n", str);
   size = size >> 1; /* originally size is # of word. now size is # of int */
   endp = start + size;
-  while (start < endp) {
+  while (start < endp)
+  {
     entry2p = start + size;
     printf("0x%06x: 0x%08x", LAddrFromNative((DLword *)start), *start);
     printf("  0x%06x: 0x%08x", LAddrFromNative((DLword *)entry2p), *entry2p);
-    if (*start != 0) {
+    if (*start != 0)
+    {
       if ((*entry2p >> 30) == VARTYPE_FVAR)
         printf(" FVAR");
       else if ((*entry2p >> 30) == VARTYPE_PVAR)
