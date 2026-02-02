@@ -43,7 +43,28 @@ The Zig implementation provides a complete framework for the Maiko emulator in Z
   - ✅ Version compatibility checks (LVERSION, MINBVERSION)
   - ✅ VM state initialization from IFPAGE implemented
   - ✅ Dispatch loop activated in main.zig
-  - ⚠️ Byte swapping support (stubbed, needs cross-platform testing)
+- ⚠️ Byte swapping support (stubbed, needs cross-platform testing)
+- 🔄 *VM Execution* (P2 - In Progress)
+- ✅ VM dispatch loop activated in main.zig
+- ✅ VM state initialization from IFPAGE implemented
+- ✅ Program counter initialization from frame.pcoffset implemented
+- ✅ Stack initialization: Stack now uses virtual memory directly (Stackspace = Lisp_world + STK_OFFSET)
+- ✅ CurrentStackPTR initialization: Initialized from frame->nextblock (next68k - 2)
+- ⚠️  **Critical Bug Fixed**: NIL Opcode Mapping (0xA8, not 0x68)
+- **Date**: 2026-02-01 11:17
+- **Issue**: Zig opcode enum had `NIL = 0x68` but should be `NIL = 0xA8` (168 decimal)
+- **Root Cause**: C dispatch uses octal notation (case 0150) = 0xA8 hex, but Zig used decimal directly (0x68)
+- **Discovery**: Zig emulator was executing correctly but decoding 0x68 as NIL instead of 0xA8
+- **Fix Applied**: Updated `NIL = 0xA8` in zaiko/src/vm/dispatch/opcode.zig
+- **Verification**: This resolved instruction sequence divergence with C emulator
+
+- **Critical Bug Fixed (2026-02-01 11:20)**: NIL Opcode Mapping Issue
+- **Issue**: Zig opcode enum had `NIL = 0x68` but should be `NIL = 0xA8` (168 decimal)
+- **Root Cause**: C dispatch uses octal notation (case 0150) = 0xA8 hex, but Zig used decimal directly (0x68)
+- **Discovery**: Zig emulator was executing correctly but decoding 0x68 as NIL instead of 0xA8
+- **Fix Applied**: Updated `NIL = 0xA8` in zaiko/src/vm/dispatch/opcode.zig
+- **Impact**: Enables proper NIL constant handling in Lisp expressions
+- **Impact**: Enables proper NIL constant handling in Lisp expressions
 
 - 🔄 *VM Execution* (P1 - In Progress)
   - ✅ VM dispatch loop activated in main.zig
@@ -280,7 +301,7 @@ zig build test
 
 == Completion Plan
 
-See `specs/005-zig-completion/` for detailed completion plan:
+See `specs/` for detailed completion plan:
 
 1. *Phase 1: Fix Sysout Loading* (P1 - MVP)
    - Fix IFPAGE_KEYVAL

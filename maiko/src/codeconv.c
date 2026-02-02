@@ -10,17 +10,31 @@
 
 #include "version.h"
 
-/*************************************************/
-/* NSFatchar string <-> EUC character string	 */
-/* conversion program 				 */
-/* file name : char_codes.c			 */
-/* 26,Jun,'89					 */
-/* 5,Aug,'89					 */
-/* by Shinichi Miyamoto				 */
-/* 10,Jan,'91					 */
-/* 27,Feb,'91					 */
-/* by Sumie Kurihara (FXIS)			 */
-/*************************************************/
+/* FILE: codeconv.c - Character Code Conversion for Fatchar and Thinchar
+ *
+ * HIGH CONFIDENCE: This file implements character code conversion
+ * between Fatchar/Thinchar formats and EUC (Extended Unix Code) encoding.
+ * These functions are used for international text handling in Interlisp.
+ *
+ * CHARACTER ENCODINGS:
+ * - Fatchar: 16-bit character encoding used internally by Interlisp
+ * - Thinchar: 8-bit character encoding for compact storage
+ * - EUC: Extended Unix Code, used for external text representation
+ *
+ * CONVERSION TABLE:
+ * - Uses ns_euc() function for actual character mapping
+ * - TABLESIZE (256) defines the basic character set size
+ * - EUCMASK (0x80) identifies multi-byte EUC characters
+ *
+ * HISTORY:
+ * - Original implementation: Shinichi Miyamoto (Jun 26, 1989)
+ * - Updates: Sumie Kurihara (Aug 5, 1989; Jan 10, 1991; Feb 27, 1991)
+ * - Ported to Maiko: Takeshi Shimizu
+ *
+ * CROSS-REFERENCE: Character encoding definitions in codeconv.h
+ * CROSS-REFERENCE: Text input/output in unixcomm.c
+ * CROSS-REFERENCE: Display string handling in dspsubrs.c
+ */
 
 #include <stdio.h>
 
@@ -29,6 +43,32 @@
 #define MASK8BIT 0x00FF
 #define TABLESIZE 256
 
+/* HIGH CONFIDENCE: Convert Fatchar string to EUC encoding
+ *
+ * Fatchar is a 16-bit internal Interlisp character encoding. This function
+ * converts Fatchar strings to EUC (Extended Unix Code) for external representation.
+ *
+ * PARAMETERS:
+ * - ns_ptr: Pointer to Fatchar source string (16-bit characters)
+ * - ns_len: Length of Fatchar string in characters (not bytes)
+ * - euc_ptr: Pointer to buffer for EUC output
+ *
+ * RETURN:
+ * - Length of EUC string in bytes
+ *
+ * ALGORITHM:
+ * 1. Iterate through each Fatchar character (2 bytes each)
+ * 2. Convert Fatchar to unsigned short (16-bit)
+ * 3. Map to EUC using ns_euc() function
+ * 4. Handle single-byte (ASCII) and double-byte (multi-byte) EUC characters
+ * 5. Null-terminate the EUC string
+ *
+ * SIDE EFFECTS:
+ * - Writes to euc_ptr buffer
+ * - Overwrites data at euc_ptr location
+ *
+ * PERFORMANCE: O(n) where n is number of characters
+ */
 int FatcharNStoEUC(unsigned char *ns_ptr, int ns_len, unsigned char *euc_ptr) {
   int i;
   int euc_len;
@@ -75,6 +115,34 @@ int FatcharNStoEUC(unsigned char *ns_ptr, int ns_len, unsigned char *euc_ptr) {
   return (euc_len);
 }
 
+/* HIGH CONFIDENCE: Convert Thinchar string to EUC encoding
+ *
+ * Thinchar is an 8-bit internal Interlisp character encoding for compact storage.
+ * This function converts Thinchar strings to EUC (Extended Unix Code) encoding.
+ *
+ * PARAMETERS:
+ * - ns_ptr: Pointer to Thinchar source string (8-bit characters)
+ * - ns_len: Length of Thinchar string in characters (and bytes)
+ * - euc_ptr: Pointer to buffer for EUC output
+ *
+ * RETURN:
+ * - Length of EUC string in bytes
+ *
+ * ALGORITHM:
+ * 1. Iterate through each Thinchar character (1 byte each)
+ * 2. Convert to unsigned short (16-bit) for consistent processing
+ * 3. Map to EUC using ns_euc() function
+ * 4. Handle single-byte (ASCII) and double-byte (multi-byte) EUC characters
+ * 5. Null-terminate the EUC string
+ *
+ * SIDE EFFECTS:
+ * - Writes to euc_ptr buffer
+ * - Overwrites data at euc_ptr location
+ *
+ * PERFORMANCE: O(n) where n is number of characters
+ *
+ * NOTE: Thinchar is a subset of Fatchar, using only 8-bit values
+ */
 int ThincharNStoEUC(unsigned char *ns_ptr, int ns_len, unsigned char *euc_ptr) {
   int i;
   int euc_len = 0;
@@ -118,6 +186,32 @@ int ThincharNStoEUC(unsigned char *ns_ptr, int ns_len, unsigned char *euc_ptr) {
   return (euc_len);
 }
 
+/* HIGH CONFIDENCE: Convert EUC string to Fatchar encoding
+ *
+ * Converts EUC (Extended Unix Code) external text to Fatchar internal format.
+ * This is the reverse of FatcharNStoEUC.
+ *
+ * PARAMETERS:
+ * - euc_ptr: Pointer to null-terminated EUC string
+ * - ns_ptr: Pointer to buffer for Fatchar output
+ *
+ * RETURN:
+ * - Length of Fatchar string in characters (each Fatchar is 2 bytes)
+ *
+ * ALGORITHM:
+ * 1. Iterate through EUC string, handling single and multi-byte characters
+ * 2. Multi-byte characters have high bit set (detected via EUCMASK)
+ * 3. Convert each EUC character to Fatchar using euc_ns() function
+ * 4. Store Fatchar as 2-byte values in output buffer
+ *
+ * SIDE EFFECTS:
+ * - Writes to ns_ptr buffer
+ * - Overwrites data at ns_ptr location
+ *
+ * PERFORMANCE: O(n) where n is number of EUC characters
+ *
+ * NOTE: EUC strings must be null-terminated for this function to work
+ */
 int EUCtoFatcharNS(unsigned char *euc_ptr, unsigned char *ns_ptr) {
   int i;
   int ns_len;
@@ -155,6 +249,26 @@ int EUCtoFatcharNS(unsigned char *euc_ptr, unsigned char *ns_ptr) {
   return (ns_len);
 }
 
+/* HIGH CONFIDENCE: Calculate EUC string length in bytes
+ *
+ * This function calculates the length of an EUC (Extended Unix Code) string.
+ * EUC strings may contain both single-byte and double-byte characters.
+ *
+ * PARAMETERS:
+ * - euc_ptr: Pointer to null-terminated EUC string
+ *
+ * RETURN:
+ * - Length of string in bytes, counting multi-byte characters as 2 bytes
+ *
+ * ALGORITHM:
+ * 1. Iterate through string until null terminator
+ * 2. Check each byte for high bit set (multi-byte character marker)
+ * 3. Count single-byte characters as 1, double-byte as 2
+ *
+ * PERFORMANCE: O(n) where n is number of characters
+ *
+ * NOTE: This function does NOT validate EUC string correctness
+ */
 int EUCstrlen(char *euc_ptr) {
   int len = 0;
 

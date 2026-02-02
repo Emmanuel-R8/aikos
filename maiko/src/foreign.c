@@ -8,6 +8,43 @@
 /*									*/
 /************************************************************************/
 
+/* FILE: foreign.c - Foreign Function Call Interface (DEPRECATED)
+ *
+ * HIGH CONFIDENCE: This file implements the Foreign Function Call (FFC)
+ * interface for calling C functions from Lisp. This feature is DEPRECATED
+ * and disabled by default.
+ *
+ * DEPRECATION NOTICE:
+ * Foreign function call support relies on the GNU DLD (Dynamic Linker)
+ * library which hasn't been supported or maintained since at least 2006.
+ * Modern operating systems provide their own dynamic linking mechanisms
+ * that are not compatible with DLD.
+ *
+ * ENABLEMENT: Requires MAIKO_ENABLE_FOREIGN_FUNCTION_INTERFACE macro
+ * This is typically not defined in modern builds.
+ *
+ * FFC ARCHITECTURE:
+ * - Provides string conversion macros (LStringToCString)
+ * - Handles different string types (ThinChar, FatChar)
+ * - Supports various C function pointer types
+ * - Call_C_Fn function provides generic foreign call interface
+ *
+ * STRING CONVERSION:
+ * - LStringToCString: Converts Lisp string to C string with length checking
+ * - Handles both ThinChar (8-bit) and FatChar (16-bit) encodings
+ *
+ * FUNCTION POINTER TYPES:
+ * - PFV: Pointer to Function returning Void
+ * - PFI: Pointer to Function returning Int
+ * - PFC: Pointer to Function returning Char
+ * - PFF: Pointer to Function returning Float
+ * - PFP: Pointer to Function returning Pointer
+ *
+ * CROSS-REFERENCE: DLD library documentation (obsolete)
+ * CROSS-REFERENCE: Lisp string operations in arrayops.c
+ * CROSS-REFERENCE: Character conversion in codeconv.c
+ */
+
 #include "version.h"
 
 /* Foreign function call support relies upon DLD which

@@ -313,4 +313,4 @@ All opcodes should be validated against C emulator traces using:
 2. `EMULATOR_MAX_STEPS=N` for controlled testing
 3. Unified trace format for rapid divergence identification
 
-*CROSS-REFERENCE*: `specs/005-zig-completion/tasks.md` for test cases
+*CROSS-REFERENCE*: `specs/tasks.md` for test cases

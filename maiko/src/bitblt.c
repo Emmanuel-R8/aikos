@@ -8,6 +8,38 @@
 /*									*/
 /************************************************************************/
 
+/* FILE: bitblt.c - Pilot BITBLT Opcode Implementation
+ *
+ * This file implements the PILOTBITBLT opcode, which provides a
+ * native-code compatible version of the BITBLT operation for Medley.
+ * It handles bit block transfer operations using the PILOTBBT structure.
+ *
+ * HIGH CONFIDENCE: The PILOTBITBLT implementation is well-tested and
+ * widely used for graphics operations.
+ *
+ * KEY FEATURES:
+ * - PILOTBITBLT opcode implementation
+ * - BITBLT operation using PILOTBBT structure
+ * - Display synchronization with ScreenLocked flag
+ * - Support for both mono and color displays
+ * - Gray level support with texture BITBLT
+ *
+ * PILOTBBT STRUCTURE:
+ * - Contains BITBLT parameters: width, height, source/destination coordinates
+ * - Supports source/destination bpl (bits per line)
+ * - Handles gray level operations with texture BITBLT
+ * - Provides backward flag for reverse transfer
+ *
+ * SYNCHRONIZATION:
+ * - ScreenLocked flag prevents display updates during BITBLT
+ * - flush_display_lineregion updates the display after transfer
+ *
+ * CROSS-REFERENCE: PILOTBBT structure in pilotbbt.h
+ * CROSS-REFERENCE: BITBLT macro in bbtmacro.h
+ * CROSS-REFERENCE: Display operations in dspsubrs.c
+ * CROSS-REFERENCE: Gray level support in texturebb.h
+ */
+
 #include "version.h"
 
 #include <stdio.h>

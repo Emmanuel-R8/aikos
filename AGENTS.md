@@ -1,16 +1,16 @@
 # AI Agent Guidelines for Interlisp Project
 
-**Date**: 2025-12-10 12:45
+**Date**: 2026-01-29
 **Purpose**: Guidelines and best practices for AI agents working on this project
 
 ## Project Overview
 
 This repository contains the **Interlisp** project, which includes:
 
-- **Maiko - C Implementation in @/maiko_untouched**: Virtual machine emulator for Medley Interlisp bytecode. Reference implementation in C (fully functional) with additional commenting. NEVER MODIFY APART FROM COMMENTING.
-- **Maiko - C Implementation in @/maiko**: Virtual machine emulator for Medley Interlisp bytecode. Reference implementation in C (fully functional) with minor refactoring and tracing statements
-- **Zig Implementation**: Alternative implementation of Maiko in Zig (in progress)
-- **Common Lisp Implementation**: Alternative implementation of Maiko in Common Lisp (targetting Sbcl) (in progress)
+- **Maiko - C Implementation in @/maiko_untouched**: Historical baseline with sparse comments. Reference for original implementation details only.
+- **Maiko - C Implementation in @/maiko**: Production-ready C implementation with comprehensive documentation. Primary reference for development.
+- **Zig Implementation**: Alternative implementation of Maiko in Zig (incomplete)
+- **Common Lisp Implementation**: Alternative implementation of Maiko in Common Lisp (targetting Sbcl) (in progress - will be developed after Zig)
 
 ## Critical Documentation
 
@@ -21,69 +21,100 @@ This repository contains the **Interlisp** project, which includes:
 1. When **compressing or summarizing context**, follow **§7**: Phase 1 (aggressive compression of tool/command/trace/linter outputs only) is mandatory and first; Phase 2 (re-read AGENTS.md, then compress the remainder) only if further compression is needed.
 
 1. **`documentation/core/critical-memory.typ`** - **CRITICAL**: Rules for documentation updates
-   - All documentation improvements MUST be emulator-independent in `specifications/`
-   - Language-specific details go in `implementations/`
+   - All documentation improvements MUST be emulator-independent in `documentation/specifications/`
+   - Language-specific details go in `documentation/implementations/`
    - **ALWAYS** write documentation using the Typst document format
    - **ALWAYS** update both before committing
    - **ALWAYS** use the command `date` to date entries (when necessary )i as YYYY-mm-dd HH:MM
 
-1. **`documentation/CRITICAL_DEBUGGING_TECHNIQUE.typ`** - **CRITICAL**: Essential debugging techniques and practices
+1. **`documentation/core/critical-debugging-technique.typ`** - **CRITICAL**: Essential debugging techniques and practices
 
 1. **`documentation/README.md`** - Overview of documentation structure
-1. **`specs/004-emulator-runner/plan.md`** - Implementation plan for emulator runner
-1. **`specs/004-emulator-runner/tasks.md`** - Task list for emulator runner
-1. **`specs/005-zig-completion/plan.md`** - Implementation plan for Zig emulator
-1. **`specs/005-zig-completion/tasks.md`** - Detailed task list (94/108 complete, 87.0%)
 
 ## Project Structure
 
 ```
 Interlisp/
-├── documentation/             # Knowledge base (emulator-independent specs + implementations)
-│   ├── specifications/        # Emulator-independent specifications
-│   ├── implementations/       # Language-specific implementation notes
+├── documentation/             # Comprehensive but may overstate Zig completion
+│   ├── specifications/        # Technical specs (verify against actual state)
+│   ├── implementations/       # Implementation-specific notes
 │   └── core/
 │       └── critical-memory.typ # ⚠️ MUST READ AND ABIDE BY - Documentation rules
-├── maiko/                     # Maiko VM source code
-│   ├── src/                   # C implementation (reference)
-│   └── alternatives/zig/      # Zig implementation (in progress)
-│   └── alternatives/lisp/     # Common Lisp (sbcl) implementation (in progress - will be developed after Zig)
-├── specs/                     # Feature specifications
-│   └── 005-zig-completion/   # Zig emulator completion spec
+├── maiko/                     # C Implementation (PRODUCTION-READY)
+│   ├── src/                   # Enhanced with superior documentation
+│   └── inc/                   # Production headers
+├── maiko_untouched/           # Historical baseline (sparse comments)
+├── zaiko/                     # Zig Implementation (INCOMPLETE)
+│   ├── src/                   # 60-70% complete, many placeholders
+│   └── tests/                 # Basic test structure
+├── specs/                     # Task tracking (89.2% - inaccurate)
 └── medley/                    # Medley Interlisp system
 ```
 
-## Current Status (2026-01-20)
+## Current Status (2026-01-29)
 
-### Zig Emulator Completion: 89.2% (96/108 tasks)
+### C Implementation State: PRODUCTION READY
 
-**Completed**:
+- **Status**: Fully functional and production-ready
+- **Comments**: Enhanced with comprehensive documentation (superior to maiko_untouched/)
+- **Completeness**: 94.5% opcode coverage (242/256 opcodes implemented)
+- **Quality**: Production-grade with extensive testing framework
 
-- ✅ Phase 1: Sysout Loading (22/22 tasks)
-- ✅ Phase 2: Basic Execution (12/12 tasks)
-- ✅ Phase 3: Essential Opcodes (25/25 tasks)
-- ✅ Phase 4: GC Operations (15/15 tasks)
-- ✅ Phase 5: SDL2 Display Integration (22/22 tasks - implementation complete)
-- ✅ Phase 6: Advanced Opcodes (2/2 critical: UNBIND fully implemented with parity debugging)
+### Zig Implementation State: INCOMPLETE
 
-**Remaining**:
+- **Actual Coverage**: 60-70% (despite 89.2% task completion)
+- **Critical Issues**: 245 TODO/FIXME markers (8x more than C)
+- **Missing Features**: Floating point (completely stubbed), advanced graphics, I/O subsystems
+- **Quality**: Development-grade with numerous placeholder implementations
 
-- ⏳ SDL2 Test Cases (5 tasks: T092-T096)
-- ⏳ Polish Tasks (5 tasks: T103-T108)
-- ⏳ TOPOFSTACK Source Investigation (UNBIND temporary fix needs proper implementation)
+### Documentation Accuracy Gap
 
-**Recent Achievements**:
+- **Task Tracking**: Overstates Zig completion by 20-30%
+- **Specifications**: Assume higher Zig implementation than actually exists
+- **Issue**: Completion percentages do not reflect implementation quality
 
-- ✅ **UNBIND Opcode**: Complete implementation with systematic debugging
-- ✅ **Parity Debugging**: Achieved instruction-by-instruction parity through 5 operations
-- ✅ **Critical Bug Fix**: Signed vs unsigned comparison in UNBIND marker detection
-- ✅ **Debugging Methodology**: Established comprehensive technique hierarchy
+## Implementation Reality Assessment
 
-**Known Issues**:
+### C Codebase: Production Reference
 
-- ⚠️ Minor compilation fixes needed (SDL2 type mismatches, optional unwrapping)
-- ⚠️ Test cases for SDL2 not yet implemented
-- ⚠️ UNBIND TOPOFSTACK restoration uses temporary hardcoded value (needs proper source investigation)
+**Comment State Analysis**:
+
+- **maiko/**: Contains superior comprehensive documentation with structured headers, confidence levels, and algorithm explanations
+- **maiko_untouched/**: Sparse historical baseline for reference only
+- **Recommendation**: Use maiko/ as primary development reference
+
+### Zig Codebase: Development Reality
+
+**Completion Gap**:
+
+- **Task Tracking**: Claims 89.2% completion
+- **Actual Implementation**: 60-70% coverage with major gaps
+- **Evidence**: 245 TODO/FIXME markers indicate significant immaturity vs 31 in C
+- **Critical Gaps**: Floating point operations completely stubbed, graphics operations incomplete, I/O systems missing substantial functionality
+
+**Quality Indicators**:
+
+- Placeholder implementations return without action
+- Minimal error handling in incomplete modules
+- Insufficient test coverage for production use
+
+## Parity Development Guidance
+
+### Priority Areas for Zig Parity
+
+**Critical Missing Functionality**:
+
+1. **Floating Point Operations**: All opcodes currently stubbed
+2. **Graphics Pipeline**: Essential BitBLT and drawing operations missing
+3. **I/O Subsystems**: File system, device handling, network operations incomplete
+4. **Placeholder Elimination**: Replace non-functional implementations
+
+**Quality Requirements for Parity**:
+
+1. **Comprehensive Testing**: Build test coverage matching C implementation
+2. **Error Handling**: Implement robust error management across all modules
+3. **Performance**: Achieve comparable execution speed to C reference
+4. **Documentation**: Add algorithm explanations for completed implementations
 
 ## Working Guidelines
 
@@ -152,6 +183,11 @@ Language-Specific Documentation Updates:
 
 **CRITICAL RULE**: The C implementation (`maiko/src/`) is the ultimate reference.
 
+- **Use maiko/ as primary reference** - Contains superior documentation to maiko_untouched/
+- **Leverage comprehensive headers** - Use confidence levels and testing guidance
+- **Preserve documentation quality** - Maintain structured explanations
+- **Cross-reference maiko_untouched/** - Only for historical context
+
 - If comments/documentation conflict with C code, **trust the C code**
 - If documentation is incorrect, **update the documentation**
 - When debugging, use the C emulator with debug statements to understand behavior
@@ -179,7 +215,7 @@ Language-Specific Documentation Updates:
 
 #### Debugging Integration
 
-- **Systematic Debugging**: Follow `documentation/CRITICAL_DEBUGGING_TECHNIQUE.typ` hierarchy
+- **Systematic Debugging**: Follow `documentation/core/critical-debugging-technique.typ` hierarchy
 - **Trace Analysis**: Use comparison tools for divergence identification
 - **Performance Profiling**: Monitor execution speed during testing
 
@@ -310,18 +346,18 @@ These apply **only in Phase 2** and **only to the remainder**.
 - **AGENTS.md**: At least a minimal stub: Critical Documentation, Common Debugging Gotchas, Important Paths, submodule policy, and a pointer to §7. If the full file does not fit, retain those plus §7.
 - **Session / work state**: `WORK_STATE.md`, `STEP_COMPARISON_STATUS.md` (or the current "session" file). Current blocker, first divergence, next action.
 - **Current blocker or first divergence**: 1–3 lines (e.g. "Zig SP/FP init wrong at `zaiko/src/vm/vm_initialization.zig`; C SP=0x02e88 FP=0x307864, Zig differs").
-- **Critical pitfalls**: Full "Common Debugging Gotchas" or: PC=byte not DLword; FPtoVP=512‑byte pages; byte swap vs XOR; CSTKPTRL/TOPOFSTACK re-read from memory after restore; VM/stack init (SP/FP from IFPAGE). See `documentation/CRITICAL_DEBUGGING_TECHNIQUE.typ` Part III.
-- **Key paths**: `zaiko/src/`, `maiko/src/`, `scripts/compare_emulator_execution.sh`, `documentation/specifications/`, `documentation/implementations/`, `specs/004-emulator-runner/`, `specs/005-zig-completion/`.
+- **Critical pitfalls**: Full "Common Debugging Gotchas" or: PC=byte not DLword; FPtoVP=512‑byte pages; byte swap vs XOR; CSTKPTRL/TOPOFSTACK re-read from memory after restore; VM/stack init (SP/FP from IFPAGE). See `documentation/core/critical-debugging-technique.typ` Part III.
+- **Key paths**: `zaiko/src/`, `maiko/src/`, `scripts/compare_emulator_execution.sh`, `documentation/specifications/`, `documentation/implementations/`
 
 **7.4.2 Retain in abbreviated form**
 
-- **Specs** (`specs/004-emulator-runner/tasks.md`, `specs/005-zig-completion/tasks.md`): Phase name, checkpoint status, **next 3–5 open tasks**; drop full body of completed tasks.
+- **Specs**: Phase name, checkpoint status, **next 3–5 open tasks**; drop full body of completed tasks.
 - **Documentation**: Section titles and "see `path` for X"; drop long code examples and duplicate explanations.
-- **CRITICAL_DEBUGGING_TECHNIQUE.typ**: Part titles and one‑line pitfall list; drop full code blocks (replace with "see CRITICAL_DEBUGGING_TECHNIQUE.typ §II.1, §III.2").
+- **Critical Debugging Technique**: Part titles and one‑line pitfall list; drop full code blocks (replace with "see `documentation/core/critical-debugging-technique.typ` §II.1, §III.2").
 
 **7.4.3 Can drop or drastically shorten**
 
-- **Full code blocks**: Replace with "see `documentation/CRITICAL_DEBUGGING_TECHNIQUE.typ` §I.2 (Integrity checks)", etc.
+- **Full code blocks**: Replace with "see `documentation/core/critical-debugging-technique.typ` §I.2 (Integrity checks)", etc.
 - **Completed phases and old session logs**: Keep only latest status and next open phase.
 - **Redundant explanations**: One canonical version and pointers.
 
@@ -357,6 +393,22 @@ In the normal Phase 2 flow, AGENTS.md is re-read in full and not compressed. If 
 - **Important Paths** and **Important Constants**.
 - **§7 Context Compression and Summarization** (this section, or a pointer to it).
 
+## Documentation Accuracy Warning
+
+### Known Discrepancies
+
+1. **Task Tracking Inaccuracy**: Zig completion shown as 89.2% vs actual 60-70%
+2. **Placeholder Not Accounted**: Task completion doesn't reflect numerous TODO implementations
+3. **Quality vs Quantity**: Completed tasks may have non-functional implementations
+4. **Testing Insufficient**: Completion tracking doesn't assess test coverage
+
+### Verification Requirements
+
+1. **Always inspect source code** before trusting documentation claims
+2. **Check for TODO/FIXME markers** as incompleteness indicators
+3. **Verify functionality** rather than relying on completion percentages
+4. **Use C implementation** as reference for Zig development priorities
+
 ## Common Tasks
 
 ### Adding New Opcodes
@@ -365,13 +417,13 @@ In the normal Phase 2 flow, AGENTS.md is re-read in full and not compressed. If 
 2. **Add opcode definition** to `zaiko/src/vm/dispatch/opcode.zig`
 3. **Implement handler** in appropriate module in `zaiko/src/vm/opcodes/`
 4. **Add to dispatch switch** in `zaiko/src/vm/dispatch/execution.zig`
-5. **Systematic testing** - Use parity debugging techniques from `documentation/CRITICAL_DEBUGGING_TECHNIQUE.typ`
+5. **Systematic testing** - Use parity debugging techniques from `documentation/core/critical-debugging-technique.typ`
 6. **Update documentation** in `documentation/specifications/instruction-set/opcodes.typ`
 7. **Add regression tests** if applicable
 
 ### Systematic Debugging Workflow
 
-**CRITICAL**: Follow `documentation/CRITICAL_DEBUGGING_TECHNIQUE.typ` for all debugging tasks:
+**CRITICAL**: Follow `documentation/core/critical-debugging-technique.typ` for all debugging tasks:
 
 1. **Cross-reference C traces** - Establish baseline with verified C emulator output
 2. **Step-by-instruction validation** - Run emulators with `EMULATOR_MAX_STEPS=N`
@@ -445,17 +497,10 @@ When a file exceeds 500 lines:
 ### Documentation
 
 - **Main README**: `documentation/README.md`
-- **Critical Debugging Techniques**: `documentation/CRITICAL_DEBUGGING_TECHNIQUE.typ`
+- **Critical Debugging Techniques**: `documentation/core/critical-debugging-technique.typ`
 - **Index**: `documentation/reference/index.typ`
 - **Architecture**: `documentation/components/vm-core.typ`
 - **Glossary**: `documentation/reference/glossary.typ`
-
-### Specifications
-
-- **Zig Completion Spec**: `specs/005-zig-completion/spec.md`
-- **Implementation Plan**: `specs/005-zig-completion/plan.md`
-- **Tasks**: `specs/005-zig-completion/tasks.md`
-- **Current State**: `specs/005-zig-completion/current-state-analysis.md`
 
 ### Implementation Notes
 
@@ -470,7 +515,6 @@ When a file exceeds 500 lines:
 - Zig tests: `zaiko/tests/`
 - C reference: `maiko/src/`
 - Documentation: `documentation/`
-- Specs: `specs/005-zig-completion/`
 
 ### Important Constants
 
@@ -504,7 +548,7 @@ medley/scripts/build/build-c-emulator.sh
 
 - **Symptom**: Execution diverges from C traces unexpectedly
 - **Cause**: Incorrect memory access, bounds violations, or type mismatches
-- **Solution**: Use memory integrity verification techniques from `documentation/CRITICAL_DEBUGGING_TECHNIQUE.typ`
+- **Solution**: Use memory integrity verification techniques from `documentation/core/critical-debugging-technique.typ`
 
 ### Stack Corruption
 
@@ -532,13 +576,37 @@ medley/scripts/build/build-c-emulator.sh
 
 ## Best Practices
 
+### For C Implementation (Production Reference)
+
+1. **Use maiko/ as primary reference** - Contains superior documentation
+2. **Leverage comprehensive headers** - Use confidence levels and testing guidance
+3. **Preserve documentation quality** - Maintain structured explanations
+4. **Cross-reference maiko_untouched/** - Only for historical context
+
+### For Zig Development (Parity Focus)
+
+1. **Address TODO markers systematically** - 245 markers indicate critical gaps
+2. **Replace placeholder implementations** - Focus on non-functional stubs
+3. **Implement missing functional areas** - Priority: floating point, graphics, I/O
+4. **Test comprehensively** - Build coverage as implementations are completed
+5. **Document algorithms** - Add explanations during implementation, not after
+
+### For Documentation Accuracy
+
+1. **Verify completion claims** - Zig is 60-70% complete, not 89.2%
+2. **Cross-reference implementations** - Use C as reference for Zig development
+3. **Check for placeholder code** - TODO markers indicate incomplete implementations
+4. **Maintain reality checks** - Regular assessment vs documented assumptions
+
+### General Practices
+
 1. **Always check C implementation first** when implementing new features
 2. **Update documentation** before committing (follow `documentation/core/critical-memory.typ`)
 3. **Keep files under 500 lines** for better maintainability
 4. **Test incrementally** - don't wait until everything is done
 5. **Document findings** in `documentation` for future reference
 6. **Use descriptive commit messages** with task IDs when applicable
-7. **Follow systematic debugging** from `documentation/CRITICAL_DEBUGGING_TECHNIQUE.typ`
+7. **Follow systematic debugging** from `documentation/core/critical-debugging-technique.typ`
 8. **Validate against C traces** before considering implementation complete
 9. **Handle edge cases** identified during C code analysis
 10. **Profile performance** during development, not just at the end
@@ -546,10 +614,8 @@ medley/scripts/build/build-c-emulator.sh
 ## Contact & Support
 
 - **Project Documentation**: See `documentation/README.md`
-- **Implementation Status**: See `specs/005-zig-completion/current-state-analysis.md`
-- **Task Tracking**: See `specs/005-zig-completion/tasks.md`
 
 ---
 
-**Last Updated**: 2026-01-20
-**Status**: Zig emulator 89.2% complete, systematic debugging methodology established, parity testing framework active
+**Last Updated**: 2026-01-29
+**Status**: C implementation production-ready with comprehensive documentation; Zig implementation incomplete (60-70% actual coverage) with significant quality gaps

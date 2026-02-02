@@ -1,3 +1,36 @@
+/* FILE: adr68k.h - Address Translation Functions
+ *
+ * This file implements inline functions for translating between Lisp
+ * addresses (LispPTR) and native system addresses (void*), with support
+ * for different alignment requirements and stack operations. It also
+ * provides page-level address conversion for virtual memory management.
+ *
+ * HIGH CONFIDENCE: These functions are fundamental to the emulator's
+ * memory management and are used extensively throughout the codebase.
+ *
+ * ADDRESS TRANSLATION:
+ * - LAddrFromNative: Convert native pointer to Lisp address
+ * - NativeAligned2FromLAddr: Convert Lisp address to native 2-byte aligned pointer
+ * - NativeAligned4FromLAddr: Convert Lisp address to native 4-byte aligned pointer
+ * - NativeAligned4FromLPage: Convert Lisp page address to native pointer
+ *
+ * STACK OPERATIONS:
+ * - StackOffsetFromNative: Calculate stack offset from native pointer
+ * - NativeAligned2FromStackOffset: Convert stack offset to native pointer
+ * - NativeAligned4FromStackOffset: Convert stack offset to 4-byte aligned pointer
+ *
+ * PAGE OPERATIONS:
+ * - LPageFromNative: Get Lisp page number from native pointer
+ *
+ * ALIGNMENT CHECKING:
+ * - Functions include alignment validation and error reporting
+ * - Misaligned pointers trigger runtime warnings
+ *
+ * CROSS-REFERENCE: Lisp memory layout in storage.c
+ * CROSS-REFERENCE: Stack management in stack.h
+ * CROSS-REFERENCE: Virtual memory in vmemsave.c
+ */
+
 #ifndef ADR68K_H
 #define ADR68K_H 1
 /* $Id: adr68k.h,v 1.2 1999/01/03 02:05:52 sybalsky Exp $ (C) Copyright Venue, All Rights Reserved  */

@@ -8,6 +8,58 @@
 /*									*/
 /************************************************************************/
 
+/* FILE: rs232c.c - RS-232C Serial Communication
+ *
+ * HIGH CONFIDENCE: This file implements RS-232C serial communication
+ * functionality for Maiko. It provides serial port operations for Lisp
+ * applications.
+ *
+ * RS-232C INTERFACE:
+ * - Provides serial communication support for Lisp
+ * - Manages RS-232C port configuration and operation
+ * - Handles serial port initialization, data transmission, and reception
+ * - Implements signal handling for modem events
+ *
+ * HARDWARE CONFIGURATION:
+ * - IOPage interface for Lisp access to serial port status
+ * - Structs for hardware config, flags, commands, and status
+ * - Default device: /dev/ttyb (configurable per system)
+ *
+ * DEVICE STRUCTURES:
+ * - HardWareConfig: RS-232C hardware configuration
+ * - RS232CGetFlag, RS232CPutFlag: I/O flags
+ * - RS232CMiscCommand: Miscellaneous commands
+ * - RS232CParameterOutcome: Parameter outcomes
+ * - RS232CDeviceStatus: Device status
+ * - RS232CParameterCSB: Parameter control/status block
+ * - RS232CGetCSB, RS232CPutCSB: Control/status blocks
+ *
+ * SIGNAL HANDLING:
+ * - rs232c_hup_handler(): Handles SIGHUP signal (modem disconnect)
+ * - rs_install_hup_handler(): Installs signal handler
+ * - rs_restore_hup_handler(): Restores previous signal handler
+ *
+ * ERROR HANDLING:
+ * - rs_error(): Fatal error handling (enters URAID)
+ * - rs_cerror(): Continuable error handling (prints message)
+ *
+ * INITIALIZATION:
+ * - rs232c_init(): Initializes RS-232C interface at boot time
+ * - Sets up I/O page pointers
+ * - Initializes port state and parameters
+ *
+ * DEPENDENCIES:
+ * - Uses termios for serial port configuration
+ * - Uses select() for I/O readiness checking
+ * - Requires lspglob.h for global variable definitions
+ * - Uses rs232c.h for structure definitions
+ *
+ * CROSS-REFERENCE: Serial port definitions in rs232c.h
+ * CROSS-REFERENCE: I/O page definitions in iopage.h
+ * CROSS-REFERENCE: Common error handling in common.c
+ * CROSS-REFERENCE: Network operations in inet.c and unixcomm.c
+ */
+
 #include "version.h"
 
 #include <fcntl.h>

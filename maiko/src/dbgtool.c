@@ -10,20 +10,40 @@
 
 #include "version.h"
 
-/***************************************************************/
-/*
-        file name :	 Kdbgtool.c
-
-        For Debugging Aids
-
-        Including :
-                get_ivar_name(fx_addr68k , offset)
-
-                date :   25 Aug 1987	NMitani
-                changed: 09 Sep 1987 NMitani
-
-*/
-/***************************************************************/
+/* FILE: dbgtool.c - Debugging Aids for Maiko VM
+ *
+ * HIGH CONFIDENCE: This file provides debugging utilities for the Maiko
+ * virtual machine. The primary function is get_ivar_name(), which resolves
+ * the atom name of an instance variable (ivar) from a function header.
+ *
+ * DEBUGGING FUNCTIONALITY:
+ * - get_ivar_name(): Returns atom index of an ivar on a given function header
+ * - Supports both BIGATOMS and non-BIGATOMS configurations
+ * - Handles local variables detection
+ * - Built-in pagination support for debugging output
+ *
+ * DEBUGGING AID MACROS:
+ * - LOCAL_PVAR: Special value indicating local variables
+ * - VTY_IVAR, VTY_PVAR, VTY_FVAR: Variable type constants
+ * - NT_OFFSET_MASK: Nametable offset mask for different VM sizes
+ * - GetNTEntry: Macro for accessing nametable entries
+ * - NAMETABLE: Type definition for nametable based on BIGATOMS
+ *
+ * PAGINATION SUPPORT:
+ * - BT_lines, BT_temp, BT_jumpbuf: Pagination control variables
+ * - BTMAXLINE: Maximum lines per page (30)
+ * - BT_morep: Macro for pagination control with user interaction
+ * - Escape key quits, Return continues
+ *
+ * HISTORY:
+ * - Original implementation: NMitani (Aug 25, 1987)
+ * - Updated: NMitani (Sep 9, 1987)
+ * - Ported to Maiko: Takeshi Shimizu
+ *
+ * CROSS-REFERENCE: Function headers in stack.h
+ * CROSS-REFERENCE: Debugging tools in uraid.c and testtool.c
+ * CROSS-REFERENCE: Atom operations in atom.c
+ */
 #include <stdio.h>
 #include <string.h>
 #include <setjmp.h>

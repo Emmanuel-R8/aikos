@@ -8,6 +8,41 @@
 /*									*/
 /************************************************************************/
 
+/* FILE: imagefile.c - Image File Format Conversion
+ *
+ * HIGH CONFIDENCE: This file implements image file format conversion
+ * between Pixrects and various image file formats for the display system.
+ *
+ * SUPPORTED FORMATS:
+ * - SunRaster (TYPE_SUNRASTER): Sun Microsystems raster image format
+ * - PBM (TYPE_PBM): Portable Bitmap (black and white) format
+ * - PPM (TYPE_PPM): Portable Pixmap (color) format
+ *
+ * PIXRECT INTEGRATION:
+ * - Uses pixrect library for image manipulation
+ * - Supports 1-bit (monochrome), 8-bit (palette), and 32-bit (true color) depths
+ * - Converts between Pixrect structures and file formats
+ *
+ * PUBLIC FUNCTIONS:
+ * - Pixrect_to_File(): Convert Pixrect to appropriate file format
+ * - File_to_Pixrect(): Load image file and convert to Pixrect
+ * - Pixrect_to_PPM(), Pixrect_to_PBM(): Specific format converters
+ * - SunRaster_to_Pixrect(), PPM_to_Pixrect(), PBM_to_Pixrect(): Loaders
+ *
+ * DATA STRUCTURES:
+ * - struct image_info: Contains image dimensions and depth
+ * - struct rgb: RGB color triple structure
+ * - buff: Static buffer for file parsing (1024 bytes)
+ *
+ * MAGIC NUMBERS:
+ * - PBM: "P4" magic number
+ * - PPM: "P6" magic number
+ *
+ * CROSS-REFERENCE: Display system in dspsubrs.c and sdl.c
+ * CROSS-REFERENCE: Pixrect library documentation
+ * CROSS-REFERENCE: Display operations in draw.c and bitblt.c
+ */
+
 #include "version.h"
 
 #include <stdio.h>

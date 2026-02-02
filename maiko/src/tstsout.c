@@ -11,6 +11,39 @@
 /*									*/
 /************************************************************************/
 
+/* FILE: tstsout.c - Sysout File Validation Utility
+ *
+ * This file implements a utility to validate Medley sysout files.
+ * It checks the IFPAGE (Interface Page) of a sysout file to verify
+ * its integrity and display basic information.
+ *
+ * HIGH CONFIDENCE: Simple file I/O and structure verification using
+ * standard C library functions.
+ *
+ * PURPOSE:
+ * - Validate sysout file format and structure
+ * - Check IFPAGE integrity and version compatibility
+ * - Display sysout file information (version, size, state)
+ *
+ * KEY FUNCTIONS:
+ * - check_sysout: Main validation function
+ * - usage: Print usage information
+ * - main: Entry point with command-line parsing
+ *
+ * COMMAND-LINE OPTIONS:
+ * - [-v]: Verbose mode - print detailed IFPAGE information
+ * - [sysout-filename]: Path to sysout file to validate
+ *
+ * IFPAGE LOCATION:
+ * - IFPAGE_ADDRESS = 512 bytes from start of file
+ * - IFPAGE contains system initialization parameters
+ * - Byteswapping may be needed on little-endian systems
+ *
+ * CROSS-REFERENCE: IFPAGE structure in ifpage.h
+ * CROSS-REFERENCE: Byteswap functions in byteswapdefs.h
+ * CROSS-REFERENCE: Sysout loading in initsout.c
+ */
+
 #include "version.h"
 
 #include <fcntl.h>           // for open

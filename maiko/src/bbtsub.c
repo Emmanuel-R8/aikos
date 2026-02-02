@@ -22,6 +22,38 @@
 /*									*/
 /************************************************************************/
 
+/* FILE: bbtsub.c - BITBLT Support Subroutines
+ *
+ * This file implements subroutines to support BITBLT (Bit Block Transfer),
+ * \BLTCHAR, and \TEDIT.BLTCHAR Lisp functions. These functions provide
+ * performance improvements for graphics operations by implementing
+ * bitwise manipulation of display data.
+ *
+ * HIGH CONFIDENCE: The BITBLT support functions are well-tested and
+ * widely used for graphics operations.
+ *
+ * KEY FEATURES:
+ * - BITBLT operation support
+ * - Character blitting functions
+ * - Display data manipulation
+ * - Pilot BITBLT implementation
+ * - Support for both mono and color displays
+ *
+ * SUPPORTED OPERATIONS:
+ * - \BLTCHAR: Character blitting operation
+ * - \TEDIT.BLTCHAR: Text editor character blitting
+ * - BITBLT: General bit block transfer
+ *
+ * DISPLAY TYPES:
+ * - MonoOrColor: Flag indicating monochrome or color display
+ * - currentdsp: Current display interface from devif.h
+ *
+ * CROSS-REFERENCE: BITBLT structure definitions in bb.h
+ * CROSS-REFERENCE: Display operations in dspsubrs.c and draw.c
+ * CROSS-REFERENCE: Pilot BITBLT in pilotbbt.h
+ * CROSS-REFERENCE: Display data structure in dspdata.h
+ */
+
 #include "version.h"
 
 #include <stdio.h>

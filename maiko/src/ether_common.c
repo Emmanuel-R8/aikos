@@ -7,6 +7,40 @@
 /*									*/
 /************************************************************************/
 
+/* FILE: ether_common.c - Common Ethernet Communication Functions
+ *
+ * HIGH CONFIDENCE: This file contains common Ethernet communication
+ * functionality used by all Ethernet interface implementations in
+ * maiko/src/ether_*.c files.
+ *
+ * ETHERNET ARCHITECTURE:
+ * - Provides cross-platform Ethernet interface
+ * - Different implementations for SunOS, NetHub, etc.
+ * - Global variables accessible to all implementations
+ * - Checksum calculation for packet validation
+ *
+ * GLOBAL VARIABLES:
+ * - ether_fd: File descriptor for Ethernet socket (-1 if not open)
+ * - ether_host: MAC address of this node (48 bits)
+ * - broadcast: Ethernet broadcast address (all FF's)
+ * - ether_bsize: Size of pending receive buffer (0 if none)
+ * - ether_buf: Pointer to received packet buffer
+ * - ETHEREventCount: Count of pending Ethernet events
+ *
+ * PUBLIC FUNCTIONS:
+ * - init_ifpage_ether(): Sets Lisp's idea of my.nsaddress
+ * - check_sum(): Implements CHECKSUM opcode for Ethernet packets
+ *
+ * CHECKSUM ALGORITHM:
+ * - Computes 16-bit checksum with carry handling
+ * - Rotates left by 1 bit after each addition
+ * - Handles initialization with optional starting value
+ *
+ * CROSS-REFERENCE: Platform-specific implementations in ether_*.c
+ * CROSS-REFERENCE: Ethernet definitions in etherdefs.h
+ * CROSS-REFERENCE: Interface page structure in interface.h
+ */
+
 #include "version.h"
 
 #include <unistd.h>

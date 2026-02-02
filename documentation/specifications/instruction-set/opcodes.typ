@@ -41,7 +41,7 @@ This document provides a high-level overview. For detailed opcode specifications
 - Shift: LLSH1, LLSH8, LRSH1, LRSH8
 
 === Constants (0x67-0x6F)
-- ACONST, NIL, T, CONST_0, CONST_1, SIC, SNIC, SICX, GCONST
+- ACONST (0x67), NIL (0xA8), T (0x69), CONST_0 (0x6A), CONST_1 (0x6B), SIC (0x6C), SNIC (0x6D), SICX (0x6E), GCONST (0x6F)
 
 === Base Address Operations (0xC2-0xCE)
 - GETBASEBYTE, PUTBASEBYTE, GETBASE_N, GETBASEPTR_N, PUTBASE_N, PUTBASEPTR_N, GETBITS_N_FD, PUTBITS_N_FD

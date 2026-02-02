@@ -7,6 +7,38 @@
 /*									*/
 /************************************************************************/
 
+/* FILE: blt.c - Block Transfer Opcode Implementation
+ *
+ * This file implements the BLT (Block Transfer) opcode for Medley Lisp.
+ * It provides efficient block transfer functionality by copying a specified
+ * number of words from a source memory block to a destination block.
+ *
+ * HIGH CONFIDENCE: The BLT implementation is a simple and efficient
+ * word-by-word copy operation.
+ *
+ * OPCODE SPECIFICATION:
+ * - Stack Effect: (destptr sourceptr wordcount -- wordcount)
+ * - Arguments:
+ *   - destptr: Destination memory pointer (LispPTR)
+ *   - sourceptr: Source memory pointer (LispPTR)
+ *   - wordcount: Number of words to transfer (must be positive fixnum)
+ * - Returns: wordcount (for stack manipulation)
+ *
+ * OPERATION:
+ * - Validates wordcount is a positive fixnum
+ * - Converts Lisp pointers to native addresses
+ * - Copies words from source to destination in reverse order
+ * - Handles word-aligned memory access
+ *
+ * ERROR HANDLING:
+ * - Checks that wordcount is a positive fixnum
+ * - Calls ERROR_EXIT if wordcount is invalid
+ *
+ * CROSS-REFERENCE: Address manipulation in adr68k.h
+ * CROSS-REFERENCE: Lisp pointer validation in lsptypes.h
+ * CROSS-REFERENCE: Memory operations in address.h
+ */
+
 #include "version.h"
 
 /*

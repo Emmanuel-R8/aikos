@@ -1,3 +1,39 @@
+/* FILE: arith.h - Arithmetic Constants and Macros
+ *
+ * This file defines constants and macros for arithmetic operations
+ * in the Medley Lisp emulator. It provides support for handling
+ * smallp and fixp numbers, as well as conversion between different
+ * numeric representations.
+ *
+ * HIGH CONFIDENCE: The arithmetic constants and macros are fundamental
+ * to the Lisp system and are well-tested.
+ *
+ * NUMERIC CONSTANTS:
+ * - MAX_SMALL, MIN_SMALL: Range for smallp numbers (-65536 to 65535)
+ * - MAX_FIXP, MIN_FIXP: Range for fixp numbers (-2^31 to 2^31-1)
+ * - SMALLP_ZERO, SMALLP_MINUSONE: Special smallp values
+ *
+ * MACROS AND FUNCTIONS:
+ * - GetSmalldata: Extract integer from smallp
+ * - GetSmallp: Create smallp from integer
+ * - GetPosSmallp: Create positive smallp from unsigned integer
+ * - FIXP_VALUE: Access fixp value from address
+ * - FLOATP_VALUE: Access float value from address
+ * - N_GETNUMBER: Extract numeric value from LispPTR (handles smallp/fixp)
+ * - N_IGETNUMBER: Extract numeric value (handles smallp/fixp/float)
+ * - ARITH_SWITCH: Convert integer to appropriate Lisp numeric type
+ *
+ * TYPE CONVERSION:
+ * Macros handle conversion between:
+ * - Smallp (16-bit signed, immediate)
+ * - Fixp (32-bit signed, indirect)
+ * - Floatp (32-bit float, indirect)
+ *
+ * CROSS-REFERENCE: Implementation in arithops.c
+ * CROSS-REFERENCE: Type definitions in lsptypes.h
+ * CROSS-REFERENCE: Address manipulation in adr68k.h
+ */
+
 #ifndef ARITH_H
 #define ARITH_H 1
 /* $Id: arith.h,v 1.2 1999/01/03 02:05:52 sybalsky Exp $ (C) Copyright Venue, All Rights Reserved */

@@ -8,12 +8,42 @@
 /*									*/
 /************************************************************************/
 
-#include "version.h"
-
-/*
- *	file	:	initdsp.c
- *	Author	:	Osamu Nakamura
+/* FILE: initdsp.c - Display System Initialization
+ *
+ * HIGH CONFIDENCE: This file implements the display system initialization
+ * for Maiko. It sets up the display region, cursor, and display parameters.
+ *
+ * DISPLAY INITIALIZATION:
+ * - Initializes display region address and dimensions
+ * - Configures display parameters (width, height, raster width)
+ * - Handles display buffer setup
+ * - Manages cursor initialization
+ *
+ * DISPLAY PARAMETERS:
+ * - displaywidth, displayheight: Physical display dimensions
+ * - DisplayRasterWidth: Width in DLwords (for Lisp display calculations)
+ * - DisplayType: Type of display hardware
+ * - DisplayByteSize: Size of display buffer
+ * - DisplayRegion68k: Pointer to Lisp display region
+ * - DisplayRegion68k_end_addr, DISP_MAX_Address: End of display buffer
+ *
+ * INITIALIZATION FUNCTIONS:
+ * - init_cursor(): Initializes cursor hardware (empty for X11/SDL)
+ * - set_cursor(): Sets cursor position (empty implementation)
+ * - clear_display(): Clears display (empty implementation)
+ * - init_display2(): Main display initialization function
+ *
+ * SDL INTEGRATION:
+ * - Uses SDL display dimensions from sdl.c
+ * - Handles display region allocation and bounds checking
+ * - Sets up display parameters for Lisp display operations
+ *
+ * CROSS-REFERENCE: SDL display implementation in sdl.c
+ * CROSS-REFERENCE: Display operations in dspsubrs.c
+ * CROSS-REFERENCE: Display interface in dspif.c
  */
+
+#include "version.h"
 
 #include <unistd.h> // for getpagesize
 #ifdef BYTESWAP

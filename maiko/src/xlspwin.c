@@ -11,6 +11,57 @@
 /*									*/
 /************************************************************************/
 
+/* FILE: xlspwin.c - X11 Window Management and Event Handling
+ *
+ * HIGH CONFIDENCE: This file implements X11 window management and event
+ * handling for Maiko. It provides the X11 backend for the Lisp display
+ * and input system.
+ *
+ * X11 WINDOW MANAGEMENT:
+ * - Create_LispWindow(): Creates and configures the Lisp display window
+ * - Handles window properties (size, position, title, icon)
+ * - Manages scroll bars and gravity controls
+ * - Configures window attributes and event masks
+ *
+ * WINDOW AND DISPLAY PARAMETERS:
+ * - windowTitle, iconTitle: Window and icon titles
+ * - LispWindowRequestedX/Y/Width/Height: Requested window dimensions
+ * - noscroll: Flag indicating whether scroll bars are disabled
+ * - Current_Hot_X, Current_Hot_Y: Cursor hot spot coordinates
+ *
+ * CURSOR MANAGEMENT:
+ * - DefaultCursor, WaitCursor: Standard cursor types
+ * - VertScrollCursor, HorizScrollCursor: Scrollbar cursors
+ * - VertThumbCursor, HorizThumbCursor: Scrollbar thumb cursors
+ * - ScrollUp/Down/Left/RightCursor: Directional scroll cursors
+ *
+ * KEY EVENT PROCESSING:
+ * - DoRing(): Handles keyboard event ring management
+ * - Processes keyboard events and updates Lisp key buffer
+ * - Manages key event buffering and distribution
+ *
+ * COLOR MANAGEMENT:
+ * - foregroundPixel, backgroundPixel: Window color pixels
+ * - Colors: X colormap for color management
+ * - lisp_Xvideocolor(): Sets video color properties
+ *
+ * X RESOURCE MANAGEMENT:
+ * - Manages X display resources (windows, GC, colormap)
+ * - Handles X event processing and synchronization
+ * - Implements XLOCK/XUNLOCK macros for thread safety
+ *
+ * EVENT HANDLING:
+ * - Processes various X events (button, key, motion, expose, configure)
+ * - Updates Lisp display and input state
+ * - Handles window resizing and scrolling
+ *
+ * CROSS-REFERENCE: X11 initialization in xinit.c
+ * CROSS-REFERENCE: X11 bitblt operations in xbbt.c
+ * CROSS-REFERENCE: Keyboard operations in kbdsubrs.c and keyevent.c
+ * CROSS-REFERENCE: Mouse operations in mouseif.c
+ * CROSS-REFERENCE: Display interface in dspif.c
+ */
+
 #include "version.h"
 
 #include <X11/X.h>       // for Cursor, CWOverrideRedirect, GCBackground

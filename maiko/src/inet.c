@@ -7,6 +7,49 @@
 /*									*/
 /************************************************************************/
 
+/* FILE: inet.c - TCP/UDP Network Communication
+ *
+ * HIGH CONFIDENCE: This file implements TCP and UDP network communication
+ * for Maiko. It provides Lisp-accessible network operations using BSD sockets.
+ *
+ * NETWORK OPERATIONS:
+ * - TCP operations: Host lookup, service lookup, socket creation, connect, send, receive, listen, accept
+ * - UDP operations: Listen, connect, sendto, recvfrom
+ * - Address operations: Peer name/address retrieval, name to address translation
+ *
+ * OPERATION CODES:
+ * - TCPhostlookup, TCPservicelookup: Name resolution
+ * - TCPsocket, TCPclose, TCPconnect, TCPsend, TCPrecv: TCP operations
+ * - TCPListen, TCPAccept: TCP server operations
+ * - INETpeername, INETpeeraddr, INETgetname: Address operations
+ * - UDPListen, UDPConnect, UDPSendto, UDPRecvfrom: UDP operations
+ *
+ * SOCKET MANAGEMENT:
+ * - Uses BSD socket API for network communication
+ * - Manages socket file descriptors and I/O readiness
+ * - Handles socket address structures (struct sockaddr_in)
+ * - Implements timeout and error handling
+ *
+ * LISP INTERFACE:
+ * - subr_TCP_ops(): Main entry point for all TCP operations
+ * - Handles Lisp to C type conversion
+ * - Returns results as Lisp smallp or fixp values
+ * - Uses Lisp_errno for error reporting
+ *
+ * SELECT SUPPORT:
+ * - LispReadFds: File descriptor set for read operations
+ * - LispIOFds: File descriptor set for I/O operations
+ * - Handles socket readiness and timeout conditions
+ *
+ * NAME RESOLUTION:
+ * - gethostbyname(): DNS host name to IP address resolution
+ * - getservbyname(): Service name to port number resolution
+ *
+ * CROSS-REFERENCE: Unix file operations in unixcomm.c
+ * CROSS-REFERENCE: Network address structures in inetdefs.h
+ * CROSS-REFERENCE: Lisp string operations in codeconv.c
+ */
+
 #include "version.h"
 
 #include <ctype.h>

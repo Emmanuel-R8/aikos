@@ -8,6 +8,47 @@
 /*									*/
 /************************************************************************/
 
+/* FILE: initkbd.c - Keyboard Initialization and Configuration
+ *
+ * HIGH CONFIDENCE: This file implements keyboard initialization and
+ * configuration for Maiko. It handles keyboard mapping, device setup,
+ * and initializes keyboard-related pointers.
+ *
+ * KEYBOARD INITIALIZATION:
+ * - init_keyboard(): Main keyboard initialization function
+ * - set_kbd_iopointers(): Sets up keyboard and mouse I/O pointers
+ * - device_before_exit(): Cleanup before system exit
+ *
+ * KEYBOARD MAPPING:
+ * - SUNLispKeyMap_for3: Sun Type 3 keyboard mapping
+ * - SUNLispKeyMap_for4: Sun Type 4 keyboard mapping
+ * - SUNLispKeyMap_jle: Japanese keyboard mapping
+ * - XGenericKeyMap: Dynamically allocated keyboard mapping for X11
+ *
+ * KEYBOARD TYPES:
+ * - KB_AS3000J, KB_RS6000, KB_DEC3100, KB_HP9000: Various workstation keyboards
+ * - KB_X: X11 keyboard interface
+ * - KB_DOS: DOS/Windows keyboard interface
+ * - KB_SDL: SDL keyboard interface
+ *
+ * DEVICE POINTERS:
+ * - EmMouseX68K, EmMouseY68K: Mouse coordinate pointers
+ * - EmCursorX68K, EmCursorY68K: Cursor coordinate pointers
+ * - EmRealUtilin68K, EmUtilin68K: Utility input registers
+ * - EmKbdAd068K - EmKbdAd568K: Keyboard address registers
+ * - EmDispInterrupt68K: Display interrupt register
+ * - EmCursorBitMap68K: Cursor bitmap pointer
+ *
+ * INITIALIZATION:
+ * - Sets up I/O page pointers for keyboard and mouse
+ * - Initializes keyboard type and mapping
+ * - Configures keyboard state (all keys up)
+ *
+ * CROSS-REFERENCE: Keyboard operations in kbdsubrs.c and keyevent.c
+ * CROSS-REFERENCE: SDL keyboard implementation in sdl.c
+ * CROSS-REFERENCE: I/O page definitions in ifpage.h and keyboard.h
+ */
+
 #include "version.h"
 
 #include <errno.h>

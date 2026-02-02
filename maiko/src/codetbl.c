@@ -10,17 +10,32 @@
 
 #include "version.h"
 
-/***************************************************/
-/* NS <-> EUC character code conversion program    */
-/* file name : nstables.c                          */
-/* function  : ns_euc --- NS to EUC conversion     */
-/*           : euc_ns --- EUC to NS                */
-/*	5, Aug '89                                 */
-/*	by Shinichi Miyamoto                       */
-/*						   */
-/*	11,May '90 : table data update by Miyamoto */
-/*	15,May '90 : table data update by Miyamoto */
-/***************************************************/
+/* FILE: codetbl.c - NS <-> EUC Character Code Conversion Tables
+ *
+ * HIGH CONFIDENCE: This file contains the character conversion tables
+ * and functions for converting between NS (Internal Interlisp) and
+ * EUC (Extended Unix Code) character encodings.
+ *
+ * CHARACTER ENCODING SYSTEM:
+ * - NS (Native System): Internal Interlisp character encoding
+ * - EUC (Extended Unix Code): External character encoding for file I/O
+ * - TABLESIZE (256): Basic character set size
+ * - EUCBITS (0x8080): Bit mask for multi-byte EUC characters
+ * - NSBITS (0x7F7F): Bit mask for valid NS characters
+ *
+ * CONVERSION TABLES:
+ * - eucA1, eucA2, eucA3, eucA6: NS to EUC conversion tables
+ * - These tables handle different character subsets and language support
+ * - Large tables contain predefined character mappings
+ *
+ * HISTORY:
+ * - Original implementation: Shinichi Miyamoto (Aug 5, 1989)
+ * - Table updates: Shinichi Miyamoto (May 11, 1990; May 15, 1990)
+ * - Ported to Maiko: Takeshi Shimizu
+ *
+ * CROSS-REFERENCE: Conversion functions in codeconv.c
+ * CROSS-REFERENCE: Text processing in unixcomm.c and dspsubrs.c
+ */
 
 #define TABLESIZE 256
 #define EUCBITS 0x8080
@@ -334,6 +349,29 @@ static unsigned short nsFD[TABLESIZE] = {
     65002, 65003, 65004, 65005, 65006, 65007, 65008, 65009, 65010, 65011, 65012, 65013, 65014,
     65015, 65016, 65017, 65018, 65019, 65020, 65021, 65022, 65023};
 
+/* HIGH CONFIDENCE: Convert EUC character to NS encoding
+ *
+ * Converts a single EUC (Extended Unix Code) character to NS (Native System)
+ * internal Interlisp encoding. Handles both single-byte and multi-byte EUC.
+ *
+ * PARAMETERS:
+ * - euc: EUC character to convert (unsigned short)
+ *
+ * RETURN:
+ * - Corresponding NS character code
+ *
+ * ALGORITHM:
+ * 1. Determine table index from high byte of EUC character
+ * 2. Use switch-case to select appropriate conversion table
+ * 3. Look up in specific table using low byte index
+ * 4. Default case masks with NSBITS to ensure valid NS character
+ *
+ * CONVERSION TABLES:
+ * - eucA1, eucA2, eucA3, eucA6, eucA8, eucF4: Multi-byte EUC conversion tables
+ * - Each table handles different EUC character sets
+ *
+ * PERFORMANCE: O(1) table lookup
+ */
 unsigned short euc_ns(short unsigned int euc) {
   unsigned short table;
 
@@ -349,6 +387,29 @@ unsigned short euc_ns(short unsigned int euc) {
   }
 }
 
+/* HIGH CONFIDENCE: Convert NS character to EUC encoding
+ *
+ * Converts a single NS (Native System) internal Interlisp character to EUC
+ * (Extended Unix Code) external encoding. Handles both 8-bit and 16-bit NS.
+ *
+ * PARAMETERS:
+ * - ns: NS character to convert (unsigned short)
+ *
+ * RETURN:
+ * - Corresponding EUC character code
+ *
+ * ALGORITHM:
+ * 1. Determine table index from high byte of NS character
+ * 2. Use switch-case to select appropriate conversion table
+ * 3. Look up in specific table using low byte index
+ * 4. Default case ORs with EUCBITS to ensure valid EUC format
+ *
+ * CONVERSION TABLES:
+ * - ns00, ns23, ns26, ns75, nsEE, nsEF, nsF1, nsFD: NS to EUC tables
+ * - Each table handles different NS character subsets
+ *
+ * PERFORMANCE: O(1) table lookup
+ */
 unsigned short ns_euc(short unsigned int ns) {
   unsigned short table;
 

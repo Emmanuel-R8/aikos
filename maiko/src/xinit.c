@@ -8,6 +8,49 @@
 /*									*/
 /************************************************************************/
 
+/* FILE: xinit.c - X11 Display System Initialization
+ *
+ * HIGH CONFIDENCE: This file implements the X11 display system initialization
+ * and management for Maiko. It provides the X11 backend for the display interface.
+ *
+ * X11 DISPLAY INITIALIZATION:
+ * - Initializes X11 connection and display management
+ * - Creates and configures Lisp window and display structures
+ * - Handles X event processing and synchronization
+ * - Manages X resources (colormap, fonts, etc.)
+ *
+ * DISPLAY PARAMETERS:
+ * - DISPLAY_MAX: Maximum display size (65536 * 16 * 2 bytes)
+ * - DisplayRegion68k: Pointer to Lisp display region
+ * - Display_Name: X display name (e.g., ":0.0")
+ * - LispWindowRequestedX/Y/Width/Height: Window position and dimensions
+ * - LispDisplayRequestedX/Y/Width/Height: Display dimensions
+ *
+ * WINDOW AND EVENT MANAGEMENT:
+ * - init_Xevent(): Enables X window event processing
+ * - Handles button presses, releases, enter/leave, and structure notifications
+ * - Manages scroll bars and gravity controls if scrolling is enabled
+ *
+ * X SYNCHRONIZATION:
+ * - Lisp_Xinitialized: Flag indicating X connection is established
+ * - XLocked: Lock variable to prevent reentrant X operations
+ * - XNeedSignal: Signal pending flag for interrupt handling
+ * - xsync: X synchronization flag (default: False)
+ *
+ * COORDINATE BOUNDING:
+ * - ubound(): Clamps values within specified bounds
+ *
+ * X INTERFACE STRUCTURE:
+ * - Uses DspInterface structure to encapsulate X resources
+ * - Display structure contains display_id, LispWindow, DisplayWindow, etc.
+ * - Event mask configuration for efficient event handling
+ *
+ * CROSS-REFERENCE: X11 display operations in xlspwin.c
+ * CROSS-REFERENCE: Bitblt operations in xbbt.c
+ * CROSS-REFERENCE: Display interface in dspif.c
+ * CROSS-REFERENCE: Display initialization in initdsp.c
+ */
+
 #include "version.h"
 
 #include <X11/X.h>        // for NoEventMask, MSBFirst, StructureNotifyMask

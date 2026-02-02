@@ -74,7 +74,7 @@ EMULATOR_MAX_STEPS=5 ./maiko/linux.x86_64/ldesdl /home/emmanuel/Sync/Development
 
 # Run Zig emulator (comparison)
 cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/zaiko  
-env ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache EMULATOR_MAX_STEPS=5 zig build run -- /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/medley/internal/loadups/starter.sysout
+env ZIG_GLOBAL_CACHE_DIR=zaiko/.zig-cache EMULATOR_MAX_STEPS=5 zig build run -- /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/medley/internal/loadups/starter.sysout
 
 # Compare traces
 cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp
@@ -107,7 +107,7 @@ head -3 zaiko/zig_emulator_execution_log.txt
 ## DEBUGGING ENVIRONMENT
 
 - Working directory: `/home/emmanuel/Sync/Development/Emulation/_gits/Interlisp`
-- Zig cache: `ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache`  
+- Zig cache: `ZIG_GLOBAL_CACHE_DIR=zaiko/.zig-cache`  
 - Sysout: `/home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/medley/internal/loadups/starter.sysout`
 - Step limit: `EMULATOR_MAX_STEPS=5` (for controlled testing)
 

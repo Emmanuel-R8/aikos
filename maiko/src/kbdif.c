@@ -8,9 +8,39 @@
 /*									*/
 /************************************************************************/
 
-#include "version.h"
+/* FILE: kbdif.c - Keyboard Interface Abstraction Layer
+ *
+ * HIGH CONFIDENCE: This file implements the keyboard interface abstraction
+ * layer for Maiko. It provides a generic interface that can be implemented
+ * by different keyboard backends (X11, SDL, etc.).
+ *
+ * KEYBOARD INTERFACE ARCHITECTURE:
+ * - KbdInterface: Abstract interface for keyboard operations
+ * - curkbd: Current keyboard interface instance
+ * - currentkbd: Global pointer to active keyboard interface
+ *
+ * GENERIC KEYBOARD FUNCTIONS:
+ * - make_kbd_instance(): Creates keyboard interface instance (empty implementation)
+ *
+ * INTERFACE STRUCTURE:
+ * The KbdInterface structure (defined in devif.h) typically includes:
+ * - Keyboard state management
+ * - Key event handling
+ * - Keyboard layout configuration
+ * - Modifier key tracking
+ *
+ * PLATFORM-SPECIFIC IMPLEMENTATIONS:
+ * - X11 backend: Implemented in xinit.c and xlspwin.c
+ * - SDL backend: Implemented in sdl.c
+ * - Other backends can be added by implementing KbdInterface
+ *
+ * CROSS-REFERENCE: Keyboard operations in kbdsubrs.c and keyevent.c
+ * CROSS-REFERENCE: Keyboard initialization in initkbd.c
+ * CROSS-REFERENCE: Keyboard interface definition in devif.h
+ * CROSS-REFERENCE: Display interface in dspif.c
+ */
 
-/* * K Y E B O A R D   I N T E R F A C E * */
+#include "version.h"
 
 #include "lispemul.h"
 #include "dbprint.h"

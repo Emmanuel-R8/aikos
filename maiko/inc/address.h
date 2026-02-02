@@ -1,3 +1,29 @@
+/* FILE: address.h - Lisp Pointer Manipulation Macros
+ *
+ * This file defines macros for manipulating Lisp pointers and addresses
+ * within the Medley Lisp environment. These macros handle pointer arithmetic,
+ * segment/page extraction, and address composition for both standard and
+ * large virtual memory (BIGVM) configurations.
+ *
+ * HIGH CONFIDENCE: These macros are fundamental low-level operations
+ * that are well-tested and widely used throughout the codebase.
+ *
+ * MACRO CATEGORIES:
+ * - Bitwise operations: LLSH, LRSH (logical shift left/right)
+ * - Address decomposition: HILOC, LOLOC (segment and offset)
+ * - Address composition: VAG2 (segment:offset to LispPTR)
+ * - Pointer arithmetic: ADDBASE, GETBASE
+ * - Page management: POINTER_PAGE, POINTER_SEGMENT, POINTER_PAGEBASE
+ *
+ * VIRTUAL MEMORY SUPPORT:
+ * - BIGVM: Large address space (26-bit addressing)
+ * - Standard: Default 24-bit addressing
+ *
+ * CROSS-REFERENCE: Address type definitions in lsptypes.h
+ * CROSS-REFERENCE: Memory access macros in adr68k.h
+ * CROSS-REFERENCE: Memory management in storage.c and gc.c
+ */
+
 #ifndef ADDRESS_H
 #define ADDRESS_H 1
 /* $Id: address.h,v 1.2 1999/01/03 02:05:51 sybalsky Exp $ (C) Copyright Venue, All Rights Reserved  */

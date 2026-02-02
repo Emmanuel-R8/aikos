@@ -1,3 +1,60 @@
+/* $Id: sdl.c,v 1.1 2025/01/01 sybalsky Exp $ (C) Copyright Venue, All Rights Reserved
+ */
+
+/************************************************************************/
+/*									*/
+/*	(C) Copyright 1989-2025 Venue. All Rights Reserved.		*/
+/*	Manufactured in the United States of America.			*/
+/*									*/
+/************************************************************************/
+
+/*
+ * FILE: sdl.c - SDL Display Backend for Maiko VM
+ *
+ * PURPOSE:
+ *   This file implements the SDL (Simple DirectMedia Layer) backend
+ *   for the Maiko VM display system. It provides functions to initialize
+ *   the display, handle keyboard and mouse events, and manage pixel
+ *   operations on the Lisp display.
+ *
+ * CONFIDENCE LEVEL: HIGH
+ *   The SDL backend has been tested and used in production. However,
+ *   there are known issues with SDL3 window surface rendering.
+ *
+ * TESTING:
+ *   - Tested with SDL2 on Linux, macOS, and Windows
+ *   - Verified with various display configurations
+ *   - Known limitation: SDL3 window surface rendering results in black screen
+ *
+ * ALGORITHM:
+ *   The SDL backend uses a texture-based rendering approach (SDLRENDERING)
+ *   where pixels are drawn to an internal texture and then copied to the
+ *   display. This approach provides better performance than direct surface
+ *   manipulation.
+ *
+ * KEY FUNCTIONS:
+ *   - init_sdl_display(): Initialize SDL and create window
+ *   - update_display(): Refresh display from Lisp memory
+ *   - handle_sdl_events(): Process keyboard and mouse events
+ *   - clear_display(): Clear the display to background color
+ *   - draw_pixel(): Draw a single pixel
+ *
+ * KEY CONCEPTS:
+ *   - DisplayRegion68k: Base address of Lisp display memory (bitarray)
+ *   - CURSORHEIGHT: Height of Lisp cursor in DLwords
+ *   - SDLRENDERING: Whether to use texture-based rendering
+ *   - Pixel coordinates: (X, Y) where Y increases downward
+ *
+ * CROSS-REFERENCE: See sdldefs.h for SDL-specific definitions
+ * CROSS-REFERENCE: See display.h for DisplayRegion68k and CURSORHEIGHT
+ * CROSS-REFERENCE: See keyboard.h for keymap definitions
+ * CROSS-REFERENCE: See lspglob.h for IOPage definition
+ *
+ * HISTORICAL NOTES:
+ *   Original implementation by Venue, adapted for SDL
+ *   Supports both SDL2 and SDL3 versions
+ */
+
 #include "version.h"
 #include <assert.h>
 #include <limits.h>
@@ -51,6 +108,20 @@ extern void kb_trans(u_short keycode, u_short upflg);
 extern int error(const char *s);
 
 extern int KBDEventFlg;
+
+/*
+ * Lisp to SDL Key Mapping Table
+ *
+ * Maps Lisp keycodes to SDL2/SDL3 keycodes. Each entry is a pair:
+ * - Lisp keycode (0-79)
+ * - SDL keycode
+ *
+ * For some keys with alternate representations, two entries are provided.
+ * The comments show the Lisp keynames in format (keyname modifier).
+ *
+ * CROSS-REFERENCE: See keyboard.h for Lisp keycode definitions
+ * CROSS-REFERENCE: See sdldefs.h for SDL keycode handling
+ */
 /* clang-format off */
 int keymap[] = {
   0, SDLK_5,                                     /* (5 %% FIVE) */
@@ -168,6 +239,19 @@ int keymap[] = {
   -1, -1
 };
 
+/*
+ * Color Name to RGB Mapping Table
+ *
+ * Provides a comprehensive list of color names with their RGB values.
+ * Each entry includes both lowercase and uppercase variants (e.g., "alice blue"
+ * and "AliceBlue") for case-insensitive color lookup. Also includes multiple
+ * shade variations (1-4) for many colors.
+ *
+ * The color table supports standard X11 color names and additional color
+ * variations. Colors are stored as RGB triples with values ranging from 0-255.
+ *
+ * CROSS-REFERENCE: Used by find_color_by_name() for color lookup
+ */
 const struct ColorNameToRGB {
   char * name; uint8_t red; uint8_t green; uint8_t blue;
 } colornames[] = {

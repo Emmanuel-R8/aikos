@@ -15,6 +15,47 @@
 /*									*/
 /************************************************************************/
 
+/* FILE: initsout.c - System Initialization and Lisp-C Emulator Connections
+ *
+ * HIGH CONFIDENCE: This file implements the main initialization routines
+ * that connect the Lisp system with the C emulator. It sets up critical
+ * system structures and initializes various subsystems.
+ *
+ * SYSTEM INITIALIZATION:
+ * - Initializes Lisp-C emulator connections
+ * - Sets up system pages (interface page, I/O page, memory map)
+ * - Initializes atom table and garbage collection
+ * - Prepares display and bitblt operations
+ *
+ * BITBLT INITIALIZATION:
+ * - TEXTURE_atom, MERGE_atom, INPUT_atom, INVERT_atom: Bitblt operation atoms
+ * - ERASE_atom, PAINT_atom, REPLACE_atom: Display manipulation atoms
+ *
+ * FIXP VALUE CONVERSION:
+ * - fixp_value(): Converts smallp to fixp cell (BIGVM only)
+ * - Handles smallp to boxed fixp conversion with reference counting
+ *
+ * INTERFACE PAGE INITIALIZATION:
+ * - init_ifpage(): Initializes the Lisp interface page
+ * - Sets up machine type, network addressing, and system parameters
+ * - Handles Ethernet initialization if enabled
+ *
+ * MEMORY MANAGEMENT:
+ * - build_lisp_map(): Builds memory map for Lisp system
+ * - Initializes atom hash table and closure cache
+ * - Prepares garbage collection data structures
+ *
+ * BITBLT INITIALIZATION:
+ * - init_for_bitblt(): Initializes bitblt operations for display
+ * - Sets up color and monochrome display parameters
+ * - Configures bitblt operation atoms
+ *
+ * CROSS-REFERENCE: System initialization in initmain.c
+ * CROSS-REFERENCE: Display initialization in initdsp.c and initkbd.c
+ * CROSS-REFERENCE: Bitblt operations in bitblt.c and dspsubrs.c
+ * CROSS-REFERENCE: Memory management in storage.c and gc*.c
+ */
+
 #include "version.h"
 
 #include <pwd.h>    // for getpwuid, passwd

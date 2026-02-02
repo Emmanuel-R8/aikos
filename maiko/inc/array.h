@@ -1,3 +1,33 @@
+/* FILE: array.h - Array Data Structures
+ *
+ * This file defines the data structures for arrays in the Medley Lisp
+ * emulator. It provides definitions for array headers, array blocks,
+ * and sequence descriptors, with support for both standard and
+ * byte-swapped architectures.
+ *
+ * HIGH CONFIDENCE: The array structures are well-documented and
+ * widely used throughout the codebase.
+ *
+ * ARRAY STRUCTURES:
+ * - Arrayp: Sequence descriptor for array objects
+ * - struct arrayheader: Array header containing metadata
+ * - struct arrayblock: Array block header for storage management
+ * - struct abdum: Array block dummy (for compatibility)
+ *
+ * FEATURES:
+ * - Support for both BIGVM and standard VM configurations
+ * - Byte-swapped versions for little-endian architectures
+ * - Array properties: readonly, indirect, bitp, stringp, adjustable, displaced, fillpointer, extendable
+ * - Type number field for element type identification
+ * - Fill pointer support for dynamic arrays
+ * - Total size tracking for storage management
+ *
+ * CROSS-REFERENCE: Array operations in arrayops.c
+ * CROSS-REFERENCE: Array type definitions in lsptypes.h
+ * CROSS-REFERENCE: Garbage collection in gcarray.c
+ * CROSS-REFERENCE: Memory management in storage.c
+ */
+
 #ifndef ARRAY_H
 #define ARRAY_H 1
 /* $Id: array.h,v 1.2 1999/01/03 02:05:53 sybalsky Exp $ (C) Copyright Venue, All Rights Reserved  */

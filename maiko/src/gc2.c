@@ -62,16 +62,65 @@
 */
 /**********************************************************************/
 
+/*
+ * FUNCTION: OP_gcscan1
+ *
+ * PURPOSE:
+ *   Implements the SCAN1 opcode for the garbage collector.
+ *   This opcode performs the first-pass scan of a memory region
+ *   to identify live objects during incremental garbage collection.
+ *
+ * PARAMETERS:
+ *   None (uses global state)
+ *
+ * RETURNS:
+ *   void (modifies TopOfStack and PC)
+ *
+ * ALGORITHM:
+ *   1. Check if TopOfStack is a positive integer (memory address)
+ *   2. Extract low 16 bits (LOLOC) to get memory address
+ *   3. Call gcscan1() to perform first-pass scan
+ *   4. If scan returns -1, set TopOfStack to NIL
+ *   5. Otherwise, combine result with S_POSITIVE and set TopOfStack
+ *   6. Advance PC by 1 byte
+ *
+ * SCAN1 OPERATION:
+ *   The first-pass scan identifies live objects in a memory region.
+ *   It marks objects that are reachable from roots and prepares
+ *   for the second-pass scan (SCAN2).
+ *
+ * GLOBAL VARIABLES MODIFIED:
+ *   - TopOfStack: Set to scan result or NIL
+ *   - PC: Advanced by 1 byte
+ *
+ * CROSS-REFERENCE: See gcscandefs.h for gcscan1() implementation
+ * CROSS-REFERENCE: See address.h for LOLOC macro
+ * CROSS-REFERENCE: See OP_gcscan2() for second-pass scan
+ */
 void OP_gcscan1(void) {
   int scan;
 #ifdef TRACE
   printPC();
   printf("TRACE: OP_gcscan1()\n");
 #endif
+  /*
+   * Check if TopOfStack is a positive integer (memory address).
+   * The SEGMASK extracts the segment bits, which should be S_POSITIVE.
+   */
   if ((TopOfStack & SEGMASK) == S_POSITIVE) {
+    /*
+     * Extract low 16 bits (LOLOC) to get memory address.
+     * Call gcscan1() to perform first-pass scan.
+     * If scan returns -1, set TopOfStack to NIL.
+     * Otherwise, combine result with S_POSITIVE and set TopOfStack.
+     */
     scan = gcscan1(LOLOC(TopOfStack));
     TopOfStack = (scan == -1) ? NIL : scan | S_POSITIVE;
   } else {
+    /*
+     * TopOfStack is not a positive integer - error.
+     * This should not happen in normal operation.
+     */
     printf("OP_gcscan1: not a number\n");
   }
   PC++;
@@ -83,13 +132,59 @@ void OP_gcscan1(void) {
 */
 /**********************************************************************/
 
+/*
+ * FUNCTION: OP_gcscan2
+ *
+ * PURPOSE:
+ *   Implements the SCAN2 opcode for the garbage collector.
+ *   This opcode performs the second-pass scan of a memory region
+ *   during incremental garbage collection.
+ *
+ * PARAMETERS:
+ *   None (uses global state)
+ *
+ * RETURNS:
+ *   void (modifies TopOfStack and PC)
+ *
+ * ALGORITHM:
+ *   1. Check if TopOfStack is a positive integer (memory address)
+ *   2. Extract low 16 bits (LOLOC) to get memory address
+ *   3. Call gcscan2() to perform second-pass scan
+ *   4. If scan returns -1, set TopOfStack to NIL
+ *   5. Otherwise, combine result with S_POSITIVE and set TopOfStack
+ *   6. Advance PC by 1 byte
+ *
+ * SCAN2 OPERATION:
+ *   The second-pass scan continues the garbage collection process
+ *   after the first-pass scan (SCAN1). It processes objects
+ *   that were marked during the first pass and performs
+ *   additional collection work.
+ *
+ * GLOBAL VARIABLES MODIFIED:
+ *   - TopOfStack: Set to scan result or NIL
+ *   - PC: Advanced by 1 byte
+ *
+ * CROSS-REFERENCE: See gcscandefs.h for gcscan2() implementation
+ * CROSS-REFERENCE: See address.h for LOLOC macro
+ * CROSS-REFERENCE: See OP_gcscan1() for first-pass scan
+ */
 void OP_gcscan2(void) {
   int scan;
 #ifdef TRACE
   printPC();
   printf("TRACE: OP_gcscan2()\n");
 #endif
+  /*
+   * Check if TopOfStack is a positive integer (memory address).
+   * The SEGMASK extracts the segment bits, which should be S_POSITIVE.
+   */
   if ((TopOfStack & SEGMASK) == S_POSITIVE) {
+    /*
+     * Extract low 16 bits (LOLOC) to get memory address.
+     * Call gcscan2() to perform second-pass scan.
+     * If scan returns -1, set TopOfStack to NIL.
+     * Otherwise, combine result with S_POSITIVE and set TopOfStack.
+     */
     scan = gcscan2(LOLOC(TopOfStack));
     TopOfStack = (scan == -1) ? NIL : scan | S_POSITIVE;
   }

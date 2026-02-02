@@ -106,7 +106,7 @@ cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp
 
 # Run Zig emulator (comparison)
 cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/zaiko
-ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache zig build run -- /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/medley/internal/loadups/starter.sysout
+ZIG_GLOBAL_CACHE_DIR=zaiko/.zig-cache zig build run -- /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/medley/internal/loadups/starter.sysout
 
 # Compare execution
 diff <(head -100 c_emulator_execution_log.txt) <(head -100 zaiko/zig_emulator_execution_log.txt)")])

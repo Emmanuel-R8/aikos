@@ -1,3 +1,38 @@
+/* FILE: bbtmacro.h - BITBLT Operation and Display Macros
+ *
+ * This file defines macros for BITBLT operations and display management.
+ * It provides high-level macros for pixel operations, cursor control,
+ * and screen locking/unlocking.
+ *
+ * HIGH CONFIDENCE: The BITBLT macros are well-tested and widely used
+ * for graphics operations.
+ *
+ * PIXEL OPERATIONS:
+ * - REPLACE, ERASE, PAINT, INVERT: Pixel operation constants
+ * - PixOperation(SRCTYPE, OPERATION): Macro for combining pixel values
+ *
+ * CURSOR CONTROL:
+ * - HideCursor, ShowCursor: Macros for cursor visibility
+ * - taking_mouse_down/up: Functions for mouse state management
+ *
+ * DISPLAY MANAGEMENT:
+ * - LOCKSCREEN, UNLOCKSCREEN: Macros for screen locking
+ * - refresh_CG6, clear_CG6: Macros for screen refresh/clear
+ *
+ * MOUSE POSITION:
+ * - XDELTA, YDELTA: Mouse movement thresholds
+ * - MOUSEXL, MOUSEXR, MOUSEYL, MOUSEYH: Mouse bounding box macros
+ *
+ * EXTERNAL VARIABLES:
+ * - EmMouseX68K, EmMouseY68K: Mouse position
+ * - DisplayRasterWidth: Display raster width
+ * - ScreenLocked: Screen lock state
+ *
+ * CROSS-REFERENCE: BITBLT implementation in bbtsub.c and bitblt.c
+ * CROSS-REFERENCE: Display operations in dspsubrs.c and draw.c
+ * CROSS-REFERENCE: Mouse operations in mouseif.c
+ */
+
 #ifndef BBTMACRO_H
 #define BBTMACRO_H 1
 /* $Id: bitblt.h,v 1.2 1999/01/03 02:05:54 sybalsky Exp $ (C) Copyright Venue, All Rights Reserved  */

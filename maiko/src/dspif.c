@@ -1,5 +1,38 @@
-/* $Id: dspif.c,v 1.4 2001/12/24 01:09:01 sybalsky Exp $ (C) Copyright Venue, All Rights Reserved */
-/* This is the display interface  */
+/* FILE: dspif.c - Display Interface Abstraction Layer
+ *
+ * HIGH CONFIDENCE: This file implements the display interface abstraction
+ * layer for Maiko. It provides a generic interface that can be implemented
+ * by different display backends (X11, SDL, etc.).
+ *
+ * DISPLAY INTERFACE ARCHITECTURE:
+ * - DspInterface: Abstract interface for display operations
+ * - curdsp: Current display interface instance
+ * - currentdsp: Global pointer to active display interface
+ *
+ * GENERIC DISPLAY FUNCTIONS:
+ * - make_dsp_instance(): Creates display interface instance (empty implementation)
+ * - GenericReturnT(): Utility function that returns T (true)
+ * - GenericReturnVoid(): Utility function that returns void
+ * - GenericPanic(): Panic function for uninitialized display slots
+ * - describedsp(): Prints display interface information for debugging
+ *
+ * DISPLAY CAPABILITIES:
+ * - Display dimensions (width, height)
+ * - Bits per pixel (depth)
+ * - Color information
+ * - Graphics mode
+ * - Number of banks
+ * - Display operations (bitblt_to_screen, cleardisplay, etc.)
+ *
+ * PLATFORM-SPECIFIC IMPLEMENTATIONS:
+ * - X11 backend: Implemented in xinit.c and xlspwin.c
+ * - SDL backend: Implemented in sdl.c
+ * - Other backends can be added by implementing DspInterface
+ *
+ * CROSS-REFERENCE: Display operations in dspsubrs.c and sdl.c
+ * CROSS-REFERENCE: Display initialization in initdsp.c
+ * CROSS-REFERENCE: Display interface definition in devif.h
+ */
 
 /************************************************************************/
 /*									*/

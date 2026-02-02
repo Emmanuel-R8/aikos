@@ -1,3 +1,35 @@
+/* FILE: bb.h - BITBLT Constants and Macros
+ *
+ * This file defines constants and macros for the BITBLT (Bit Block Transfer)
+ * operation. BITBLT is a fundamental graphics operation used for moving
+ * and manipulating rectangular blocks of pixels in memory.
+ *
+ * HIGH CONFIDENCE: The BITBLT constants and macros are well-tested and
+ * widely used for graphics operations.
+ *
+ * BITBLT CONSTANTS:
+ * - Operation codes: op_repl_src, op_fn_and, op_fn_or, op_fn_xor
+ * - Loop conditions: aligned_loop, F_single_dst_word, B_single_dst_word, etc.
+ * - Loop variables: F_num_loop, B_num_loop, F_preloop_mask, etc.
+ *
+ * BITBLT MACROS:
+ * - Loop control macros: ForInner, DestGetsF, DestGetsB, GetSrcF, GetSrcB
+ * - Initialization macros: some_init, do_gray_init, F_do_init, B_do_init, etc.
+ * - Setup macros: do_src_gray_setup, F_do_src_setup, B_do_src_setup
+ * - Transfer macros: do_gray_transfer, etc.
+ *
+ * BITBLT ASSUMPTIONS:
+ * - Memory addresses are byte addresses
+ * - Data is 32-bit aligned for efficiency
+ * - Left/right shift amounts < 32 bits
+ * - Right shifts may be arithmetic (sign-extending)
+ * - Gray operations are always executed forwards
+ *
+ * CROSS-REFERENCE: BITBLT implementation in bbtsub.c and bitblt.c
+ * CROSS-REFERENCE: BITBLT assembly in bbt68k.s and bbtSPARC.s
+ * CROSS-REFERENCE: Display operations in dspsubrs.c and draw.c
+ */
+
 #ifndef BB_H
 #define BB_H 1
 /* $Id: bb.h,v 1.2 1999/01/03 02:05:53 sybalsky Exp $ (C) Copyright Venue, All Rights Reserved  */

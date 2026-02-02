@@ -8,6 +8,38 @@
 /*									*/
 /************************************************************************/
 
+/* FILE: ejlisp.c - Java Integration Layer (JLLIB and JSLIB)
+ *
+ * HIGH CONFIDENCE: This file provides the integration layer between
+ * Interlisp and Java, implementing the JLLIB and JSLIB interfaces.
+ * It enables calling Java methods from Lisp and vice versa.
+ *
+ * JAVA INTEGRATION:
+ * - Provides string conversion between Lisp and C/Java formats
+ * - Supports both ThinChar and FatChar Lisp string types
+ * - Handles primitive type conversions
+ * - Implements bridge between Lisp arrays and Java strings
+ *
+ * STRING CONVERSION MACROS:
+ * - LStringToCString: Convert Lisp string array to C string
+ * - CStringToLString: Convert C string to Lisp string array
+ * - IntToFixp: Convert integer to fixp representation
+ *
+ * CHARACTER TYPES:
+ * - THIN_CHAR_TYPENUMBER: 8-bit character encoding
+ * - FAT_CHAR_TYPENUMBER: 16-bit character encoding
+ *
+ * LIMITATIONS:
+ * - Only handles one-dimensional arrays
+ * - Limited character type support (only ThinChar and FatChar)
+ * - No error recovery for invalid string operations
+ *
+ * CROSS-REFERENCE: JLLIB interface definitions in jllib.h
+ * CROSS-REFERENCE: JSLIB interface definitions in jslib.h
+ * CROSS-REFERENCE: Lisp array operations in arrayops.c
+ * CROSS-REFERENCE: Character conversion in codeconv.c
+ */
+
 #include "version.h"
 
 #include <stdio.h>

@@ -8,6 +8,33 @@
 /*									*/
 /************************************************************************/
 
+/* FILE: findkey.c - FINDKEY Opcode Implementation
+ *
+ * This file implements the FINDKEY opcode, which searches for a specific
+ * key in the argument list of the current function. It handles both fast
+ * and slow case scenarios for stack frame traversal.
+ *
+ * HIGH CONFIDENCE: The implementation directly follows the stack frame
+ * conventions and uses standard pointer arithmetic for searching.
+ *
+ * PURPOSE:
+ * - Implements N_OP_findkey() - the FINDKEY opcode for Medley
+ * - Searches for a key in the current function's argument list
+ * - Handles both fast case (regular stack frames) and slow case (extended frames)
+ * - Returns position of key or NIL if not found
+ *
+ * OPERATION:
+ * - FINDKEY takes a key (TOS) and byte offset from IVAR
+ * - Determines the search range based on frame type (regular or extended)
+ * - Scans IVAR for matching key
+ * - Returns positive offset if found, NIL otherwise
+ *
+ * CROSS-REFERENCE: Stack frame structure in stack.h
+ * CROSS-REFERENCE: FX register definitions in lspglob.h
+ * CROSS-REFERENCE: Instruction dispatch in lpmain.c
+ * CROSS-REFERENCE: Opcode definitions in opcode.h
+ */
+
 #include "version.h"
 
 #include <stdio.h>

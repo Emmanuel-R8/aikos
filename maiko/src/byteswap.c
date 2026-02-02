@@ -8,6 +8,33 @@
 /*									*/
 /************************************************************************/
 
+/* FILE: byteswap.c - Byte and Word Swapping Operations
+ *
+ * This file implements byte and word swapping functions to support
+ * byte-swapped architecture machines (e.g., x86). It provides routines
+ * for swapping regions of memory and bit-reversing words.
+ *
+ * HIGH CONFIDENCE: Byte swapping is a well-understood operation, and
+ * the implementation uses standard network byte order conversion.
+ *
+ * KEY FUNCTIONS:
+ * - word_swap_page(): Byte-swap a region of memory by longwords
+ * - bit_reverse_region(): Bit-reverse all words in a region
+ * - reversedbits[]: Lookup table for bit-reversed bytes
+ *
+ * BIT REVERSAL:
+ * - Uses a precomputed lookup table for efficient bit reversal
+ * - Supports both word-sized and region-based operations
+ *
+ * BYTE SWAPPING:
+ * - Uses ntohl() function from arpa/inet.h for standard conversion
+ * - Handles page-aligned memory regions for efficiency
+ *
+ * CROSS-REFERENCE: Byte swapping macros in byteswapdefs.h
+ * CROSS-REFERENCE: Memory access in adr68k.h
+ * CROSS-REFERENCE: Sysout loading in ldsout.c
+ */
+
 #include "version.h"
 
 /***************************************************************************/

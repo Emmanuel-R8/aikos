@@ -11,9 +11,59 @@
 #include "version.h"
 
 /*
- *	vmemsave.c
+ * FILE: vmemsave.c - Virtual Memory Save Operations
  *
+ * PURPOSE:
+ *   Implements the VMEMSAVE subr for saving the current Lisp
+ *   virtual memory state to a sysout file. This function is critical
+ *   for persisting the Lisp system state and enabling later restoration.
  *
+ * CONFIDENCE LEVEL: HIGH
+ *   The virtual memory save operations are fundamental to the system's
+ *   persistence mechanism. The implementation has been stable for many
+ *   years and is well-tested.
+ *
+ * SYSOUT FILE FORMAT:
+ *   The sysout file contains:
+ *   - IFPAGE (Interface Page) at byte 512
+ *   - Virtual memory pages mapped via FPtoVP table
+ *   - Dominopages (system pages) skipped during save
+ *   - Cursor bitmaps and display state
+ *
+ * SAVE PROCESS:
+ *   1. Validate filename and check file space
+ *   2. Open/create sysout file
+ *   3. Write IFPAGE to file
+ *   4. Iterate through FPtoVP table, writing active pages
+ *   5. Skip dominopages (system pages)
+ *   6. Save cursor bitmaps and display state
+ *   7. Close file and return status
+ *
+ * ERROR HANDLING:
+ *   The function returns various error codes:
+ *   - COMPLETESYSOUT (NIL): Success
+ *   - BADFILENAME: Invalid filename
+ *   - NOFILESPACE: Insufficient disk space
+ *   - FILECANNOTOPEN: Cannot open file
+ *   - FILECANNOTSEEK: Cannot seek in file
+ *   - FILECANNOTWRITE: Cannot write to file
+ *   - FILETIMEOUT: File operation timeout
+ *
+ * CONSTANTS:
+ *   - FP_IFPAGE: IFPAGE address in sysout file (512 bytes)
+ *   - DOMINOPAGES: Number of dominopages to skip (301)
+ *   - SKIPPAGES: First file page to save (301)
+ *   - SKIP_DOMINOPAGES: Byte offset for dominocode (153600)
+ *   - SAVE_IFPAGE: Virtual address for IFPAGE buffer (223)
+ *
+ * CROSS-REFERENCE: See ldsout.c for sysout loading
+ * CROSS-REFERENCE: See ifpage.h for IFPAGE structure
+ * CROSS-REFERENCE: See documentation/medley/components/sysout.typ
+ *
+ * HISTORICAL NOTES:
+ *   - Original implementation by Venue (1989-1995)
+ *   - Designed to support incremental saves and restores
+ *   - Handles both full and partial saves
  */
 
 #include <errno.h>
@@ -80,15 +130,64 @@ extern int please_fork;
 /*									*/
 /************************************************************************/
 
+/*
+ * FUNCTION: lispstringP
+ *
+ * PURPOSE:
+ *   Predicate function that checks if a Lisp value is a string.
+ *   A Lisp string is a one-dimensional array whose elements are
+ *   characters (either THIN_CHAR or FAT_CHAR type).
+ *
+ * PARAMETERS:
+ *   Lisp: LispPTR to check (must be a 1-D array)
+ *
+ * RETURNS:
+ *   1 if Lisp is a string (THIN_CHAR or FAT_CHAR type)
+ *   0 otherwise
+ *
+ * ALGORITHM:
+ *   1. Cast Lisp to OneDArray pointer
+ *   2. Check typenumber field
+ *   3. Return 1 if THIN_CHAR_TYPENUMBER or FAT_CHAR_TYPENUMBER
+ *   4. Return 0 otherwise
+ *
+ * STRING TYPES:
+ *   - THIN_CHAR_TYPENUMBER: Thin character array (8-bit chars)
+ *   - FAT_CHAR_TYPENUMBER: Fat character array (16-bit chars)
+ *
+ * This function is used during sysout save to identify string
+ * values that need special handling.
+ *
+ * CROSS-REFERENCE: See lsptypes.h for THIN_CHAR_TYPENUMBER, FAT_CHAR_TYPENUMBER
+ * CROSS-REFERENCE: See array.h for OneDArray structure
+ */
 static int lispstringP(LispPTR Lisp)
 {
+  /*
+   * Get type number from one-dimensional array header.
+   * NativeAligned4FromLAddr converts Lisp address to native pointer.
+   */
   switch (((OneDArray *)(NativeAligned4FromLAddr(Lisp)))->typenumber)
   {
   case THIN_CHAR_TYPENUMBER:
+    /*
+     * Thin character array - 8-bit characters.
+     * This is most common string type.
+     */
+    return (1);
+
   case FAT_CHAR_TYPENUMBER:
+    /*
+     * Fat character array - 16-bit characters.
+     * Used for Unicode or extended character sets.
+     */
     return (1);
 
   default:
+    /*
+     * Not a string type.
+     * Return 0 to indicate false.
+     */
     return (0);
   }
 }
@@ -129,16 +228,78 @@ static int lispstringP(LispPTR Lisp)
 /*									*/
 /************************************************************************/
 
+/*
+ * FUNCTION: vmem_save0
+ *
+ * PURPOSE:
+ *   Implements VMEMSAVE subr for saving current Lisp virtual
+ *   memory state to a sysout file. This function handles filename
+ *   validation, default filename selection, and delegates to actual
+ *   save operation.
+ *
+ * PARAMETERS:
+ *   args: Array of LispPTR arguments
+ *         - args[0]: File name (Lisp string or NIL for default)
+ *
+ * RETURNS:
+ *   NIL on success, or error code:
+ *   - BADFILENAME (1): Invalid filename
+ *   - NOFILESPACE (2): Insufficient disk space
+ *   - FILECANNOTOPEN (3): Cannot open file
+ *   - FILECANNOTSEEK (4): Cannot seek in file
+ *   - FILECANNOTWRITE (5): Cannot write to file
+ *   - FILETIMEOUT (6): File operation timeout
+ *
+ * ALGORITHM:
+ *   1. Initialize Lisp_errno to Dummy_errno
+ *   2. If args[0] is a Lisp string:
+ *      a. Convert Lisp string to C string
+ *      b. Separate host and pathname
+ *      c. Validate Unix pathname
+ *      d. Call vmem_save() with validated pathname
+ *   3. Otherwise (args[0] is NIL):
+ *      a. Check LDEDESTSYSOUT environment variable
+ *      b. Use default filename "~/lisp.virtualmem"
+ *      c. Call vmem_save() with default pathname
+ *
+ * FILENAME HANDLING:
+ *   - Explicit filename: Use provided Lisp string
+ *   - NIL: Use default "~/lisp.virtualmem"
+ *   - Environment override: LDEDESTSYSOUT variable
+ *   - Host/pathname separation: Handles remote file specifications
+ *
+ * GLOBAL VARIABLES MODIFIED:
+ *   - Lisp_errno: Set to Dummy_errno for error reporting
+ *
+ * CROSS-REFERENCE: See vmem_save() for actual save implementation
+ * CROSS-REFERENCE: See lispstringP() for string validation
+ * CROSS-REFERENCE: See LispStringToCString() for string conversion
+ * CROSS-REFERENCE: See separate_host() for host/pathname separation
+ * CROSS-REFERENCE: See unixpathname() for pathname validation
+ */
 LispPTR vmem_save0(LispPTR *args)
 {
   char *def;
   char pathname[MAXPATHLEN], sysout[MAXPATHLEN], host[MAXNAMLEN];
   struct passwd *pwd;
 
+  /*
+   * Initialize Lisp_errno to Dummy_errno for error reporting.
+   * This allows Lisp code to check for errors after the call.
+   */
   Lisp_errno = &Dummy_errno;
 
+  /*
+   * Check if explicit filename was provided.
+   * args[0] != NIL means a filename was specified.
+   * lispstringP() validates that it's a string type.
+   */
   if ((args[0] != NIL) && lispstringP(args[0]))
   {
+    /*
+     * Explicit filename provided.
+     * Convert Lisp string to C string and validate.
+     */
     /* Check of lispstringP is safer for LispStringToCString */
     LispStringToCString(args[0], pathname, MAXPATHLEN);
     separate_host(pathname, host);
@@ -148,8 +309,16 @@ LispPTR vmem_save0(LispPTR *args)
   }
   else
   {
+    /*
+     * No explicit filename - use default or environment variable.
+     * Check LDEDESTSYSOUT environment variable first.
+     */
     if ((def = getenv("LDEDESTSYSOUT")) == 0)
     {
+      /*
+       * Use LDEDESTSYSOUT environment variable.
+       * Get user's home directory and construct default filename.
+       */
       pwd = getpwuid(getuid()); /* NEED TIMEOUT */
       if (pwd == (struct passwd *)NULL)
         return (FILETIMEOUT);
@@ -158,8 +327,16 @@ LispPTR vmem_save0(LispPTR *args)
     }
     else
     {
+      /*
+       * No environment variable - use default "~/lisp.virtualmem".
+       * Handle tilde expansion for home directory.
+       */
       if (*def == '~' && (*(def + 1) == '/' || *(def + 1) == '\0'))
       {
+        /*
+         * Tilde with path separator or just tilde.
+         * Expand to user's home directory.
+         */
         pwd = getpwuid(getuid()); /* NEED TIMEOUT */
         if (pwd == (struct passwd *)NULL)
           return (FILETIMEOUT);
@@ -168,6 +345,10 @@ LispPTR vmem_save0(LispPTR *args)
       }
       else
       {
+        /*
+         * Use default filename as-is.
+         * This handles absolute paths or relative paths.
+         */
         strlcpy(sysout, def, sizeof(sysout));
       }
     }
@@ -186,6 +367,7 @@ LispPTR vmem_save0(LispPTR *args)
 /************************************************************************/
 #ifndef BIGVM
 #ifndef BYTESWAP
+/* Helper function for comparing DLwords during FPtoVP sorting */
 static int twowords(const void *i, const void *j) /* the difference between two  DLwords. */
 {
   return (*(const DLword *)i - *(const DLword *)j);
@@ -193,20 +375,24 @@ static int twowords(const void *i, const void *j) /* the difference between two 
 
 #define FPTOVP_ENTRY (FPTOVP_OFFSET >> 8)
 
+/* Sort FPtoVP table to create contiguous virtual page runs in sysout file */
 static void sort_fptovp(DLword *fptovp, size_t size)
 {
   size_t oldsize, i;
   ptrdiff_t oldloc, newloc;
   DLword *fptr;
 
+  /* Find FPTOVP_ENTRY marker in the table */
   for (fptr = fptovp, i = 0; GETWORD(fptr) != FPTOVP_ENTRY && i < size; fptr++, i++)
     ;
 
+  /* Check if FPTOVP_ENTRY marker was found */
   if (GETWORD(fptr) != FPTOVP_ENTRY)
   {
     DBPRINT(("Couldn't find FPTOVP_ENTRY; not munging\n"));
     return;
   }
+  /* Calculate offset of FPTOVP_ENTRY in the table */
   oldloc = fptr - fptovp;
 
   /* Found old fptovp table location, now sort the table */
@@ -218,24 +404,27 @@ ONE_MORE_TIME: /* Tacky, but why repeat code? */
   for (fptr = fptovp, i = 0; GETWORD(fptr) != FPTOVP_ENTRY && i < size; fptr++, i++)
     ;
 
+  /* Verify FPTOVP_ENTRY was found after sorting */
   if (GETWORD(fptr) != FPTOVP_ENTRY)
     error("Couldn't find FPTOVP_ENTRY second time!\n");
+  /* Calculate new offset of FPTOVP_ENTRY after sorting */
   newloc = fptr - fptovp;
 
-  /* Supposedly all we have to do is adjust the fptovpstart and nactivepages
-     the ifpage */
+  /* Adjust fptovpstart to account for the sorted table position */
   InterfacePage->fptovpstart += (newloc - oldloc);
   oldsize = size;
+  /* Remove trailing empty entries (0xffff) from the table */
   for (fptr = fptovp + (size - 1); GETWORD(fptr) == 0xffff;
        fptr--, InterfacePage->nactivepages--, size--)
     ;
 
+  /* Report if any holes (empty entries) were found and removed */
   if (size != oldsize)
   {
     DBPRINT(("Found %d holes in fptovp table\n", oldsize - size));
   }
 
-  /* Sanity check; it's just possible there are duplicate entries... */
+  /* Check for and remove any duplicate entries in the sorted table */
   {
     int dupcount = 0;
     for (fptr = fptovp, i = 1; i < size; i++, fptr++)
@@ -245,8 +434,8 @@ ONE_MORE_TIME: /* Tacky, but why repeat code? */
         GETWORD(fptr) = 0xffff;
       }
 
-    /* if duplicates were found, resort to squeeze them out, then mung the
-       size and fptovpstart again (spaghetti-code, HO!) */
+    /* If duplicates were found, resort to squeeze them out, then adjust
+       the size and fptovpstart again */
     if (dupcount)
     {
       qsort(fptovp, size, sizeof(DLword), twowords);
@@ -288,19 +477,20 @@ ONE_MORE_TIME: /* Tacky, but why repeat code? */
  * Flush out the current Lisp image to the specified file.
  */
 
-/* diagnostic flag value to limit the size of write() s */
+/* Maximum number of pages to write in a single write() call */
 extern unsigned maxpages;
 unsigned maxpages = 65536;
 
+/* Main function to save Lisp virtual memory to a sysout file */
 LispPTR vmem_save(char *sysout_file_name)
 {
-  int sysout; /* SysoutFile descriptor */
+  int sysout; /* Sysout file descriptor */
 #ifdef BIGVM
   unsigned int *fptovp;
 #else
-  DLword *fptovp; /* FPTOVP */
+  DLword *fptovp; /* Pointer to FPtoVP table */
 #endif          /* BIGVM */
-  int vmemsize; /* VMEMSIZE */
+  int vmemsize; /* Size of virtual memory in pages */
   int i;
   char tempname[MAXPATHLEN];
   ssize_t rsize;

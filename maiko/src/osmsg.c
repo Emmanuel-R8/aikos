@@ -17,6 +17,47 @@
 /*									*/
 /************************************************************************/
 
+/* FILE: osmsg.c - Console Message Handling and Redirection
+ *
+ * HIGH CONFIDENCE: This file implements console message handling and
+ * redirection for Maiko. It captures system messages and redirects them
+ * to the Lisp prompt window for display.
+ *
+ * CONSOLE REDIRECTION:
+ * - Captures console and standard error output
+ * - Redirects messages to appear in Lisp prompt window
+ * - Saves messages to log file for debugging purposes
+ *
+ * PSEUDO-TERMINAL (PTY) MANAGEMENT:
+ * - Uses PTY to intercept system messages
+ * - Handles PTY allocation and management
+ * - Sets up terminal options for message capture
+ *
+ * LOG FILE MANAGEMENT:
+ * - Saves messages to tmp/<username>-log file
+ * - Tracks log file changes for efficient updates
+ * - Handles log file opening, writing, and closing
+ *
+ * MESSAGE HANDLING:
+ * - mess_init(): Initializes console message handling
+ * - flush_pty(): Handles PTY buffer flushing
+ * - Handles signal-based message notification
+ *
+ * CONFIGURATION:
+ * - MAIKO_HANDLE_CONSOLE_MESSAGES: Feature flag to enable message handling
+ * - MESSAGE_BUFFER_SIZE: Size of message buffer (1024 bytes)
+ * - LogFileFd: File descriptor for log file
+ *
+ * PLATFORM DEPENDENCIES:
+ * - Uses PTY (pseudoterminal) API available on Unix systems
+ * - Handles terminal attributes via termios
+ * - Uses select() for I/O readiness checking
+ *
+ * CROSS-REFERENCE: Console printing in osmsgprint.h
+ * CROSS-REFERENCE: Lisp interrupt handling in interrupt.c
+ * CROSS-REFERENCE: File operations in unixcomm.c and dsk.c
+ */
+
 #include "version.h"
 
 #include <setjmp.h> /* Needed for jmp_buf for timeout.h */
