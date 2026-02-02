@@ -225,7 +225,7 @@ pub fn handleCONS(vm: *VM) errors.VMError!void {
 
     // Allocate cons cell from storage
     if (vm.storage) |storage| {
-        const cell_addr = storage_module.allocateConsCell(storage) catch |err| {
+        const cell_addr = storage_module.allocateConsCell(storage, null) catch |err| {
             return switch (err) {
                 error.StorageFull => errors_module.VMError.StorageFull,
                 else => errors_module.VMError.MemoryAccessFailed,

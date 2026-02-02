@@ -15,6 +15,8 @@ pub const VMError = error{
     InvalidFramePointer,
     DivisionByZero,
     InvalidNumberType,
+    FloatingPointError,
+    Overflow,
     NotHandled, // Used by execution router to indicate opcode not handled by this module
 };
 

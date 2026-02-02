@@ -38,6 +38,7 @@ pub fn initializeVMState(
     const STK_OFFSET: u32 = 0x00010000; // DLword offset from Lisp_world
     const stackspace_byte_offset = STK_OFFSET * 2; // Convert DLword offset to byte offset
 
+    std.debug.print("DEBUG: ifpage.currentfxp = 0x{x}\n", .{ifpage.currentfxp});
     const currentfxp_stack_offset = ifpage.currentfxp; // DLword offset from Stackspace
 
     // Calculate frame byte offset: Stackspace base + currentfxp offset
@@ -89,17 +90,29 @@ pub fn initializeVMState(
     // - Integration test: Verify PC initialization matches C emulator
     // - Memory dump validation: Compare frame bytes with C emulator output
     const frame_bytes = virtual_memory[frame_offset..][0..12];
-    // CRITICAL: After 32-bit byte-swap, the frame fields are reordered
-    // Before swap (big-endian): [4,5,6,7] = [hi2, hi1, lo_high, lo_low] = 0x307864??
-    // After 32-bit swap (little-endian): [4,5,6,7] = [lo_low, lo_high, hi1, hi2] = 0x??647830
-    // So: bytes [4,5] = lofnheader (0x7864), bytes [6,7] = [hi1, hi2] where hi2 is high byte
+    // CRITICAL FIX: Correct function header field extraction after 32-bit byte-swap
+    // Expected result: FX_FNHEADER = 0x307864 (24-bit for non-BIGVM)
+    //
+    // Frame field layout after 32-bit byte-swap:
+    // Before swap (big-endian): [4,5,6,7] = [hi2, hi1, lo_high, lo_low]
+    // After 32-bit swap (little-endian): [4,5,6,7] = [lo_low, lo_high, hi1, hi2]
+    //
+    // So: bytes [4,5] = lofnheader (16 bits), bytes [6,7] = [hi1, hi2] where hi2 is LOW byte
     const lofnheader = std.mem.readInt(DLword, frame_bytes[4..6], .little);
-    const hi1fnheader_hi2fnheader = std.mem.readInt(DLword, frame_bytes[6..8], .little);
-    // hi2fnheader is in the LOW byte (bits 0-7) of bytes [6,7] after 32-bit byte-swap
-    // Bytes [6,7] = [0x30, 0x00] -> as little-endian DLword = 0x0030
-    // hi2fnheader = low byte = 0x0030 & 0xFF = 0x30
-    const hi2fnheader: u8 = @as(u8, @truncate(hi1fnheader_hi2fnheader & 0xFF));
-    const fnheader_be = (@as(LispPTR, hi2fnheader) << 16) | lofnheader;
+    const hi1_hi2_combined = std.mem.readInt(DLword, frame_bytes[6..8], .little);
+    // CRITICAL: hi2fnheader is the LOW byte of bytes [6,7] after 32-bit byte-swap
+    const hi2fnheader: u8 = @as(u8, @truncate(hi1_hi2_combined & 0xFF));
+
+    // Reconstruct 24-bit function header: hi2fnheader << 16 | lofnheader
+    // For 0x307864: hi2fnheader=0x30, lofnheader=0x7864
+    const fnheader_24bit = (@as(LispPTR, hi2fnheader) << 16) | lofnheader;
+
+    std.debug.print("DEBUG: Function header extraction:\n", .{});
+    std.debug.print("  lofnheader from bytes [4,5]: 0x{x:0>4}\n", .{lofnheader});
+    std.debug.print("  hi1_hi2_combined from bytes [6,7]: 0x{x:0>4}\n", .{hi1_hi2_combined});
+    std.debug.print("  hi2fnheader (low byte): 0x{x:0>2}\n", .{hi2fnheader});
+    std.debug.print("  Reconstructed fnheader (24-bit): 0x{x:0>6}\n", .{fnheader_24bit});
+    std.debug.print("  Expected fnheader: 0x307864\n", .{});
 
     std.debug.print("DEBUG: Reading frame fields (native little-endian, pages byte-swapped on load):\n", .{});
     std.debug.print("  Frame offset: 0x{x}\n", .{frame_offset});
@@ -110,19 +123,19 @@ pub fn initializeVMState(
     std.debug.print("\n", .{});
     std.debug.print("  Bytes [0,1] (flags+usecount): 0x{x:0>2} 0x{x:0>2}\n", .{ virtual_memory[frame_offset + 0], virtual_memory[frame_offset + 1] });
     std.debug.print("  Bytes [2,3] (alink): 0x{x:0>2} 0x{x:0>2}\n", .{ virtual_memory[frame_offset + 2], virtual_memory[frame_offset + 3] });
-    std.debug.print("  Bytes [4,5] (hi1fnheader_hi2fnheader - SWAPPED): 0x{x:0>2} 0x{x:0>2} -> 0x{x:0>4}\n", .{ virtual_memory[frame_offset + 4], virtual_memory[frame_offset + 5], hi1fnheader_hi2fnheader });
-    std.debug.print("  Bytes [6,7] (lofnheader - SWAPPED): 0x{x:0>2} 0x{x:0>2} -> 0x{x:0>4}\n", .{ virtual_memory[frame_offset + 6], virtual_memory[frame_offset + 7], lofnheader });
+    std.debug.print("  Bytes [4,5] (lofnheader - SWAPPED): 0x{x:0>2} 0x{x:0>2} -> 0x{x:0>4}\n", .{ virtual_memory[frame_offset + 4], virtual_memory[frame_offset + 5], lofnheader });
+    std.debug.print("  Bytes [6,7] (hi1_hi2_combined - SWAPPED): 0x{x:0>2} 0x{x:0>2} -> 0x{x:0>4}\n", .{ virtual_memory[frame_offset + 6], virtual_memory[frame_offset + 7], hi1_hi2_combined });
     std.debug.print("  Bytes [8,9] (pc - BYTESWAP layout): 0x{x:0>2} 0x{x:0>2}\n", .{ virtual_memory[frame_offset + 8], virtual_memory[frame_offset + 9] });
     std.debug.print("  Bytes [10,11] (nextblock - BYTESWAP layout): 0x{x:0>2} 0x{x:0>2}\n", .{ virtual_memory[frame_offset + 10], virtual_memory[frame_offset + 11] });
     std.debug.print("  hi2fnheader (from low byte of [6,7]): 0x{x:0>2}\n", .{hi2fnheader});
-    std.debug.print("  FX_FNHEADER (24-bit): 0x{x:0>6}\n", .{fnheader_be & 0xFFFFFF});
+    std.debug.print("  FX_FNHEADER (24-bit): 0x{x:0>6}\n", .{fnheader_24bit});
     std.debug.print("  Expected FX_FNHEADER for C emulator: 0x307864\n", .{});
     std.debug.print("  For 0x307864: lofnheader should be 0x7864, hi2fnheader should be 0x30\n", .{});
 
     // For non-BIGVM, mask to 24 bits (0xFFFFFF)
     // C: hi2fnheader is 8 bits, lofnheader is 16 bits = 24 bits total
     const is_bigvm = @import("../data/atom.zig").BIGVM;
-    const fnheader_addr = if (is_bigvm) fnheader_be else (fnheader_be & 0xFFFFFF);
+    const fnheader_addr = if (is_bigvm) fnheader_24bit else fnheader_24bit;
 
     std.debug.print("DEBUG: Read fnheader_addr=0x{x} (big-endian) from frame\n", .{fnheader_addr});
 
@@ -171,10 +184,19 @@ pub fn initializeVMState(
     std.debug.print("DEBUG: stackspace_ptr = 0x{x} (should be virtual_memory + 0x20000)\n", .{@intFromPtr(stackspace_ptr)});
     std.debug.print("DEBUG: current_stack_ptr = 0x{x} (should be virtual_memory + 0x25d10)\n", .{@intFromPtr(current_stack_ptr)});
 
+    // CRITICAL FIX: Calculate PVar = CurrentStackPTR + FRAMESIZE (matching C: PVar = NativeAligned2FromStackOffset(currentfxp) + FRAMESIZE)
+    // C: PVar = CurrentStackPTR + FRAMESIZE, where CurrentStackPTR = next68k - 2
+    const FRAMESIZE: usize = 10; // Frame size in DLwords
+    const pvar_offset = current_stack_ptr_byte_offset + (FRAMESIZE * 2); // FRAMESIZE * 2 bytes
+    const pvar_ptr: [*]DLword = @as([*]DLword, @ptrCast(@alignCast(virtual_memory_mut.ptr + pvar_offset)));
+
+    std.debug.print("DEBUG: CurrentStackPTR offset = 0x{x:0>6}, PVar offset = 0x{x:0>6} (+FRAMESIZE)\n", .{ current_stack_ptr_byte_offset, pvar_offset });
+    std.debug.print("DEBUG: CurrentStackPTR = 0x{x}, PVar = 0x{x}\n", .{ @intFromPtr(current_stack_ptr), @intFromPtr(pvar_ptr) });
+
     // Update VM stack pointers to point into virtual memory
     vm.stack_base = stackspace_ptr;
-    vm.stack_ptr = current_stack_ptr;
-    std.debug.print("DEBUG: After assignment, vm.stack_ptr = 0x{x}\n", .{@intFromPtr(vm.stack_ptr)});
+    vm.stack_ptr = pvar_ptr; // CRITICAL: Use PVar (CurrentStackPTR + FRAMESIZE) to match C SP=0x02e88
+    std.debug.print("DEBUG: After assignment, vm.stack_ptr (PVar) = 0x{x}\n", .{@intFromPtr(vm.stack_ptr)});
 
     // CRITICAL: Initialize current_frame pointer to point to frame in virtual memory
     // The frame is at frame_offset in virtual memory

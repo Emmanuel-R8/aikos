@@ -50,7 +50,6 @@ pub fn handleDataOperations(vm: *VM, opcode: Opcode, instruction: Instruction) e
         .FVAR5 => try opcodes.handleFVAR(vm, 5),
         .FVAR6 => try opcodes.handleFVAR(vm, 6),
         .FVARX => try opcodes.handleFVARX(vm, instruction.getByteOperand(0)),
-        .FVARX_N => try opcodes.handleFVARX(vm, instruction.getByteOperand(0)),
         .FVARX_ => try opcodes.handleFVARX_(vm, instruction.getByteOperand(0)),
         .GVAR => {
             try opcodes.handleGVAR(vm, instruction.getPointerOperand(0));

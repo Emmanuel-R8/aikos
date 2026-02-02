@@ -172,8 +172,8 @@ pub fn handleUNBIND(vm_obj: *VM) errors.VMError!void {
 
     // Extract offset from marker: GetLoWord(value) << 1
     const loword = types.getLoWord(value);
-    const offset = loword << 1; // C: GetLoWord gives DLword offset, then << 1 for byte offset
-    const ppvar_offset = 2 + offset; // C: +2 for base offset in PVAR
+    const offset = @as(usize, @intCast(loword)) << 1; // C: GetLoWord gives DLword offset, then << 1 for byte offset
+    const ppvar_offset = @as(usize, 2) + offset; // C: +2 for base offset in PVAR
     const ppvar_addr = pvar_base + ppvar_offset;
     var ppvar: [*]align(1) LispPTR = @ptrFromInt(ppvar_addr);
 

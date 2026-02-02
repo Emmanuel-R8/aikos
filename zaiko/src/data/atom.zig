@@ -36,7 +36,7 @@ const ATOM_OFFSET: u32 = 0x00000; // Byte offset for ATOMSPACE (non-BIGVM)
 // indexing (`GetVALCELL68k(index) ((LispPTR*)Valspace + index)`).
 //
 // TODO: detect BIGATOMS from build/sysout once we support both.
-const BIGVM = true;
+pub const BIGVM = true;
 const BIGATOMS = false; // Changed to false for non-BIGATOMS mode (16-bit atom indices)
 
 // lispmap.h (BIGVM) offsets are DLword offsets (see `NativeAligned2FromLAddr` in maiko/inc/adr68k.h).

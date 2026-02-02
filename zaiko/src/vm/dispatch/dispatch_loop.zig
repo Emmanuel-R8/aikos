@@ -80,11 +80,11 @@ pub fn executeInstructionInLoop(
             vm.pc += inst.length;
         }
 
-        dispatch_debug.printPCUpdate(@as(usize, @intCast(pc_before_update)), @as(usize, @intCast(vm.pc)), if (offset) |o| @as(i32, @intCast(o)) else null, inst.length);
+        dispatch_debug.printPCUpdate(@as(usize, @intCast(pc_before_update)), @as(usize, @intCast(vm.pc)), @as(i32, @intCast(offset)), @as(u8, @intCast(inst.length)));
     } else {
         vm.pc += inst.length;
 
-        dispatch_debug.printPCUpdate(@as(usize, @intCast(pc_before_update)), @as(usize, @intCast(vm.pc)), null, inst.length);
+        dispatch_debug.printPCUpdate(@as(usize, @intCast(pc_before_update)), @as(usize, @intCast(vm.pc)), null, @as(u8, @intCast(inst.length)));
     }
 
     return true;
@@ -152,7 +152,7 @@ pub fn decodeInstruction(vm: *VM, instruction_count: u64) errors.VMError!?instru
     // DEBUG: Print opcode for first few instructions
     if (instruction_count <= 3) {
         const opcode_val: u8 = @intFromEnum(inst.opcode);
-        dispatch_debug.printDecodedInstruction(@as(usize, @intCast(vm.pc)), opcode_val, @tagName(inst.opcode), inst.length, instruction_count);
+        dispatch_debug.printDecodedInstruction(@as(usize, @intCast(vm.pc)), opcode_val, @tagName(inst.opcode), @as(u8, @intCast(inst.length)), instruction_count);
     }
 
     return inst;

@@ -28,8 +28,8 @@ pub fn handleArithmeticAndRemaining(vm: *VM, opcode: Opcode, instruction: Instru
         .IPLUS2 => try opcodes.handleIPLUS2(vm),
         .IDIFFERENCE => try opcodes.handleIDIFFERENCE(vm),
         .ITIMES2 => try opcodes.handleITIMES2(vm),
-        .IQUO => try opcodes.handleIQUO(vm),
-        .IREM => try opcodes.handleIREM(vm),
+        .IQUOTIENT => try opcodes.handleIQUO(vm),
+        .IREMAINDER => try opcodes.handleIREM(vm),
 
         // Arithmetic (general)
         .PLUS2 => try opcodes.handlePLUS2(vm),
@@ -77,8 +77,8 @@ pub fn handleArithmeticAndRemaining(vm: *VM, opcode: Opcode, instruction: Instru
         .IPLUS_N => try opcodes.handleIPLUS_N(vm, instruction.getByteOperand(0)),
         .IDIFFERENCE_N => try opcodes.handleIDIFFERENCE_N(vm, instruction.getByteOperand(0)),
         .BASE_LESSTHAN => try opcodes.handleBASE_LESSTHAN(vm),
-        .UBFLOAT2 => try opcodes.handleUBFLOAT2(vm),
-        .UBFLOAT1 => try opcodes.handleUBFLOAT1(vm),
+        .UBFLOAT2 => try opcodes.handleUBFLOAT2(vm, instruction.getByteOperand(0)),
+        .UBFLOAT1 => try opcodes.handleUBFLOAT1(vm, instruction.getByteOperand(0)),
         .BOXIPLUS => try opcodes.handleBOXIPLUS(vm),
         .BOXIDIFFERENCE => try opcodes.handleBOXIDIFFERENCE(vm),
         .FLOATBLT => try opcodes.handleFLOATBLT(vm),
