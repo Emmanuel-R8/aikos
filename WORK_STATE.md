@@ -42,9 +42,22 @@ This repository contains the **Interlisp** project with **Maiko** VM emulator im
   - `scripts/compare_unified_traces.py` - Python comparison tool
   - `scripts/compare_unified_traces.awk` - AWK comparison tool
   - `documentation/implementations/unified-trace-format-specification.typ` - Complete spec
-- ✅ Verified unified trace format is implemented in Zig emulator
-- ✅ Confirmed both C and Zig emulators generate execution logs
-- ⚠️ Minor issue: Comparison script has path resolution problems
+  - ✅ Verified unified trace format is implemented in Zig emulator
+  - ✅ Confirmed both C and Zig emulators generate execution logs
+  - ⚠️ Minor issue: Comparison script has path resolution problems
+
+### ✅ RESOLVED: Stack/Frame Pointer Initialization Bug (2026-02-03)
+
+- **Finding**: Zig was setting vm.stack_ptr to PVar instead of CurrentStackPTR
+- **Root Cause**: Line 198 in `zaiko/src/vm/vm_initialization.zig` used `pvar_ptr` instead of `current_stack_ptr`
+- **Fix**: Changed `vm.stack_ptr = current_stack_ptr` (next68k - 2 DLwords)
+- **Result**: Stack pointer now matches C emulator (SP=0x02e88, FP=0x307864)
+- **Verification**: 
+  - Zig stack depth: 0x2e88 (5956 DLwords) - matches C
+  - Zig PC: 0x60f130 - matches C
+  - Zig frame pointer: 0x307864 - matches C
+  - Extended test (100 steps): Execution continues correctly
+  - All existing tests pass
 
 ## Critical Files to Monitor
 

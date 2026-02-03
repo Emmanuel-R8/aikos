@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include "execution_trace.h"
 #include "lispemul.h"
 #include "adr68k.h"
@@ -51,7 +52,7 @@ static ExecutionTrace g_trace;
  */
 int init_execution_trace(ExecutionTrace *trace, const char *log_path) {
     /* Initialize structure */
-    trace->log_file = NULL;
+    trace->log_file_ptr = NULL;
     trace->instruction_count = 0;
     trace->enabled = 0;
     
@@ -67,8 +68,8 @@ int init_execution_trace(ExecutionTrace *trace, const char *log_path) {
     }
     
     /* Open log file */
-    trace->log_file = fopen(log_path, "w");
-    if (trace->log_file == NULL) {
+    trace->log_file_ptr = fopen(log_path, "w");
+    if (trace->log_file_ptr == NULL) {
         fprintf(stderr, "ERROR: Failed to open execution log file '%s': %s\n",
                 log_path, strerror(errno));
         return -1;
@@ -98,7 +99,7 @@ int log_execution_trace(ExecutionTrace *trace,
                         unsigned long sp_offset,
                         unsigned long fp_offset,
                         const char *opcode_name) {
-    if (!trace->enabled || trace->log_file == NULL) {
+    if (!trace->enabled || trace->log_file_ptr == NULL) {
         return 0;
     }
     
@@ -143,7 +144,7 @@ int log_execution_trace(ExecutionTrace *trace,
     pos += snprintf(buffer + pos, sizeof(buffer) - pos, "SP:0x%06lx FP:0x%06lx|", sp_offset, fp_offset);
     
     /* 9. STACK_SUMMARY */
-    pos += snprintf(buffer + pos, sizeof(buffer) - pos, "TOS:0x%08lx N1:0x00000000 N2:0x00000000|", tos_value);
+    pos += snprintf(buffer + pos, sizeof(buffer) - pos, "TOS:0x%08x N1:0x00000000 N2:0x00000000|", tos_value);
     
     /* 10. MEMORY_CONTEXT */
     unsigned long pc_vpage = pc_byte_offset / BYTESPER_PAGE;
@@ -164,7 +165,7 @@ int log_execution_trace(ExecutionTrace *trace,
     pos += snprintf(buffer + pos, sizeof(buffer) - pos, "\n");
     
     /* Write to file */
-    if (fwrite(buffer, 1, pos, trace->log_file) != (size_t)pos) {
+    if (fwrite(buffer, 1, pos, trace->log_file_ptr) != (size_t)pos) {
         fprintf(stderr, "ERROR: Failed to write to execution log: %s\n", strerror(errno));
         return -1;
     }
@@ -198,10 +199,10 @@ int should_continue_logging(ExecutionTrace *trace) {
  * ============================================================================
  */
 void cleanup_execution_trace(ExecutionTrace *trace) {
-    if (trace->log_file != NULL) {
+    if (trace->log_file_ptr != NULL) {
         fprintf(stderr, "Execution trace: logged %lu instructions\n", trace->instruction_count);
-        fclose(trace->log_file);
-        trace->log_file = NULL;
+        fclose(trace->log_file_ptr);
+        trace->log_file_ptr = NULL;
     }
     trace->enabled = 0;
 }

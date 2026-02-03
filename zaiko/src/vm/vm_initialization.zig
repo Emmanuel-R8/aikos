@@ -172,6 +172,17 @@ pub fn initializeVMState(
     const next68k_byte_offset = stackspace_byte_offset + (@as(usize, @intCast(nextblock)) * 2);
     const current_stack_ptr_byte_offset = next68k_byte_offset - 4; // -2 DLwords = -4 bytes
 
+    std.debug.print("DEBUG: Stack initialization calculations:\n", .{});
+    std.debug.print("  STK_OFFSET (DLword): 0x{x:0>6}\n", .{STK_OFFSET});
+    std.debug.print("  stackspace_byte_offset: 0x{x:0>6}\n", .{stackspace_byte_offset});
+    std.debug.print("  currentfxp (DLword offset): 0x{x:0>4}\n", .{currentfxp_stack_offset});
+    std.debug.print("  frame_offset: 0x{x:0>6}\n", .{frame_offset});
+    std.debug.print("  nextblock (DLword offset): 0x{x:0>4}\n", .{nextblock});
+    std.debug.print("  next68k_byte_offset: 0x{x:0>6}\n", .{next68k_byte_offset});
+    std.debug.print("  current_stack_ptr_byte_offset: 0x{x:0>6}\n", .{current_stack_ptr_byte_offset});
+    std.debug.print("  Expected C CurrentStackPTR: 0x02e88 (5896 bytes from stack base)\n", .{});
+    std.debug.print("  Calculated Zig CurrentStackPTR: 0x{x:0>6} ({d} bytes from stack base)\n", .{ current_stack_ptr_byte_offset - stackspace_byte_offset, current_stack_ptr_byte_offset - stackspace_byte_offset });
+
     // Point stack pointers into virtual memory
     // CRITICAL: virtual_memory needs to be mutable for stack operations
     // For now, we'll cast it (This Is safe as long as we're careful)
@@ -195,8 +206,12 @@ pub fn initializeVMState(
 
     // Update VM stack pointers to point into virtual memory
     vm.stack_base = stackspace_ptr;
-    vm.stack_ptr = pvar_ptr; // CRITICAL: Use PVar (CurrentStackPTR + FRAMESIZE) to match C SP=0x02e88
-    std.debug.print("DEBUG: After assignment, vm.stack_ptr (PVar) = 0x{x}\n", .{@intFromPtr(vm.stack_ptr)});
+    // CRITICAL FIX: vm.stack_ptr should point to CurrentStackPTR, not PVar
+    // C: CurrentStackPTR = next68k - 2 (line 1339 in maiko/src/main.c)
+    // This is where push/pop operations occur
+    // PVar (CurrentStackPTR + FRAMESIZE) is used for accessing local variables only
+    vm.stack_ptr = current_stack_ptr;
+    std.debug.print("DEBUG: After assignment, vm.stack_ptr (CurrentStackPTR) = 0x{x}\n", .{@intFromPtr(vm.stack_ptr)});
 
     // CRITICAL: Initialize current_frame pointer to point to frame in virtual memory
     // The frame is at frame_offset in virtual memory

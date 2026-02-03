@@ -220,6 +220,7 @@
 #include "stack.h"
 #include "retmacro.h"
 #include "dbprint.h"
+#include "execution_trace.h"
 
 #include "lspglob.h"
 #include "lsptypes.h"
@@ -930,6 +931,196 @@ nextopcode:
 #endif /* PCTRACE */
 
   /* quick_stack_check();*/ /* JDS 2/12/98 - disabled for performance */
+
+  /* ---------------------------------------------------------------------
+   * EXECUTION TRACE LOGGING
+   * ---------------------------------------------------------------------
+   * Log instruction execution for parity testing with Zig emulator.
+   * Matches Zig execution trace format for comparison.
+   */
+  {
+    unsigned char opcode = Get_BYTE_PCMAC0;
+    unsigned long pc_byte_offset = (unsigned long)((char *)PCMAC - (char *)Lisp_world);
+    unsigned long sp_offset = (unsigned long)((DLword *)CSTKPTRL - (DLword *)Lisp_world);
+    unsigned long fp_offset = (unsigned long)((DLword *)CURRENTFX - (DLword *)Lisp_world);
+    
+    /* Get opcode name for logging */
+    const char *opcode_name = NULL;
+    switch (opcode) {
+        case 0x01: opcode_name = "CAR"; break;
+        case 0x02: opcode_name = "CDR"; break;
+        case 0x03: opcode_name = "LISTP"; break;
+        case 0x04: opcode_name = "NTYPEX"; break;
+        case 0x05: opcode_name = "TYPEP"; break;
+        case 0x06: opcode_name = "DTEST"; break;
+        case 0x07: opcode_name = "UNWIND"; break;
+        case 0x10: opcode_name = "FN0"; break;
+        case 0x11: opcode_name = "FN1"; break;
+        case 0x12: opcode_name = "FN2"; break;
+        case 0x13: opcode_name = "FN3"; break;
+        case 0x14: opcode_name = "FN4"; break;
+        case 0x15: opcode_name = "FNX"; break;
+        case 0x16: opcode_name = "APPLY"; break;
+        case 0x17: opcode_name = "CHECKAPPLY"; break;
+        case 0x20: opcode_name = "RETURN"; break;
+        case 0x21: opcode_name = "BIND"; break;
+        case 0x22: opcode_name = "UNBIND"; break;
+        case 0x23: opcode_name = "DUNBIND"; break;
+        case 0x24: opcode_name = "RPLPTR"; break;
+        case 0x30: opcode_name = "RPLACA"; break;
+        case 0x31: opcode_name = "RPLACD"; break;
+        case 0x32: opcode_name = "CONS"; break;
+        case 0x33: opcode_name = "CMLASSOC"; break;
+        case 0x34: opcode_name = "FMEMB"; break;
+        case 0x35: opcode_name = "CMLMEMBER"; break;
+        case 0x36: opcode_name = "FINDKEY"; break;
+        case 0x37: opcode_name = "CREATECELL"; break;
+        case 0x40: opcode_name = "BIN"; break;
+        case 0x43: opcode_name = "RESTLIST"; break;
+        case 0x44: opcode_name = "MISCN"; break;
+        case 0x46: opcode_name = "RPLCONS"; break;
+        case 0x47: opcode_name = "LISTGET"; break;
+        case 0x54: opcode_name = "EVAL"; break;
+        case 0x55: opcode_name = "ENVCALL"; break;
+        case 0x62: opcode_name = "UBFLOAT3"; break;
+        case 0x63: opcode_name = "TYPEMASK"; break;
+        case 0x70: opcode_name = "MISC7"; break;
+        case 0x72: opcode_name = "EQLOP"; break;
+        case 0x73: opcode_name = "DRAWLINE"; break;
+        case 0x74: opcode_name = "STOREN"; break;
+        case 0x75: opcode_name = "COPYN"; break;
+        case 0x80: opcode_name = "IVAR0"; break;
+        case 0x81: opcode_name = "IVAR1"; break;
+        case 0x82: opcode_name = "IVAR2"; break;
+        case 0x83: opcode_name = "IVAR3"; break;
+        case 0x84: opcode_name = "IVAR4"; break;
+        case 0x85: opcode_name = "IVAR5"; break;
+        case 0x86: opcode_name = "IVAR6"; break;
+        case 0x87: opcode_name = "IVARX"; break;
+        case 0x88: opcode_name = "PVAR0"; break;
+        case 0x89: opcode_name = "PVAR1"; break;
+        case 0x8a: opcode_name = "PVAR2"; break;
+        case 0x8b: opcode_name = "PVAR3"; break;
+        case 0x8c: opcode_name = "PVAR4"; break;
+        case 0x8d: opcode_name = "PVAR5"; break;
+        case 0x8e: opcode_name = "PVAR6"; break;
+        case 0x8f: opcode_name = "PVARX"; break;
+        case 0x90: opcode_name = "FVAR0"; break;
+        case 0x91: opcode_name = "FVAR1"; break;
+        case 0x92: opcode_name = "FVAR2"; break;
+        case 0x93: opcode_name = "FVAR3"; break;
+        case 0x94: opcode_name = "FVAR4"; break;
+        case 0x95: opcode_name = "FVAR5"; break;
+        case 0x96: opcode_name = "FVAR6"; break;
+        case 0x97: opcode_name = "FVARX"; break;
+        case 0x98: opcode_name = "GVAR"; break;
+        case 0x99: opcode_name = "PVARX_"; break;
+        case 0x9a: opcode_name = "IVARX_"; break;
+        case 0x9b: opcode_name = "FVARX_"; break;
+        case 0x9c: opcode_name = "POP"; break;
+        case 0x9d: opcode_name = "POPDISP"; break;
+        case 0x9e: opcode_name = "RESTLIST"; break;
+        case 0x9f: opcode_name = "ATOMCELL"; break;
+        case 0xa0: opcode_name = "GETBASEBYTE"; break;
+        case 0xa1: opcode_name = "INSTANCEP"; break;
+        case 0xa2: opcode_name = "BLT"; break;
+        case 0xa3: opcode_name = "MISC10"; break;
+        case 0xa4: opcode_name = "PUTBASEBYTE"; break;
+        case 0xa5: opcode_name = "GETBASE"; break;
+        case 0xa6: opcode_name = "GETBASEPTR"; break;
+        case 0xa7: opcode_name = "GETBITS"; break;
+        case 0xa8: opcode_name = "PUTBASE"; break;
+        case 0xa9: opcode_name = "PUTBASEPTR"; break;
+        case 0xaa: opcode_name = "PUTBITS"; break;
+        case 0xab: opcode_name = "CMLEQUAL"; break;
+        case 0xac: opcode_name = "TYPEMASK_N"; break;
+        case 0xad: opcode_name = "STORE_N"; break;
+        case 0xae: opcode_name = "COPY_N"; break;
+        case 0xaf: opcode_name = "FGREATERP"; break;
+        case 0xb0: opcode_name = "EQUAL"; break;
+        case 0xb1: opcode_name = "MAKENUMBER"; break;
+        case 0xb2: opcode_name = "SWAP"; break;
+        case 0xb3: opcode_name = "NOP"; break;
+        case 0xb4: opcode_name = "EQL"; break;
+        case 0xb5: opcode_name = "DRAWLINE"; break;
+        case 0xb6: opcode_name = "PUTBASEPTR_N"; break;
+        case 0xb7: opcode_name = "ADDBASE"; break;
+        case 0xb8: opcode_name = "VAG2"; break;
+        case 0xb9: opcode_name = "HILOC"; break;
+        case 0xba: opcode_name = "LOLOC"; break;
+        case 0xbb: opcode_name = "EQ"; break;
+        case 0xbc: opcode_name = "RETCALL"; break;
+        case 0xbd: opcode_name = "GCSCAN1"; break;
+        case 0xbe: opcode_name = "CONTEXTSWITCH"; break;
+        case 0xbf: opcode_name = "RECLAIMCELL"; break;
+        case 0xc0: opcode_name = "AREF2"; break;
+        case 0xc1: opcode_name = "GREATERP"; break;
+        case 0xc2: opcode_name = "IGREATERP"; break;
+        case 0xc3: opcode_name = "PLUS2"; break;
+        case 0xc4: opcode_name = "DIFFERENCE"; break;
+        case 0xc5: opcode_name = "TIMES2"; break;
+        case 0xc6: opcode_name = "QUOTIENT"; break;
+        case 0xc7: opcode_name = "IPLUS2"; break;
+        case 0xc8: opcode_name = "IDIFFERENCE"; break;
+        case 0xc9: opcode_name = "ITIMES2"; break;
+        case 0xca: opcode_name = "IQUOTIENT"; break;
+        case 0xcb: opcode_name = "IREMAINDER"; break;
+        case 0xcc: opcode_name = "BOXIPLUS"; break;
+        case 0xcd: opcode_name = "BOXIDIFFERENCE"; break;
+        case 0xce: opcode_name = "FLOATBLT"; break;
+        case 0xcf: opcode_name = "FFTSTEP"; break;
+        case 0xd0: opcode_name = "MISC3"; break;
+        case 0xd1: opcode_name = "MISC4"; break;
+        case 0xd2: opcode_name = "UPCTRACE"; break;
+        case 0xd3: opcode_name = "CL_EQUAL"; break;
+        case 0xd4: opcode_name = "WRTPTRTAG"; break;
+        case 0xd5: opcode_name = "LOGOR2"; break;
+        case 0xd6: opcode_name = "LOGAND2"; break;
+        case 0xd7: opcode_name = "LOGXOR2"; break;
+        case 0xd8: opcode_name = "LSH"; break;
+        case 0xd9: opcode_name = "LLSH1"; break;
+        case 0xda: opcode_name = "LLSH8"; break;
+        case 0xdb: opcode_name = "LRSH1"; break;
+        case 0xdc: opcode_name = "LRSH8"; break;
+        case 0xdd: opcode_name = "BASE_LESSTHAN"; break;
+        case 0xe0: opcode_name = "UBFLOAT1"; break;
+        case 0xe1: opcode_name = "UBFLOAT2"; break;
+        case 0xe2: opcode_name = "SICX"; break;
+        case 0xe3: opcode_name = "JUMPX"; break;
+        case 0xe4: opcode_name = "JUMPXX"; break;
+        case 0xe5: opcode_name = "FJUMPX"; break;
+        case 0xe6: opcode_name = "TJUMPX"; break;
+        case 0xe7: opcode_name = "NFJUMPX"; break;
+        case 0xe8: opcode_name = "NTJUMPX"; break;
+        case 0xe9: opcode_name = "POP_N"; break;
+        case 0xea: opcode_name = "ATOMCELL_N"; break;
+        case 0xeb: opcode_name = "GETBASE_N"; break;
+        case 0xec: opcode_name = "GETBASEPTR_N"; break;
+        case 0xed: opcode_name = "GETBITS_N_FD"; break;
+        case 0xee: opcode_name = "PUTBASE_N"; break;
+        case 0xef: opcode_name = "PUTBASEPTR_N"; break;
+        case 0xf0: opcode_name = "PUTBITS_N_FD"; break;
+        case 0xf1: opcode_name = "IPLUS_N"; break;
+        case 0xf2: opcode_name = "IDIFFERENCE_N"; break;
+        case 0xf3: opcode_name = "FPLUS2"; break;
+        case 0xf4: opcode_name = "FDIFFERENCE"; break;
+        case 0xf5: opcode_name = "FTIMES2"; break;
+        case 0xf6: opcode_name = "FQUOTIENT"; break;
+        case 0xf7: opcode_name = "CONST_0"; break;
+        case 0xf8: opcode_name = "CONST_1"; break;
+        case 0xf9: opcode_name = "CONST_2"; break;
+        case 0xfa: opcode_name = "CONST_3"; break;
+        case 0xfb: opcode_name = "CONST_4"; break;
+        case 0xfc: opcode_name = "CONST_5"; break;
+        case 0xfd: opcode_name = "CONST_6"; break;
+        case 0xfe: opcode_name = "CONST_7"; break;
+        case 0xff: opcode_name = "CONST_8"; break;
+        default: opcode_name = "UNKNOWN"; break;
+    }
+    
+    log_global_execution_trace(opcode, pc_byte_offset, TOPOFSTACK,
+                           sp_offset, fp_offset, opcode_name);
+  }
 
   /* ---------------------------------------------------------------------
    * TIMER/ASYNC INTERRUPT EMULATION

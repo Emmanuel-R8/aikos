@@ -212,6 +212,7 @@ SET(MAIKO_SRCS
     src/ether_common.c
     src/ether_sunos.c
     src/ether_nethub.c
+    src/execution_trace.c
     src/findkey.c
     src/foreign.c
     src/fp.c
@@ -298,6 +299,7 @@ SET(MAIKO_HDRS
     inc/bltdefs.h
     inc/byteswapdefs.h
     inc/car-cdrdefs.h
+    inc/execution_trace.h
     inc/cell.h
     inc/chardevdefs.h
     inc/commondefs.h

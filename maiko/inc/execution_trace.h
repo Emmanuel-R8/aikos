@@ -10,6 +10,7 @@
 /*									*/
 /************************************************************************/
 
+#include <stdio.h>
 #include "lispemul.h" /* for LispPTR, DLword */
 
 /* ============================================================================
@@ -41,11 +42,23 @@
 
 /* Execution trace state structure */
 typedef struct {
-    FILE *log_file;           /* Log file handle */
+    FILE *log_file_ptr;      /* Log file handle */
     unsigned long instruction_count; /* Number of instructions logged */
     int max_steps;            /* Maximum steps to log (from EMULATOR_MAX_STEPS) */
     int enabled;              /* Whether tracing is enabled */
 } ExecutionTrace;
+
+/* Forward declarations */
+int init_execution_trace(ExecutionTrace *trace, const char *log_path);
+int log_execution_trace(ExecutionTrace *trace,
+                        unsigned char opcode,
+                        unsigned long pc_byte_offset,
+                        LispPTR tos_value,
+                        unsigned long sp_offset,
+                        unsigned long fp_offset,
+                        const char *opcode_name);
+void cleanup_execution_trace(ExecutionTrace *trace);
+int should_continue_logging(ExecutionTrace *trace);
 
 /* Initialize execution trace logging */
 /* Returns 0 on success, -1 on failure */

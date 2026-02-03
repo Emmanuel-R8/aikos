@@ -8,6 +8,18 @@
 /************************************************************************/
 
 #include "version.h"
+#include "execution_trace.h"
+
+/* Forward declarations */
+int init_global_execution_trace(const char *log_path);
+int log_global_execution_trace(unsigned char opcode,
+                              unsigned long pc_byte_offset,
+                              LispPTR tos_value,
+                              unsigned long sp_offset,
+                              unsigned long fp_offset,
+                              const char *opcode_name);
+int should_continue_global_logging(void);
+void cleanup_global_execution_trace(void);
 
 /* ============================================================================
  * FILE: main.c - Main Entry Point for Maiko Lisp Emulator
@@ -1332,6 +1344,10 @@ void start_lisp(void)
   /*       entering the bytecode dispatch loop; interrupts get     */
   /*       unblocked here 					   */
   int_init();
+
+  /* Initialize execution trace logging */
+  init_global_execution_trace("c_emulator_execution_log.txt");
+
   dispatch();
 }
 
