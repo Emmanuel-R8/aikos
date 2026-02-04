@@ -25,6 +25,13 @@ pub const Instruction = struct {
         return @as(u16, self.operands[index]) | (@as(u16, self.operands[index + 1]) << 8);
     }
 
+    /// Extract 2-byte operand (big-endian), matching C Get_DLword(PCMAC+n)
+    /// C: Get_DLword(ptr) = (Get_BYTE(ptr) << 8) | Get_BYTE((ptr) + 1)
+    pub fn getWordOperandBigEndian(self: Instruction, index: usize) u16 {
+        if (index + 1 >= self.operands_len) return 0;
+        return (@as(u16, self.operands[index]) << 8) | @as(u16, self.operands[index + 1]);
+    }
+
     /// Extract 4-byte pointer operand (BIGVM mode for BIGATOMS)
     /// C: For BIGVM, Get_Pointer(ptr) reads 4 bytes:
     ///   (Get_BYTE(ptr) << 24) | (Get_BYTE(ptr+1) << 16) | (Get_BYTE(ptr+2) << 8) | Get_BYTE(ptr+3)

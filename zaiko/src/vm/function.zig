@@ -72,9 +72,10 @@ pub fn returnFromFunction(vm: *VM) errors.VMError!LispPTR {
     // Get previous frame from activation link
     const previous_frame_addr = stack.getAlink(current_frame);
     if (previous_frame_addr == 0) {
-        // No previous frame - this is top level return
+        // No previous frame - this is top level return. Request clean stop so dispatch
+        // does not decode from pc=0/1 and fail; loop will exit at start of next iteration.
         vm.current_frame = null;
-        vm.pc = 0; // End execution
+        vm.stop_requested = true;
         return return_value;
     }
 
@@ -88,9 +89,9 @@ pub fn returnFromFunction(vm: *VM) errors.VMError!LispPTR {
 
     // Check bounds
     if (previous_frame_byte_offset < stack_end_addr or previous_frame_byte_offset + @sizeOf(FX) > stack_base_addr) {
-        // Invalid frame address - just return
+        // Invalid frame address - request clean stop
         vm.current_frame = null;
-        vm.pc = 0;
+        vm.stop_requested = true;
         return return_value;
     }
 

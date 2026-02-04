@@ -519,6 +519,10 @@ pub fn loadFPtoVPTable(
     };
 }
 
+/// Valspace byte offset 0xC0000 (lispmap.h) => virtual page 0xC0000/512 = 768.
+/// Load initial segment (identity mapping) so valspace/defspace pages are present.
+const VALSPACE_VP_END: u32 = 832; // (0xC0000 + 0x20000) / 512
+
 /// Load memory pages from sysout file into virtual memory
 /// Per contracts/sysout-loading-api.md
 /// Maps file pages to virtual pages using FPtoVP table
@@ -533,6 +537,22 @@ pub fn loadMemoryPages(
     // Iterate through file pages
     const num_file_pages = fptovp.entries.len;
     var page_buffer: [BYTESPER_PAGE]u8 = undefined;
+
+    // Load initial segment (identity mapping) so valspace (vp 384 = 0xC0000/512) and nearby pages exist.
+    // C emulator has full Lisp_world; FPtoVP loop below may overwrite some of these.
+    const endianness_utils = @import("../utils/endianness.zig");
+    const initial_pages = @min(VALSPACE_VP_END, num_file_pages);
+    for (0..initial_pages) |vp_u| {
+        const vp: u32 = @intCast(vp_u);
+        const virtual_address = @as(u64, vp) * BYTESPER_PAGE;
+        if (virtual_address + BYTESPER_PAGE > virtual_memory.len) break;
+        const file_offset = @as(u64, vp) * BYTESPER_PAGE;
+        file.seekTo(file_offset) catch break;
+        const n = file.read(virtual_memory[@intCast(virtual_address)..][0..BYTESPER_PAGE]) catch break;
+        if (n != BYTESPER_PAGE) break;
+        const page_slice = virtual_memory[@intCast(virtual_address)..][0..BYTESPER_PAGE];
+        endianness_utils.swapMemoryPage(page_slice);
+    }
 
     // T103: Performance optimization - make debug passes conditional
     if (DEBUG_SYSOUT_LOADING) {
@@ -727,7 +747,6 @@ pub fn loadMemoryPages(
         //
         // HOW TO ENSURE NOT REVERTED:
         // - MUST use endianness.swapMemoryPage() - no direct @byteSwap() calls
-        const endianness_utils = @import("../utils/endianness.zig");
         const page_slice = virtual_memory[virtual_address..][0..BYTESPER_PAGE];
         endianness_utils.swapMemoryPage(page_slice);
 

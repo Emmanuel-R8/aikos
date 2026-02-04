@@ -139,30 +139,11 @@ pub fn initializeVMState(
 
     std.debug.print("DEBUG: Read fnheader_addr=0x{x} (big-endian) from frame\n", .{fnheader_addr});
 
-    // Read pc field from frame
-    // CRITICAL: After 32-bit byte-swap, the BYTESWAP struct layout applies
-    // BYTESWAP struct (maiko/inc/stack.h:198-218): pc comes BEFORE nextblock
-    // Non-BYTESWAP: [4,5]=lofnheader, [6,7]=hi1+hi2, [8,9]=nextblock, [10,11]=pc
-    // BYTESWAP: [4,5]=hi2+hi1, [6,7]=lofnheader, [8,9]=pc, [10,11]=nextblock
-    // After 32-bit swap of fnheader fields [4,5,6,7], the layout becomes:
-    //   [4,5]=lofnheader, [6,7]=hi1+hi2, [8,9]=pc, [10,11]=nextblock
-    // So pc is at offset 8 bytes (not 10) after the 32-bit swap!
-    // Per maiko/inc/stack.h:198-218 (BYTESWAP frameex1 structure)
-    // CRITICAL: CURRENTFX->pc is a DLword offset (needs /2 for byte offset from FuncObj)
-    // C: PC = (ByteCode *)FuncObj + CURRENTFX->pc;
+    // Read pc field from frame (BYTESWAP layout: [8,9]=pc, [10,11]=nextblock after 32-bit swap)
     const frame_pc = std.mem.readInt(DLword, frame_bytes[8..10], .little);
     std.debug.print("  pc bytes [8,9]: 0x{x:0>2} 0x{x:0>2} -> 0x{x:0>4} ({o:0>6}o)\n", .{ virtual_memory[frame_offset + 8], virtual_memory[frame_offset + 9], frame_pc, frame_pc });
-    std.debug.print("DEBUG: CURRENTFX->pc=0x{x:0>4} ({o:0>6}o) (byte offset from FuncObj)\n", .{ frame_pc, frame_pc });
-
-    // CRITICAL: Initialize stack pointers to use virtual memory's stack area
-    // C: Stackspace = NativeAligned2FromLAddr(STK_OFFSET) = Lisp_world + STK_OFFSET
-    // C: CurrentStackPTR = next68k - 2, where next68k = Stackspace + nextblock
-    // The stack area is part of virtual memory and already has data!
-    // We need to point our stack pointers into virtual memory, not allocate separately
 
     // Read nextblock from frame to calculate CurrentStackPTR
-    // CRITICAL: After 32-bit byte-swap, BYTESWAP struct layout applies
-    // nextblock is at offset 10 bytes (not 8) after 32-bit swap
     const nextblock = std.mem.readInt(DLword, frame_bytes[10..12], .little);
     std.debug.print("  nextblock bytes [10,11]: 0x{x:0>2} 0x{x:0>2} -> 0x{x:0>4} (DLword offset)\n", .{ virtual_memory[frame_offset + 10], virtual_memory[frame_offset + 11], nextblock });
 

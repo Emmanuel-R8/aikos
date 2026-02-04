@@ -113,4 +113,6 @@ test "instruction length calculation" {
     try testing.expect(dispatch_module.getInstructionLength(.JUMPX) == 3);
     try testing.expect(dispatch_module.getInstructionLength(.IPLUS2) == 1);
     try testing.expect(dispatch_module.getInstructionLength(.IVARX) == 2);
+    // GVAR: match C 5-byte format (opcode + 4-byte operand)
+    try testing.expect(dispatch_module.getInstructionLength(.GVAR) == 5);
 }

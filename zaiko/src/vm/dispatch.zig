@@ -78,6 +78,7 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
     };
 
     while (true) {
+        if (vm.stop_requested) return;
         // CRITICAL: Do NOT restore CSTKPTRL or re-read TOPOFSTACK at the start of each opcode.
         // In C, CSTKPTRL (cspcache) and TOPOFSTACK (tscache) are LOCAL variables in the dispatch function.
         // They persist across opcodes and are only initialized once at the start of dispatch via RET:

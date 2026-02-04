@@ -68,16 +68,6 @@ pub fn decodeInstructionFromMemory(vm: *VM, pc: LispPTR) errors.VMError!?Instruc
                     return null; // Invalid address
                 };
                 operands_buffer[i] = byte;
-                // DEBUG: Log operand reading for GVAR
-                if (opcode == .GVAR and i < 4) {
-                    const std = @import("std");
-                    const xor_addr = memory_access.applyXORAddressingByte(operand_offset);
-                    // Also check what's at the original address (without XOR)
-                    const orig_byte = if (operand_offset < vmem.len) vmem[operand_offset] else 0xFF;
-                    // Check what's at XOR address in raw memory
-                    const xor_byte = if (xor_addr < vmem.len) vmem[xor_addr] else 0xFF;
-                    std.debug.print("DEBUG decode GVAR: i={}, PC+{}={}, XOR={}, byte=0x{x:0>2}, orig=0x{x:0>2}, xor_raw=0x{x:0>2}\n", .{ i, i + 1, operand_offset, xor_addr, byte, orig_byte, xor_byte });
-                }
             }
             // Zero out remaining bytes
             for (operands_len..4) |i| {

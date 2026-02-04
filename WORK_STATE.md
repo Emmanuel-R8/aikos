@@ -76,10 +76,14 @@ This repository contains the **Interlisp** project with **Maiko** VM emulator im
 
 ### ✅ RESOLVED: Trace Logging Timing and UNBIND / GVAR Parity (2026-02-03)
 
-- **Trace timing**: Zig now logs trace *after* each instruction (state after that instruction). Added pc_override to log the executed instruction PC; sync TOPOFSTACK from memory before logging.
+- **Trace timing**: Zig now logs trace _after_ each instruction (state after that instruction). Added pc_override to log the executed instruction PC; sync TOPOFSTACK from memory before logging.
 - **UNBIND**: C's UNBIND does not set TOPOFSTACK; Zig no longer restores TOS from stack in handleUNBIND so TOS is left unchanged (match C).
-- **GVAR value cell**: Valspace byte offset fixed to match C: C uses DLword offset (NativeAligned2FromLAddr(VALS_OFFSET)), so byte offset = 0xC0000*2 = 0x180000. Updated `zaiko/src/data/atom.zig` VALS_OFFSET_BYTES = 0x180000. Value-cell addressing documented as centralized in atom.zig (emulator-wide).
+- **GVAR value cell**: Valspace byte offset fixed to match C: C uses DLword offset (NativeAligned2FromLAddr(VALS_OFFSET)), so byte offset = 0xC0000\*2 = 0x180000. Updated `zaiko/src/data/atom.zig` VALS_OFFSET_BYTES = 0x180000. Value-cell addressing documented as centralized in atom.zig (emulator-wide).
 - **REGISTERS and FLAGS**: Both C and Zig traces now populate REGISTERS (r1=PC_lo, r2=TOS_lo, r3=TOS_hi) and FLAGS (Z, N from TOS; C:0) for full CPU state comparison.
+
+### Zaiko–Maiko Parity Plan – Implementation Complete (2026-02-04)
+
+All plan items from the refined workflow are implemented: (1) Trace logging timing – Zig logs after execution with pc_override and TOPOFSTACK sync. (2) UNBIND semantics – Zig leaves TOS unchanged (match C). (3) REGISTERS and FLAGS – populated in both C and Zig traces. (4) Emulator-wide memory/endianness – VALS_OFFSET_BYTES and atom.zig centralized. (5) Extensive git commits – per AGENTS.md (superproject; maiko/ changes not committed unless requested). (6) C code comments – GVAR, UNBIND, trace timing in maiko/inc/inlineC.h and maiko/src/xc.c. Verification: comparison run (EMULATOR_MAX_STEPS=15) shows C 14 lines, Zig 3 lines; trace timing differs (C before, Zig after). See STEP_COMPARISON_STATUS.md for next steps.
 
 ### ✅ RESOLVED: SP (Stack Pointer) Trace Logging (2026-02-04)
 

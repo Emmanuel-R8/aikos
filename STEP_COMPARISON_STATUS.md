@@ -13,14 +13,18 @@
 - **Result**: Step 0 SP:0x012e8a and Step 1 SP:0x012e88 now match C in Zig trace.
 
 **RESOLVED (2026-02-04)**: GVAR value and PC advance.
+
 - GVAR: 5-byte format (match C), atom index = getPointerOperand(0) & 0xFFFF, explicit return null in execution_data.zig. Step 1 TOS 0x0e and step 2 PC 0x60f136 now match C.
 
 **RESOLVED (2026-02-03)**: Trace timing, UNBIND TOS, GVAR value cell, full state.
+
 - Trace: Zig logs after execution; TOPOFSTACK synced from memory before log. UNBIND leaves TOS unchanged (match C). Valspace byte offset 0x180000 (C DLword 0xC0000). REGISTERS and FLAGS populated in both traces.
 
 **REMAINING DIVERGENCES**:
-1. Zig stops after 8 steps (RETURN at step 7). Mitigated: top-level return sets stop_requested (clean exit).
-2. Re-run comparison to confirm step 2 TOS parity after Valspace/UNBIND fixes.
+
+1. Zig may stop early (e.g. 3 trace lines in a 15-step run): decode failure or early return after a few steps; or top-level RETURN at step 7 (8 lines). Mitigated: top-level return sets stop_requested (clean exit).
+2. Trace timing: C logs state _before_ each instruction (line N = state before inst N); Zig logs state _after_ each instruction (line N = state after inst N). For line-by-line field comparison, either align timing (e.g. Zig log before execution) or compare C line N+1 to Zig line N for “after inst N” state.
+3. Re-run comparison with aligned timing and/or higher step cap to confirm step 2 TOS parity after Valspace/UNBIND fixes.
 
 ## CURRENT COMPARISON INFRASTRUCTURE STATUS
 
@@ -119,7 +123,9 @@ head -3 zaiko/zig_emulator_execution_log.txt
 **TARGET**: Zig runs to step cap (e.g. 100) like C so full trace comparison is possible.
 **FILE**: `zaiko/src/vm/function.zig`, `zaiko/src/vm/execution_trace.zig` (SP fix applied)
 **PROGRESS**: SP/FP in trace now match C (CSTKPTRL-based SP). Next: fix top-level RETURN so Zig does not exit early.
-**NEXT**: Fix top-level return handling; re-run comparison from 0; continue to next divergence.
+**NEXT**: (1) Optionally align trace timing (C before vs Zig after) for direct line-by-line diff. (2) Fix any decode/early-exit causing Zig to produce only 3 lines when EMULATOR_MAX_STEPS=15. (3) Re-run comparison from 0; continue to next divergence.
+
+**Plan implementation (2026-02-04)**: All parity-plan items implemented: trace logging after execution (Zig), UNBIND TOS unchanged, REGISTERS/FLAGS populated, VALS_OFFSET_BYTES corrected, C comments (GVAR/UNBIND/trace timing), emulator-wide consistency. Todos marked complete.
 
 ## DEBUGGING ENVIRONMENT
 

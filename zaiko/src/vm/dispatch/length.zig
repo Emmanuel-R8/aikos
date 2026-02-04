@@ -102,12 +102,9 @@ pub fn getInstructionLength(opcode: Opcode) u32 {
         // 3-byte opcodes (2 operands)
         .JUMPX, .JUMPXX, .FJUMPX, .TJUMPX, .NFJUMPX, .NTJUMPX => 3, // Opcode + 2-byte offset
 
-        // BIGATOMS+BIGVM mode: GVAR uses 4-byte pointer (5 bytes total)
-        // C: Get_AtomNo_PCMAC1 = Get_Pointer_PCMAC1 (4 bytes), nextop_atom = nextop5
-        // Non-BIGATOMS: GVAR uses 2-byte DLword (3 bytes total)
-        // C: Get_AtomNo_PCMAC1 = Get_DLword_PCMAC1 (2 bytes), nextop_atom = nextop3
-        // Assume BIGATOMS+BIGVM for now (matches C emulator behavior)
-        .GVAR => 5, // Opcode + 4-byte atom pointer (BIGATOMS+BIGVM)
+        // Match C emulator PC advance: starter.sysout / C build uses 5-byte GVAR (0x60f131 -> 0x60f136).
+        // Use 5 bytes so PC stays in sync; atom index for Valspace = low 16 bits of 4-byte operand.
+        .GVAR => 5, // Opcode + 4-byte operand (match C nextop5; index = operand & 0xFFFF for Valspace)
         // .GETAEL2, .SETAEL2 => 3, // Commented out - conflicts with JUMP1/JUMP3
 
         else => 1, // Default to 1 byte

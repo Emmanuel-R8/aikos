@@ -378,41 +378,7 @@ pub fn main() !void {
 
     std.debug.print("Sysout loaded: version={}, keyval=0x{x}\n", .{ sysout_result.ifpage.lversion, sysout_result.ifpage.key });
 
-    // PHASE 5: INITIALIZE DISPLAY SYSTEM
-    // Set up SDL2 window, renderer, and texture for graphics output
-    // Display shows the Lisp system's graphical user interface
-    // CRITICAL: Initialize before VM to ensure display is ready for graphics operations
-    const screen_width = options.screen_width orelse 1024;
-    const screen_height = options.screen_height orelse 768;
-    const pixel_scale = options.pixel_scale orelse 1;
-    const window_title = options.window_title orelse "Medley Interlisp (Zig)";
-
-    const display = sdl_backend.initDisplay(
-        window_title,
-        screen_width,
-        screen_height,
-        pixel_scale,
-        allocator,
-    ) catch |err| {
-        std.debug.print("Failed to initialize SDL2 display: {}\n", .{err});
-        return;
-    };
-    defer sdl_backend.destroyDisplay(display, allocator);
-
-    std.debug.print("SDL2 display initialized: {}x{} (scale: {})\n", .{ screen_width, screen_height, pixel_scale });
-
-    // Initialize event queues
-    var key_queue = try keyboard.KeyEventQueue.init(allocator, 256);
-    defer key_queue.deinit(allocator);
-
-    var mouse_state = mouse.MouseState{
-        .x = 0,
-        .y = 0,
-        .buttons = 0,
-    };
-    _ = &mouse_state; // Used in event polling
-
-    // PHASE 6: INITIALIZE SYSTEM STATE
+    // PHASE 5: INITIALIZE SYSTEM STATE
     // Set up low-level system structures before VM execution
     // Equivalent to C: build_lisp_map(), init_ifpage(), init_iopage(), init_miscstats(), init_storage()
     // Prepares virtual memory layout and system tables
@@ -444,11 +410,40 @@ pub fn main() !void {
         sysout_result.ifpage.currentfxp,
     });
 
-    // Timer initialization not yet implemented (requires timer subsystem)
+    // PHASE 6: INITIALIZE DISPLAY (optional for headless / parity comparison)
+    // When display init fails (e.g. no video device), run headless: VM only, no events.
+    const screen_width = options.screen_width orelse 1024;
+    const screen_height = options.screen_height orelse 768;
+    const pixel_scale = options.pixel_scale orelse 1;
+    const window_title = options.window_title orelse "Medley Interlisp (Zig)";
+
+    const display_opt: ?*sdl_backend.DisplayInterface = blk: {
+        break :blk sdl_backend.initDisplay(
+            window_title,
+            screen_width,
+            screen_height,
+            pixel_scale,
+            allocator,
+        ) catch |err| {
+            std.debug.print("SDL2 display unavailable ({}), running headless for trace/parity\n", .{err});
+            break :blk null;
+        };
+    };
+    const display = display_opt;
+    defer if (display) |d| sdl_backend.destroyDisplay(d, allocator);
+
+    var key_queue: ?keyboard.KeyEventQueue = null;
+    var mouse_state: ?mouse.MouseState = null;
+    if (display) |_| {
+        key_queue = try keyboard.KeyEventQueue.init(allocator, 256);
+        defer key_queue.?.deinit(allocator);
+        mouse_state = .{ .x = 0, .y = 0, .buttons = 0 };
+        std.debug.print("SDL2 display initialized: {}x{} (scale: {})\n", .{ screen_width, screen_height, pixel_scale });
+    }
 
     std.debug.print("VM initialized, entering dispatch loop\n", .{});
 
-    // PHASE 8: MAIN DISPATCH LOOP
+    // PHASE 7: MAIN DISPATCH LOOP
     // Core execution loop that alternates between:
     // 1. Polling SDL events (keyboard, mouse, window events)
     // 2. Executing VM instructions (bytecode interpretation)
@@ -466,15 +461,16 @@ pub fn main() !void {
             break;
         }
 
-        // Poll SDL2 events (T091: integrated event polling)
-        const should_quit = events.pollEvents(display, &key_queue, &mouse_state, allocator) catch |err| blk: {
-            std.debug.print("Event polling error: {}\n", .{err});
-            // Continue execution despite errors
-            break :blk false;
-        };
-        if (should_quit) {
-            quit_requested = true;
-            break;
+        // Poll SDL2 events when display available (skip when headless)
+        if (display) |d| {
+            const should_quit = events.pollEvents(d, &key_queue.?, &mouse_state.?, allocator) catch |err| blk: {
+                std.debug.print("Event polling error: {}\n", .{err});
+                break :blk false;
+            };
+            if (should_quit) {
+                quit_requested = true;
+                break;
+            }
         }
 
         // Execute VM instructions

@@ -21,6 +21,7 @@ This repository contains the **Interlisp** project, which includes:
 1. When **compressing or summarizing context**, follow **§7**: Phase 1 (aggressive compression of tool/command/trace/linter outputs only) is mandatory and first; Phase 2 (re-read AGENTS.md, then compress the remainder) only if further compression is needed.
 
 1. **`documentation/core/critical-memory.typ`** - **CRITICAL**: Rules for documentation updates
+
    - All documentation improvements MUST be emulator-independent in `documentation/specifications/`
    - Language-specific details go in `documentation/implementations/`
    - **ALWAYS** write documentation using the Typst document format
@@ -126,13 +127,14 @@ Interlisp/
 
 ### 1.1 Submodules (CRITICAL)
 
-This repository includes git submodules (notably `maiko/` and `medley/`).
+This repository includes git submodules (notably `maiko_untouched/`, and `medley/`).
 
 - **Default**: Treat submodules as **read-only** unless the user explicitly asks to modify them.
 - **Committing**:
-  - **Do not commit inside submodules** unless the user explicitly requests it.
+  - **Allowed**: Commit inside the `maiko/` directory when changes are made there (e.g. C code comment improvements, trace format updates). Enter the `maiko/` directory to stage and commit.
+  - **Prohibited**: Do **not** commit inside `maiko_untouched/`; treat it as read-only historical baseline.
   - Superproject commits may update submodule pointers _only if explicitly intended_.
-- **Staging**: Paths inside submodules cannot be staged from the superproject (e.g. `git add maiko/...` will fail). Enter the submodule repo if changes are required.
+- **Staging**: Paths inside submodules cannot be staged from the superproject (e.g. `git add maiko_untouched/...` from repo root only updates the submodule pointer). Enter the submodule repo to commit changes there.
 
 ### 1.2 Generated Artifacts (never commit)
 

@@ -76,12 +76,14 @@ else
     exit 1
 fi
 
-# Run Zig emulator
+# Run Zig emulator (headless when no display; use cache in workspace)
 echo ""
 echo "=== Running Zig Emulator ==="
-echo "Command: cd zaiko && zig build run -- $SYSOUT_FILE"
+echo "Command: cd zaiko && ZIG_GLOBAL_CACHE_DIR=zaiko/.zig-cache zig build run -- $SYSOUT_PATH"
 cd "$ZIG_DIR"
-timeout --kill-after 11 10 zig build run -- "$SYSOUT_PATH" > /dev/null 2>&1 || true
+# Force Zig cache inside workspace so headless/sandbox runs can write
+export ZIG_GLOBAL_CACHE_DIR="$ZIG_DIR/.zig-cache"
+timeout --kill-after 31 30 zig build run -- "$SYSOUT_PATH" > /dev/null 2>&1 || true
 
 # Check for log in both possible locations
 if [ -f "$ZIG_DIR/zig_emulator_execution_log.txt" ]; then
@@ -90,6 +92,15 @@ if [ -f "$ZIG_DIR/zig_emulator_execution_log.txt" ]; then
     echo "✓ Zig emulator log created: $ZIG_LINES lines"
     if [ "$ZIG_LINES" -gt "$MAX_STEPS" ]; then
         echo "  WARNING: Log has more than ${MAX_STEPS} lines, truncating..."
+        head -n "$MAX_STEPS" "$REPO_ROOT/zig_emulator_execution_log.txt" > "$REPO_ROOT/zig_emulator_execution_log_truncated.txt"
+        mv "$REPO_ROOT/zig_emulator_execution_log_truncated.txt" "$REPO_ROOT/zig_emulator_execution_log.txt"
+        ZIG_LINES=$MAX_STEPS
+    fi
+elif [ -f "$ZIG_DIR/zig-out/bin/zig_emulator_execution_log.txt" ]; then
+    cp "$ZIG_DIR/zig-out/bin/zig_emulator_execution_log.txt" "$REPO_ROOT/zig_emulator_execution_log.txt"
+    ZIG_LINES=$(wc -l < "$REPO_ROOT/zig_emulator_execution_log.txt")
+    echo "✓ Zig emulator log created (zig-out/bin): $ZIG_LINES lines"
+    if [ "$ZIG_LINES" -gt "$MAX_STEPS" ]; then
         head -n "$MAX_STEPS" "$REPO_ROOT/zig_emulator_execution_log.txt" > "$REPO_ROOT/zig_emulator_execution_log_truncated.txt"
         mv "$REPO_ROOT/zig_emulator_execution_log_truncated.txt" "$REPO_ROOT/zig_emulator_execution_log.txt"
         ZIG_LINES=$MAX_STEPS
