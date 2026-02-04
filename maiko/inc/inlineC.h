@@ -327,6 +327,11 @@
     nextop2;                                           \
   } while (0)
 
+/* GVAR(x): Push the *value cell contents* (full LispPTR) for atom x, not the atom index.
+ * Value cell location depends on build: non-BIGATOMS uses Valspace; BIGATOMS uses
+ * AtomSpace for LITATOM (tx & SEGMASK == 0) or NativeAligned4FromLAddr for NEWATOM.
+ * Valspace layout: (DLword *)Valspace + ((x) << 1) => byte offset VALS_OFFSET + x*4.
+ * AtomSpace layout (BIGVM): (LispPTR *)AtomSpace + (tx*5) + NEWATOM_VALUE_PTROFF. */
 #ifndef BIGATOMS
 #define GVAR(x)                               \
   do {                                        \
@@ -514,6 +519,9 @@
     nextop3;                                                    \
   } while (0)
 
+/* UNBIND: Walk stack to BIND marker, clear PVAR slots, leave TOPOFSTACK unchanged.
+ * Does NOT set TOPOFSTACK; TOS remains the value from before UNBIND (e.g. GVAR result).
+ * nextop1 advances PC; next RET will read *(CSTKPTRL - 1) if needed. */
 #define UNBIND                                                  \
   do {                                                          \
     int num;                                           \

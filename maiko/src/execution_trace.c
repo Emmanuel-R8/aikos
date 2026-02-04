@@ -134,11 +134,20 @@ int log_execution_trace(ExecutionTrace *trace,
     /* 5. OPERANDS (empty for now - 20 chars) */
     pos += snprintf(buffer + pos, sizeof(buffer) - pos, "%20s|", "");
     
-    /* 6. REGISTERS (empty for now - 30 chars) */
-    pos += snprintf(buffer + pos, sizeof(buffer) - pos, "%30s|", "");
+    /* 6. REGISTERS - full CPU state: r1=PC_lo, r2=TOS_lo, r3=TOS_hi (30 chars, match Zig) */
+    {
+        unsigned int r1 = (unsigned int)(pc_byte_offset & 0xFFFFU);
+        unsigned int r2 = (unsigned int)(tos_value & 0xFFFFU);
+        unsigned int r3 = (unsigned int)((tos_value >> 16) & 0xFFU);
+        pos += snprintf(buffer + pos, sizeof(buffer) - pos, "r1:0x%04x r2:0x%04x r3:0x%02x  |", r1, r2, r3);
+    }
     
-    /* 7. FLAGS (empty for now - 10 chars) */
-    pos += snprintf(buffer + pos, sizeof(buffer) - pos, "%10s|", "");
+    /* 7. FLAGS - Z=(TOS==0), N=(TOS negative), C=0 (10 chars, match Zig) */
+    {
+        int z = (tos_value == 0) ? 1 : 0;
+        int n = (tos_value & 0x80000000U) ? 1 : 0;
+        pos += snprintf(buffer + pos, sizeof(buffer) - pos, "Z:%d N:%d C:0|", z, n);
+    }
     
     /* 8. SP_FP */
     pos += snprintf(buffer + pos, sizeof(buffer) - pos, "SP:0x%06lx FP:0x%06lx|", sp_offset, fp_offset);

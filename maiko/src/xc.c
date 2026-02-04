@@ -937,6 +937,11 @@ nextopcode:
    * ---------------------------------------------------------------------
    * Log instruction execution for parity testing with Zig emulator.
    * Matches Zig execution trace format for comparison.
+   *
+   * TIMING: We log state *before* dispatching the current opcode. So for
+   * trace line N, PC/opcode are the next instruction to execute; TOS/SP/FP
+   * are the state *after* the previous instruction (N-1) has executed.
+   * Thus line 2 shows TOS after GVAR (instruction 1), before UNBIND (instruction 2).
    */
   {
     unsigned char opcode = Get_BYTE_PCMAC0;
