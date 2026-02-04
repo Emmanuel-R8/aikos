@@ -1,9 +1,11 @@
 # Object files
 *.o
+
 # Editor backups and recovery files
 *~
 \#*#
 .DS_Store
+
 # build directories
 build/**
 cmake-build-*/**
@@ -31,6 +33,7 @@ cmake-build-*/**
 *.aarch64/**
 init.386/**
 *.universal/**
+
 # core files
 core
 *.core
@@ -57,5 +60,5 @@ __pycache__/
 .venv/
 venv/
 
-*_emulator_execution_log*
-
+*.log
+*log.txt

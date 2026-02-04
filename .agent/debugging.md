@@ -20,7 +20,7 @@
 - VM emulators require careful optimization - profile memory access patterns
 - Stack operations are performance-critical - minimize redundant calculations
 - Memory translation overhead should be amortized across operations
-- Performane is a secondary consideration after correctness
+- Performance is a secondary consideration after correctness
 
 ## Common Debugging Gotchas (read before parity fixes)
 
@@ -182,7 +182,7 @@ When debugging implementation divergences, follow this hierarchy:
 
 ### General Practices
 
-1. **Always execute with a non-hanging timeout**: always use `timemout --kill-after=N+1 Ns`
+1. **Always execute with a non-hanging timeout**: always use `timeout --kill-after=N+1 Ns`
 1. **Always check C implementation first** when implementing new features
 1. **Update documentation** before committing (follow `documentation/core/critical-memory.typ`)
 1. **Keep files under 500 lines** for better maintainability
