@@ -469,66 +469,23 @@ pub fn initializeVMState(
         // DEBUG: Verify calculation
         std.debug.print("  PC = FuncObj + CURRENTFX->pc = 0x{x:0>6} + 0x{x:0>4} = 0x{x:0>6} ({o:0>8}o)\n", .{ funcobj_byte_offset, frame_pc_bytes, calculated_pc, calculated_pc });
 
-        // Validate PC is within virtual memory bounds
-        if (calculated_pc >= virtual_memory.len) {
-            std.debug.print("WARNING: Calculated PC (0x{x}) is beyond virtual memory (len=0x{x})\n", .{ calculated_pc, virtual_memory.len });
-            vm.pc = if (frame_pc > 0 and frame_pc < virtual_memory.len) @as(LispPTR, @intCast(frame_pc)) else 0x100;
-            return;
-        }
-
-        // Verify PC points to valid code (not all zeros)
-        // CRITICAL: Check with XOR addressing (matching how instructions are actually read)
-        if (calculated_pc + 4 <= virtual_memory.len) {
-            // Read first byte with XOR addressing to check if it's a valid opcode
-            const memory_access_module = @import("../utils/memory_access.zig");
-            const first_opcode_xor = memory_access_module.getByte(virtual_memory, calculated_pc) catch 0xFF;
-            const second_opcode_xor = memory_access_module.getByte(virtual_memory, calculated_pc + 1) catch 0xFF;
-
-            // Also show raw bytes for debugging
-            const first_bytes = virtual_memory[calculated_pc .. calculated_pc + 4];
-            std.debug.print("  PC location 0x{x}: raw bytes = 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2}\n", .{ calculated_pc, first_bytes[0], first_bytes[1], first_bytes[2], first_bytes[3] });
-            std.debug.print("  PC location 0x{x}: XOR-addressed opcode = 0x{x:0>2}\n", .{ calculated_pc, first_opcode_xor });
-
-            const all_zeros = first_opcode_xor == 0 and second_opcode_xor == 0;
-
-            if (all_zeros) {
-                std.debug.print("WARNING: Calculated PC=0x{x} points to zeros (invalid code)\n", .{calculated_pc});
-                // Try fallback: use frame_pc directly as byte offset from start
-                if (frame_pc < virtual_memory.len) {
-                    vm.pc = @as(LispPTR, @intCast(frame_pc));
-                    std.debug.print("  Fallback: Using frame->pc={} as direct byte offset\n", .{frame_pc});
-                    return;
-                }
-            } else {
-                vm.pc = @as(LispPTR, @intCast(calculated_pc));
-                std.debug.print("  Using calculated PC=0x{x} (XOR-addressed opcode=0x{x:0>2})\n", .{ calculated_pc, first_opcode_xor });
-
-                // ENHANCED TRACING: Match C emulator's after FastRetCALL verification
-                if (ENHANCED_TRACING) {
-                    std.debug.print("\n=== ENHANCED TRACING: After FastRetCALL Verification ===\n", .{});
-                    std.debug.print("DEBUG: Actual FuncObj byte offset = 0x{x:0>6} ({o:0>8}o)\n", .{ funcobj_byte_offset, funcobj_byte_offset });
-                    std.debug.print("DEBUG: Actual PC byte offset = 0x{x:0>6} ({o:0>8}o)\n", .{ calculated_pc, calculated_pc });
-                    std.debug.print("DEBUG: FX_FNHEADER = 0x{x:0>6} ({o:0>8}o) (DLword offset)\n", .{ fnheader_addr, fnheader_addr });
-                    std.debug.print("DEBUG: CURRENTFX->pc = 0x{x:0>4} ({o:0>6}o) bytes\n", .{ frame_pc, frame_pc });
-                    const pc_calc = fnheader_addr * 2 + frame_pc;
-                    std.debug.print("DEBUG: FX_FNHEADER * 2 + CURRENTFX->pc = 0x{x:0>6} * 2 + 0x{x:0>4} = 0x{x:0>6} ({o:0>8}o)\n", .{ fnheader_addr, frame_pc, pc_calc, pc_calc });
-                    const match = (calculated_pc == fnheader_addr * 2 + frame_pc);
-                    std.debug.print("DEBUG: Match check: actual_pc_offset == FX_FNHEADER * 2 + CURRENTFX->pc? {s}\n", .{if (match) "YES" else "NO"});
-                    std.debug.print("=== END After FastRetCALL Verification ===\n\n", .{});
-                }
-                return;
-            }
-        }
-
-        // If validation failed, use calculated PC anyway (might still work)
+        // CRITICAL FIX: Match C implementation - NO VALIDATION LOGIC
+        // C code just sets PC directly without checking if it points to zeros or if it's within bounds
+        // The Zig code had validation logic that was causing bugs by falling back to incorrect values
         vm.pc = @as(LispPTR, @intCast(calculated_pc));
-        std.debug.print("  Using calculated PC=0x{x} (validation incomplete)\n", .{calculated_pc});
+        std.debug.print("  Set PC=0x{x:0>6} ({o:0>8}o) (matching C implementation)\n", .{ calculated_pc, calculated_pc });
 
-        // ENHANCED TRACING: Even if validation incomplete
+        // ENHANCED TRACING: Match C emulator's after FastRetCALL verification
         if (ENHANCED_TRACING) {
-            std.debug.print("\n=== ENHANCED TRACING: After FastRetCALL (validation incomplete) ===\n", .{});
+            std.debug.print("\n=== ENHANCED TRACING: After FastRetCALL ===\n", .{});
             std.debug.print("DEBUG: Actual FuncObj byte offset = 0x{x:0>6} ({o:0>8}o)\n", .{ funcobj_byte_offset, funcobj_byte_offset });
             std.debug.print("DEBUG: Actual PC byte offset = 0x{x:0>6} ({o:0>8}o)\n", .{ calculated_pc, calculated_pc });
+            std.debug.print("DEBUG: FX_FNHEADER = 0x{x:0>6} ({o:0>8}o) (DLword offset)\n", .{ fnheader_addr, fnheader_addr });
+            std.debug.print("DEBUG: CURRENTFX->pc = 0x{x:0>4} ({o:0>6}o) bytes\n", .{ frame_pc, frame_pc });
+            const pc_calc = fnheader_addr * 2 + frame_pc;
+            std.debug.print("DEBUG: FX_FNHEADER * 2 + CURRENTFX->pc = 0x{x:0>6} * 2 + 0x{x:0>4} = 0x{x:0>6} ({o:0>8}o)\n", .{ fnheader_addr, frame_pc, pc_calc, pc_calc });
+            const match = (calculated_pc == fnheader_addr * 2 + frame_pc);
+            std.debug.print("DEBUG: Match check: actual_pc_offset == FX_FNHEADER * 2 + CURRENTFX->pc? {s}\n", .{if (match) "YES" else "NO"});
             std.debug.print("=== END After FastRetCALL ===\n\n", .{});
         }
         return;

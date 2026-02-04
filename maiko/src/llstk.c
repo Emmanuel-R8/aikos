@@ -109,6 +109,7 @@
 #include <string.h>      // for memset
 #include "address.h"     // for LOLOC
 #include "adr68k.h"      // for NativeAligned2FromStackOffset, StackOffsetFromNative
+#include "bltdefs.h"     // for N_OP_blt
 #include "commondefs.h"  // for error, warn
 #include "dbgtooldefs.h" // for sff
 #include "emlglob.h"
@@ -268,7 +269,7 @@ tryfsb:
   }
 
   /* copy frame and dummy bf pointer too */
-  blt(new68k, (((DLword *)oldfx68k) - DLWORDSPER_CELL), size);
+  N_OP_blt(StackOffsetFromNative(new68k), StackOffsetFromNative(((DLword *)oldfx68k) - DLWORDSPER_CELL), size);
 
   ((Bframe *)new68k)->residual = T;
   new68k = new68k + DLWORDSPER_CELL; /* now NEW points to the FX */

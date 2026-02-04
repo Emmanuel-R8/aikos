@@ -4,24 +4,37 @@
 **Priority**: STEP-WISE COMPARATIVE EXECUTION (ABSOLUTE PRIORITY)
 **Skill**: superpowers:executing-plans
 
-## CRITICAL FINDING - FIRST DIVERGENCE IDENTIFIED ✅
+## CRITICAL FINDING - SP TRACE FIX APPLIED (2026-02-04) ✅
 
-**DIVERGENCE POINT**: Stack/Frame Pointer Initialization
-- **C EMULATOR**: SP=0x02e88, FP=0x307864 (correct IFPAGE values)
-- **ZIG EMULATOR**: SP=0x002e88, FP=0x002e72 (wrong values)
+**SP/FP TRACE ALIGNMENT**: Resolved
 
-**ROOT CAUSE**: Zig VM initialization not properly setting stack/frame pointers from IFPAGE
+- **C logs**: `sp_offset = (DLword *)CSTKPTRL - (DLword *)Lisp_world` (CSTKPTRL = CurrentStackPTR + 2 DLwords).
+- **Zig fix**: getStackPtrOffset() now uses vm.cstkptrl when set (matches C); fallback (stack_ptr offset + 2) for init.
+- **Result**: Step 0 SP:0x012e8a and Step 1 SP:0x012e88 now match C in Zig trace.
+
+**RESOLVED (2026-02-04)**: GVAR value and PC advance.
+- GVAR: 5-byte format (match C), atom index = getPointerOperand(0) & 0xFFFF, explicit return null in execution_data.zig. Step 1 TOS 0x0e and step 2 PC 0x60f136 now match C.
+
+**RESOLVED (2026-02-03)**: Trace timing, UNBIND TOS, GVAR value cell, full state.
+- Trace: Zig logs after execution; TOPOFSTACK synced from memory before log. UNBIND leaves TOS unchanged (match C). Valspace byte offset 0x180000 (C DLword 0xC0000). REGISTERS and FLAGS populated in both traces.
+
+**REMAINING DIVERGENCES**:
+1. Zig stops after 8 steps (RETURN at step 7). Mitigated: top-level return sets stop_requested (clean exit).
+2. Re-run comparison to confirm step 2 TOS parity after Valspace/UNBIND fixes.
 
 ## CURRENT COMPARISON INFRASTRUCTURE STATUS
 
 ### ✅ WORKING COMPONENTS
+
 1. **C Emulator Trace Generation**
+
    - Command: `EMULATOR_MAX_STEPS=N ./maiko/linux.x86_64/ldesdl sysout`
-   - Output: `c_emulator_execution_log.txt` 
+   - Output: `c_emulator_execution_log.txt`
    - Format: C native detailed trace format
    - Working: ✅ Generates 5+ instruction traces successfully
 
 2. **Zig Emulator Trace Generation**
+
    - Command: `EMULATOR_MAX_STEPS=N zig build run -- sysout`
    - Output: `zaiko/zig_emulator_execution_log.txt`
    - Format: Unified single-line trace format
@@ -33,47 +46,52 @@
    - First instruction comparison completed
    - Divergence identified at instruction 0
 
-### 📋 COMPARISON RESULTS (First 5 Instructions)
+### 📋 COMPARISON RESULTS (First 8 Steps – Zig; 86+ C with cap 100)
 
 **INSTRUCTION 0**:
-- C: `PC:0x60f130 POP` with SP=0x02e88, FP=0x307864
-- Zig: `PC:0x60f130 POP` with SP=0x002e88, FP=0x002e72
-- **RESULT**: ❌ Stack/frame pointers wrong
 
-**INSTRUCTION 1**:  
-- C: `PC:0x60f131 GVAR` with correct stack state
-- Zig: `PC:0x60f131 GVAR` with wrong stack state
-- **RESULT**: ❌ Stack/frame pointers still wrong
+- C: `PC:0x60f130 RECLAIMCELL (0xbf)` with SP:0x012e8a FP:0x012e72
+- Zig: `PC:0x60f130 POP (0xbf)` with SP:0x012e8a FP:0x012e72
+- **RESULT**: ✅ SP/FP match (opcode name differs: C trace "RECLAIMCELL", Zig "POP" – same byte 0xbf)
 
-**INSTRUCTIONS 2-4**: Similar pattern - PC and opcodes match, stack pointers wrong
+**INSTRUCTION 1**:
+
+- C: `PC:0x60f131 UNKNOWN (0x60)` SP:0x012e88
+- Zig: `PC:0x60f131 GVAR (0x60)` SP:0x012e88
+- **RESULT**: ✅ SP matches; opcode name differs (C trace labels 0x60 UNKNOWN, Zig GVAR)
+
+**INSTRUCTIONS 2–7**: PC and SP/FP match where Zig runs; opcode names may differ (C trace uses different naming for some bytes). Zig stops after step 7 (RETURN).
 
 ## IMMEDIATE NEXT STEP REQUIRED
 
-**FIX VM INITIALIZATION** in `zaiko/src/vm/vm_initialization.zig`:
-- Line ~41: `currentfxp_stack_offset = ifpage.currentfxp` 
-- Issue: Not properly converting IFPAGE DLword offsets to VM stack pointers
-- C emulator uses: SP=0x02e88, FP=0x307864
-- Zig calculates: SP=0x002e88, FP=0x002e72
+**FIX ZIG STOPPING AT 8 STEPS** (top-level RETURN):
+
+- Zig executes RETURN at step 7; returnFromFunction sets vm.pc = 0 when no previous frame; next decode (pc=1) may fail and dispatch returns; only 8 trace lines written.
+- Options: (1) On top-level return, set stop_requested and return normally so step count is consistent; (2) Ensure decode from pc=1 does not fail so Zig continues to step cap.
+- File: `zaiko/src/vm/function.zig` (returnFromFunction), `zaiko/src/vm/dispatch/dispatch_loop.zig` (decode at low PC).
 
 ## FILES TO INVESTIGATE
 
 ### Primary Issue
+
 - `zaiko/src/vm/vm_initialization.zig` - Stack/frame pointer initialization
 - Lines 40-60: currentfxp calculation and pointer setting
 - Compare with C implementation in `maiko/src/main.c` start_lisp()
 
 ### Reference Traces
+
 - `c_emulator_execution_log.txt` - C emulator trace (working)
 - `zaiko/zig_emulator_execution_log.txt` - Zig emulator trace (wrong SP/FP)
 
 ### Working Commands
+
 ```bash
 # Run C emulator (baseline)
 cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp
 EMULATOR_MAX_STEPS=5 ./maiko/linux.x86_64/ldesdl /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/medley/internal/loadups/starter.sysout
 
 # Run Zig emulator (comparison)
-cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/zaiko  
+cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/zaiko
 env ZIG_GLOBAL_CACHE_DIR=zaiko/.zig-cache EMULATOR_MAX_STEPS=5 zig build run -- /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/medley/internal/loadups/starter.sysout
 
 # Compare traces
@@ -97,17 +115,16 @@ head -3 zaiko/zig_emulator_execution_log.txt
 
 ## CURRENT ACTION: STEP-WISE PROGRESS
 
-**STATUS**: Attempting to fix VM initialization stack/frame pointer calculation
-**CURRENT ISSUE**: Zig compilation errors with @ptrCast const qualifier issues
-**TARGET**: Achieve SP=0x02e88, FP=0x307864 to match C emulator
-**FILE**: `zaiko/src/vm/vm_initialization.zig` 
-**PROGRESS**: Stack pointer fixes attempted but Zig emulator still not running
-**NEXT**: Need systematic debugging approach to fix compilation and achieve correct SP/FP values
+**STATUS**: SP trace logging fixed; Zig matches C for steps 0–7 (SP/FP/PC). Zig stops at 8 steps.
+**TARGET**: Zig runs to step cap (e.g. 100) like C so full trace comparison is possible.
+**FILE**: `zaiko/src/vm/function.zig`, `zaiko/src/vm/execution_trace.zig` (SP fix applied)
+**PROGRESS**: SP/FP in trace now match C (CSTKPTRL-based SP). Next: fix top-level RETURN so Zig does not exit early.
+**NEXT**: Fix top-level return handling; re-run comparison from 0; continue to next divergence.
 
 ## DEBUGGING ENVIRONMENT
 
 - Working directory: `/home/emmanuel/Sync/Development/Emulation/_gits/Interlisp`
-- Zig cache: `ZIG_GLOBAL_CACHE_DIR=zaiko/.zig-cache`  
+- Zig cache: `ZIG_GLOBAL_CACHE_DIR=zaiko/.zig-cache`
 - Sysout: `/home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/medley/internal/loadups/starter.sysout`
 - Step limit: `EMULATOR_MAX_STEPS=5` (for controlled testing)
 

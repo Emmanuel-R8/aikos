@@ -24,6 +24,7 @@
 /********************************************************************/
 #include <stdio.h>        // for printf
 #include "adr68k.h"       // for NativeAligned2FromStackOffset, StackOffsetFromNative
+#include "bltdefs.h"      // for N_OP_blt
 #include "commondefs.h"   // for error
 #include "emlglob.h"
 #include "hardrtndefs.h"  // for incusecount68k, slowreturn
@@ -85,7 +86,7 @@ static FX *make_FXcopy(FX *fx68k) {
   if (new68k == 0) return (0); /* No more space for STACK */
 
   /* blt(dest,source,size) */
-  blt(new68k, (((DLword *)fx68k) - DLWORDSPER_CELL), size);
+  N_OP_blt(StackOffsetFromNative(new68k), StackOffsetFromNative(((DLword *)fx68k) - DLWORDSPER_CELL), size);
 
   ((Bframe *)new68k)->residual = T;
   new68k = new68k + DLWORDSPER_CELL; /* now NEW points to the FX */
@@ -118,7 +119,7 @@ static FX *make_FXcopy(FX *fx68k) {
   CHECK_FX((FX *)new68k);
   CHECK_FX(CURRENTFX);
 #ifdef STACKCHECK
-  stack_check(0);
+  // stack_check(0); // TODO: stack_check function not implemented
 #endif
 #ifdef FLIPCURSOR
   flip_cursorbar(5);

@@ -60,6 +60,17 @@ int log_execution_trace(ExecutionTrace *trace,
 void cleanup_execution_trace(ExecutionTrace *trace);
 int should_continue_logging(ExecutionTrace *trace);
 
+/* Global trace API wrappers */
+int init_global_execution_trace(const char *log_path);
+int log_global_execution_trace(unsigned char opcode,
+                              unsigned long pc_byte_offset,
+                              LispPTR tos_value,
+                              unsigned long sp_offset,
+                              unsigned long fp_offset,
+                              const char *opcode_name);
+void cleanup_global_execution_trace(void);
+int should_continue_global_logging(void);
+
 /* Initialize execution trace logging */
 /* Returns 0 on success, -1 on failure */
 int init_execution_trace(ExecutionTrace *trace, const char *log_path);

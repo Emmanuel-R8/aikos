@@ -11,18 +11,17 @@ const LispPTR = @import("../../utils/types.zig").LispPTR;
 
 /// Execute a single instruction in the dispatch loop
 /// Returns true if execution should continue, false if it should stop
+/// Trace is logged AFTER execution so each line shows state after that instruction (plan parity).
 pub fn executeInstructionInLoop(
     vm: *VM,
     inst: instruction.Instruction,
     tracer: *execution_trace.ExecutionTrace,
 ) errors.VMError!bool {
-    // Log instruction BEFORE execution (matching C emulator format)
-    tracer.logInstruction(vm, inst) catch |err| {
-        std.debug.print("WARNING: Failed to log instruction: {}\n", .{err});
-    };
-
     // DEBUG: Verify memory integrity before instruction execution
     dispatch_debug.checkMemoryBeforeInstruction(vm, @as(usize, @intCast(vm.pc)));
+
+    // PC of the instruction we are about to execute (for trace-after logging)
+    const pc_executed = vm.pc;
 
     // Execute opcode handler with instruction
     const jump_offset = execution.executeInstruction(vm, inst) catch |err| {
@@ -86,6 +85,14 @@ pub fn executeInstructionInLoop(
 
         dispatch_debug.printPCUpdate(@as(usize, @intCast(pc_before_update)), @as(usize, @intCast(vm.pc)), null, @as(u8, @intCast(inst.length)));
     }
+
+    // Sync TOPOFSTACK from memory before logging (CSTKPTRL may have been updated by opcode e.g. UNBIND).
+    stack.readTopOfStackFromMemory(vm);
+
+    // Log trace AFTER execution so this line shows state after the instruction (plan parity).
+    tracer.logInstruction(vm, inst, pc_executed) catch |err| {
+        std.debug.print("WARNING: Failed to log instruction: {}\n", .{err});
+    };
 
     return true;
 }

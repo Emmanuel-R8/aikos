@@ -906,11 +906,11 @@ nextopcode:
    * When MYOPTRACE is defined and PC is in function at 0x2ed600,
    * print trace information including PC, opcode, and TOPOFSTACK.
    */
-#ifdef MYOPTRACE
+  #ifdef MYOPTRACE
   if ((struct fnhead *)NativeAligned4FromLAddr(0x2ed600) == FuncObj)
   {
-    quick_stack_check();
-#endif /* MYOPTRACE */
+    // quick_stack_check(); // TODO: quick_stack_check function not implemented
+  #endif /* MYOPTRACE */
     OPTPRINT(("PC= %p (fn+%td) op= %02x TOS= 0x%x\n", (void *)PCMAC, PCMAC - (char *)FuncObj, Get_BYTE_PCMAC0, TOPOFSTACK));
 #ifdef MYOPTRACE
   }
