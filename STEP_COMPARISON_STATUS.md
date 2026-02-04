@@ -4,6 +4,13 @@
 **Priority**: STEP-WISE COMPARATIVE EXECUTION (ABSOLUTE PRIORITY)
 **Skill**: superpowers:executing-plans
 
+## CURRENT SITUATION (Parity Plan Principle 7 – Update status)
+
+- **Steps executed in lockstep (PC/SP/FP/opcode)**: Where Zig runs, steps 0–3 (or 0–7 with higher cap) match C for PC, SP, FP, and opcode. Trace timing aligned: both log state *before* the current instruction (line N = state before instruction N).
+- **First divergence**: Line 0 TOS — C shows `TOS:0x00000000`, Zig shows `TOS:0x0000000e` (initial TOPOFSTACK/VM init difference). Zig exits after ~4 trace lines (top-level RETURN); C produces 14 lines for `EMULATOR_MAX_STEPS=15`.
+- **Next actions**: Fix initial TOS sync (VM init or first-log sync); fix top-level RETURN so Zig runs to step cap like C.
+- **Archived resolutions**: See sections below (SP trace, GVAR, trace timing, UNBIND, REGISTERS/FLAGS, VALS_OFFSET_BYTES, parity plan completion).
+
 ## CRITICAL FINDING - SP TRACE FIX APPLIED (2026-02-04) ✅
 
 **SP/FP TRACE ALIGNMENT**: Resolved
@@ -18,7 +25,7 @@
 
 **RESOLVED (2026-02-03)**: Trace timing, UNBIND TOS, GVAR value cell, full state.
 
-- Trace: Zig logs after execution; TOPOFSTACK synced from memory before log. UNBIND leaves TOS unchanged (match C). Valspace byte offset 0x180000 (C DLword 0xC0000). REGISTERS and FLAGS populated in both traces.
+- Trace: Zig logs _before_ each instruction (match C xc.c); TOPOFSTACK synced from memory before log. UNBIND leaves TOS unchanged (match C). Valspace byte offset 0x180000 (C DLword 0xC0000). REGISTERS and FLAGS populated in both traces.
 
 **REMAINING DIVERGENCES**:
 

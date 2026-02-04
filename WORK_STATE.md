@@ -2,7 +2,7 @@
 
 **Session Started**: 2025-01-17 19:45
 **Skill**: superpowers:executing-plans
-**Branch**: 005-zig-completion
+**Branch**: convert-maiko-submodule
 
 ## Project Overview
 
@@ -76,7 +76,7 @@ This repository contains the **Interlisp** project with **Maiko** VM emulator im
 
 ### ✅ RESOLVED: Trace Logging Timing and UNBIND / GVAR Parity (2026-02-03)
 
-- **Trace timing**: Zig now logs trace _after_ each instruction (state after that instruction). Added pc_override to log the executed instruction PC; sync TOPOFSTACK from memory before logging.
+- **Trace timing**: Zig now logs trace _before_ each instruction (match C xc.c: state before dispatching current opcode). TOPOFSTACK synced from memory before logging.
 - **UNBIND**: C's UNBIND does not set TOPOFSTACK; Zig no longer restores TOS from stack in handleUNBIND so TOS is left unchanged (match C).
 - **GVAR value cell**: Valspace byte offset fixed to match C: C uses DLword offset (NativeAligned2FromLAddr(VALS_OFFSET)), so byte offset = 0xC0000\*2 = 0x180000. Updated `zaiko/src/data/atom.zig` VALS_OFFSET_BYTES = 0x180000. Value-cell addressing documented as centralized in atom.zig (emulator-wide).
 - **REGISTERS and FLAGS**: Both C and Zig traces now populate REGISTERS (r1=PC_lo, r2=TOS_lo, r3=TOS_hi) and FLAGS (Z, N from TOS; C:0) for full CPU state comparison.
@@ -155,24 +155,20 @@ All plan items from the refined workflow are implemented: (1) Trace logging timi
 2. **Runtime issue** - `process_size` byte-swapping may need investigation
 3. **Documentation** - WORK_STATE.md now provides session continuity
 
-## Project Status: **CRITICAL RUNTIME ISSUES** ⚠️
+## Project Status: **PARITY PLAN IMPLEMENTED; REMAINING DIVERGENCES** ⚠️
 
 **DOCUMENTED STATUS**: 108/108 tasks complete (100%)
-**ACTUAL STATUS**: ~95% complete - Critical runtime bugs prevent proper execution
+**ACTUAL STATUS**: Parity plan (trace timing, UNBIND, REGISTERS/FLAGS, memory consistency, C comments) implemented. Stack/FP init and GVAR resolved. Remaining: line 0 TOS mismatch, Zig early exit on top-level RETURN.
 
-**CRITICAL ISSUE IDENTIFIED**: Stack/frame pointer initialization divergence
-
-- C emulator: SP=0x02e88, FP=0x307864 (correct)
-- Zig emulator: SP=0x002e88, FP=0x002e72 (wrong)
-- Location: `zaiko/src/vm/vm_initialization.zig` lines 40-60
+**STEPS IN PARITY**: Where Zig runs, PC/SP/FP/opcode match C (steps 0–3 or 0–7 depending on cap). First divergence: line 0 TOS (C 0x00000000 vs Zig 0x0000000e). Zig produces ~4 trace lines vs C 14 for `EMULATOR_MAX_STEPS=15`.
 
 **COMPARISON INFRASTRUCTURE**: ✅ Fully operational
 
-- Both emulators generate comparable traces
-- Step-wise execution control working
-- First divergence identified and isolated
+- Both emulators generate comparable traces (unified format; trace logged *before* instruction in both).
+- Step-wise execution control working.
+- See `STEP_COMPARISON_STATUS.md` for current situation, flawless step count, and archived resolutions.
 
-**NEXT PRIORITY**: Fix VM initialization to achieve actual runtime parity
+**NEXT PRIORITY**: Fix initial TOS (VM init/TOPOFSTACK sync); fix top-level RETURN so Zig runs to step cap.
 
 ## Commands for Quick State Check
 
