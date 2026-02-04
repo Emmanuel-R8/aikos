@@ -22,9 +22,9 @@
 
 **REMAINING DIVERGENCES**:
 
-1. Zig may stop early (e.g. 3 trace lines in a 15-step run): decode failure or early return after a few steps; or top-level RETURN at step 7 (8 lines). Mitigated: top-level return sets stop_requested (clean exit).
-2. Trace timing: C logs state _before_ each instruction (line N = state before inst N); Zig logs state _after_ each instruction (line N = state after inst N). For line-by-line field comparison, either align timing (e.g. Zig log before execution) or compare C line N+1 to Zig line N for “after inst N” state.
-3. Re-run comparison with aligned timing and/or higher step cap to confirm step 2 TOS parity after Valspace/UNBIND fixes.
+1. Line 0 TOS: C 0x00000000 vs Zig 0x0000000e (before first instruction)—initial TOPOFSTACK/stack sync or VM init difference. Zig stops after 4 trace lines (steps 0–3); C produces 14 lines for EMULATOR_MAX_STEPS=15 (top-level RETURN at step 3 sets stop_requested).
+2. **RESOLVED**: Trace timing—Zig now logs _before_ each instruction (match C xc.c); line N = state before inst N in both traces. For line-by-line field comparison, either align timing (e.g. Zig log before execution) or compare C line N+1 to Zig line N for “after inst N” state.
+3. Re-run comparison after fixing initial TOS and/or top-level return behavior to extend Zig trace length.
 
 ## CURRENT COMPARISON INFRASTRUCTURE STATUS
 

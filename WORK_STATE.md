@@ -83,7 +83,7 @@ This repository contains the **Interlisp** project with **Maiko** VM emulator im
 
 ### Zaiko–Maiko Parity Plan – Implementation Complete (2026-02-04)
 
-All plan items from the refined workflow are implemented: (1) Trace logging timing – Zig logs after execution with pc_override and TOPOFSTACK sync. (2) UNBIND semantics – Zig leaves TOS unchanged (match C). (3) REGISTERS and FLAGS – populated in both C and Zig traces. (4) Emulator-wide memory/endianness – VALS_OFFSET_BYTES and atom.zig centralized. (5) Extensive git commits – per AGENTS.md (superproject; maiko/ changes not committed unless requested). (6) C code comments – GVAR, UNBIND, trace timing in maiko/inc/inlineC.h and maiko/src/xc.c. Verification: comparison run (EMULATOR_MAX_STEPS=15) shows C 14 lines, Zig 3 lines; trace timing differs (C before, Zig after). See STEP_COMPARISON_STATUS.md for next steps.
+All plan items from the refined workflow are implemented: (1) Trace logging timing – Zig now logs **before** execution (match C xc.c: state before dispatching current opcode); line N = state before instruction N in both traces. (2) UNBIND semantics – Zig leaves TOS unchanged (match C). (3) REGISTERS and FLAGS – populated in both C and Zig traces. (4) Emulator-wide memory/endianness – VALS_OFFSET_BYTES and atom.zig centralized. (5) Extensive git commits – per AGENTS.md. (6) C code comments – GVAR, UNBIND, trace timing in maiko/inc/inlineC.h and maiko/src/xc.c. Verification (EMULATOR_MAX_STEPS=15): C 14 lines, Zig 4 lines; timing aligned. First divergence: line 0 TOS (C 0x00000000 vs Zig 0x0000000e)—initial stack/TOPOFSTACK sync; Zig exits after step 3 (top-level RETURN). See STEP_COMPARISON_STATUS.md for next steps.
 
 ### ✅ RESOLVED: SP (Stack Pointer) Trace Logging (2026-02-04)
 
