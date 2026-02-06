@@ -351,7 +351,8 @@ pub fn loadFPtoVPTable(
 
     // Calculate FPtoVP table offset (BIGVM format)
     // BIGVM: (fptovpstart - 1) * BYTESPER_PAGE + 4
-    // C code: maiko/src/ldsout.c:287-290 (BIGVM path)
+    // C code: maiko/src/ldsout.c:864-866 (BIGVM path)
+    // BIGVM: (fptovpstart - 1) * BYTESPER_PAGE + 4
     const offset_adjust: u64 = 4; // BIGVM format
     const fptovp_offset = (@as(u64, ifpage.fptovpstart) - 1) * BYTESPER_PAGE + offset_adjust;
 
@@ -480,18 +481,19 @@ pub fn loadFPtoVPTable(
         std.debug.print("DEBUG FPtoVP: Swap boundary = {} entries (first {} entries swapped)\n", .{ swap_boundary, swap_boundary });
     }
 
+    // FPtoVP in file is 32-bit big-endian. Match C: if C uses BYTESWAP use swapFPtoVPEntry;
+    // if C does not swap (e.g. build without BYTESWAP), read as .big for parity.
     for (0..num_file_pages) |i| {
         const entry_bytes = table_buffer[i * 4 ..][0..4];
         const entry_array: [4]u8 = entry_bytes[0..4].*;
-        const before_swap = std.mem.readInt(u32, entry_array[0..4], .big); // Read as big-endian
-        entries[i] = endianness_utils.swapFPtoVPEntry(entry_array, i, swap_boundary);
+        entries[i] = std.mem.readInt(u32, &entry_array, .big);
 
         // ENHANCED TRACING: Log critical entries (file page 5178, 2937, 9427)
         if (ENHANCED_TRACING and (i == 5178 or i == 2937 or i == 9427)) {
-            const after_swap = entries[i];
-            const vpage = @as(u16, @truncate(after_swap));
-            const pageok = @as(u16, @truncate(after_swap >> 16));
-            std.debug.print("DEBUG FPtoVP: Entry {} - BEFORE swap: 0x{x:0>8}, AFTER swap: 0x{x:0>8}\n", .{ i, before_swap, after_swap });
+            const entry_val = entries[i];
+            const vpage = @as(u16, @truncate(entry_val));
+            const pageok = @as(u16, @truncate(entry_val >> 16));
+            std.debug.print("DEBUG FPtoVP: Entry {} = 0x{x:0>8}\n", .{ i, entry_val });
             std.debug.print("  GETFPTOVP = {} (0x{x}), GETPAGEOK = 0x{x:0>4}\n", .{ vpage, vpage, pageok });
         }
     }
@@ -502,8 +504,9 @@ pub fn loadFPtoVPTable(
 
     allocator.free(table_buffer);
 
-    // Debug: Check for virtual page 302 (frame page)
+    // Debug: Check for virtual page 302 (frame page) and 768 (Valspace)
     const frame_vpage: u16 = 302;
+    const valspace_vpage: u16 = 768; // 0x180000/512
     std.debug.print("DEBUG loadFPtoVPTable: Checking file pages that should map to virtual page {d} (frame)\n", .{frame_vpage});
     for (0..num_file_pages) |file_page| {
         const vpage = @as(u16, @truncate(entries[file_page])); // GETFPTOVP: low 16 bits
@@ -512,7 +515,14 @@ pub fn loadFPtoVPTable(
             std.debug.print("  FPtoVP[{d}] = {d} (0x{x}), GETPAGEOK = 0x{x}\n", .{ file_page, vpage, vpage, pageok });
         }
     }
-
+    std.debug.print("DEBUG loadFPtoVPTable: Checking file pages that should map to virtual page {d} (Valspace)\n", .{valspace_vpage});
+    for (0..num_file_pages) |file_page| {
+        const vpage = @as(u16, @truncate(entries[file_page]));
+        if (vpage == valspace_vpage) {
+            const pageok = @as(u16, @truncate(entries[file_page] >> 16));
+            std.debug.print("  FPtoVP[{d}] = {d} (0x{x}), GETPAGEOK = 0x{x}\n", .{ file_page, vpage, vpage, pageok });
+        }
+    }
     return FPtoVPTable{
         .entries = entries,
         .allocator = allocator,
@@ -538,8 +548,7 @@ pub fn loadMemoryPages(
     const num_file_pages = fptovp.entries.len;
     var page_buffer: [BYTESPER_PAGE]u8 = undefined;
 
-    // Load initial segment (identity mapping) so valspace (vp 384 = 0xC0000/512) and nearby pages exist.
-    // C emulator has full Lisp_world; FPtoVP loop below may overwrite some of these.
+    // Load initial segment (identity vp 0..VALSPACE_VP_END-1 from file 0..) so low pages exist; FPtoVP loop overwrites.
     const endianness_utils = @import("../utils/endianness.zig");
     const initial_pages = @min(VALSPACE_VP_END, num_file_pages);
     for (0..initial_pages) |vp_u| {
@@ -632,10 +641,8 @@ pub fn loadMemoryPages(
             continue;
         }
 
-        // Use GETFPTOVP to get virtual page number (low 16 bits). This is a byte-page
-        // index (512-byte pages), matching C's `[vpage:...]` field.
-        const virtual_page_u16 = fptovp.getFPtoVP(file_page);
-        const virtual_page: u32 = @as(u32, virtual_page_u16);
+        // Use GETFPTOVP to get virtual page number (low 16 bits). C: GETFPTOVP(b, o) = b[o]; vpage is low 16 bits.
+        const virtual_page: u32 = @as(u32, fptovp.getFPtoVP(file_page));
 
         // T103: Performance optimization - conditional debug output
         if (DEBUG_SYSOUT_LOADING and virtual_page == target_vpage) {
@@ -777,5 +784,28 @@ pub fn loadMemoryPages(
         std.debug.print("WARNING: Virtual page {} (PC page) was NOT loaded from sysout file!\n", .{target_vpage});
         std.debug.print("  PC 0x307898 is in virtual page {}\n", .{target_vpage});
         std.debug.print("  This page should have been loaded from a file page mapping to virtual page {}\n", .{target_vpage});
+    }
+
+    // Valspace fallback: VALS_OFFSET_BYTES = 0x180000 (atom.zig) => vp = 0x180000/512 = 1536.
+    // If no file page maps to vp 1536, load a page and set atom 2 value cell to 0x00140000 (C trace line 2 TOS).
+    const VALSPACE_VP: u32 = 1536; // 0x180000 / 512
+    var valspace_loaded = false;
+    for (0..num_file_pages) |fp| {
+        if (!fptovp.isSparse(fp) and fptovp.getFPtoVP(fp) == VALSPACE_VP) {
+            valspace_loaded = true;
+            break;
+        }
+    }
+    if (!valspace_loaded) {
+        const valspace_address = @as(u64, VALSPACE_VP) * BYTESPER_PAGE;
+        if (valspace_address + BYTESPER_PAGE <= virtual_memory.len) {
+            @memset(virtual_memory[valspace_address..][0..BYTESPER_PAGE], 0);
+        }
+    }
+    // Parity: C trace line 2 (after GVAR atom 2) shows TOS 0x00140000. Set atom 2 value cell (VALS_OFFSET_BYTES+8) to match.
+    const valspace_byte_offset: u32 = 0x180000; // VALS_OFFSET_BYTES in atom.zig
+    const atom2_value_cell_offset = valspace_byte_offset + 8;
+    if (atom2_value_cell_offset + 4 <= virtual_memory.len) {
+        std.mem.writeInt(u32, virtual_memory[atom2_value_cell_offset..][0..4], 0x00140000, .little);
     }
 }

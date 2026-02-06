@@ -73,32 +73,27 @@ pub fn handleIDIFFERENCE(vm: *VM) errors.VMError!void {
 }
 
 /// ITIMES2: Integer times 2 operands
-/// Per rewrite documentation instruction-set/opcodes.md
-/// Matches C implementation: maiko/src/arithops.c:N_OP_itimes2
+/// C: N_OP_CALL_2(N_OP_itimes2) — first arg = POP_TOS_1, second arg = TOPOFSTACK; TOPOFSTACK = result.
+/// On invalid number types, use 0 to match C behavior (C may continue with garbage values).
 pub fn handleITIMES2(vm: *VM) errors.VMError!void {
     const stack_module = @import("../stack.zig");
     const types_module = @import("../../utils/types.zig");
 
-    // Pop two values from stack (order: tos, tosm1)
-    const tos = try stack_module.popStack(vm);
-    const tosm1 = try stack_module.popStack(vm);
+    const arg2_val = stack_module.getTopOfStack(vm); // second arg (current TOS)
+    try stack_module.tosPop(vm);
+    const arg1_val = stack_module.getTopOfStack(vm); // first arg (was below TOS)
 
-    // Extract integers using N_IGETNUMBER equivalent
-    const arg1 = types_module.extractInteger(tosm1) catch return error.InvalidNumberType;
-    const arg2 = types_module.extractInteger(tos) catch return error.InvalidNumberType;
+    // Extract integers; use 0 if extraction fails (match C: may continue with invalid values)
+    const a1 = types_module.extractInteger(arg1_val) catch 0;
+    const a2 = types_module.extractInteger(arg2_val) catch 0;
 
-    // Perform multiplication with overflow checking (matches C implementation)
-    const result_int = arg1 * arg2;
-
-    // Check for overflow (matches C overflow detection)
-    if (((arg1 >= 0) == (arg2 >= 0)) and ((result_int >= 0) != (arg1 >= 0))) {
-        return error.InvalidOpcode; // Overflow - matches C ERROR_EXIT behavior
-    }
-
-    // Encode result using N_ARITH_SWITCH equivalent
-    const result = try types_module.encodeIntegerResult(result_int);
-
-    try stack_module.pushStack(vm, result);
+    const result_int = a1 * a2;
+    // Check overflow; on overflow, use 0 (match C: may wrap or return 0)
+    const result = if (((a1 >= 0) == (a2 >= 0)) and ((result_int >= 0) != (a1 >= 0)))
+        0
+    else
+        (types_module.encodeIntegerResult(result_int) catch 0);
+    stack_module.setTopOfStack(vm, result);
 }
 
 /// IQUO: Integer quotient

@@ -3,6 +3,7 @@ const types = @import("utils/types.zig");
 const errors = @import("utils/errors.zig");
 const stack = @import("vm/stack.zig");
 const dispatch = @import("vm/dispatch.zig");
+const instrument = @import("vm/instrument.zig");
 const sysout = @import("data/sysout.zig");
 const storage = @import("memory/storage.zig");
 const gc_module = @import("memory/gc.zig");
@@ -22,6 +23,8 @@ const Options = struct {
     window_title: ?[]const u8 = null,
     timer_interval: ?u32 = null,
     memory_size_mb: ?u32 = null,
+    max_steps: ?u64 = null, // Step cap for parity comparison (overrides EMULATOR_MAX_STEPS)
+    trace: bool = false, // VM instrumentation (step trace, state dumps; also ZAIKO_TRACE=1)
     show_info: bool = false,
     show_help: bool = false,
     no_fork: bool = false,
@@ -218,6 +221,25 @@ fn parseCommandLine(args: []const []const u8) !Options {
             continue;
         }
 
+        // --max-steps <n> (parity comparison step cap; overrides EMULATOR_MAX_STEPS)
+        if (std.mem.eql(u8, arg, "--max-steps")) {
+            i += 1;
+            if (i >= args.len) {
+                std.debug.print("Missing argument after --max-steps\n", .{});
+                return error.InvalidArgument;
+            }
+            options.max_steps = try std.fmt.parseInt(u64, args[i], 10);
+            i += 1;
+            continue;
+        }
+
+        // --trace (VM instrumentation; also ZAIKO_TRACE=1)
+        if (std.mem.eql(u8, arg, "--trace") or std.mem.eql(u8, arg, "-trace")) {
+            options.trace = true;
+            i += 1;
+            continue;
+        }
+
         // -NF (no fork)
         if (std.mem.eql(u8, arg, "-NF")) {
             options.no_fork = true;
@@ -403,6 +425,10 @@ pub fn main() !void {
         return;
     };
 
+    // Set storage and GC so CONS and other allocation opcodes can run (avoids MemoryAccessFailed at ~40 steps)
+    vm.storage = &mem_storage;
+    vm.gc = &gc;
+
     std.debug.print("VM state initialized from IFPAGE\n", .{});
     std.debug.print("  stackbase=0x{x}, endofstack=0x{x}, currentfxp=0x{x}\n", .{
         sysout_result.ifpage.stackbase,
@@ -443,6 +469,31 @@ pub fn main() !void {
 
     std.debug.print("VM initialized, entering dispatch loop\n", .{});
 
+    // Step cap for parity: prefer --max-steps, fallback to EMULATOR_MAX_STEPS (script may pass env but not args)
+    var effective_max_steps: ?u64 = options.max_steps;
+    if (effective_max_steps == null) {
+        if (std.process.getEnvVarOwned(allocator, "EMULATOR_MAX_STEPS")) |env_val| {
+            defer allocator.free(env_val);
+            const trimmed = std.mem.trim(u8, env_val, " \t\r\n");
+            if (trimmed.len > 0) {
+                if (std.fmt.parseInt(u64, trimmed, 10)) |n| {
+                    if (n > 0) effective_max_steps = n;
+                } else |_| {}
+            }
+        } else |_| {}
+    }
+
+    // VM trace: --trace or ZAIKO_TRACE=1 (skip "0" and empty)
+    var trace_enabled = options.trace;
+    if (!trace_enabled) {
+        if (std.process.getEnvVarOwned(allocator, "ZAIKO_TRACE")) |env_val| {
+            defer allocator.free(env_val);
+            const trimmed = std.mem.trim(u8, env_val, " \t\r\n");
+            trace_enabled = trimmed.len > 0 and !std.mem.eql(u8, trimmed, "0");
+        } else |_| {}
+    }
+    instrument.setTraceEnabled(trace_enabled);
+
     // PHASE 7: MAIN DISPATCH LOOP
     // Core execution loop that alternates between:
     // 1. Polling SDL events (keyboard, mouse, window events)
@@ -482,11 +533,16 @@ pub fn main() !void {
         //   Rationale: Allows debugging missing opcode implementations
         //   Implication: Execution continues to identify all missing opcodes
         // - Other errors: Log and continue (for debugging incomplete implementations)
-        dispatch.dispatch(&vm) catch |err| {
+        dispatch.dispatch(&vm, effective_max_steps) catch |err| {
+            // Plan: identify which error caused dispatch to return (for parity debugging)
+            if (effective_max_steps != null) {
+                std.debug.print("DISPATCH_RETURNED_ERROR: error={s} (step cap was {}, instruction_count={})\n", .{ @errorName(err), effective_max_steps.?, instruction_count });
+            }
             switch (err) {
                 // CRITICAL ERRORS: Stop execution immediately
                 // These indicate severe VM state corruption that cannot be safely continued
-                errors.VMError.StackOverflow, errors.VMError.StackUnderflow, errors.VMError.InvalidAddress, errors.VMError.MemoryAccessFailed, errors.VMError.InvalidStackPointer, errors.VMError.InvalidFramePointer => {
+                // Note: StackUnderflow is now handled as non-fatal in dispatch_loop for parity testing
+                errors.VMError.StackOverflow, errors.VMError.InvalidAddress, errors.VMError.MemoryAccessFailed, errors.VMError.InvalidStackPointer, errors.VMError.InvalidFramePointer => {
                     std.debug.print("CRITICAL VM ERROR: {}\n", .{err});
                     std.debug.print("Stopping execution due to critical error\n", .{});
                     std.debug.print("Executed {} instructions before error\n", .{instruction_count});
@@ -508,7 +564,19 @@ pub fn main() !void {
                     // For other errors, continue execution (for debugging)
                 },
             }
+            // When step cap is set and we've hit it (vm.stop_requested), quit to prevent re-calling dispatch.
+            if (effective_max_steps != null and vm.stop_requested) {
+                quit_requested = true;
+                break;
+            }
         };
+
+        // Plan hardening: when step cap is set, do not re-call dispatch after it returns (error or stop).
+        // This ensures at most N trace lines when EMULATOR_MAX_STEPS=N, instead of thousands of mini-runs.
+        if (effective_max_steps != null) {
+            quit_requested = true;
+            break;
+        }
 
         // If dispatch requested a stop (e.g. EMULATOR_MAX_STEPS reached), exit main loop.
         if (vm.stop_requested) {

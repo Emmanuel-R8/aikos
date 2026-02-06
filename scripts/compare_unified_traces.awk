@@ -1,11 +1,50 @@
 #!/usr/bin/awk -f
-# Unified Trace Comparison Script
+# Unified Trace Comparison Script (Enhanced with Sub-Field Parsing)
 # Usage: awk -f compare_unified_traces.awk c_emulator_unified_trace.txt zig_emulator_unified_trace.txt
 
 BEGIN {
     FS = "|"
-    print "=== UNIFIED TRACE COMPARISON ==="
+    total_differences = 0
+    print "=== UNIFIED TRACE COMPARISON (Sub-Field Enhanced) ==="
     print ""
+}
+
+# Function to parse comma-separated sub-fields into an array
+# Returns number of sub-fields parsed
+function parse_sub_fields(field_str, result_arr,    n, i, parts, key_val) {
+    n = split(field_str, parts, ",")
+    for (i = 1; i <= n; i++) {
+        if (match(parts[i], /^[^:]+:/)) {
+            key_val = parts[i]
+            sub(/^[ \t]+/, "", key_val)  # trim leading whitespace
+            sub(/[ \t]+$/, "", key_val)  # trim trailing whitespace
+            if (index(key_val, ":") > 0) {
+                key = substr(key_val, 1, index(key_val, ":") - 1)
+                value = substr(key_val, index(key_val, ":") + 1)
+                result_arr[key] = value
+            }
+        }
+    }
+    return n
+}
+
+# Function to compare two sub-field arrays
+# Returns number of differences found
+function compare_sub_fields(c_arr, zig_arr, field_name,    key, diff_count, all_keys, i) {
+    diff_count = 0
+    # Get all keys from both arrays
+    for (key in c_arr) all_keys[key] = 1
+    for (key in zig_arr) all_keys[key] = 1
+    
+    for (key in all_keys) {
+        c_val = (key in c_arr) ? c_arr[key] : "<missing>"
+        zig_val = (key in zig_arr) ? zig_arr[key] : "<missing>"
+        if (c_val != zig_val) {
+            print "  " field_name "." key ": C=" c_val " Zig=" zig_val
+            diff_count++
+        }
+    }
+    return diff_count
 }
 
 # Read C emulator trace (first file)
@@ -97,9 +136,27 @@ END {
     print "=== SUMMARY ==="
     print "C trace lines: " c_line_count
     print "Zig trace lines: " zig_line_count
+    print "Lines with differences: " total_differences
 
     if (c_line_count != zig_line_count) {
         print "WARNING: Different number of trace lines!"
+    }
+
+    if (length(field_stats) > 0) {
+        print ""
+        print "=== FIELD DIVERGENCE STATISTICS ==="
+        # Note: Awk doesn't have easy sorting, so we'll just print what we have
+        for (field in field_stats) {
+            print "  " field ": " field_stats[field] " differences"
+        }
+    }
+
+    if (total_differences == 0) {
+        print ""
+        print "✅ No differences found - traces match!"
+    } else {
+        print ""
+        print "❌ Found " total_differences " lines with differences"
     }
 
     print "Comparison complete."

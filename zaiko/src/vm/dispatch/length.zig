@@ -26,7 +26,8 @@ pub fn getInstructionLength(opcode: Opcode) u32 {
         .FINDKEY, .RESTLIST, .WRTPTRTAG => 2, // Opcode + 1-byte operand
         .MISCN => 3, // Opcode + 2-byte operands
         .DTEST, .GVAR_ => 3, // Opcode + 2-byte atom index (BIGATOMS)
-        .IPLUS2, .IDIFFERENCE, .ITIMES2, .IQUOTIENT, .IREMAINDER => 1,
+        .IPLUS2, .IDIFFERENCE, .IQUOTIENT, .IREMAINDER => 1,
+        .ITIMES2 => 2, // C: 0xc9 ITIMES2 has 1-byte operand (nextop2)
         .EQ, .EQL, .GREATERP, .IGREATERP => 1, // Note: LESSP opcode not found in C opcodes.h
         // .FIXP, .SMALLP, .LISTP => 1, // These opcodes not found in C opcodes.h
         .POP => 1,

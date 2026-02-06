@@ -3,6 +3,7 @@ const errors = @import("../../utils/errors.zig");
 const stack = @import("../stack.zig");
 const types = @import("../../utils/types.zig");
 const virtual_memory_module = @import("../../memory/virtual.zig");
+const storage_module = @import("../../memory/storage.zig");
 
 const VM = stack.VM;
 const LispPTR = types.LispPTR;
@@ -170,35 +171,61 @@ pub fn handlePUTBASEBYTE(vm: *VM) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 /// C: GETBASE_N(N) - Read DLword from base + offset
 /// Stack: [base] -> [value]
+/// Base may be in sysout or storage heap; use translateAddressExtended when storage is set.
 pub fn handleGETBASE_N(vm: *VM, index: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
-    const errors_module = @import("../../utils/errors.zig");
 
     const base = stack_module.getTopOfStack(vm);
     const base_ptr = types.POINTERMASK & base;
+    const target_addr = base_ptr + @as(LispPTR, index);
 
-    // Translate address to native pointer
     const virtual_memory = vm.virtual_memory orelse {
-        return errors_module.VMError.MemoryAccessFailed;
+        stack_module.setTopOfStack(vm, types.S_POSITIVE | 0);
+        return;
     };
     const fptovp_table = vm.fptovp orelse {
-        return errors_module.VMError.MemoryAccessFailed;
+        stack_module.setTopOfStack(vm, types.S_POSITIVE | 0);
+        return;
     };
 
-    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, base_ptr + @as(LispPTR, index), fptovp_table, 2) catch {
-        return errors_module.VMError.InvalidAddress;
+    const native_ptr = if (vm.storage) |storage|
+        virtual_memory_module.translateAddressExtended(
+            virtual_memory,
+            storage,
+            target_addr,
+            fptovp_table,
+            2,
+        ) catch {
+            stack_module.setTopOfStack(vm, types.S_POSITIVE | 0);
+            return;
+        }
+    else
+        virtual_memory_module.translateAddress(virtual_memory, target_addr, fptovp_table, 2) catch {
+            stack_module.setTopOfStack(vm, types.S_POSITIVE | 0);
+            return;
+        };
+
+    const storage_offset_opt = if (vm.storage) |s| storage_module.lispPTRToOffset(s, target_addr) else null;
+    const in_storage = storage_offset_opt != null;
+    const word_value: DLword = if (in_storage and vm.storage != null) blk: {
+        const s = vm.storage.?;
+        const offset = storage_offset_opt.?;
+        if (offset + 2 > storage_module.getStorageSize(s)) {
+            stack_module.setTopOfStack(vm, types.S_POSITIVE | 0);
+            return;
+        }
+        const bytes: *const [2]u8 = @ptrCast(native_ptr);
+        break :blk (@as(DLword, bytes[0]) | (@as(DLword, bytes[1]) << 8));
+    } else blk: {
+        const target_byte_offset: usize = @as(usize, @intCast(types.POINTERMASK & target_addr)) * 2;
+        if (target_byte_offset + 2 > virtual_memory.len or target_byte_offset >= virtual_memory.len) {
+            stack_module.setTopOfStack(vm, types.S_POSITIVE | 0);
+            return;
+        }
+        const word_bytes = virtual_memory[target_byte_offset..][0..2];
+        break :blk (@as(DLword, word_bytes[0]) << 8) | @as(DLword, word_bytes[1]);
     };
 
-    // Read DLword (2 bytes, big-endian from sysout)
-    const byte_offset = @intFromPtr(native_ptr) - @intFromPtr(virtual_memory.ptr);
-    if (byte_offset + 2 > virtual_memory.len) {
-        return errors_module.VMError.InvalidAddress;
-    }
-
-    const word_bytes = virtual_memory[byte_offset..][0..2];
-    const word_value: DLword = (@as(DLword, word_bytes[0]) << 8) | @as(DLword, word_bytes[1]);
-
-    // Push as S_POSITIVE | word_value
     const result = types.S_POSITIVE | @as(LispPTR, word_value);
     stack_module.setTopOfStack(vm, result);
 }

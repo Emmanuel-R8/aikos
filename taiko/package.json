@@ -1,0 +1,14 @@
+{
+  "name": "taiko",
+  "version": "0.1.0",
+  "description": "TypeScript browser-based Interlisp emulator",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --bun web/app.ts",
+    "build": "bun build web/app.ts --outdir dist --target browser --minify",
+    "test": "bun test",
+    "serve": "bunx serve dist"
+  },
+  "devDependencies": {},
+  "dependencies": {}
+}

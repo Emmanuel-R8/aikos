@@ -1,0 +1,7 @@
+[install]
+# Use Bun's native package manager
+auto = true
+
+[test]
+# Test configuration
+timeout = 30000
