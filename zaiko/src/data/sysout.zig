@@ -471,6 +471,11 @@ pub fn loadFPtoVPTable(
     // - Integration test: Compare FPtoVP mappings with C emulator
 
     const endianness_utils = @import("../utils/endianness.zig");
+    std.debug.print("DEBUG FPtoVP: file_size = {}\n", .{file_size});
+    std.debug.print("DEBUG FPtoVP: BYTESPER_PAGE = {}\n", .{BYTESPER_PAGE});
+    std.debug.print("DEBUG FPtoVP: file_size / BYTESPER_PAGE = {}\n", .{file_size / BYTESPER_PAGE});
+    std.debug.print("DEBUG FPtoVP: (file_size / BYTESPER_PAGE) * 2 = {}\n", .{(file_size / BYTESPER_PAGE) * 2});
+    std.debug.print("DEBUG FPtoVP: sysout_size_halfpages = {}\n", .{sysout_size_halfpages});
     const swap_boundary = endianness_utils.calculateFPtoVPSwapBoundary(sysout_size_halfpages);
 
     // ENHANCED TRACING: Log byte-swapping process

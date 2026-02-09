@@ -1,175 +1,220 @@
 # Converting maiko from Submodule to Regular Directory
 
-**Date**: 2026-01-28  
+**Date**: 2026-01-28
 **Purpose**: Convert `maiko` from a git submodule to a regular directory within the main repository
 
-## Quick Start
+## Overview
 
-Use the automated script:
+This process will:
+1. Remove the submodule reference
+2. Add maiko's files directly to the repository
+3. Optionally preserve maiko's git history (recommended)
 
-```bash
-cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp
-./scripts/convert-maiko-submodule.sh
-```
+## Prerequisites
 
-This will:
-- Create a backup branch
-- Remove submodule references
-- Add maiko files with history preservation (using git subtree)
-- Verify the conversion
+- Ensure all changes in `maiko/` are committed in the submodule
+- Ensure the main repository is on the correct branch (`001-medley-documentation`)
+- Create a backup branch before starting
 
-## Manual Process
-
-If you prefer to do it manually, follow these steps:
+## Step-by-Step Process
 
 ### Step 1: Create Backup Branch
 
 ```bash
+cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp
 git checkout -b backup-before-maiko-conversion
 git push origin backup-before-maiko-conversion
 git checkout 001-medley-documentation
 ```
 
-### Step 2: Get Submodule Commit
+### Step 2: Remove Submodule Reference
 
 ```bash
-SUBMODULE_COMMIT=$(git ls-files --stage maiko | awk '{print $2}')
-echo "Submodule commit: $SUBMODULE_COMMIT"
-```
-
-### Step 3: Remove Submodule Reference
-
-```bash
-# Remove from git index
+# Remove the submodule entry from .gitmodules
 git rm --cached maiko
 
-# Remove from .git/config
-git config --file=.git/config --remove-section submodule.maiko
+# Remove the submodule entry from .git/config (if present)
+# This is usually done automatically, but verify:
+git config --file=.git/config --remove-section submodule.maiko || true
 
-# Remove from .gitmodules (edit manually or use sed)
-sed -i '/\[submodule "maiko"\]/,/^$/d' .gitmodules
-# If .gitmodules is now empty, remove it
-[ ! -s .gitmodules ] && rm .gitmodules
-git add .gitmodules
+# Remove .gitmodules entry (or edit manually)
+# If maiko is the only submodule, delete .gitmodules
+# Otherwise, edit .gitmodules to remove the [submodule "maiko"] section
 ```
 
-### Step 4: Remove Submodule Directory
+### Step 3: Remove Submodule Directory (Temporarily)
 
 ```bash
+# Remove the submodule directory
 rm -rf .git/modules/maiko
 rm -rf maiko
 ```
 
-### Step 5: Add maiko Files (with History)
+### Step 4: Add maiko Files Directly
+
+**Option A: Simple Copy (No History Preservation)**
 
 ```bash
-# Clone maiko to temp location
-TEMP_DIR=$(mktemp -d)
-git clone https://github.com/Interlisp/maiko.git "$TEMP_DIR/maiko"
-cd "$TEMP_DIR/maiko"
-git checkout $SUBMODULE_COMMIT
-cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp
+# Clone maiko separately to get the files
+git clone https://github.com/Interlisp/maiko.git maiko-temp
+cd maiko-temp
+git checkout 50efed4f9bd56a76eb24b1e12455a2dc3e04b990
+cd ..
 
-# Add as subtree (preserves history)
-git subtree add --prefix=maiko "$TEMP_DIR/maiko" "$SUBMODULE_COMMIT" -m "Convert maiko from submodule to directory"
+# Copy files (excluding .git directory)
+cp -r maiko-temp/* maiko/
+rm -rf maiko-temp
 
-# Cleanup
-rm -rf "$TEMP_DIR"
+# Add to repository
+git add maiko/
+git commit -m "Convert maiko from submodule to regular directory"
 ```
 
-### Step 6: Verify
+**Option B: Preserve Git History (Recommended)**
+
+This preserves the full git history from maiko:
 
 ```bash
-# Check no submodule references remain
-git ls-files --stage | grep "^160000.*maiko"
+# Clone maiko separately
+git clone https://github.com/Interlisp/maiko.git maiko-temp
+cd maiko-temp
+git checkout 50efed4f9bd56a1e12455a2dc3e04b990
+
+# Use git subtree or git filter-repo to merge history
+# Method 1: Using git subtree (if available)
+cd ..
+git subtree add --prefix=maiko maiko-temp 50efed4f9bd56a76eb24b1e12455a2dc3e04b990 --squash
+
+# OR Method 2: Using git filter-repo (more control)
+cd maiko-temp
+git filter-repo --to-subdirectory-filter maiko
+cd ..
+git remote add maiko-remote maiko-temp
+git fetch maiko-remote
+git merge --allow-unrelated-histories maiko-remote/main
+git remote remove maiko-remote
+rm -rf maiko-temp
+```
+
+**Option C: Manual History Merge (Most Control)**
+
+```bash
+# Clone maiko
+git clone https://github.com/Interlisp/maiko.git maiko-temp
+cd maiko-temp
+git checkout 50efed4f9bd56a76eb24b1e12455a2dc3e04b990
+
+# Rewrite history to add maiko/ prefix
+git filter-branch --prune-empty --tree-filter '
+    if [ ! -e maiko ]; then
+        mkdir -p maiko
+        git ls-tree --name-only $GIT_COMMIT | xargs -I files mv files maiko/
+    fi
+' -- --all
+
+# Add as remote and merge
+cd ..
+git remote add maiko-remote maiko-temp
+git fetch maiko-remote
+git merge --allow-unrelated-histories maiko-remote/main -m "Merge maiko history into main repository"
+git remote remove maiko-remote
+rm -rf maiko-temp
+```
+
+### Step 5: Update .gitignore (if needed)
+
+```bash
+# Check if maiko-specific ignores are needed
+# Usually not needed since maiko is now part of the repo
+```
+
+### Step 6: Verify and Test
+
+```bash
+# Verify maiko files are tracked
+git ls-files maiko/ | head -20
+
+# Verify no submodule references remain
+git ls-files --stage | grep "^160000" | grep maiko
 # Should return nothing
 
-# Check files are tracked
-git ls-files maiko/ | head -10
-
-# Verify directory exists
-ls -la maiko/
+# Test build (if applicable)
+cd maiko
+make clean && make  # or appropriate build command
 ```
 
-## Current Submodule State
+### Step 7: Update Documentation
 
-- **Submodule URL**: https://github.com/Interlisp/maiko.git
-- **Current Commit**: `50efed4f9bd56a76eb24b1e12455a2dc3e04b990`
-- **Path**: `maiko/`
+Update any documentation that references maiko as a submodule:
 
-## Options
+- `AGENTS.md` - Update submodule instructions
+- `README.md` - Remove submodule setup instructions
+- Any build scripts that reference submodule initialization
 
-### With History Preservation (Recommended)
-
-Uses `git subtree` to preserve maiko's full commit history:
+### Step 8: Commit Final Changes
 
 ```bash
-./scripts/convert-maiko-submodule.sh
-# or
-./scripts/convert-maiko-submodule.sh --preserve-history
+git add .
+git commit -m "Complete maiko submodule to directory conversion"
 ```
 
-**Benefits**:
-- Full history preserved
-- Can track changes over time
-- Easier to understand file evolution
+## Recommended Approach
 
-### Without History Preservation
+For this project, I recommend **Option B (Preserve Git History)** using `git subtree` if available, as it:
+- Preserves maiko's commit history
+- Makes it easy to track changes
+- Allows future updates if needed
+- Is simpler than manual history rewriting
 
-Simple copy of files at current commit:
+## Alternative: Using git-subtree (if installed)
 
 ```bash
-./scripts/convert-maiko-submodule.sh --no-history
+# Install git-subtree if not available
+# On NixOS: nix-env -iA nixpkgs.git-subtree
+
+# Remove submodule first (Steps 1-3)
+# Then:
+git clone https://github.com/Interlisp/maiko.git maiko-temp
+cd maiko-temp
+git checkout 50efed4f9bd56a76eb24b1e12455a2dc3e04b990
+cd ..
+
+# Add as subtree
+git subtree add --prefix=maiko maiko-temp 50efed4f9bd56a76eb24b1e12455a2dc3e04b990
+
+# Cleanup
+rm -rf maiko-temp
 ```
 
-**Benefits**:
-- Simpler process
-- Smaller repository size
-- Faster conversion
+## Important Notes
 
-## After Conversion
+1. **Backup First**: Always create a backup branch before starting
+2. **Submodule State**: Ensure the submodule is at the correct commit
+3. **History Preservation**: Option B/C preserves history but creates a larger repository
+4. **Future Updates**: If maiko needs updates, you'll need to either:
+   - Manually copy files
+   - Use `git subtree pull` (if using subtree method)
+   - Re-add as submodule (not recommended after conversion)
 
-1. **Update Documentation**:
-   - Remove submodule setup instructions from README
-   - Update AGENTS.md if it references submodules
-   - Update any build scripts
-
-2. **Test Build**:
-   ```bash
-   cd maiko
-   make clean && make  # or appropriate build command
-   ```
-
-3. **Commit and Push**:
-   ```bash
-   git push origin 001-medley-documentation
-   ```
-
-## Rollback
+## Rollback Plan
 
 If something goes wrong:
 
 ```bash
 git checkout backup-before-maiko-conversion
-```
-
-Or manually restore:
-
-```bash
+# Or manually restore:
 git rm -rf maiko
 git submodule add https://github.com/Interlisp/maiko.git maiko
 git submodule update --init maiko
 ```
 
-## Notes
+## Verification Checklist
 
-- **git subtree** is available (git 2.52.0+)
-- The script creates a backup branch automatically
-- All changes are committed automatically
-- Verification steps ensure conversion succeeded
-
-## Related Files
-
-- `.gitmodules` - Submodule configuration (will be updated)
-- `.git/config` - Local git config (submodule section removed)
-- `maiko/` - Will become a regular directory
+- [ ] Backup branch created
+- [ ] Submodule reference removed from `.gitmodules`
+- [ ] Submodule entry removed from `.git/config`
+- [ ] `maiko/` directory contains files (not a submodule)
+- [ ] Files are tracked by git (`git ls-files maiko/` shows files)
+- [ ] No submodule mode (160000) entries for maiko
+- [ ] Build/test passes
+- [ ] Documentation updated

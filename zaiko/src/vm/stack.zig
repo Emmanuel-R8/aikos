@@ -168,6 +168,24 @@ pub const VM = struct {
 pub fn initCSTKPTRLFromCurrentStackPTR(vm: *VM) void {
     const addr = @intFromPtr(vm.stack_ptr) + 4; // +2 DLwords = +4 bytes = +1 LispPTR cell
     vm.cstkptrl = @as([*]align(1) LispPTR, @ptrFromInt(addr));
+
+    // CRITICAL: After restoring CSTKPTRL, read TOPOFSTACK from memory
+    // C: The dispatch loop calls StackPtrRestore, then reads TopOfStack from memory
+    // This ensures TOPOFSTACK reflects the actual stack state after operations like UNBIND
+    if (vm.cstkptrl) |cstkptrl| {
+        // Read TOPOFSTACK from *(CSTKPTRL - 1) - the value before CSTKPTRL
+        // This matches C behavior where TopOfStack reads from memory
+        const cstkptrl_addr = @intFromPtr(cstkptrl);
+        const stack_base_addr = @intFromPtr(vm.stack_base);
+        if (cstkptrl_addr > stack_base_addr) {
+            // Read from *(CSTKPTRL - 1) using pointer arithmetic
+            const prev_ptr: [*]align(1) LispPTR = cstkptrl - 1;
+            vm.top_of_stack = prev_ptr[0];
+        } else {
+            // Stack is empty or invalid - set to NIL
+            vm.top_of_stack = 0;
+        }
+    }
 }
 
 /// Read TOPOFSTACK from memory based on current CSTKPTRL.

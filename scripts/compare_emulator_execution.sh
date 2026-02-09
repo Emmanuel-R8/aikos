@@ -60,7 +60,7 @@ echo ""
 echo "=== Running C Emulator ==="
 echo "Command: $C_EMULATOR $SYSOUT_FILE"
 cd "$REPO_ROOT"
-timeout 30 "$C_EMULATOR" "$SYSOUT_FILE" >/dev/null 2>&1 || true
+timeout 10 "$C_EMULATOR" "$SYSOUT_FILE" >/dev/null 2>&1 || true
 
 if [ -f "$REPO_ROOT/c_emulator_execution_log.txt" ]; then
 	C_LINES=$(wc -l <"$REPO_ROOT/c_emulator_execution_log.txt")
@@ -79,9 +79,9 @@ fi
 # Run Zig emulator
 echo ""
 echo "=== Running Zig Emulator ==="
-echo "Command: cd zaiko && zig build run -- $SYSOUT_FILE"
+echo "Command: cd zaiko && ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache zig build run -- $SYSOUT_PATH"
 cd "$ZIG_DIR"
-timeout 30 ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache zig build run -- "$SYSOUT_PATH" >/dev/null 2>&1 || true
+ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache timeout 60 zig build run -- "$SYSOUT_PATH" >/dev/null 2>&1 || true
 
 # Check for log in both possible locations
 if [ -f "$ZIG_DIR/zig_emulator_execution_log.txt" ]; then

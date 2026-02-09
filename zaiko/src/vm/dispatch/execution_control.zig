@@ -109,13 +109,9 @@ pub fn handleControlFlow(vm: *VM, opcode: Opcode, instruction: Instruction) erro
             return null;
         },
         .RETURN => {
-            const is_top_level = if (vm.current_frame) |frame| stack.getAlink(frame) == 0 else true;
             try opcodes.handleRETURN(vm);
-            if (is_top_level) {
-                return -1; // Don't advance PC for top-level return
-            } else {
-                return null; // Advance PC for non-top-level return
-            }
+            // Top-level returns should advance PC and continue execution (matching C emulator)
+            return null; // Advance PC for all returns
         },
         .BIND => {
             // BIND takes 2 byte operands: byte1 (n1:4, n2:4), byte2 (offset)

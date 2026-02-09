@@ -48,52 +48,17 @@ const LispPTR = types.LispPTR;
 /// **Current Status**: Basic implementation with operation dispatch
 /// TODO: Implement all misc_index operations (USER_SUBR, SXHASH, VALUES, etc.)
 pub fn handleMISCN(vm: *VM, misc_index: u8, arg_count: u8) errors.VMError!void {
-    const stack_module = @import("../stack.zig");
-    const std = @import("std");
+    _ = vm;
+    _ = misc_index;
+    _ = arg_count;
+    // TODO: Implement MISCN operation
+    return error.InvalidOpcode;
+}
 
-    // C: Collect arguments from stack into array
-    // C: args[0] = NIL_PTR; stk = CurrentStackPTR + 1;
-    // C: while (arg_num > 0) args[--arg_num] = *--stk;
-
-    // For now, validate arg_count
-    if (arg_count > 255) {
-        std.debug.print("ERROR MISCN: arg_count ({}) exceeds maximum (255)\n", .{arg_count});
-        return error.InvalidOpcode;
-    }
-
-    // Collect arguments from stack (in reverse order to match C)
-    // C implementation collects args backwards: args[--arg_num] = *--stk
-    // This means args[0] is the last argument popped, args[arg_count-1] is TOS
-    var args: [255]LispPTR = undefined;
-    args[0] = 0; // NIL_PTR placeholder
-
-    // Pop arguments from stack (TOS is last argument)
-    var i: u8 = 0;
-    while (i < arg_count) : (i += 1) {
-        args[@as(usize, arg_count - 1 - i)] = try stack_module.popStack(vm);
-    }
-
-    // Dispatch based on misc_index
-    // C: switch (misc_index) { case miscn_XXX: ... }
-    std.debug.print("DEBUG MISCN: misc_index=0x{x:0>2} ({d}), arg_count={d}\n", .{ misc_index, misc_index, arg_count });
-
-    // TODO: Implement full dispatch switch for all misc_index values
-    // For now, return error to trigger UFN (matches C behavior for unknown misc_index)
-    // This prevents crashes while allowing the emulator to continue
-
-    // Place arguments back on stack (for now, until operations are implemented)
-    var j: u8 = 0;
-    while (j < arg_count) : (j += 1) {
-        try stack_module.pushStack(vm, args[@as(usize, arg_count - 1 - j)]);
-    }
-
-    // For now, set result to NIL (prevents crash)
-    // TODO: Implement proper dispatch for all misc_index operations
-    const type_check_module = @import("../../utils/type_check.zig");
-    try stack_module.pushStack(vm, type_check_module.NIL_PTR);
-
-    // Don't return error - returning error causes router to try next handler
-    // Instead, just return NIL for now until operations are implemented
+pub fn handleRAID(vm: *VM) errors.VMError!void {
+    _ = vm;
+    // TODO: Implement RAID operation
+    return error.InvalidOpcode;
 }
 
 /// MISC3: Miscellaneous 3

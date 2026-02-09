@@ -1,9 +1,8 @@
+const std = @import("std");
 const errors = @import("../../utils/errors.zig");
 const stack = @import("../stack.zig");
-const std = @import("std");
 const types = @import("../../utils/types.zig");
 const virtual_memory_module = @import("../../memory/virtual.zig");
-const storage_module = @import("../../memory/storage.zig");
 
 const VM = stack.VM;
 const LispPTR = types.LispPTR;
@@ -92,15 +91,14 @@ pub fn handleGETBASEBYTE(vm: *VM) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 /// C: GETBASE_N(N) - Read DLword from base + offset
 /// Stack: [base] -> [value]
-/// Base may be in sysout (virtual_memory) or in storage heap; use translateAddressExtended when storage is set.
 pub fn handleGETBASE_N(vm: *VM, index: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
     const errors_module = @import("../../utils/errors.zig");
 
     const base = stack_module.getTopOfStack(vm);
     const base_ptr = types.POINTERMASK & base;
-    const target_addr = base_ptr + @as(LispPTR, index);
 
+    // Translate address to native pointer
     const virtual_memory = vm.virtual_memory orelse {
         return errors_module.VMError.MemoryAccessFailed;
     };
@@ -108,40 +106,18 @@ pub fn handleGETBASE_N(vm: *VM, index: u8) errors.VMError!void {
         return errors_module.VMError.MemoryAccessFailed;
     };
 
-    // Resolve base+N: may be in sysout or in storage heap (e.g. cons cell from CONS)
-    const native_ptr = if (vm.storage) |storage|
-        virtual_memory_module.translateAddressExtended(
-            virtual_memory,
-            storage,
-            target_addr,
-            fptovp_table,
-            2,
-        ) catch |_| {
-            // TODO(parity): Push 0 and continue to reach 300-step trace; fix root cause (address range or segment).
-            stack_module.setTopOfStack(vm, types.S_POSITIVE | 0);
-            return;
-        }
-    else
-        virtual_memory_module.translateAddress(virtual_memory, target_addr, fptovp_table, 2) catch |_| {
-            stack_module.setTopOfStack(vm, types.S_POSITIVE | 0);
-            return;
-        };
-
-    // Decide read path: storage range first (cons cells etc.), else sysout (virtual_memory)
-    const in_storage = if (vm.storage) |s| storage_module.lispPTRToOffset(s, target_addr) != null else false;
-    const word_value: DLword = if (in_storage) blk: {
-        const native_word: *const DLword = @ptrCast(@alignCast(native_ptr));
-        break :blk native_word.*;
-    } else blk: {
-        const target_byte_offset: usize = @as(usize, @intCast(types.POINTERMASK & target_addr)) * 2;
-        if (target_byte_offset + 2 > virtual_memory.len) {
-            // TODO(parity): Push 0 and continue to reach 300-step trace; fix root cause.
-            stack_module.setTopOfStack(vm, types.S_POSITIVE | 0);
-            return;
-        }
-        const word_bytes = virtual_memory[target_byte_offset..][0..2];
-        break :blk (@as(DLword, word_bytes[0]) << 8) | @as(DLword, word_bytes[1]);
+    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, base_ptr + @as(LispPTR, index), fptovp_table, 2) catch {
+        return errors_module.VMError.InvalidAddress;
     };
+
+    // Read DLword (2 bytes, big-endian from sysout)
+    const byte_offset = @intFromPtr(native_ptr) - @intFromPtr(virtual_memory.ptr);
+    if (byte_offset + 2 > virtual_memory.len) {
+        return errors_module.VMError.InvalidAddress;
+    }
+
+    const word_bytes = virtual_memory[byte_offset..][0..2];
+    const word_value: DLword = (@as(DLword, word_bytes[0]) << 8) | @as(DLword, word_bytes[1]);
 
     // Push as S_POSITIVE | word_value
     const result = types.S_POSITIVE | @as(LispPTR, word_value);
@@ -159,8 +135,6 @@ pub fn handleGETBASEPTR_N(vm: *VM, index: u8) errors.VMError!void {
     const base = stack_module.getTopOfStack(vm);
     const base_ptr = types.POINTERMASK & base;
 
-    std.debug.print("DEBUG GETBASEPTR_N: index=0x{x}, base=0x{x}, base_ptr=0x{x}\n", .{ index, base, base_ptr });
-
     // Translate address to native pointer
     const virtual_memory = vm.virtual_memory orelse {
         return errors_module.VMError.MemoryAccessFailed;
@@ -170,22 +144,39 @@ pub fn handleGETBASEPTR_N(vm: *VM, index: u8) errors.VMError!void {
     };
 
     const target_addr = base_ptr + @as(LispPTR, index);
-    std.debug.print("DEBUG GETBASEPTR_N: target_addr=0x{x}\n", .{target_addr});
+
+    // DEBUG: Check if this is the problematic case
+    if (base_ptr == 0x140000 and index == 0x36) {
+        std.debug.print("DEBUG GETBASEPTR_N: base=0x{x}, index=0x{x}, target_addr=0x{x}\n", .{ base_ptr, index, target_addr });
+    }
 
     const native_ptr = virtual_memory_module.translateAddress(virtual_memory, target_addr, fptovp_table, 4) catch {
+        if (base_ptr == 0x140000 and index == 0x36) {
+            std.debug.print("DEBUG GETBASEPTR_N: translateAddress failed for 0x{x}\n", .{target_addr});
+        }
         return errors_module.VMError.InvalidAddress;
     };
 
     // Read LispPTR (4 bytes) directly from native pointer in native byte order
     // C: *((LispPTR *)NativeAligned4FromLAddr(...)) reads in native byte order (little-endian on x86_64)
     // The native_ptr points to memory that has already been byte-swapped during page loading
-    const native_lispptr_ptr: [*]const LispPTR = @ptrCast(@alignCast(native_ptr));
-    const ptr_value = native_lispptr_ptr[0]; // Read directly in native byte order
-    std.debug.print("DEBUG GETBASEPTR_N: ptr_value=0x{x}\n", .{ptr_value});
+    // Ensure 4-byte alignment: calculate byte offset and read as aligned LispPTR
+    const byte_offset = @intFromPtr(native_ptr) - @intFromPtr(virtual_memory.ptr);
+    if (byte_offset + 4 > virtual_memory.len) {
+        return errors_module.VMError.InvalidAddress;
+    }
+
+    // Read 4 bytes and interpret as LispPTR in native byte order (little-endian)
+    const bytes = virtual_memory[byte_offset..][0..4];
+    const ptr_value = std.mem.readInt(LispPTR, bytes, .little);
+
+    // DEBUG: Check if this is the problematic case
+    if (base_ptr == 0x140000 and index == 0x36) {
+        std.debug.print("DEBUG GETBASEPTR_N: byte_offset=0x{x}, bytes=0x{x}{x}{x}{x}, ptr_value=0x{x}\n", .{ byte_offset, bytes[0], bytes[1], bytes[2], bytes[3], ptr_value });
+    }
 
     // Push as POINTERMASK & ptr_value
     const result = types.POINTERMASK & ptr_value;
-    std.debug.print("DEBUG GETBASEPTR_N: result=0x{x}\n", .{result});
     stack_module.setTopOfStack(vm, result);
 }
 

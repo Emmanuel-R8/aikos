@@ -3,19 +3,10 @@ const errors = @import("../../utils/errors.zig");
 const stack = @import("../stack.zig");
 const types = @import("../../utils/types.zig");
 const virtual_memory_module = @import("../../memory/virtual.zig");
-const storage_module = @import("../../memory/storage.zig");
 
 const VM = stack.VM;
 const LispPTR = types.LispPTR;
 const DLword = types.DLword;
-
-/// n_mask_array: Bit masks for N-bit values (1-16 bits)
-/// INDEX: n-1 gives mask for n bits (n_mask_array[0] = 1, [15] = 0xffff)
-/// Matches C definition in maiko/src/xc.c:396-398
-const n_mask_array: [16]DLword = .{
-    1, 3, 7, 0xf, 0x1f, 0x3f, 0x7f, 0xff,
-    0x1ff, 0x3ff, 0x7ff, 0xfff, 0x1fff, 0x3fff, 0x7fff, 0xffff,
-};
 
 /// GETBASEBYTE: Get base byte
 /// Per rewrite documentation instruction-set/opcodes.md
@@ -179,77 +170,12 @@ pub fn handlePUTBASEBYTE(vm: *VM) errors.VMError!void {
 /// Per rewrite documentation instruction-set/opcodes.md
 /// C: GETBASE_N(N) - Read DLword from base + offset
 /// Stack: [base] -> [value]
-/// Base may be in sysout or storage heap; use translateAddressExtended when storage is set.
 pub fn handleGETBASE_N(vm: *VM, index: u8) errors.VMError!void {
-    const stack_module = @import("../stack.zig");
-
-    const base = stack_module.getTopOfStack(vm);
-    const base_ptr = types.POINTERMASK & base;
-    const target_addr = base_ptr + @as(LispPTR, index);
-
-    const virtual_memory = vm.virtual_memory orelse {
-        stack_module.setTopOfStack(vm, types.S_POSITIVE | 0);
-        return;
-    };
-    const fptovp_table = vm.fptovp orelse {
-        stack_module.setTopOfStack(vm, types.S_POSITIVE | 0);
-        return;
-    };
-
-    const native_ptr = if (vm.storage) |storage|
-        virtual_memory_module.translateAddressExtended(
-            virtual_memory,
-            storage,
-            target_addr,
-            fptovp_table,
-            2,
-        ) catch {
-            stack_module.setTopOfStack(vm, types.S_POSITIVE | 0);
-            return;
-        }
-    else
-        virtual_memory_module.translateAddress(virtual_memory, target_addr, fptovp_table, 2) catch {
-            stack_module.setTopOfStack(vm, types.S_POSITIVE | 0);
-            return;
-        };
-
-    const storage_offset_opt = if (vm.storage) |s| storage_module.lispPTRToOffset(s, target_addr) else null;
-    const in_storage = storage_offset_opt != null;
-    const word_value: DLword = if (in_storage and vm.storage != null) blk: {
-        const s = vm.storage.?;
-        const offset = storage_offset_opt.?;
-        if (offset + 2 > storage_module.getStorageSize(s)) {
-            stack_module.setTopOfStack(vm, types.S_POSITIVE | 0);
-            return;
-        }
-        const bytes: *const [2]u8 = @ptrCast(native_ptr);
-        break :blk (@as(DLword, bytes[0]) | (@as(DLword, bytes[1]) << 8));
-    } else blk: {
-        const target_byte_offset: usize = @as(usize, @intCast(types.POINTERMASK & target_addr)) * 2;
-        if (target_byte_offset + 2 > virtual_memory.len or target_byte_offset >= virtual_memory.len) {
-            stack_module.setTopOfStack(vm, types.S_POSITIVE | 0);
-            return;
-        }
-        const word_bytes = virtual_memory[target_byte_offset..][0..2];
-        break :blk (@as(DLword, word_bytes[0]) << 8) | @as(DLword, word_bytes[1]);
-    };
-
-    const result = types.S_POSITIVE | @as(LispPTR, word_value);
-    stack_module.setTopOfStack(vm, result);
-}
-
-/// GETBASEPTR_N: Get base pointer N
-/// Per rewrite documentation instruction-set/opcodes.md
-/// C: GETBASEPTR_N(N) - Read LispPTR from base + offset
-/// Stack: [base] -> [pointer]
-pub fn handleGETBASEPTR_N(vm: *VM, index: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
     const errors_module = @import("../../utils/errors.zig");
 
     const base = stack_module.getTopOfStack(vm);
     const base_ptr = types.POINTERMASK & base;
-
-    std.debug.print("DEBUG GETBASEPTR_N: index=0x{x}, base=0x{x}, base_ptr=0x{x}\n", .{ index, base, base_ptr });
 
     // Translate address to native pointer
     const virtual_memory = vm.virtual_memory orelse {
@@ -259,23 +185,78 @@ pub fn handleGETBASEPTR_N(vm: *VM, index: u8) errors.VMError!void {
         return errors_module.VMError.MemoryAccessFailed;
     };
 
-    const target_addr = base_ptr + @as(LispPTR, index);
-    std.debug.print("DEBUG GETBASEPTR_N: target_addr=0x{x}\n", .{target_addr});
-
-    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, target_addr, fptovp_table, 4) catch {
+    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, base_ptr + @as(LispPTR, index), fptovp_table, 2) catch {
         return errors_module.VMError.InvalidAddress;
     };
 
-    // Read LispPTR (4 bytes) from native pointer.
-    // Pages are already byte-swapped into native endianness on load, but the address may be
-    // unaligned (C tolerates this on x86). Avoid `@alignCast` and read via bytes.
-    const ptr_bytes: *const [4]u8 = @ptrCast(native_ptr);
-    const ptr_value: LispPTR = std.mem.readInt(LispPTR, ptr_bytes, .little);
-    std.debug.print("DEBUG GETBASEPTR_N: ptr_value=0x{x}\n", .{ptr_value});
+    // Read DLword (2 bytes, big-endian from sysout)
+    const byte_offset = @intFromPtr(native_ptr) - @intFromPtr(virtual_memory.ptr);
+    if (byte_offset + 2 > virtual_memory.len) {
+        return errors_module.VMError.InvalidAddress;
+    }
+
+    const word_bytes = virtual_memory[byte_offset..][0..2];
+    const word_value: DLword = (@as(DLword, word_bytes[0]) << 8) | @as(DLword, word_bytes[1]);
+
+    // Push as S_POSITIVE | word_value
+    const result = types.S_POSITIVE | @as(LispPTR, word_value);
+    stack_module.setTopOfStack(vm, result);
+}
+
+/// GETBASEPTR_N: Get base pointer N
+/// Per rewrite documentation instruction-set/opcodes.md
+/// C: GETBASEPTR_N(N) - Read LispPTR from base + offset
+/// Stack: [base] -> [pointer]
+pub fn handleGETBASEPTR_N(vm: *VM, index: u8) errors.VMError!void {
+    std.debug.print("DEBUG handleGETBASEPTR_N: index=0x{x}, TOS=0x{x}\n", .{ index, @import("../stack.zig").getTopOfStack(vm) });
+    const stack_module = @import("../stack.zig");
+    const errors_module = @import("../../utils/errors.zig");
+
+    const base = stack_module.getTopOfStack(vm);
+    const base_ptr = types.POINTERMASK & base;
+
+    std.debug.print("DEBUG handleGETBASEPTR_N: base=0x{x}, base_ptr=0x{x}\n", .{ base, base_ptr });
+
+    // Translate address to native pointer
+    const virtual_memory = vm.virtual_memory orelse {
+        std.debug.print("DEBUG handleGETBASEPTR_N: virtual_memory is null\n", .{});
+        return errors_module.VMError.MemoryAccessFailed;
+    };
+    const fptovp_table = vm.fptovp orelse {
+        std.debug.print("DEBUG handleGETBASEPTR_N: fptovp_table is null\n", .{});
+        return errors_module.VMError.MemoryAccessFailed;
+    };
+
+    const target_addr = base_ptr + @as(LispPTR, index);
+    std.debug.print("DEBUG handleGETBASEPTR_N: target_addr=0x{x}\n", .{target_addr});
+
+    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, target_addr, fptovp_table, 4) catch |err| {
+        std.debug.print("DEBUG handleGETBASEPTR_N: translateAddress failed: {}\n", .{err});
+        return errors_module.VMError.InvalidAddress;
+    };
+
+    // Read LispPTR (4 bytes, big-endian from sysout)
+    const byte_offset = @intFromPtr(native_ptr) - @intFromPtr(virtual_memory.ptr);
+    std.debug.print("DEBUG handleGETBASEPTR_N: byte_offset=0x{x}\n", .{byte_offset});
+
+    if (byte_offset + 4 > virtual_memory.len) {
+        std.debug.print("DEBUG handleGETBASEPTR_N: byte_offset out of bounds\n", .{});
+        return errors_module.VMError.InvalidAddress;
+    }
+
+    const ptr_bytes = virtual_memory[byte_offset .. byte_offset + 4];
+    std.debug.print("DEBUG handleGETBASEPTR_N: ptr_bytes=0x{x}{x}{x}{x}\n", .{ ptr_bytes[0], ptr_bytes[1], ptr_bytes[2], ptr_bytes[3] });
+
+    const low_word = (@as(DLword, ptr_bytes[0]) << 8) | @as(DLword, ptr_bytes[1]);
+    const high_word = (@as(DLword, ptr_bytes[2]) << 8) | @as(DLword, ptr_bytes[3]);
+    const ptr_value: LispPTR = (@as(LispPTR, high_word) << 16) | @as(LispPTR, low_word);
+
+    std.debug.print("DEBUG handleGETBASEPTR_N: low_word=0x{x}, high_word=0x{x}, ptr_value=0x{x}\n", .{ low_word, high_word, ptr_value });
 
     // Push as POINTERMASK & ptr_value
     const result = types.POINTERMASK & ptr_value;
-    std.debug.print("DEBUG GETBASEPTR_N: result=0x{x}\n", .{result});
+    std.debug.print("DEBUG handleGETBASEPTR_N: result=0x{x}\n", .{result});
+
     stack_module.setTopOfStack(vm, result);
 }
 
@@ -438,24 +419,21 @@ pub fn handlePUTBASEPTR_N(vm: *VM, index: u8) errors.VMError!void {
 /// Stack: [value, base] -> [base]
 /// arg1 = offset (a), arg2 = field descriptor (b)
 /// Field descriptor format: [shift:4][size:4]
-/// Exact translation of maiko/inc/inlineC.h:585-600 PUTBITS_N_M macro
 pub fn handlePUTBITS_N_FD(vm: *VM, arg1: u8, arg2: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
     const errors_module = @import("../../utils/errors.zig");
 
-    // C: if ((SEGMASK & TOPOFSTACK) != S_POSITIVE) { goto op_ufn; };
+    // Validate value is S_POSITIVE
     const value = stack_module.getTopOfStack(vm);
     if ((value & types.SEGMASK) != types.S_POSITIVE) {
         // C: goto op_ufn
         return;
     }
 
-    // C: base = POINTERMASK & POP_TOS_1;
     const base = try stack_module.popStack(vm);
     const base_ptr = types.POINTERMASK & base;
 
-    // C: pword = NativeAligned2FromLAddr(base + (a));
-    // Translate address to native pointer (DLword aligned)
+    // Translate address to native pointer
     const virtual_memory_mut = if (vm.virtual_memory) |vmem| @constCast(vmem) else {
         return errors_module.VMError.MemoryAccessFailed;
     };
@@ -464,56 +442,42 @@ pub fn handlePUTBITS_N_FD(vm: *VM, arg1: u8, arg2: u8) errors.VMError!void {
     };
 
     const virtual_memory = vm.virtual_memory orelse return error.MemoryAccessFailed;
-    const target_addr = base_ptr + @as(LispPTR, arg1);
-    const native_ptr = if (vm.storage) |storage|
-        virtual_memory_module.translateAddressExtended(
-            virtual_memory,
-            storage,
-            target_addr,
-            fptovp_table,
-            2,
-        ) catch {
-            return errors_module.VMError.InvalidAddress;
-        }
-    else
-        virtual_memory_module.translateAddress(virtual_memory, target_addr, fptovp_table, 2) catch {
-            return errors_module.VMError.InvalidAddress;
-        };
+    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, base_ptr + @as(LispPTR, arg1), fptovp_table, 2) catch {
+        return errors_module.VMError.InvalidAddress;
+    };
 
-    // C: field_size = 0xF & bb;
-    const field_size = 0xF & arg2;
-
-    // C: shift_size = 15 - (0xF & (bb >> 4)) - field_size;
-    const shift_pos = 0xF & (arg2 >> 4);
-    const shift_size = 15 - shift_pos - field_size;
-
-    // C: fmask = n_mask_array[field_size] << shift_size;
-    const fmask = n_mask_array[field_size] << @as(u4, @intCast(shift_size));
-
-    // C: GETWORD(pword) = ((TOPOFSTACK << shift_size) & fmask) | (GETWORD(pword) & (~fmask));
-    // Read current DLword (big-endian format from sysout)
+    // Read current DLword (2 bytes, big-endian)
     const byte_offset = @intFromPtr(native_ptr) - @intFromPtr(virtual_memory_mut.ptr);
     if (byte_offset + 2 > virtual_memory_mut.len) {
         return errors_module.VMError.InvalidAddress;
     }
 
     const word_bytes = virtual_memory_mut[byte_offset..][0..2];
-    const current_word: DLword = (@as(DLword, word_bytes[0]) << 8) | @as(DLword, word_bytes[1]);
+    var word_value: DLword = (@as(DLword, word_bytes[0]) << 8) | @as(DLword, word_bytes[1]);
 
-    // C uses TOPOFSTACK directly (which is value, still on TOS before pop)
-    // TOPOFSTACK is a LispPTR, but we need the low word for bit operations
-    const value_word = types.getLoWord(value);
+    // Parse field descriptor: b = [shift:4][size:4]
+    const field_size = 0xF & arg2; // Low 4 bits = field size
+    const shift_pos = 0xF & (arg2 >> 4); // High 4 bits = shift position
 
-    // Apply bit field write: ((value << shift_size) & fmask) | (current_word & (~fmask))
-    const new_word: DLword = ((value_word << @as(u4, @intCast(shift_size))) & fmask) | (current_word & ~fmask);
+    // Calculate shift: 15 - shift_pos - field_size
+    const shift = 15 - (@as(u8, shift_pos) + field_size);
 
-    // Write back (big-endian format)
-    virtual_memory_mut[byte_offset] = @as(u8, @truncate(new_word >> 8));
-    virtual_memory_mut[byte_offset + 1] = @as(u8, @truncate(new_word));
+    // Create mask for field_size bits at shift position
+    const field_mask: DLword = if (field_size == 0) 0 else (@as(DLword, 1) << @as(u4, @intCast(field_size))) - 1;
+    const shifted_mask = field_mask << @as(u4, @intCast(shift));
 
-    // C: TOPOFSTACK = base;
-    // Set TOS directly (don't push) to match C semantics
-    stack_module.setTopOfStack(vm, base);
+    // Extract value to write (low field_size bits)
+    const value_to_write = types.getLoWord(value) & field_mask;
+
+    // Update word: clear field, then set new value
+    word_value = (word_value & ~shifted_mask) | (value_to_write << @as(u4, @intCast(shift)));
+
+    // Write back (big-endian)
+    virtual_memory_mut[byte_offset] = @as(u8, @truncate(word_value >> 8));
+    virtual_memory_mut[byte_offset + 1] = @as(u8, @truncate(word_value));
+
+    // Push base back on stack
+    try stack_module.pushStack(vm, base);
 }
 
 /// ADDBASE: Add base
