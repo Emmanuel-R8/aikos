@@ -36,8 +36,15 @@ core
 *.core
 *.swp
 
-# Zig build artifacts
+<<<<<<< Updated upstream
+=======
+# build cache 
+maiko/.cache
+maiko/build 
+maiko/build-cmake 
 
+>>>>>>> Stashed changes
+# Zig build artifacts
 zig-out/
 **/.zig-cache/
 *.zig.obj

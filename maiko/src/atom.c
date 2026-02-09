@@ -64,14 +64,20 @@
 #ifndef BIGATOMS
 N_OP_atomcellN(int tos, int n)
 {
+<<<<<<< Updated upstream
   /* Validate atom identifier format (must be 16-bit value) */
   if ((tos & 0xffff0000) != 0) {
     ERROR_EXIT(tos);                    // Invalid atom identifier format
   }
+=======
+  if ((tos & 0xffff0000) != 0)
+    ERROR_EXIT(tos);
+>>>>>>> Stashed changes
 
   /* Calculate byte offset from word index */
   tos = (tos << 1);
 
+<<<<<<< Updated upstream
   /* Dispatch based on field identifier */
   switch (n)
   {
@@ -85,12 +91,27 @@ N_OP_atomcellN(int tos, int n)
     return (PNP_OFFSET + tos);          // Return print name field address
   default:
     ERROR_EXIT(tos);                    // Unknown field identifier
+=======
+  switch (n)
+  {
+  case D_DEFSHI:
+    return (DEFS_OFFSET + tos);
+  case D_VALSHI:
+    return (VALS_OFFSET + tos);
+  case D_PLISHI:
+    return (PLIS_OFFSET + tos);
+  case D_PNHI:
+    return (PNP_OFFSET + tos);
+  default:
+    ERROR_EXIT(tos);
+>>>>>>> Stashed changes
   }
 }
 
 #else
 N_OP_atomcellN(int tos, int n)
 {
+<<<<<<< Updated upstream
   /* Check if it's a traditional XeroxLisp atom */
   if ((tos & 0xffff0000) == 0)
   { /* XeroxLisp traditional symbol */
@@ -127,6 +148,39 @@ N_OP_atomcellN(int tos, int n)
       return (NEWATOM_PNAME_OFFSET + tos);   // Return print name field address
     default:
       ERROR_EXIT(tos);                      // Unknown field identifier
+=======
+  if ((tos & 0xffff0000) == 0)
+  { /* XeroxLisp traditional symbol */
+    tos = (tos << 1);
+    switch (n)
+    {
+    case D_DEFSHI:
+      return (DEFS_OFFSET + tos);
+    case D_VALSHI:
+      return (VALS_OFFSET + tos);
+    case D_PLISHI:
+      return (PLIS_OFFSET + tos);
+    case D_PNHI:
+      return (PNP_OFFSET + tos);
+    default:
+      ERROR_EXIT(tos);
+    }
+  }
+  else
+  { /* New Symbol */
+    switch (n)
+    {
+    case D_DEFSHI:
+      return (NEWATOM_DEFN_OFFSET + tos);
+    case D_VALSHI:
+      return (NEWATOM_VALUE_OFFSET + tos);
+    case D_PLISHI:
+      return (NEWATOM_PLIST_OFFSET + tos);
+    case D_PNHI:
+      return (NEWATOM_PNAME_OFFSET + tos);
+    default:
+      ERROR_EXIT(tos);
+>>>>>>> Stashed changes
     }
   }
 }
