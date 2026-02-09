@@ -29,6 +29,7 @@ const Options = struct {
     show_help: bool = false,
     no_fork: bool = false,
     init_mode: bool = false,
+    headless: bool = false,
 };
 
 const help_string =
@@ -45,6 +46,7 @@ const help_string =
     \\-timer <interval>       Timer interval (undocumented)
     \\-m <size>               Virtual memory size in Mega Bytes (undocumented)
     \\-NF                      Don't fork (for debugging)
+    \\-HEADLESS                Run without SDL2 display (for testing)
     \\-INIT                    Init sysout, no packaged (undocumented)
     \\
 ;
@@ -246,6 +248,12 @@ fn parseCommandLine(args: []const []const u8) !Options {
             i += 1;
             continue;
         }
+        // -HEADLESS (no display)
+        if (std.mem.eql(u8, arg, "-HEADLESS") or std.mem.eql(u8, arg, "-headless")) {
+            options.headless = true;
+            i += 1;
+            continue;
+        }
 
         // -INIT
         if (std.mem.eql(u8, arg, "-INIT")) {
@@ -400,10 +408,45 @@ pub fn main() !void {
 
     std.debug.print("Sysout loaded: version={}, keyval=0x{x}\n", .{ sysout_result.ifpage.lversion, sysout_result.ifpage.key });
 
-    // PHASE 5: INITIALIZE SYSTEM STATE
-    // Set up low-level system structures before VM execution
-    // Equivalent to C: build_lisp_map(), init_ifpage(), init_iopage(), init_miscstats(), init_storage()
-    // Prepares virtual memory layout and system tables
+    // T091: Initialize SDL2 display (before VM initialization)
+    const screen_width = options.screen_width orelse 1024;
+    const screen_height = options.screen_height orelse 768;
+    const pixel_scale = options.pixel_scale orelse 1;
+    const window_title = options.window_title orelse "Medley Interlisp (Zig)";
+
+    // Skip SDL2 initialization for headless mode
+    const display = if (options.headless) null else sdl_backend.initDisplay(
+        window_title,
+        screen_width,
+        screen_height,
+        pixel_scale,
+        allocator,
+    ) catch |err| {
+        std.debug.print("Failed to initialize SDL2 display: {}\n", .{err});
+        return;
+    };
+    defer if (!options.headless and display != null) sdl_backend.destroyDisplay(display.?, allocator);
+
+    if (!options.headless) {
+        std.debug.print("SDL2 display initialized: {}x{} (scale: {})\n", .{ screen_width, screen_height, pixel_scale });
+    } else {
+        std.debug.print("Running in headless mode - SDL2 disabled\n", .{});
+    }
+
+    // Initialize event queues
+    var key_queue = try keyboard.KeyEventQueue.init(allocator, 256);
+    defer key_queue.deinit(allocator);
+
+    var mouse_state = mouse.MouseState{
+        .x = 0,
+        .y = 0,
+        .buttons = 0,
+    };
+    _ = &mouse_state; // Used in event polling
+
+    // CRITICAL: Initialize system state before start_lisp()
+    // Equivalent to: build_lisp_map(), init_ifpage(), init_iopage(), init_miscstats(), init_storage()
+    // C: maiko/src/main.c:725-729
     const init_module = @import("vm/init.zig");
     const sysout_size = sysout_result.ifpage.process_size;
     init_module.initializeSystem(
@@ -539,10 +582,7 @@ pub fn main() !void {
                 std.debug.print("DISPATCH_RETURNED_ERROR: error={s} (step cap was {}, instruction_count={})\n", .{ @errorName(err), effective_max_steps.?, instruction_count });
             }
             switch (err) {
-                // CRITICAL ERRORS: Stop execution immediately
-                // These indicate severe VM state corruption that cannot be safely continued
-                // Note: StackUnderflow is now handled as non-fatal in dispatch_loop for parity testing
-                errors.VMError.StackOverflow, errors.VMError.InvalidAddress, errors.VMError.MemoryAccessFailed, errors.VMError.InvalidStackPointer, errors.VMError.InvalidFramePointer => {
+                errors.VMError.StackOverflow, errors.VMError.StackUnderflow, errors.VMError.InvalidAddress, errors.VMError.MemoryAccessFailed, errors.VMError.InvalidStackPointer, errors.VMError.InvalidFramePointer => {
                     std.debug.print("CRITICAL VM ERROR: {}\n", .{err});
                     std.debug.print("Stopping execution due to critical error\n", .{});
                     std.debug.print("Executed {} instructions before error\n", .{instruction_count});

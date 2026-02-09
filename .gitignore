@@ -39,10 +39,10 @@ core
 *.core
 *.swp
 
-# build cache 
+# build cache
 maiko/.cache
-maiko/build 
-maiko/build-cmake 
+maiko/build
+maiko/build-cmake
 
 # Zig build artifacts
 zig-out/
@@ -62,3 +62,7 @@ venv/
 
 *.log
 *log.txt
+*_emulator_execution_log*
+
+# Worktrees
+.worktrees/

@@ -46,7 +46,8 @@ pub fn callFunction(vm: *VM, func_header: *FunctionHeader, arg_count: u8) errors
     try stack.tosHardPush(vm, saved_tos);
 
     // Save current PC (will be restored on return)
-    if (vm.current_frame) |frame| {
+    const previous_frame = vm.current_frame;
+    if (previous_frame) |frame| {
         // Save PC in current frame before calling new function
         // CRITICAL: PC is stored in frame.pc field (DLword)
         frame.pc = @as(DLword, @truncate(vm.pc));
@@ -55,6 +56,18 @@ pub fn callFunction(vm: *VM, func_header: *FunctionHeader, arg_count: u8) errors
     // Allocate new frame for called function
     const frame_size = @as(u32, @intCast(func_header.nlocals));
     const new_frame = try stack.allocateStackFrame(vm, frame_size);
+
+    // Set activation link to previous frame
+    if (previous_frame) |prev| {
+        // CRITICAL: alink is a DLword offset from Stackspace, not a native address
+        const STK_OFFSET: u32 = 0x00010000; // DLword offset from Lisp_world
+        const stackspace_byte_offset = STK_OFFSET * 2;
+        const prev_frame_addr = @intFromPtr(prev);
+        const alink_dlword_offset = @as(DLword, @intCast((prev_frame_addr - stackspace_byte_offset) / 2));
+        new_frame.alink = alink_dlword_offset;
+    } else {
+        new_frame.alink = 0; // Top level frame
+    }
 
     // Set function header in frame
     // CRITICAL: fnheader is 24-bit (non-BIGVM): hi2fnheader (8 bits) + lofnheader (16 bits)
@@ -96,45 +109,23 @@ pub fn returnFromFunction(vm: *VM) errors.VMError!LispPTR {
     // Get previous frame from activation link
     const previous_frame_addr = stack.getAlink(current_frame);
     if (previous_frame_addr == 0) {
-        // C (maiko/inc/tosret.h OPRETURN): when alink is even, C does NOT exit.
-        // PVARL = NativeAligned2FromStackOffset(alink) = Stackspace+0, returnFX = (DLword *)PVARL - FRAMESIZE.
-        // So returnFX = Stackspace - FRAMESIZE (DLwords) = stack_base - 20 bytes.
-        const FRAMESIZE_DLWORDS: usize = 10;
-        const stack_base_addr = @intFromPtr(vm.stack_base);
-        const returnFX_byte_offset = stack_base_addr - (FRAMESIZE_DLWORDS * 2);
-        // returnFX must not extend past stack_base; allow frame to be just below Stackspace (root frame)
-        if (returnFX_byte_offset + @sizeOf(FX) > stack_base_addr) {
-            vm.current_frame = null;
-            if (!vm.step_cap_active) vm.stop_requested = true;
-            return return_value;
-        }
-        const returnFX: *align(1) FX = @ptrFromInt(returnFX_byte_offset);
-        vm.current_frame = returnFX;
-        // C: PCMACL = returnFX->pc + (ByteCode *)(FuncObj = ...) + 1
-        const fnheader_lisp = stack.getFnHeader(returnFX);
-        const frame_pc = stack.getPC(returnFX);
-        vm.pc = (fnheader_lisp +% @as(LispPTR, frame_pc)) +% 1;
-        // C: CSTKPTRL = IVAR; IVARL = NativeAligned2FromStackOffset(GETWORD((DLword *)returnFX -1)) = Stackspace + bf_word
-        const bf_ptr = @as([*]const DLword, @ptrFromInt(returnFX_byte_offset - 2));
-        const ivar_offset_dlwords = bf_ptr[0];
-        vm.cstkptrl = @as([*]align(1) LispPTR, @ptrFromInt(stack_base_addr + @as(usize, ivar_offset_dlwords) * 2));
+        // No previous frame - this is top level return, just return value without changing PC
+        // Dispatch loop will advance PC by instruction length
         return return_value;
     }
 
-    // Restore previous frame from stack allocation
-    // C: PVARL = NativeAligned2FromStackOffset(alink) = Stackspace + alink (DLword*), returnFX = (DLword *)PVARL - FRAMESIZE
-    // So returnFX = Stackspace + alink*2 (bytes) - FRAMESIZE*2 = stack_base + alink*2 - 20
-    const stack_base_addr = @intFromPtr(vm.stack_base);
-    const stack_end_addr = @intFromPtr(vm.stack_end);
-    const FRAMESIZE_DLWORDS: usize = 10;
+    // Restore previous frame
+    // CRITICAL: alink is a DLword offset from Stackspace, not a native address
+    const STK_OFFSET: u32 = 0x00010000; // DLword offset from Lisp_world
+    const stackspace_byte_offset = STK_OFFSET * 2;
+    const previous_frame_byte_offset = stackspace_byte_offset + (@as(usize, @intCast(previous_frame_addr)) * 2);
 
-    const previous_frame_byte_offset = stack_base_addr + (@as(usize, @intCast(previous_frame_addr)) * 2) - (FRAMESIZE_DLWORDS * 2);
+    if (vm.virtual_memory == null or previous_frame_byte_offset + @sizeOf(FX) > vm.virtual_memory.?.len) {
+        return error.InvalidAddress;
+    }
 
-    // C (tosret.h OPRETURN) does not bounds-check returnFX for non-zero alink; it just computes and restores.
-    // Match C: do not set stop_requested for "out of bounds" when alink != 0 so Zig continues like C.
-    _ = stack_end_addr; // unused when we skip the bounds-based stop
-
-    const previous_frame: *align(1) FX = @ptrFromInt(previous_frame_byte_offset);
+    const virtual_memory_mut: []u8 = @constCast(vm.virtual_memory.?);
+    const previous_frame: *align(1) FX = @ptrFromInt(@intFromPtr(virtual_memory_mut.ptr) + previous_frame_byte_offset);
     vm.current_frame = previous_frame;
 
     // C: PCMACL = returnFX->pc + (ByteCode *)(FuncObj = ...) + 1; IVARL = NativeAligned2FromStackOffset(GETWORD((DLword *)returnFX -1))
