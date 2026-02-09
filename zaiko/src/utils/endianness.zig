@@ -204,25 +204,14 @@ pub fn swapFPtoVPEntry(entry_bytes: [4]u8, entry_index: usize, swap_boundary: us
     }
 }
 
-/// Calculate FPtoVP table swap boundary
+/// Calculate FPtoVP table swap boundary (BIGVM format)
 /// Returns: Number of entries that are byte-swapped
 ///
-/// CONFIDENCE LEVEL: HIGH (95%)
-/// - Based on C code: (sysout_size / 4) + 1
-/// - sysout_size is in half-pages (256-byte units)
-///
-/// HOW THIS CONCLUSION WAS REACHED:
-/// - Analyzed maiko/src/ldsout.c:437
-/// - sysout_size = (file_size / BYTESPER_PAGE) * 2
-/// - swap_boundary = (sysout_size / 4) + 1
-///
-/// HOW TO TEST:
-/// - Verify: swap_boundary < num_file_pages (incomplete swap)
-/// - Check: swap_boundary ≈ num_file_pages / 2
-///
-/// HOW TO ENSURE NOT REVERTED:
-/// - This calculation MUST match C code exactly
+/// CRITICAL: Must match C BIGVM path in maiko/src/ldsout.c:890
+/// - C BIGVM: word_swap_page((unsigned short *)fptovp, (sysout_size / 2) + 1)
+/// - sysout_size = (file_size / BYTESPER_PAGE) * 2 (half-pages)
+/// - So we swap (sysout_size/2)+1 = num_file_pages+1 longwords => all entries swapped
 pub fn calculateFPtoVPSwapBoundary(sysout_size_halfpages: u32) usize {
-    // C: (sysout_size / 4) + 1
-    return @as(usize, @intCast((sysout_size_halfpages / 4) + 1));
+    // C BIGVM: (sysout_size / 2) + 1 => all FPtoVP entries are swapped
+    return @as(usize, @intCast((sysout_size_halfpages / 2) + 1));
 }

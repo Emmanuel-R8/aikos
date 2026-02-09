@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taiko - Interlisp Emulator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Taiko - Interlisp Emulator</h1>
+        </header>
+        
+        <div class="main-content">
+            <div class="file-section">
+                <h2>Load Sysout File</h2>
+                <div class="file-drop-zone" id="fileDropZone">
+                    <p>Drag and drop a sysout file here</p>
+                    <p>or</p>
+                    <input type="file" id="fileInput" accept=".sysout">
+                    <label for="fileInput" class="file-input-label">Choose File</label>
+                </div>
+                <div id="fileInfo" class="file-info"></div>
+            </div>
+            
+            <div class="display-section">
+                <h2>Display</h2>
+                <canvas id="displayCanvas" width="1024" height="768"></canvas>
+                <div class="display-controls">
+                    <button id="startBtn" disabled>Start</button>
+                    <button id="stopBtn" disabled>Stop</button>
+                    <button id="resetBtn" disabled>Reset</button>
+                    <button id="stepBtn" disabled>Step</button>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <h2>Status</h2>
+                <div id="statusDisplay" class="status-display">
+                    <p>Ready to load sysout file</p>
+                </div>
+                <div class="metrics">
+                    <div class="metric">
+                        <span class="metric-label">PC:</span>
+                        <span id="pcValue" class="metric-value">-</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">SP:</span>
+                        <span id="spValue" class="metric-value">-</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">FP:</span>
+                        <span id="fpValue" class="metric-value">-</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">FPS:</span>
+                        <span id="fpsValue" class="metric-value">-</span>
+                    </div>
+                </div>
+                <div class="trace-controls">
+                    <label>
+                        <input type="checkbox" id="traceEnabled"> Enable Tracing
+                    </label>
+                    <button id="exportTraceBtn" disabled>Export Trace</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="errorDisplay" class="error-display" style="display: none;"></div>
+    </div>
+    
+    <script type="module" src="app.ts"></script>
+</body>
+</html>

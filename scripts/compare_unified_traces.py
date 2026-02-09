@@ -2,6 +2,7 @@
 """
 Unified Trace Comparison Script
 Compares C and Zig emulator unified traces for divergences.
+Enhanced with sub-field parsing for comma-separated fields.
 """
 
 import sys
@@ -11,7 +12,9 @@ import argparse
 def parse_trace_line(line):
     """Parse a unified trace line into fields."""
     fields = line.strip().split("|")
-    if len(fields) != 14:  # 13 data fields + empty at end
+    # Accept 13-14 fields (13 data fields + optional empty at end)
+    # Old format may have fewer fields, new format has 14
+    if len(fields) < 13:
         return None
 
     return {
@@ -31,7 +34,56 @@ def parse_trace_line(line):
     }
 
 
-def compare_traces(c_file, zig_file, max_lines=None):
+def parse_sub_fields(field_str, field_name):
+    """Parse comma-separated sub-fields into a dictionary.
+    
+    Examples:
+        "r1:0x1234,r2:0x5678,r3:0x9a" -> {"r1": "0x1234", "r2": "0x5678", "r3": "0x9a"}
+        "SP:0x012e8a,FP:0x012e72" -> {"SP": "0x012e8a", "FP": "0x012e72"}
+        "TOS:0x00000000,N1:0x00000000,N2:0x00000000" -> {"TOS": "0x00000000", "N1": "0x00000000", "N2": "0x00000000"}
+    """
+    if not field_str or field_str.strip() == "":
+        return {}
+    
+    result = {}
+    for item in field_str.split(','):
+        item = item.strip()
+        if ':' in item:
+            key, value = item.split(':', 1)
+            result[key.strip()] = value.strip()
+    return result
+
+
+def compare_sub_fields(c_field, zig_field, field_name, verbose=False):
+    """Compare two comma-separated sub-fields and return differences."""
+    c_sub = parse_sub_fields(c_field, field_name)
+    zig_sub = parse_sub_fields(zig_field, field_name)
+    
+    differences = []
+    all_keys = set(c_sub.keys()) | set(zig_sub.keys())
+    
+    for key in sorted(all_keys):
+        c_val = c_sub.get(key, None)
+        zig_val = zig_sub.get(key, None)
+        
+        if c_val != zig_val:
+            differences.append({
+                "field": f"{field_name}.{key}",
+                "c_value": c_val,
+                "zig_value": zig_val
+            })
+        elif verbose:
+            differences.append({
+                "field": f"{field_name}.{key}",
+                "c_value": c_val,
+                "zig_value": zig_val,
+                "match": True
+            })
+    
+    return differences
+
+
+def compare_traces(c_file, zig_file, max_lines=None, verbose=False):
     """Compare unified traces between C and Zig emulators."""
 
     print("=== UNIFIED TRACE COMPARISON ===")
@@ -140,13 +192,14 @@ def compare_traces(c_file, zig_file, max_lines=None):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Compare unified emulator traces")
+    parser = argparse.ArgumentParser(description="Compare unified emulator traces with sub-field precision")
     parser.add_argument("c_trace", help="C emulator unified trace file")
     parser.add_argument("zig_trace", help="Zig emulator unified trace file")
     parser.add_argument("--max-lines", type=int, help="Maximum lines to compare")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Show all fields including matches")
 
     args = parser.parse_args()
-    compare_traces(args.c_trace, args.zig_trace, args.max_lines)
+    compare_traces(args.c_trace, args.zig_trace, args.max_lines, args.verbose)
 
 
 if __name__ == "__main__":

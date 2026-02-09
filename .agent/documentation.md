@@ -16,7 +16,7 @@
    - **ALWAYS** update both before committing
    - **ALWAYS** use the command `date` to date entries (when necessary) as YYYY-mm-dd HH:MM
 
-1. **`documentation/CRITICAL_DEBUGGING_TECHNIQUE.typ`** - **CRITICAL**: Essential debugging techniques and practices
+1. **`documentation/core/critical-memory.typ`** - **CRITICAL**: Essential debugging techniques and practices
 
 1. **`documentation/README.md`** - Overview of documentation structure
 1. **`specs/plan.md`** - Implementation plan for emulator runner
@@ -145,7 +145,7 @@ Example: `2026-01-29 14:30`
 ### Main Documentation Files
 
 - **Main README**: `documentation/README.md`
-- **Critical Debugging Techniques**: `documentation/CRITICAL_DEBUGGING_TECHNIQUE.typ`
+- **Critical Debugging Techniques**: `documentation/core/critical-memory.typ.typ`
 - **Index**: `documentation/reference/index.typ`
 - **Architecture**: `documentation/components/vm-core.typ`
 - **Glossary**: `documentation/reference/glossary.typ`

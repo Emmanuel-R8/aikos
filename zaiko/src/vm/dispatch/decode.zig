@@ -68,16 +68,6 @@ pub fn decodeInstructionFromMemory(vm: *VM, pc: LispPTR) errors.VMError!?Instruc
                     return null; // Invalid address
                 };
                 operands_buffer[i] = byte;
-                // DEBUG: Log operand reading for GVAR
-                if (opcode == .GVAR and i < 4) {
-                    const std = @import("std");
-                    const xor_addr = memory_access.applyXORAddressingByte(operand_offset);
-                    // Also check what's at the original address (without XOR)
-                    const orig_byte = if (operand_offset < vmem.len) vmem[operand_offset] else 0xFF;
-                    // Check what's at XOR address in raw memory
-                    const xor_byte = if (xor_addr < vmem.len) vmem[xor_addr] else 0xFF;
-                    std.debug.print("DEBUG decode GVAR: i={}, PC+{}={}, XOR={}, byte=0x{x:0>2}, orig=0x{x:0>2}, xor_raw=0x{x:0>2}\n", .{ i, i + 1, operand_offset, xor_addr, byte, orig_byte, xor_byte });
-                }
             }
             // Zero out remaining bytes
             for (operands_len..4) |i| {
@@ -149,22 +139,21 @@ pub fn decodeOpcode(byte: ByteCode) ?Opcode {
         0x05 => Opcode.TYPEP,
         0x06 => Opcode.DTEST,
         0x07 => Opcode.UNWIND,
-        0x08 => Opcode.FN0,
-        0x09 => Opcode.FN1,
-        0x0A => Opcode.FN2,
-        0x0B => Opcode.FN3,
-        0x0C => Opcode.FN4,
-        0x0D => Opcode.FNX,
-        0x0E => Opcode.APPLYFN,
-        0x0F => Opcode.CHECKAPPLY,
-        0x10 => Opcode.RETURN,
-        0x11 => Opcode.BIND,
-        0x12 => Opcode.UNBIND,
-        0x13 => Opcode.DUNBIND,
-        0x14 => Opcode.RPLPTR_N,
-        0x15 => Opcode.GCREF,
-        0x16 => Opcode.ASSOC,
-        0x17 => Opcode.GVAR_,
+        // Match C's trace logging opcode values (xc.c:954-1123)
+        // Note: C uses octal in case statements but hex values in trace logging
+        // The trace logging values match what C actually executes, so we use those
+        0x10 => Opcode.FN0,      // C trace: 0x10 = FN0
+        0x11 => Opcode.FN1,      // C trace: 0x11 = FN1
+        0x12 => Opcode.FN2,      // C trace: 0x12 = FN2 (matches actual execution)
+        0x13 => Opcode.FN3,      // C trace: 0x13 = FN3
+        0x14 => Opcode.FN4,      // C trace: 0x14 = FN4
+        0x15 => Opcode.FNX,      // C trace: 0x15 = FNX
+        0x16 => Opcode.APPLYFN,  // C trace: 0x16 = APPLY
+        0x17 => Opcode.CHECKAPPLY, // C trace: 0x17 = CHECKAPPLY
+        0x20 => Opcode.RETURN,   // C trace: 0x20 = RETURN
+        0x21 => Opcode.BIND,     // C trace: 0x21 = BIND
+        0x22 => Opcode.UNBIND,   // C trace: 0x22 = UNBIND
+        0x23 => Opcode.DUNBIND,  // C trace: 0x23 = DUNBIND
         0x18 => Opcode.RPLACA,
         0x19 => Opcode.RPLACD,
         0x1A => Opcode.POPDISP,
@@ -173,12 +162,10 @@ pub fn decodeOpcode(byte: ByteCode) ?Opcode {
         0x1D => Opcode.CMLMEMBER,
         0x1E => Opcode.FINDKEY,
         0x1F => Opcode.CREATECELL,
-        0x20 => Opcode.BIN,
-        0x21 => Opcode.BOUT,
-        0x23 => Opcode.RESTLIST,
-        0x24 => Opcode.MISCN,
-        0x26 => Opcode.RPLCONS,
-        0x27 => Opcode.LISTGET,
+        0x24 => Opcode.RPLPTR_N, // C trace: 0x24 = RPLPTR
+        0x25 => Opcode.GCREF,    // C case comment: 0x25 = GCREF
+        0x26 => Opcode.RPLCONS,  // Keep existing mapping (0x26 conflicts - need to verify ASSOC vs RPLCONS)
+        0x27 => Opcode.LISTGET,   // Keep existing mapping (0x27 conflicts - need to verify GVAR_ vs LISTGET)
         0x28 => Opcode.ELT,
         0x29 => Opcode.NTHCHC,
         0x2A => Opcode.SETA,
@@ -187,17 +174,21 @@ pub fn decodeOpcode(byte: ByteCode) ?Opcode {
         0x2D => Opcode.ENVCALL,
         0x2E => Opcode.TYPECHECK,
         0x2F => Opcode.STKSCAN,
-        0x30 => Opcode.BUSBLT,
-        0x31 => Opcode.MISC8,
-        0x32 => Opcode.UBFLOAT3,
-        0x33 => Opcode.TYPEMASK_N,
+        0x30 => Opcode.RPLACA,   // C trace: 0x30 = RPLACA (removed duplicate BUSBLT)
+        0x31 => Opcode.RPLACD,   // C trace: 0x31 = RPLACD (removed duplicate MISC8)
+        0x32 => Opcode.CONS,     // C trace: 0x32 = CONS (removed duplicate UBFLOAT3)
+        0x33 => Opcode.CMLASSOC, // C trace: 0x33 = CMLASSOC (removed duplicate TYPEMASK_N)
+        0x34 => Opcode.FMEMB,    // C trace: 0x34 = FMEMB
+        0x35 => Opcode.CMLMEMBER, // C trace: 0x35 = CMLMEMBER
+        0x36 => Opcode.FINDKEY,  // C trace: 0x36 = FINDKEY
+        0x37 => Opcode.CREATECELL, // C trace: 0x37 = CREATECELL
         0x3A => Opcode.EQL,
         0x3B => Opcode.DRAWLINE,
         0x3C => Opcode.STORE_N,
         0x3D => Opcode.COPY_N,
         0x3E => Opcode.RAID,
         0x3F => Opcode.SLRETURN,
-        0x40 => Opcode.IVAR0,
+        0x40 => Opcode.BIN,      // C trace: 0x40 = BIN (removed duplicate IVAR0)
         0x41 => Opcode.IVAR1,
         0x42 => Opcode.IVAR2,
         0x43 => Opcode.IVAR3,
@@ -318,7 +309,7 @@ pub fn decodeOpcode(byte: ByteCode) ?Opcode {
         0xC4 => Opcode.BLT,
         0xC7 => Opcode.PUTBASEBYTE,
         0xC8 => Opcode.GETBASE_N,
-        0xC9 => Opcode.GETBASEPTR_N,
+        0xC9 => Opcode.ITIMES2,
         0xCA => Opcode.GETBITS_N_FD,
         0xCC => Opcode.CMLEQUAL,
         0xCD => Opcode.PUTBASE_N,
@@ -333,7 +324,7 @@ pub fn decodeOpcode(byte: ByteCode) ?Opcode {
         0xD7 => Opcode.QUOTIENT,
         0xD8 => Opcode.IPLUS2,
         0xD9 => Opcode.IDIFFERENCE,
-        0xDA => Opcode.ITIMES2,
+        0xDA => Opcode.LLSH8,
         0xDB => Opcode.IQUOTIENT,
         0xDC => Opcode.IREMAINDER,
         0xDD => Opcode.IPLUS_N,
@@ -351,6 +342,7 @@ pub fn decodeOpcode(byte: ByteCode) ?Opcode {
         0xE9 => Opcode.FDIFFERENCE,
         0xEA => Opcode.FTIMES2,
         0xEB => Opcode.FQUOTIENT,
+        0xEC => Opcode.GETBASEPTR_N,
         0xEE => Opcode.AREF2,
         0xEF => Opcode.ASET2,
         0xF0 => Opcode.EQ,

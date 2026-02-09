@@ -3,6 +3,7 @@ const types = @import("utils/types.zig");
 const errors = @import("utils/errors.zig");
 const stack = @import("vm/stack.zig");
 const dispatch = @import("vm/dispatch.zig");
+const instrument = @import("vm/instrument.zig");
 const sysout = @import("data/sysout.zig");
 const storage = @import("memory/storage.zig");
 const gc_module = @import("memory/gc.zig");
@@ -22,6 +23,8 @@ const Options = struct {
     window_title: ?[]const u8 = null,
     timer_interval: ?u32 = null,
     memory_size_mb: ?u32 = null,
+    max_steps: ?u64 = null, // Step cap for parity comparison (overrides EMULATOR_MAX_STEPS)
+    trace: bool = false, // VM instrumentation (step trace, state dumps; also ZAIKO_TRACE=1)
     show_info: bool = false,
     show_help: bool = false,
     no_fork: bool = false,
@@ -218,6 +221,25 @@ fn parseCommandLine(args: []const []const u8) !Options {
             continue;
         }
 
+        // --max-steps <n> (parity comparison step cap; overrides EMULATOR_MAX_STEPS)
+        if (std.mem.eql(u8, arg, "--max-steps")) {
+            i += 1;
+            if (i >= args.len) {
+                std.debug.print("Missing argument after --max-steps\n", .{});
+                return error.InvalidArgument;
+            }
+            options.max_steps = try std.fmt.parseInt(u64, args[i], 10);
+            i += 1;
+            continue;
+        }
+
+        // --trace (VM instrumentation; also ZAIKO_TRACE=1)
+        if (std.mem.eql(u8, arg, "--trace") or std.mem.eql(u8, arg, "-trace")) {
+            options.trace = true;
+            i += 1;
+            continue;
+        }
+
         // -NF (no fork)
         if (std.mem.eql(u8, arg, "-NF")) {
             options.no_fork = true;
@@ -378,41 +400,7 @@ pub fn main() !void {
 
     std.debug.print("Sysout loaded: version={}, keyval=0x{x}\n", .{ sysout_result.ifpage.lversion, sysout_result.ifpage.key });
 
-    // PHASE 5: INITIALIZE DISPLAY SYSTEM
-    // Set up SDL2 window, renderer, and texture for graphics output
-    // Display shows the Lisp system's graphical user interface
-    // CRITICAL: Initialize before VM to ensure display is ready for graphics operations
-    const screen_width = options.screen_width orelse 1024;
-    const screen_height = options.screen_height orelse 768;
-    const pixel_scale = options.pixel_scale orelse 1;
-    const window_title = options.window_title orelse "Medley Interlisp (Zig)";
-
-    const display = sdl_backend.initDisplay(
-        window_title,
-        screen_width,
-        screen_height,
-        pixel_scale,
-        allocator,
-    ) catch |err| {
-        std.debug.print("Failed to initialize SDL2 display: {}\n", .{err});
-        return;
-    };
-    defer sdl_backend.destroyDisplay(display, allocator);
-
-    std.debug.print("SDL2 display initialized: {}x{} (scale: {})\n", .{ screen_width, screen_height, pixel_scale });
-
-    // Initialize event queues
-    var key_queue = try keyboard.KeyEventQueue.init(allocator, 256);
-    defer key_queue.deinit(allocator);
-
-    var mouse_state = mouse.MouseState{
-        .x = 0,
-        .y = 0,
-        .buttons = 0,
-    };
-    _ = &mouse_state; // Used in event polling
-
-    // PHASE 6: INITIALIZE SYSTEM STATE
+    // PHASE 5: INITIALIZE SYSTEM STATE
     // Set up low-level system structures before VM execution
     // Equivalent to C: build_lisp_map(), init_ifpage(), init_iopage(), init_miscstats(), init_storage()
     // Prepares virtual memory layout and system tables
@@ -437,6 +425,10 @@ pub fn main() !void {
         return;
     };
 
+    // Set storage and GC so CONS and other allocation opcodes can run (avoids MemoryAccessFailed at ~40 steps)
+    vm.storage = &mem_storage;
+    vm.gc = &gc;
+
     std.debug.print("VM state initialized from IFPAGE\n", .{});
     std.debug.print("  stackbase=0x{x}, endofstack=0x{x}, currentfxp=0x{x}\n", .{
         sysout_result.ifpage.stackbase,
@@ -444,11 +436,65 @@ pub fn main() !void {
         sysout_result.ifpage.currentfxp,
     });
 
-    // Timer initialization not yet implemented (requires timer subsystem)
+    // PHASE 6: INITIALIZE DISPLAY (optional for headless / parity comparison)
+    // When display init fails (e.g. no video device), run headless: VM only, no events.
+    const screen_width = options.screen_width orelse 1024;
+    const screen_height = options.screen_height orelse 768;
+    const pixel_scale = options.pixel_scale orelse 1;
+    const window_title = options.window_title orelse "Medley Interlisp (Zig)";
+
+    const display_opt: ?*sdl_backend.DisplayInterface = blk: {
+        break :blk sdl_backend.initDisplay(
+            window_title,
+            screen_width,
+            screen_height,
+            pixel_scale,
+            allocator,
+        ) catch |err| {
+            std.debug.print("SDL2 display unavailable ({}), running headless for trace/parity\n", .{err});
+            break :blk null;
+        };
+    };
+    const display = display_opt;
+    defer if (display) |d| sdl_backend.destroyDisplay(d, allocator);
+
+    var key_queue: ?keyboard.KeyEventQueue = null;
+    var mouse_state: ?mouse.MouseState = null;
+    if (display) |_| {
+        key_queue = try keyboard.KeyEventQueue.init(allocator, 256);
+        defer key_queue.?.deinit(allocator);
+        mouse_state = .{ .x = 0, .y = 0, .buttons = 0 };
+        std.debug.print("SDL2 display initialized: {}x{} (scale: {})\n", .{ screen_width, screen_height, pixel_scale });
+    }
 
     std.debug.print("VM initialized, entering dispatch loop\n", .{});
 
-    // PHASE 8: MAIN DISPATCH LOOP
+    // Step cap for parity: prefer --max-steps, fallback to EMULATOR_MAX_STEPS (script may pass env but not args)
+    var effective_max_steps: ?u64 = options.max_steps;
+    if (effective_max_steps == null) {
+        if (std.process.getEnvVarOwned(allocator, "EMULATOR_MAX_STEPS")) |env_val| {
+            defer allocator.free(env_val);
+            const trimmed = std.mem.trim(u8, env_val, " \t\r\n");
+            if (trimmed.len > 0) {
+                if (std.fmt.parseInt(u64, trimmed, 10)) |n| {
+                    if (n > 0) effective_max_steps = n;
+                } else |_| {}
+            }
+        } else |_| {}
+    }
+
+    // VM trace: --trace or ZAIKO_TRACE=1 (skip "0" and empty)
+    var trace_enabled = options.trace;
+    if (!trace_enabled) {
+        if (std.process.getEnvVarOwned(allocator, "ZAIKO_TRACE")) |env_val| {
+            defer allocator.free(env_val);
+            const trimmed = std.mem.trim(u8, env_val, " \t\r\n");
+            trace_enabled = trimmed.len > 0 and !std.mem.eql(u8, trimmed, "0");
+        } else |_| {}
+    }
+    instrument.setTraceEnabled(trace_enabled);
+
+    // PHASE 7: MAIN DISPATCH LOOP
     // Core execution loop that alternates between:
     // 1. Polling SDL events (keyboard, mouse, window events)
     // 2. Executing VM instructions (bytecode interpretation)
@@ -466,15 +512,16 @@ pub fn main() !void {
             break;
         }
 
-        // Poll SDL2 events (T091: integrated event polling)
-        const should_quit = events.pollEvents(display, &key_queue, &mouse_state, allocator) catch |err| blk: {
-            std.debug.print("Event polling error: {}\n", .{err});
-            // Continue execution despite errors
-            break :blk false;
-        };
-        if (should_quit) {
-            quit_requested = true;
-            break;
+        // Poll SDL2 events when display available (skip when headless)
+        if (display) |d| {
+            const should_quit = events.pollEvents(d, &key_queue.?, &mouse_state.?, allocator) catch |err| blk: {
+                std.debug.print("Event polling error: {}\n", .{err});
+                break :blk false;
+            };
+            if (should_quit) {
+                quit_requested = true;
+                break;
+            }
         }
 
         // Execute VM instructions
@@ -486,11 +533,16 @@ pub fn main() !void {
         //   Rationale: Allows debugging missing opcode implementations
         //   Implication: Execution continues to identify all missing opcodes
         // - Other errors: Log and continue (for debugging incomplete implementations)
-        dispatch.dispatch(&vm) catch |err| {
+        dispatch.dispatch(&vm, effective_max_steps) catch |err| {
+            // Plan: identify which error caused dispatch to return (for parity debugging)
+            if (effective_max_steps != null) {
+                std.debug.print("DISPATCH_RETURNED_ERROR: error={s} (step cap was {}, instruction_count={})\n", .{ @errorName(err), effective_max_steps.?, instruction_count });
+            }
             switch (err) {
                 // CRITICAL ERRORS: Stop execution immediately
                 // These indicate severe VM state corruption that cannot be safely continued
-                errors.VMError.StackOverflow, errors.VMError.StackUnderflow, errors.VMError.InvalidAddress, errors.VMError.MemoryAccessFailed, errors.VMError.InvalidStackPointer, errors.VMError.InvalidFramePointer => {
+                // Note: StackUnderflow is now handled as non-fatal in dispatch_loop for parity testing
+                errors.VMError.StackOverflow, errors.VMError.InvalidAddress, errors.VMError.MemoryAccessFailed, errors.VMError.InvalidStackPointer, errors.VMError.InvalidFramePointer => {
                     std.debug.print("CRITICAL VM ERROR: {}\n", .{err});
                     std.debug.print("Stopping execution due to critical error\n", .{});
                     std.debug.print("Executed {} instructions before error\n", .{instruction_count});
@@ -512,7 +564,19 @@ pub fn main() !void {
                     // For other errors, continue execution (for debugging)
                 },
             }
+            // When step cap is set and we've hit it (vm.stop_requested), quit to prevent re-calling dispatch.
+            if (effective_max_steps != null and vm.stop_requested) {
+                quit_requested = true;
+                break;
+            }
         };
+
+        // Plan hardening: when step cap is set, do not re-call dispatch after it returns (error or stop).
+        // This ensures at most N trace lines when EMULATOR_MAX_STEPS=N, instead of thousands of mini-runs.
+        if (effective_max_steps != null) {
+            quit_requested = true;
+            break;
+        }
 
         // If dispatch requested a stop (e.g. EMULATOR_MAX_STEPS reached), exit main loop.
         if (vm.stop_requested) {

@@ -78,17 +78,17 @@ pub fn translateAddressExtended(
     const masked: LispPTR = lisp_addr & types.POINTERMASK;
     const byte_offset: usize = @as(usize, @intCast(masked)) * 2;
 
-    // Check if address is in virtual_memory range (sysout data)
-    if (byte_offset < virtual_memory.len) {
-        return @constCast(virtual_memory.ptr + byte_offset);
-    }
-
-    // Check if address is in storage heap range
+    // Check storage heap first: runtime-allocated cons cells etc. live in storage, not in virtual_memory
     if (storage) |s| {
         if (storage_module.lispPTRToOffset(s, lisp_addr)) |offset| {
             const native_ptr = @as([*]u8, @ptrFromInt(storage_module.getNativeBase(s))) + offset;
             return @constCast(native_ptr);
         }
+    }
+
+    // Else address is in virtual_memory range (sysout data)
+    if (byte_offset < virtual_memory.len) {
+        return @constCast(virtual_memory.ptr + byte_offset);
     }
 
     return error.InvalidAddress;

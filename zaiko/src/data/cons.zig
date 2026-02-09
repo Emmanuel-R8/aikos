@@ -79,14 +79,19 @@ pub fn setCDR(cons_cell: *ConsCell, cell_address: LispPTR, cdr_value: LispPTR) v
     } else {
         // Different page or too far - use simple offset encoding for now
         // TODO: Implement proper different-page encoding or indirect cell allocation
-        const offset = (cdr_value - cell_address) >> 1;
-        if (offset < 128) {
-            cons_cell.cdr_code = @as(u8, @intCast(offset));
+        // Check if cdr_value >= cell_address to avoid integer overflow/wrap-around
+        if (cdr_value >= cell_address) {
+            const offset = (cdr_value - cell_address) >> 1;
+            if (offset < 128) {
+                cons_cell.cdr_code = @as(u8, @intCast(offset));
+            } else {
+                cons_cell.cdr_code = CDR_INDIRECT;
+                cons_cell.car_field = cdr_value;
+            }
         } else {
-            // Too large - use indirect encoding
-            // TODO: Allocate indirect cell properly
+            // cdr_value < cell_address: use indirect encoding to avoid overflow
             cons_cell.cdr_code = CDR_INDIRECT;
-            cons_cell.car_field = cdr_value; // Store CDR in CAR for indirect
+            cons_cell.car_field = cdr_value;
         }
     }
 }

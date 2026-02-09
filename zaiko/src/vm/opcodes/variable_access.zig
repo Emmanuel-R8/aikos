@@ -207,16 +207,10 @@ pub fn handleGVAR(vm: *VM, atom_index: types.LispPTR) errors.VMError!void {
     const stack_module = @import("../stack.zig");
     const atom_module = @import("../../data/atom.zig");
 
-    // DEBUG: Log atom_index being read
-    std.debug.print("DEBUG handleGVAR: entry cstkptrl=0x{x}, top_of_stack=0x{x}\n", .{ @intFromPtr(vm.cstkptrl.?), vm.top_of_stack });
-
     // GVAR: Read value from atom's value cell and push on stack
     // C: GVAR(x) does PUSH(GetLongWord(Valspace + ((x) << 1))) for non-BIGATOMS
-    // C: For BIGATOMS+BIGVM: PUSH(GetLongWord((LispPTR *)AtomSpace + (tx * 5) + NEWATOM_VALUE_PTROFF))
     const value = try atom_module.readAtomValue(vm, atom_index);
     try stack_module.tosPush(vm, value);
-
-    std.debug.print("DEBUG handleGVAR: exit cstkptrl=0x{x}, top_of_stack=0x{x}\n", .{ @intFromPtr(vm.cstkptrl.?), vm.top_of_stack });
 }
 
 /// ACONST: Atom constant

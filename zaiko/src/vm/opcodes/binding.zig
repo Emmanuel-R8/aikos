@@ -116,7 +116,6 @@ pub fn handleUNBIND(vm_obj: *VM) errors.VMError!void {
     // PHASE 1: Find the BIND marker by walking backwards through stack
     // C: for (; (((int)*--CSTKPTRL) >= 0););
     // Walks backwards until finding a negative (signed) value = BIND marker
-    var marker: LispPTR = 0;
     var iterations: u32 = 0;
     while (iterations < 100) : (iterations += 1) {
         if (vm_obj.cstkptrl == null) {
@@ -136,9 +135,7 @@ pub fn handleUNBIND(vm_obj: *VM) errors.VMError!void {
         if (@as(i32, @bitCast(v)) >= 0) {
             // Continue searching - this is a bound value, not the marker
         } else {
-            // Found the BIND marker (negative signed value)
-            marker = v;
-            // std.debug.print("DEBUG UNBIND: found marker=0x{x}\n", .{marker});
+            // Found the BIND marker (negative signed value); value read in PHASE 2
             break;
         }
     }
@@ -190,13 +187,10 @@ pub fn handleUNBIND(vm_obj: *VM) errors.VMError!void {
         // std.debug.print("DEBUG UNBIND: cleared variable at 0x{x} to 0xffffffff\n", .{@intFromPtr(ppvar)});
     }
 
-    // PHASE 5: Restore environment (TOPOFSTACK)
-    // Restore from saved value pushed during BIND
-    // The saved TOPOFSTACK is at CSTKPTRL[1] (after the marker at CSTKPTRL[0])
-    vm_obj.top_of_stack = vm_obj.cstkptrl.?[1];
-    // std.debug.print("DEBUG UNBIND: restored TOPOFSTACK to 0x{x} from stack\n", .{vm_obj.top_of_stack});
-
-    if (marker == 0) return errors_module.VMError.StackUnderflow;
+    // PHASE 5: TOPOFSTACK
+    // C's UNBIND macro does NOT set TOPOFSTACK; it leaves it unchanged.
+    // So after UNBIND, TOS remains the value that was there before (e.g. result of GVAR).
+    // Do not restore from (CSTKPTRL - 1) here; match C by leaving top_of_stack unchanged.
 }
 
 /// DUNBIND: Dynamic unbind

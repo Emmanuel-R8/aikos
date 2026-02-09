@@ -31,13 +31,7 @@ pub fn getByte(virtual_memory: []const u8, address: usize) errors.VMError!ByteCo
     if (xor_address >= virtual_memory.len) {
         return error.InvalidAddress;
     }
-    const byte = virtual_memory[xor_address];
-    // DEBUG: Log XOR addressing for PC 0x307898
-    if (address == 0x307898 or (address >= 0x307898 and address < 0x3078a0)) {
-        const std = @import("std");
-        std.debug.print("DEBUG XOR: address=0x{x}, xor_address=0x{x}, byte=0x{x:0>2}\n", .{ address, xor_address, byte });
-    }
-    return byte;
+    return virtual_memory[xor_address];
 }
 
 /// Read word (DLword) from memory with XOR addressing (BYTESWAP mode)

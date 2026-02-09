@@ -33,21 +33,36 @@ LINE#|PC|INSTRUCTION|OPCODE|OPERANDS|REGISTERS|FLAGS|SP_FP|STACK_SUMMARY|MEMORY_
 
 - *LINE#*: `%6d` — Sequential instruction counter
 - *PC*: `0x%06x` — Byte offset from Lisp_world
-- *INSTRUCTION*: `%-16s` — Mnemonic
+- *INSTRUCTION*: `%-16s` — Mnemonic (padded to 16 chars)
 - *OPCODE*: `0x%02x` — Byte opcode value
-- *OPERANDS*: `%-20s` — Decoded operands
-- *REGISTERS*: `r1:0x%04x r2:0x%04x r3:0x%04x`
-- *FLAGS*: `Z:%d N:%d C:%d V:%d`
-- *SP_FP*: `SP:0x%06x FP:0x%06x`
-- *STACK_SUMMARY*: `D:%d TOS:0x%08x N1:0x%08x N2:0x%08x`
-- *MEMORY_CONTEXT*: `@mem:0x%p [vpage:%u off:0x%03x]`
-- *FP_VP_FO_VA*: `FP:%u VP:%u FO:0x%lx VA:0x%lx`
-- *BS_MEM*: `BS:%s MEM:0x%02x%02x%02x%02x` — Byte-swap status, 4 bytes at PC
-- *NOTES*: `%-30s` — e.g. `PC_MISMATCH_CHECK`, `MEM_ZEROS`
+- *OPERANDS*: `%-20s` — Decoded operands (padded to 20 chars)
+- *REGISTERS*: `r1:0x%04x,r2:0x%04x,r3:0x%02x` — Comma-separated sub-fields for Awk parsing
+- *FLAGS*: `Z:%d,N:%d,C:0` — Comma-separated sub-fields (Z=zero, N=negative, C=carry)
+- *SP_FP*: `SP:0x%06x,FP:0x%06x` — Comma-separated sub-fields
+- *STACK_SUMMARY*: `TOS:0x%08x,N1:0x%08x,N2:0x%08x` — Comma-separated sub-fields
+- *MEMORY_CONTEXT*: `@mem:?,vpage:%u,off:0x%03x` — Comma-separated sub-fields (brackets removed)
+- *FP_VP_FO_VA*: `FP:0,VP:%u,FO:0x0,VA:0x%06x` — Comma-separated sub-fields
+- *BS_MEM*: `BS:RAW,MEM:????????` — Comma-separated sub-fields (byte-swap status, 4 bytes at PC)
+- *NOTES*: `%-30s` — e.g. `PC_MISMATCH_CHECK`, `MEM_ZEROS` (padded to 30 chars)
+
+=== Awk Parsing
+
+Parse by *pipe-separated fields* (`awk -F'|'`), then extract sub-fields using comma separator:
+
+```awk
+# Extract register r1 value
+awk -F'|' '{split($6, regs, ","); split(regs[1], r1, ":"); print r1[2]}'
+
+# Extract TOS value
+awk -F'|' '{split($9, stack, ","); split(stack[1], tos, ":"); print tos[2]}'
+
+# Extract SP value
+awk -F'|' '{split($8, spfp, ","); split(spfp[1], sp, ":"); print sp[2]}'
+```
 
 === Comparison
 
-Parse by *pipe-separated fields*, not column offsets. Use `awk -F'|'` or equivalent to compare PC, INSTRUCTION, STACK_SUMMARY, etc.
+Parse by *pipe-separated fields*, not column offsets. Use `awk -F'|'` or equivalent to compare PC, INSTRUCTION, STACK_SUMMARY, etc. Sub-fields within each major field are comma-separated for easy extraction.
 
 == Verbose Debugging Format
 

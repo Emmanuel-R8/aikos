@@ -49,7 +49,8 @@ pub const initializeVMState = vm_initialization.initializeVMState;
 /// Main dispatch loop
 /// Per contracts/vm-core-interface.zig and execution-model.md
 /// Reads bytecode from virtual_memory using PC from current frame
-pub fn dispatch(vm: *VM) errors.VMError!void {
+/// max_steps_override: if set, caps execution (parity comparison); else use EMULATOR_MAX_STEPS env.
+pub fn dispatch(vm: *VM, max_steps_override: ?u64) errors.VMError!void {
     const interrupt_module = @import("interrupt.zig");
 
     // Initialize dispatch (debug output and tracer)
@@ -64,10 +65,25 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
     // Initialize local stack cache ONCE at start of dispatch (matches C's RET call)
     initLocalStackCache(vm);
 
+    // When step cap is set, don't set stop_requested on root return so we run until cap.
+    vm.step_cap_active = (max_steps_override != null and max_steps_override.? > 0);
+    if (!vm.step_cap_active) {
+        const env_val = std.process.getEnvVarOwned(std.heap.page_allocator, "EMULATOR_MAX_STEPS") catch null;
+        if (env_val) |env| {
+            defer std.heap.page_allocator.free(env);
+            const trimmed = std.mem.trim(u8, env, " \t\r\n");
+            if (trimmed.len > 0) {
+                if (std.fmt.parseInt(u64, trimmed, 10)) |n| {
+                    vm.step_cap_active = n > 0;
+                } else |_| {}
+            }
+        }
+    }
+
     // Main dispatch loop - continue until error or explicit stop
-    // Add instruction counter to prevent infinite loops
-    var instruction_count: u64 = 0;
-    const max_steps_opt: ?u64 = blk: {
+    // Step cap: --max-steps N (override) else EMULATOR_MAX_STEPS env
+    // CRITICAL: Use persistent counter so step cap is honored across multiple dispatch() calls
+    const max_steps_opt: ?u64 = if (max_steps_override) |n| n else blk: {
         const env = std.process.getEnvVarOwned(std.heap.page_allocator, "EMULATOR_MAX_STEPS") catch break :blk null;
         defer std.heap.page_allocator.free(env);
         const trimmed = std.mem.trim(u8, env, " \t\r\n");
@@ -77,7 +93,8 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
         break :blk parsed;
     };
 
-    while (true) {
+    dispatch_loop: while (true) {
+        if (vm.stop_requested) return;
         // CRITICAL: Do NOT restore CSTKPTRL or re-read TOPOFSTACK at the start of each opcode.
         // In C, CSTKPTRL (cspcache) and TOPOFSTACK (tscache) are LOCAL variables in the dispatch function.
         // They persist across opcodes and are only initialized once at the start of dispatch via RET:
@@ -91,11 +108,12 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
         // The initial sync happens once at the start of dispatch (see below), matching C behavior.
 
         // Check instruction limit to prevent infinite loops
-        instruction_count += 1;
+        vm.total_instruction_count += 1;
+        const instruction_count = vm.total_instruction_count;
         if (max_steps_opt) |max_steps| {
             if (instruction_count > max_steps) {
                 std.debug.print("INFO: EMULATOR_MAX_STEPS reached ({}) - stopping execution\n", .{max_steps});
-                std.debug.print("  Current PC: 0x{x}\n", .{vm.pc});
+                std.debug.print("  Current PC: 0x{x}, total instructions: {}\n", .{ vm.pc, instruction_count });
                 vm.stop_requested = true;
                 return;
             }
@@ -107,27 +125,56 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
         }
 
         // Decode instruction
-        const inst_opt = dispatch_loop.decodeInstruction(vm, instruction_count) catch |err| {
-            return err;
+        const inst_opt = dispatch_loop.decodeInstruction(vm, vm.total_instruction_count) catch |err| {
+            // Plan: when step cap is set, don't propagate decode errors; treat as unknown opcode and continue so we can reach step cap.
+            if (max_steps_opt != null) {
+                const opcode_byte = if (vm.virtual_memory) |vmem| blk: {
+                    const memory_access_module = @import("../utils/memory_access.zig");
+                    break :blk memory_access_module.getByte(vmem, @as(usize, @intCast(vm.pc))) catch 0xFF;
+                } else 0xFF;
+                _ = dispatch_loop.handleUnknownOpcode(vm, opcode_byte, vm.total_instruction_count) catch return err;
+                continue :dispatch_loop;
+            } else return err;
         };
 
         if (inst_opt) |inst| {
-            // Execute instruction
-            const should_continue = dispatch_loop.executeInstructionInLoop(vm, inst, tracer) catch |err| {
+            // Execute instruction (pass instruction_count so line 0 does not sync TOS from memory; match C).
+            const should_continue = dispatch_loop.executeInstructionInLoop(vm, inst, tracer, vm.total_instruction_count, max_steps_opt) catch |err| {
+                // Plan: when step cap is set, never propagate execute errors so we can reach step cap.
+                if (max_steps_opt != null) {
+                    std.debug.print("WARNING: Execute error {} at step cap (ic={}) - continuing\n", .{ err, vm.total_instruction_count });
+                    continue :dispatch_loop;
+                }
                 return err;
             };
             if (!should_continue) {
                 return; // Stop execution
             }
         } else {
-            // Invalid instruction or unknown opcode
-            // CRITICAL: Read opcode byte with XOR addressing (matching decodeInstructionFromMemory)
+            // Invalid instruction or unknown opcode - still log one line per step (plan: one line per execution step).
+            const within_cap_unknown = max_steps_opt == null or vm.total_instruction_count <= max_steps_opt.?;
+            if (within_cap_unknown) {
+                const is_last_step_unknown = max_steps_opt != null and vm.total_instruction_count == max_steps_opt.?;
+                const dummy_inst: instruction.Instruction = .{
+                    .opcode = .CAR,
+                    .operands = [_]ByteCode{0} ** 4,
+                    .operands_len = 0,
+                    .length = 1,
+                };
+                tracer.logInstruction(vm, dummy_inst, null, is_last_step_unknown) catch |err| {
+                    std.debug.print("WARNING: Failed to log unknown opcode step: {}\n", .{err});
+                };
+            }
             const opcode_byte = if (vm.virtual_memory) |vmem| blk: {
                 const memory_access_module = @import("../utils/memory_access.zig");
                 break :blk memory_access_module.getByte(vmem, @as(usize, @intCast(vm.pc))) catch 0xFF;
             } else 0xFF;
 
-            const should_continue = dispatch_loop.handleUnknownOpcode(vm, opcode_byte, instruction_count) catch |err| {
+            const should_continue = dispatch_loop.handleUnknownOpcode(vm, opcode_byte, vm.total_instruction_count) catch |err| {
+                if (max_steps_opt != null) {
+                    std.debug.print("WARNING: UnknownOpcode error {} at step cap (ic={}) - continuing\n", .{ err, vm.total_instruction_count });
+                    continue :dispatch_loop;
+                }
                 return err;
             };
             if (!should_continue) {
@@ -138,11 +185,6 @@ pub fn dispatch(vm: *VM) errors.VMError!void {
         // Check interrupts after execution
         if (interrupt_module.checkInterrupts(vm)) {
             // TODO: Handle interrupts
-        }
-
-        // Debug: Print progress every 10000 instructions
-        if (instruction_count % 10000 == 0) {
-            std.debug.print("DEBUG: Executed {} instructions, PC=0x{x}\n", .{ instruction_count, vm.pc });
         }
     }
 }

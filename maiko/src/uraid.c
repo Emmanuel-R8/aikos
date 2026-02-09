@@ -307,7 +307,7 @@ LispPTR uraid_commands(void)
   {
     /*** Displaying STACK stuff */
   case 'c':
-    stack_check(0);
+    // stack_check(0); // TODO: stack_check function not implemented
     break;
   case 'C':
     all_stack_dump(0, 0, T);

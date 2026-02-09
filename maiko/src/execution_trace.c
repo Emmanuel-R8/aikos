@@ -89,6 +89,7 @@ int init_execution_trace(ExecutionTrace *trace, const char *log_path) {
  * Generates a unified trace line matching the Zig emulator format.
  *
  * Format: LINE#|PC|INSTRUCTION|OPCODE|OPERANDS|REGISTERS|FLAGS|SP_FP|STACK_SUMMARY|MEMORY_CONTEXT|FP_VP_FO_VA|BS_MEM|NOTES
+ * Sub-fields within major fields use commas (e.g., REGISTERS: r1:0x...,r2:0x...,r3:0x...) for Awk-friendly parsing.
  *
  * Returns: 0 on success, -1 on failure
  */
@@ -134,29 +135,38 @@ int log_execution_trace(ExecutionTrace *trace,
     /* 5. OPERANDS (empty for now - 20 chars) */
     pos += snprintf(buffer + pos, sizeof(buffer) - pos, "%20s|", "");
     
-    /* 6. REGISTERS (empty for now - 30 chars) */
-    pos += snprintf(buffer + pos, sizeof(buffer) - pos, "%30s|", "");
+    /* 6. REGISTERS - full CPU state: r1=PC_lo, r2=TOS_lo, r3=TOS_hi (comma-separated for Awk parsing) */
+    {
+        unsigned int r1 = (unsigned int)(pc_byte_offset & 0xFFFFU);
+        unsigned int r2 = (unsigned int)(tos_value & 0xFFFFU);
+        unsigned int r3 = (unsigned int)((tos_value >> 16) & 0xFFU);
+        pos += snprintf(buffer + pos, sizeof(buffer) - pos, "r1:0x%04x,r2:0x%04x,r3:0x%02x|", r1, r2, r3);
+    }
     
-    /* 7. FLAGS (empty for now - 10 chars) */
-    pos += snprintf(buffer + pos, sizeof(buffer) - pos, "%10s|", "");
+    /* 7. FLAGS - Z=(TOS==0), N=(TOS negative), C=0 (comma-separated for Awk parsing) */
+    {
+        int z = (tos_value == 0) ? 1 : 0;
+        int n = (tos_value & 0x80000000U) ? 1 : 0;
+        pos += snprintf(buffer + pos, sizeof(buffer) - pos, "Z:%d,N:%d,C:0|", z, n);
+    }
     
-    /* 8. SP_FP */
-    pos += snprintf(buffer + pos, sizeof(buffer) - pos, "SP:0x%06lx FP:0x%06lx|", sp_offset, fp_offset);
+    /* 8. SP_FP (comma-separated for Awk parsing) */
+    pos += snprintf(buffer + pos, sizeof(buffer) - pos, "SP:0x%06lx,FP:0x%06lx|", sp_offset, fp_offset);
     
-    /* 9. STACK_SUMMARY */
-    pos += snprintf(buffer + pos, sizeof(buffer) - pos, "TOS:0x%08x N1:0x00000000 N2:0x00000000|", tos_value);
+    /* 9. STACK_SUMMARY (comma-separated for Awk parsing) */
+    pos += snprintf(buffer + pos, sizeof(buffer) - pos, "TOS:0x%08x,N1:0x00000000,N2:0x00000000|", tos_value);
     
-    /* 10. MEMORY_CONTEXT */
+    /* 10. MEMORY_CONTEXT (comma-separated, brackets removed for Awk parsing) */
     unsigned long pc_vpage = pc_byte_offset / BYTESPER_PAGE;
     unsigned long pc_offset_in_page = pc_byte_offset % BYTESPER_PAGE;
-    pos += snprintf(buffer + pos, sizeof(buffer) - pos, "@mem:? [vpage:%lu off:0x%03lx]|", pc_vpage, pc_offset_in_page);
+    pos += snprintf(buffer + pos, sizeof(buffer) - pos, "@mem:?,vpage:%lu,off:0x%03lx|", pc_vpage, pc_offset_in_page);
     
-    /* 11. FP_VP_FO_VA */
+    /* 11. FP_VP_FO_VA (comma-separated for Awk parsing) */
     unsigned long virtual_address = pc_vpage * BYTESPER_PAGE;
-    pos += snprintf(buffer + pos, sizeof(buffer) - pos, "FP:0 VP:%lu FO:0x0 VA:0x%06lx|", pc_vpage, virtual_address);
+    pos += snprintf(buffer + pos, sizeof(buffer) - pos, "FP:0,VP:%lu,FO:0x0,VA:0x%06lx|", pc_vpage, virtual_address);
     
-    /* 12. BS_MEM */
-    pos += snprintf(buffer + pos, sizeof(buffer) - pos, "BS:RAW MEM:????????|");
+    /* 12. BS_MEM (comma-separated for Awk parsing) */
+    pos += snprintf(buffer + pos, sizeof(buffer) - pos, "BS:RAW,MEM:????????|");
     
     /* 13. NOTES (empty for now - 30 chars) */
     pos += snprintf(buffer + pos, sizeof(buffer) - pos, "%30s", "");

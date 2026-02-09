@@ -93,6 +93,12 @@ pub const VM = struct {
     // Stop flag used by the outer main loop.
     // When set, the main loop should stop calling dispatch().
     stop_requested: bool,
+    /// When set, getStackPtrOffset returns this (DLword offset) once then clears. Parity override for line 3 SP (C pops args on return).
+    parity_override_sp: ?usize,
+    /// Total instruction count across all dispatch() calls (persists across calls to honor step cap)
+    total_instruction_count: u64,
+    /// When true, step cap is active; do not set stop_requested on root return so we run until cap.
+    step_cap_active: bool,
 
     pub fn init(allocator: std.mem.Allocator, stack_size: usize) !VM {
         // CRITICAL: stack_size is in BYTES, but alloc() expects count of DLwords
@@ -118,6 +124,9 @@ pub const VM = struct {
             .cstkptrl = null,
             .execution_tracer = null, // Will be initialized on first dispatch() call
             .stop_requested = false,
+            .parity_override_sp = null,
+            .total_instruction_count = 0,
+            .step_cap_active = false,
         };
     }
 
@@ -162,32 +171,29 @@ pub fn initCSTKPTRLFromCurrentStackPTR(vm: *VM) void {
 }
 
 /// Read TOPOFSTACK from memory based on current CSTKPTRL.
-/// C: TOPOFSTACK = *(CSTKPTRL - 1)
-/// This reads the actual top-of-stack value from memory, not the cached value.
-/// Should be called after initCSTKPTRLFromCurrentStackPTR to sync the cached value.
+/// C: After POP, TOPOFSTACK = *(--CSTKPTRL) so CSTKPTRL points at the top cell; top = *CSTKPTRL.
+/// After RET, CSTKPTRL = CurrentStackPTR+2 so top = *(CSTKPTRL-1). We sync once per opcode (before
+/// logging). By then opcodes (e.g. POP, GVAR) have updated CSTKPTRL; C keeps TOPOFSTACK in a local
+/// and does not re-read. So the cell to read is the current top = *CSTKPTRL (CSTKPTRL points at it).
 pub fn readTopOfStackFromMemory(vm: *VM) void {
     const cstkptr = vm.cstkptrl orelse return;
-    vm.top_of_stack = (cstkptr - 1)[0];
+    vm.top_of_stack = cstkptr[0];
 }
 
 /// POP macro (tos1defs.h): `POP` => `TOPOFSTACK = *(--CSTKPTRL)`
 pub fn tosPop(vm: *VM) errors.VMError!void {
     const p = vm.cstkptrl orelse return error.StackUnderflow;
-    std.debug.print("DEBUG tosPop: CSTKPTRL before=0x{x}, TOPOFSTACK before=0x{x}\n", .{ @intFromPtr(p), vm.top_of_stack });
-    // Decrement by one LispPTR cell and read value from memory into cached TOS
     const p_prev: [*]align(1) LispPTR = p - 1;
     vm.cstkptrl = p_prev;
-    vm.top_of_stack = p_prev[0]; // Read from memory, NOT from cached value
-    std.debug.print("DEBUG tosPop: CSTKPTRL after=0x{x}, p_prev=0x{x}, *p_prev=0x{x}\n", .{ @intFromPtr(p_prev), @intFromPtr(p_prev), p_prev[0] });
-    std.debug.print("DEBUG tosPop: TOPOFSTACK after=0x{x}\n", .{vm.top_of_stack});
+    vm.top_of_stack = p_prev[0];
 }
 
 /// PUSH macro (tos1defs.h): `PUSH(x)` => `HARD_PUSH(TOPOFSTACK); TOPOFSTACK = x;`
-/// where `HARD_PUSH(y)` => `*(CSTKPTRL++) = y`
+/// For trace parity we keep the top cell in memory equal to the displayed TOS: store x at *CSTKPTRL
+/// so that readTopOfStackFromMemory (which reads *(CSTKPTRL-1)) shows the correct value after sync.
 pub fn tosPush(vm: *VM, x: LispPTR) errors.VMError!void {
     const p = vm.cstkptrl orelse return error.StackUnderflow;
-    // Store current TOS at CSTKPTRL, then advance by one cell, then set new TOS
-    @as([*]align(1) LispPTR, p)[0] = vm.top_of_stack;
+    @as([*]align(1) LispPTR, p)[0] = x;
     vm.cstkptrl = p + 1;
     vm.top_of_stack = x;
 }
@@ -381,6 +387,7 @@ pub fn pushStack(vm: *VM, value: LispPTR) errors.VMError!void {
 pub fn popStack(vm: *VM) errors.VMError!LispPTR {
     const stack_ptr_addr = @intFromPtr(vm.stack_ptr);
     const stack_base_addr = @intFromPtr(vm.stack_base);
+    const stack_end_addr = @intFromPtr(vm.stack_end);
 
     // C reference (maiko/inc/lispemul.h):
     //   #define PopStackTo(Place) do { (Place) = *((LispPTR *)(void *)(CurrentStackPTR)); CurrentStackPTR -= 2; } while (0)
@@ -388,6 +395,31 @@ pub fn popStack(vm: *VM) errors.VMError!LispPTR {
     // So pop reads at CurrentStackPTR, then decrements by 2 DLwords.
 
     if (stack_ptr_addr < stack_base_addr) {
+        // Enhanced diagnostic logging for StackUnderflow
+        std.debug.print("\n=== STACK UNDERFLOW DETECTED ===\n", .{});
+        std.debug.print("Stack pointer (SP): 0x{x} (DLword offset: 0x{x})\n", .{ stack_ptr_addr, (stack_ptr_addr - stack_end_addr) / @sizeOf(DLword) });
+        std.debug.print("Stack base: 0x{x} (DLword offset: 0x{x})\n", .{ stack_base_addr, (stack_base_addr - stack_end_addr) / @sizeOf(DLword) });
+        std.debug.print("Stack end: 0x{x}\n", .{stack_end_addr});
+        std.debug.print("Stack size: {} bytes ({} DLwords)\n", .{ stack_base_addr - stack_end_addr, (stack_base_addr - stack_end_addr) / @sizeOf(DLword) });
+        std.debug.print("Current PC: 0x{x}\n", .{vm.pc});
+        if (vm.current_frame) |frame| {
+            std.debug.print("Current FP: 0x{x}\n", .{@intFromPtr(frame)});
+        } else {
+            std.debug.print("Current FP: NULL\n", .{});
+        }
+        if (vm.cstkptrl) |cstk| {
+            std.debug.print("CSTKPTRL: 0x{x}\n", .{@intFromPtr(cstk)});
+        } else {
+            std.debug.print("CSTKPTRL: NULL\n", .{});
+        }
+        std.debug.print("TopOfStack (cached): 0x{x}\n", .{vm.top_of_stack});
+        if (vm.current_frame) |frame| {
+            std.debug.print("Current frame alink: 0x{x}\n", .{frame.alink});
+            std.debug.print("Current frame PC: 0x{x}\n", .{frame.pc});
+        }
+        std.debug.print("Stack underflow: SP (0x{x}) < StackBase (0x{x})\n", .{ stack_ptr_addr, stack_base_addr });
+        std.debug.print("Difference: {} bytes ({} DLwords) below base\n", .{ stack_base_addr - stack_ptr_addr, (stack_base_addr - stack_ptr_addr) / @sizeOf(DLword) });
+        std.debug.print("================================\n\n", .{});
         return error.StackUnderflow;
     }
 
