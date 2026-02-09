@@ -1,6 +1,6 @@
 # Interlisp Zig Emulator - Current Status Report
 
-**Date**: 2025-01-27  
+**Date**: 2025-01-27
 **Status**: Zig emulator 87.0% complete (94/108 tasks) - SIC opcode investigation ongoing
 
 ---
@@ -34,7 +34,8 @@ The Zig implementation of the Maiko VM emulator is nearing completion with 87% o
 
 ### 3. Execution Environment Setup
 
-**Files**: 
+**Files**:
+
 - `zaiko/src/main.zig:320-340` - Sysout loading process
 - `zaiko/src/data/sysout.zig:240-290` - Memory verification
 
@@ -59,11 +60,13 @@ The Zig implementation of the Maiko VM emulator is nearing completion with 87% o
 **Critical Issue**: Zig and C emulators map file pages to different virtual pages, causing memory content divergence.
 
 **Evidence**:
+
 - Zig: File page 5178 → Virtual page 6204 (PC page)
 - C: File page 2937 → Virtual page 11850 (different mapping)
 - **File**: `zaiko/src/data/sysout.zig:473-495` (FPtoVP byte-swapping logic)
 
 **Root Cause Analysis**:
+
 1. **File**: `maiko/src/ldsout.c:359` - C swaps only `(sysout_size / 4) + 1` entries
 2. **File**: `zaiko/src/utils/endianness.zig:225-227` - Zig correctly implements this boundary
 3. **Issue**: Different file page mappings despite identical byte-swapping
@@ -73,11 +76,13 @@ The Zig implementation of the Maiko VM emulator is nearing completion with 87% o
 **Blocking Issue**: Cannot build/run C emulator for direct comparison due to GLIBC incompatibility.
 
 **Error Details**:
+
 ```
 symbol lookup error: .../glibc-2.40-66/lib/libc.so.6: undefined symbol: __nptl_change_stack_perm
 ```
 
 **Attempted Solutions**:
+
 - Nix-shell wrapper (failed - same GLIBC issue)
 - Docker (failed - GLIBC symbol errors)
 - CMake vs Make (failed - environment issue)
@@ -115,6 +120,7 @@ word_swap_page((unsigned short *)fptovp, (sysout_size / 2) + 1); // Line 359
 ```
 
 **Key Findings**:
+
 - **Line 323**: `unsigned swap_boundary = (sysout_size / 4) + 1;`
 - **Coverage**: Only ~50% of entries get byte-swapped (8318/16635 for starter.sysout)
 - **File Page 5178**: In unswapped region, read as big-endian
@@ -141,12 +147,14 @@ entries[i] = endianness_utils.swapFPtoVPEntry(entry_array, i, swap_boundary);
 **Impact**: Blocks all opcode validation work
 
 **Immediate Actions**:
+
 1. **Compare FPtoVP tables**: Generate and compare C vs Zig FPtoVP entries
 2. **Debug mapping logic**: Add comprehensive logging to both emulators
 3. **Verify byte-swapping**: Ensure identical byte-swapping boundaries
 4. **Check BIGVM vs non-BIGVM**: Confirm both emulators use same mode
 
 **Files to Modify**:
+
 - `zaiko/src/data/sysout.zig:480-495` - Enhanced FPtoVP logging
 - `maiko/src/ldsout.c:315-355` - Add FPtoVP comparison logging
 
@@ -155,12 +163,14 @@ entries[i] = endianness_utils.swapFPtoVPEntry(entry_array, i, swap_boundary);
 **Impact**: Essential for validation without C emulator access
 
 **Solutions to Try**:
+
 1. **Container solution**: Use older GLIBC container for C emulator
 2. **Static linking**: Build C emulator with static GLIBC if possible
 3. **Cross-compilation**: Build C emulator on compatible system
 4. **Trace-based validation**: Use existing C traces for comparison
 
 **Reference Files**:
+
 - `scripts/compare_emulator_execution.sh` - Main comparison script
 - `scripts/compare_unified_traces.awk` - Fast trace comparison
 - `scripts/analyze_execution_divergence.py` - Detailed analysis
@@ -170,12 +180,14 @@ entries[i] = endianness_utils.swapFPtoVPEntry(entry_array, i, swap_boundary);
 **Prerequisite**: FPtoVP mapping resolution
 
 **Steps**:
+
 1. **Fix execution context**: Ensure identical memory state
 2. **Run SIC instruction**: Verify operand reading (should be 0x3e)
 3. **Check stack result**: Should push 0xfffe0000 to stack
 4. **Update traces**: Add SIC to unified trace comparison
 
 **Relevant Files**:
+
 - `zaiko/src/vm/opcodes/data_ops.zig:76-95` - SIC implementation
 - `zaiko/src/utils/memory_access.zig:65-95` - Operand reading logic
 
@@ -184,10 +196,11 @@ entries[i] = endianness_utils.swapFPtoVPEntry(entry_array, i, swap_boundary);
 **Current Status**: 94/108 tasks complete (87.0%)
 
 **Remaining Tasks**:
+
 1. **SDL2 Test Cases** (5 tasks: T092-T096)
 2. **Polish Tasks** (5 tasks: T103-T108)
 
-**Reference**: `specs/005-zig-completion/tasks.md` - Complete task list
+**Reference**: `specs/tasks.md` - Complete task list
 
 ---
 
@@ -205,7 +218,7 @@ Interlisp/
 │   │   └── display/           # SDL2 integration
 ├── maiko/                     # C implementation (reference)
 │   └── src/                   # Source code for reference
-├── specs/005-zig-completion/  # Implementation specifications
+├── specs/  # Implementation specifications
 └── documentation/              # Technical documentation
 ```
 
@@ -247,8 +260,8 @@ zig build test
 
 1. **`documentation/core/critical_memory.typ`** - Documentation update rules
 2. **`documentation/CRITICAL_DEBUGGING_TECHNIQUE.typ`** - Debugging techniques
-3. **`specs/005-zig-completion/plan.md`** - Implementation plan
-4. **`specs/005-zig-completion/tasks.md`** - Current task status
+3. **`specs/plan.md`** - Implementation plan
+4. **`specs/tasks.md`** - Current task status
 
 ### Technical Documentation
 
@@ -273,10 +286,10 @@ zig build test
 
 ### Verification Status
 
-✅ **Memory Content**: Zig and C match at PC=0x60f131  
-✅ **XOR Addressing**: Both return 0x0000020a  
-❌ **FPtoVP Mapping**: File page → virtual page mappings differ  
-❌ **SIC Operand**: Cannot verify without identical execution context  
+✅ **Memory Content**: Zig and C match at PC=0x60f131
+✅ **XOR Addressing**: Both return 0x0000020a
+❌ **FPtoVP Mapping**: File page → virtual page mappings differ
+❌ **SIC Operand**: Cannot verify without identical execution context
 
 ---
 
@@ -291,5 +304,5 @@ zig build test
 
 **Contact Information**: Refer to `documentation/README.md` for project contacts and additional resources.
 
-**Last Updated**: 2025-01-27  
+**Last Updated**: 2025-01-27
 **Next Review**: After FPtoVP mapping resolution

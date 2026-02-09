@@ -17,7 +17,6 @@ This repository contains the **Interlisp** project, which includes:
 ### Must-Read Files
 
 1. **`documentation/core/critical_memory.typ`** - **CRITICAL**: Rules for documentation updates
-
    - All documentation improvements MUST be emulator-independent in `specifications/`
    - Language-specific details go in `implementations/`
    - **ALWAYS** write documentation using the Typst document format
@@ -27,10 +26,10 @@ This repository contains the **Interlisp** project, which includes:
 2. **`documentation/CRITICAL_DEBUGGING_TECHNIQUE.typ`** - **CRITICAL**: Essential debugging techniques and practices
 
 3. **`documentation/README.md`** - Overview of documentation structure
-4. **`specs/004-emulator-runner/plan.md`** - Implementation plan for emulator runner
-5. **`specs/004-emulator-runner/tasks.md`** - Task list for emulator runner
-6. **`specs/005-zig-completion/plan.md`** - Implementation plan for Zig emulator
-7. **`specs/005-zig-completion/tasks.md`** - Detailed task list (94/108 complete, 87.0%)
+4. **`specs/plan.md`** - Implementation plan for emulator runner
+5. **`specs/tasks.md`** - Task list for emulator runner
+6. **`specs/plan.md`** - Implementation plan for Zig emulator
+7. **`specs/tasks.md`** - Detailed task list (94/108 complete, 87.0%)
 
 ## Project Structure
 
@@ -46,7 +45,7 @@ Interlisp/
 │   └── alternatives/zig/      # Zig implementation (in progress)
 │   └── alternatives/lisp/     # Common Lisp (sbcl) implementation (in progress - will be developed after Zig)
 ├── specs/                     # Feature specifications
-│   └── 005-zig-completion/   # Zig emulator completion spec
+│   └──    # Zig emulator completion spec
 └── medley/                    # Medley Interlisp system
 ```
 
@@ -87,7 +86,7 @@ This repository includes git submodules (notably `maiko/` and `medley/`).
 - **Default**: Treat submodules as **read-only** unless the user explicitly asks to modify them.
 - **Committing**:
   - **Do not commit inside submodules** unless the user explicitly requests it.
-  - Superproject commits may update submodule pointers *only if explicitly intended*.
+  - Superproject commits may update submodule pointers _only if explicitly intended_.
 - **Staging**: Paths inside submodules cannot be staged from the superproject (e.g. `git add maiko/...` will fail). Enter the submodule repo if changes are required.
 
 ### 1.2 Generated Artifacts (never commit)
@@ -143,17 +142,20 @@ Language-Specific Documentation Updates:
 **Purpose**: Enable rapid divergence identification between C and Zig emulators
 
 **Format**: Single-line, pipe-delimited columns:
+
 ```
 LINE#|PC|INSTRUCTION|OPCODE|OPERANDS|REGISTERS|FLAGS|SP_FP|STACK_SUMMARY|MEMORY_CONTEXT|FP_VP_FO_VA|BS_MEM|NOTES
 ```
 
 **Key Benefits**:
+
 - **Rapid comparison** with awk/Python scripts
 - **Comprehensive context** in single line
 - **Consistent format** across both emulators
 - **Memory issue triage** with dedicated fields
 
 **Comparison Tools**:
+
 - `scripts/compare_unified_traces.awk` - Fast awk-based comparison
 - `scripts/compare_unified_traces.py` - Detailed Python analysis
 
@@ -164,6 +166,7 @@ LINE#|PC|INSTRUCTION|OPCODE|OPERANDS|REGISTERS|FLAGS|SP_FP|STACK_SUMMARY|MEMORY_
 **Solution**: Centralized memory management module (`zaiko/src/memory/manager.zig`)
 
 **Components**:
+
 - **AddressManager**: LispPTR ↔ byte conversions, virtual page calculations
 - **FPtoVPManager**: File page ↔ virtual page mapping, page OK flags
 - **EndiannessManager**: Byte-swapping logic, XOR addressing
@@ -266,10 +269,10 @@ When a file exceeds 500 lines:
 
 ### Specifications
 
-- **Zig Completion Spec**: `specs/005-zig-completion/spec.md`
-- **Implementation Plan**: `specs/005-zig-completion/plan.md`
-- **Tasks**: `specs/005-zig-completion/tasks.md`
-- **Current State**: `specs/005-zig-completion/current-state-analysis.md`
+- **Zig Completion Spec**: `specs/spec.md`
+- **Implementation Plan**: `specs/plan.md`
+- **Tasks**: `specs/tasks.md`
+- **Current State**: `specs/current-state-analysis.md`
 
 ### Implementation Notes
 
@@ -284,7 +287,7 @@ When a file exceeds 500 lines:
 - Zig tests: `zaiko/tests/`
 - C reference: `maiko/src/`
 - Documentation: `documentation/`
-- Specs: `specs/005-zig-completion/`
+- Specs: `specs/`
 
 ### Important Constants
 
@@ -324,8 +327,8 @@ medley/scripts/build/build-c-emulator.sh
 ## Contact & Support
 
 - **Project Documentation**: See `documentation/README.md`
-- **Implementation Status**: See `specs/005-zig-completion/current-state-analysis.md`
-- **Task Tracking**: See `specs/005-zig-completion/tasks.md`
+- **Implementation Status**: See `specs/current-state-analysis.md`
+- **Task Tracking**: See `specs/tasks.md`
 
 ---
 

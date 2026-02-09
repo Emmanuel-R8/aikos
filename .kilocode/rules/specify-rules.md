@@ -4,7 +4,7 @@ Auto-generated from all feature plans. Last updated: 2026-01-12
 
 ## Active Technologies
 
-- Bash/shell scripts + Existing Medley run scripts, unified build system (spec 003) (004-emulator-runner)
+- Bash/shell scripts + Existing Medley run scripts, unified build system (spec 003)
 
 ## Project Structure
 
@@ -23,7 +23,7 @@ Bash/shell scripts: Follow standard conventions
 
 ## Recent Changes
 
-- 004-emulator-runner: Added Bash/shell scripts + Existing Medley run scripts, unified build system (spec 003)
+- Added Bash/shell scripts + Existing Medley run scripts, unified build system (spec 003)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

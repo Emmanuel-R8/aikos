@@ -64,7 +64,7 @@ The Zig implementation provides a complete framework for the Maiko emulator in Z
   - ✅ Unknown opcode handling (log and continue) implemented
   - ✅ Frame structure reading with byte-swapping implemented
   - ✅ Address translation: LispPTR values are DLword offsets (multiply by 2 for bytes)
-  - ✅ Frame addressing: currentfxp is DLword StackOffset from Stackspace (STK_OFFSET * 2 = 0x20000)
+  - ✅ Frame addressing: currentfxp is DLword StackOffset from Stackspace (STK_OFFSET \* 2 = 0x20000)
   - ✅ Frame reading: Frame structure reading implemented with byte-swapping
   - ✅ Frame field offsets: Corrected fnheader (bytes 4-7), nextblock (bytes 8-9), pc (bytes 10-11)
   - ✅ **Frame field layout fix** (2025-12-12): Fixed frame structure field reading - actual memory layout differs from C struct definition
@@ -81,7 +81,7 @@ The Zig implementation provides a complete framework for the Maiko emulator in Z
     - **Fix**: Now swaps 32-bit longwords using `@byteSwap()` (128 swaps per page, matching C's `ntohl()`)
     - **Impact**: Memory content at PC now matches C emulator - correct instruction bytes loaded
     - **C Reference**: `maiko/src/byteswap.c:31-34` - `word_swap_page()` uses `ntohl()` for 32-bit values
-    - **Parameter**: `128` = number of 32-bit longwords (128 * 4 = 512 bytes = 1 page)
+    - **Parameter**: `128` = number of 32-bit longwords (128 \* 4 = 512 bytes = 1 page)
   - ✅ System initialization: Implemented initializeSystem() equivalent to build_lisp_map(), init_storage(), etc.
   - ✅ Frame repair: Implemented initializeFrame() to repair uninitialized frames (sets nextblock and free stack block)
   - ✅ PC initialization: Implemented FastRetCALL logic (PC = FuncObj + CURRENTFX->pc)
@@ -103,7 +103,7 @@ The Zig implementation provides a complete framework for the Maiko emulator in Z
     - ✅ **Type checking module**: Created `utils/type_check.zig` for type validation
   - ✅ Variable access (IVAR, PVAR, FVAR, GVAR variants) - implemented
     - ✅ **Atom table access implemented** (2025-01-27): Created `data/atom.zig` module
-    - ✅ **GVAR/GVAR_/ACONST/GCONST**: Now properly access atom table (BIGVM BIGATOMS format)
+    - ✅ **GVAR/GVAR\_/ACONST/GCONST**: Now properly access atom table (BIGVM BIGATOMS format)
     - ✅ **Atom cell access**: Supports both LITATOM (AtomSpace array) and NEWATOM (pointer-based)
   - ✅ Control flow (JUMP, FJUMP, TJUMP variants) - implemented
   - ✅ Array operations (AREF1, ASET1, AREF2, ASET2) - implemented
@@ -153,6 +153,7 @@ The Zig implementation provides a complete framework for the Maiko emulator in Z
 For detailed critical findings, implementation challenges, and solutions, see [Zig Implementation Critical Findings](zig-implementation-findings.md).
 
 This document contains all the detailed implementation notes, including:
+
 - IFPAGE_KEYVAL correction
 - TopOfStack cached value implementation
 - Stack byte-order handling
@@ -163,15 +164,15 @@ This document contains all the detailed implementation notes, including:
 
 ## Implementation Statistics
 
-| Category                | Status     | Count    | Notes                                         |
-| ----------------------- | ---------- | -------- | --------------------------------------------- |
+| Category                | Status      | Count    | Notes                                         |
+| ----------------------- | ----------- | -------- | --------------------------------------------- |
 | **Opcodes**             | ✅ Complete | ~100/256 | Essential set for Medley startup complete     |
 | **IFPAGE Fields**       | ✅ Complete | ~100/100 | Matches C structure exactly                   |
 | **Sysout Loading**      | ✅ Complete | 22/22    | Phase 1 tasks (T001-T022) complete            |
 | **VM Execution**        | ✅ Complete | 12/12    | Phase 2 tasks (T023-T034) complete            |
 | **Essential Opcodes**   | ✅ Complete | 25/25    | Phase 3 tasks (T035-T059) complete            |
 | **GC Operations**       | ✅ Complete | 15/15    | Phase 4 tasks (T060-T074) complete            |
-| **Display Integration** | ✅ Complete | 22/22     | Phase 5 tasks (T075-T096) complete      |
+| **Display Integration** | ✅ Complete | 22/22    | Phase 5 tasks (T075-T096) complete            |
 | **Test Coverage**       | ✅ Complete | Multiple | Cons cells, variables, jumps, GC, integration |
 | **Build Status**        | ✅ Success  | -        | All compilation errors fixed                  |
 | **Execution Status**    | ✅ Working  | -        | Emulator executing bytecode successfully      |
@@ -206,7 +207,7 @@ zig build test
 
 ## Completion Plan
 
-See `specs/005-zig-completion/` for detailed completion plan:
+See `specs/` for detailed completion plan:
 
 1. **Phase 1: Fix Sysout Loading** (P1 - MVP)
    - Fix IFPAGE_KEYVAL
@@ -238,8 +239,8 @@ See `specs/005-zig-completion/` for detailed completion plan:
 ## Related Documentation
 
 - [Rewrite Specifications](../rewrite-spec/) - Complete specifications
-- [Completion Plan](../../specs/005-zig-completion/plan.md) - Detailed completion plan
-- [Research Findings](../../specs/005-zig-completion/research.md) - Critical findings
+- [Completion Plan](../../specs/plan.md) - Detailed completion plan
+- [Research Findings](../../specs/research.md) - Critical findings
 - [C Implementation Reference](../../maiko/src/) - Reference implementation
 
 ## Known Issues
@@ -302,6 +303,7 @@ See `specs/005-zig-completion/` for detailed completion plan:
 **Implementation**: `maiko/alternatives/zig/src/vm/dispatch.zig:initializeVMState()`
 
 **Approach**:
+
 1. Read `currentfxp` from IFPAGE (stack offset)
 2. Read frame structure (FX) from virtual_memory at `currentfxp` offset
 3. Byte-swap frame fields (big-endian to little-endian)
@@ -310,6 +312,7 @@ See `specs/005-zig-completion/` for detailed completion plan:
 6. Fallback to `pcoffset` from frame if fnheader address is invalid
 
 **Challenges**:
+
 - Frame fields stored big-endian in sysout, must byte-swap
 - fnheader_addr may exceed virtual_memory bounds (needs FPtoVP translation)
 - ✅ **RESOLVED**: Implemented `translateLispPTRToOffset()` in `utils/address.zig` to translate LispPTR addresses to virtual_memory offsets using FPtoVP table
@@ -321,6 +324,7 @@ See `specs/005-zig-completion/` for detailed completion plan:
 **Implementation**: `maiko/alternatives/zig/src/vm/dispatch.zig:initializeVMState()`
 
 **Approach**:
+
 - Push NIL (0) onto stack before entering dispatch loop
 - Ensures conditional jumps have a value to pop
 
@@ -331,6 +335,7 @@ See `specs/005-zig-completion/` for detailed completion plan:
 **Implementation**: `maiko/alternatives/zig/src/vm/dispatch.zig:dispatch()`
 
 **Approach**:
+
 - Log unknown opcode byte and PC
 - Advance PC by 1 byte and continue execution
 - Allows identifying missing opcodes during development
@@ -346,17 +351,20 @@ See `specs/005-zig-completion/` for detailed completion plan:
 **Implementation**: `maiko/alternatives/zig/src/vm/dispatch.zig:201-234`
 
 **Approach**:
+
 - Stack pointers now point into `virtual_memory` at correct offsets
 - `Stackspace` = `Lisp_world + STK_OFFSET` (byte offset 0x20000)
 - `CurrentStackPTR` = `Stackspace + nextblock - 2` (from frame->nextblock)
 - Stack depth = `(CurrentStackPTR - Stackspace) / 2` DLwords
 
 **Zig-Specific Challenges**:
+
 - Must cast `[]const u8` to `[]u8` for stack operations (using `@constCast`)
 - Must use `@ptrCast` and `@alignCast` to convert byte pointers to `[*]DLword`
 - Stack operations must account for stack growing DOWN (Stackspace is BASE, CurrentStackPTR is current top)
 
 **Results**:
+
 - Stack depth: 6144 DLwords (close to C emulator's 5956)
 - Stack operations working: popStack(), getTopOfStack(), pushStack() all working correctly
 - Bytecode execution progressing: TJUMP operations executing successfully
@@ -369,22 +377,26 @@ See `specs/005-zig-completion/` for detailed completion plan:
 **CRITICAL**: The actual memory layout of frame fields differs from the C struct definition in `maiko/inc/stack.h`. Implementations must verify actual byte offsets by examining memory contents.
 
 **Problem Discovered**:
+
 - Zig emulator was reading `FX_FNHEADER=0x780030` instead of expected `0x307864`
 - Frame fields appeared to be shifted by 2 bytes
 - Raw bytes at frame offset `0x25ce4` showed: `[4,5]=0x30 0x00`, `[6,7]=0x64 0x78`
 
 **Root Cause**:
+
 - Actual memory layout has fields swapped compared to struct definition:
   - `lofnheader` is at bytes [6,7] (NOT [4,5] as struct suggests)
   - `hi1fnheader_hi2fnheader` is at bytes [4,5] (NOT [6,7] as struct suggests)
   - `hi2fnheader` is in the LOW byte (bits 0-7) of `hi1fnheader_hi2fnheader`, not high byte
 
 **Solution**:
+
 - Swapped field offsets: read `lofnheader` from [6,7] and `hi1fnheader_hi2fnheader` from [4,5]
 - Changed `hi2fnheader` extraction: read from low byte (`& 0xFF`) instead of high byte (`>> 8`)
 - Verified: Now correctly reads `FX_FNHEADER=0x307864` matching C emulator
 
 **Zig Implementation**:
+
 ```zig
 // Read frame fields (native little-endian, pages byte-swapped on load)
 const hi1fnheader_hi2fnheader = std.mem.readInt(DLword, frame_bytes[4..6], .little);
@@ -403,11 +415,13 @@ const fnheader_be = (@as(LispPTR, hi2fnheader) << 16) | lofnheader;
 **Implementation**: `maiko/alternatives/zig/src/vm/dispatch.zig:initializeVMState()`
 
 **Approach**:
+
 - Read frame fields directly from virtual_memory byte array
 - Byte-swap multi-byte fields (LispPTR, DLword) from big-endian to little-endian
 - Handle alignment requirements (frames are 2-byte aligned)
 
 **Challenges**:
+
 - Zig's strict alignment checking prevents direct pointer casting
 - Must read fields byte-by-byte and reconstruct values
 

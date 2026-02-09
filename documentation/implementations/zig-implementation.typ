@@ -280,7 +280,7 @@ zig build test
 
 == Completion Plan
 
-See `specs/005-zig-completion/` for detailed completion plan:
+See `specs/` for detailed completion plan:
 
 1. *Phase 1: Fix Sysout Loading* (P1 - MVP)
    - Fix IFPAGE_KEYVAL
