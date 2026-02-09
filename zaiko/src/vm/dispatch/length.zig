@@ -47,7 +47,7 @@ pub fn getInstructionLength(opcode: Opcode) u32 {
         .FJUMP0, .FJUMP1, .FJUMP2, .FJUMP3, .FJUMP4, .FJUMP5, .FJUMP6, .FJUMP7, .FJUMP8, .FJUMP9, .FJUMP10, .FJUMP11, .FJUMP12, .FJUMP13, .FJUMP14, .FJUMP15 => 1,
         .TJUMP0, .TJUMP1, .TJUMP2, .TJUMP3, .TJUMP4, .TJUMP5, .TJUMP6, .TJUMP7, .TJUMP8, .TJUMP9, .TJUMP10, .TJUMP11, .TJUMP12, .TJUMP13, .TJUMP14, .TJUMP15 => 1,
         .IVARX, .PVARX, .FVARX => 2, // Opcode + variable index
-        .PVARX_, .IVARX_, .FVARX_ => 2, // Opcode + variable index (set operations)
+        .PVARX_, .IVARX_, .FVARX_N => 2, // Opcode + variable index (set operations)
         .TYPEP => 2, // Opcode + type code
         .UNWIND => 3, // Opcode + 2-byte unwind parameters
         // .GETAEL1, .SETAEL1 => 2, // Commented out - conflicts with JUMP0/JUMP1

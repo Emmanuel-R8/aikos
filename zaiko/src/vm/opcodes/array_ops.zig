@@ -352,26 +352,101 @@ pub fn handleASET1(vm: *VM) errors.VMError!void {
     try stack_module.pushStack(vm, arrayarg);
 }
 
-/// AREF2: Array reference 2
-/// Per rewrite documentation instruction-set/opcodes.md
+/// AREF2: 2-dimensional array reference (array index0 index1)
+/// C implementation: N_OP_aref2 in arrayops.c
+/// Opcode: 0xee (238)
 pub fn handleAREF2(vm: *VM) errors.VMError!void {
     const stack_module = @import("../stack.zig");
-    // AREF2 requires:
-    // 1. Array and indices on stack
-    // 2. Get element at indices
+    const errors_module = @import("../../utils/errors.zig");
+    const type_check = @import("../../utils/type_check.zig");
 
-    // TODO: Proper implementation needs:
-    // 1. Pop indices and array
-    // 2. Access multi-dimensional array element
-
-    // Placeholder: return NIL
-    const index2 = try stack_module.popStack(vm);
+    // Pop operands from stack: array, index0, index1
+    // Note: Stack grows down, so we pop in reverse order
     const index1 = try stack_module.popStack(vm);
+    const index0 = try stack_module.popStack(vm);
     const array_ptr = try stack_module.popStack(vm);
-    _ = index2;
-    _ = index1;
-    _ = array_ptr;
-    try stack_module.pushStack(vm, 0); // Return NIL
+
+    // Validate array type
+    const array_type = type_check.getTypeNumber(vm, array_ptr) orelse {
+        return errors_module.VMError.InvalidAddress;
+    };
+    if (array_type != 15) { // TYPE_TWOD_ARRAY
+        return errors_module.VMError.InvalidAddress;
+    }
+
+    // TwoDArray structure (matches C LispArray from lsptypes.h)
+    const TwoDArray = packed struct {
+        nil1: u8, // Unused (8 bits)
+        base: u24, // Base address (24 bits for non-BIGVM)
+        readonlyp: u1, // Read-only flag
+        indirectp: u1, // Indirect flag
+        bitp: u1, // Bit array flag
+        stringp: u1, // String flag
+        ajustablep: u1, // Adjustable flag
+        displacedp: u1, // Displaced flag
+        fillpointerp: u1, // Fill pointer flag
+        extendablep: u1, // Extendable flag
+        typenumber: u8, // Element type number
+        Dim0: DLword, // First dimension
+        totalsize: DLword, // Total size
+        Dim1: DLword, // Second dimension
+        Dim2: DLword, // Third dimension (unused in 2D arrays)
+    };
+
+    // Get array header from memory
+    if (vm.virtual_memory) |virtual_memory| {
+        const native_ptr = if (vm.fptovp) |fptovp_table|
+            virtual_memory_module.translateAddress(virtual_memory, array_ptr, fptovp_table, @sizeOf(TwoDArray)) catch {
+                return errors_module.VMError.MemoryAccessFailed;
+            }
+        else {
+            return errors_module.VMError.MemoryAccessFailed;
+        };
+
+        const array_header: *TwoDArray = @as(*TwoDArray, @ptrCast(@alignCast(native_ptr)));
+
+        // Validate indices
+        const idx1_int = @as(i32, @bitCast(index1));
+        const idx0_int = @as(i32, @bitCast(index0));
+
+        if (idx1_int < 0 or idx1_int >= array_header.Dim1) {
+            return errors_module.VMError.InvalidAddress;
+        }
+        if (idx0_int < 0 or idx0_int >= array_header.Dim0) {
+            return errors_module.VMError.InvalidAddress;
+        }
+
+        // Calculate linear index: index0 * Dim1 + index1
+        const linear_index = idx0_int * array_header.Dim1 + idx1_int;
+
+        // Get base address and dispatch to appropriate type handler
+        const base_addr = @as(LispPTR, array_header.base) | (@as(LispPTR, array_header.nil1) << 24);
+
+        // Use aref_switch logic (simplified for pointer types)
+        // For now, implement only pointer type arrays
+        const array_module = @import("../../data/array.zig");
+        _ = @import("../../utils/types.zig"); // Import to match working code pattern
+
+        const element_value = switch (array_header.typenumber) {
+            array_module.TYPE_POINTER => blk: {
+                // Pointer: 32 bits
+                const base_native = virtual_memory_module.translateAddress(virtual_memory, base_addr, vm.fptovp.?, 4) catch {
+                    return errors_module.VMError.MemoryAccessFailed;
+                };
+                const element_ptr: *LispPTR = @as(*LispPTR, @ptrCast(@alignCast(base_native + (@as(usize, @intCast(linear_index)) * 4))));
+                break :blk element_ptr.*;
+            },
+            else => blk: {
+                // Other types not yet implemented - return NIL
+                break :blk 0;
+            },
+        };
+
+        // Push result onto stack
+        try stack_module.pushStack(vm, element_value);
+    } else {
+        return errors_module.VMError.MemoryAccessFailed;
+    }
 }
 
 /// ASET2: Array set 2

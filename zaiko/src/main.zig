@@ -11,6 +11,7 @@ const sdl_backend = @import("display/sdl_backend.zig");
 const events = @import("display/events.zig");
 const keyboard = @import("io/keyboard.zig");
 const mouse = @import("io/mouse.zig");
+const enhanced_tracer = @import("enhanced_execution.zig");
 
 /// Command-line options structure
 const Options = struct {
@@ -388,7 +389,7 @@ pub fn main() !void {
     // PHASE 3: INITIALIZE VIRTUAL MACHINE
     // Create VM instance with stack management
     // Stack is separate from sysout virtual memory but points into it
-    const stack_size = 1024 * 1024; // 1MB stack
+    const stack_size = 256 * 1024; // 256KB stack (reduced for debugging)
     var vm = try stack.VM.init(allocator, stack_size);
     defer vm.deinit();
 

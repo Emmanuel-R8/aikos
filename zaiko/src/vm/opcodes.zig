@@ -2,6 +2,7 @@
 // This file serves as the main entry point for opcode handlers
 
 // Import all opcode modules
+const gc_ops = @import("opcodes/gc_ops.zig");
 const arithmetic = @import("opcodes/arithmetic.zig");
 const bitwise = @import("opcodes/bitwise.zig");
 const stack_ops = @import("opcodes/stack_ops.zig");
@@ -13,6 +14,7 @@ const array_ops = @import("opcodes/array_ops.zig");
 const comparison = @import("opcodes/comparison.zig");
 const type_checking = @import("opcodes/type_checking.zig");
 const variable_access = @import("opcodes/variable_access.zig");
+
 const floating_point = @import("opcodes/floating_point.zig");
 const misc = @import("opcodes/misc.zig");
 const gc_ops = @import("opcodes/gc_ops.zig");
@@ -134,7 +136,11 @@ pub const handleFTIMES2 = floating_point.handleFTIMES2;
 pub const handleFQUOTIENT = floating_point.handleFQUOTIENT;
 pub const handleFGREATERP = floating_point.handleFGREATERP;
 
-// Miscellaneous
+// GC operations
+pub const handleREADFLAGS = misc.handleREADFLAGS;
+pub const handleRECLAIMCELL = gc_ops.handleRECLAIMCELL;
+pub const handleGCSCAN1 = gc_ops.handleGCSCAN1;
+pub const handleGCSCAN2 = gc_ops.handleGCSCAN2;
 pub const handleGCREF = misc.handleGCREF;
 pub const handleCHARCODE = misc.handleCHARCODE;
 pub const handleCHARN = misc.handleCHARN;

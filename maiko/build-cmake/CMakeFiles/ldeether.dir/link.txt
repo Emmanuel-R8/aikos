@@ -1,0 +1,1 @@
+/nix/store/r9wbjib6xxjkyb9yvjvrkl4sq61i2lyn-gcc-wrapper-15.2.0/bin/gcc -Wl,--dependency-file=CMakeFiles/ldeether.dir/link.d CMakeFiles/ldeether.dir/src/ldeether.c.o CMakeFiles/ldeether.dir/src/dlpi.c.o -o ldeether

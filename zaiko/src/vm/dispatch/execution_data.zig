@@ -2,7 +2,6 @@ const std = @import("std");
 const errors = @import("../../utils/errors.zig");
 const opcodes = @import("../opcodes.zig");
 const stack = @import("../stack.zig");
-const types = @import("../../utils/types.zig");
 
 const VM = stack.VM;
 const Instruction = @import("instruction.zig").Instruction;
@@ -51,9 +50,9 @@ pub fn handleDataOperations(vm: *VM, opcode: Opcode, instruction: Instruction) e
         .FVAR5 => try opcodes.handleFVAR(vm, 5),
         .FVAR6 => try opcodes.handleFVAR(vm, 6),
         .FVARX => try opcodes.handleFVARX(vm, instruction.getByteOperand(0)),
-        .FVARX_ => try opcodes.handleFVARX_(vm, instruction.getByteOperand(0)),
+        .FVARX_N => try opcodes.handleFVARX_(vm, instruction.getByteOperand(0)),
         .GVAR => {
-            try opcodes.handleGVAR(vm, @as(types.LispPTR, instruction.getPointerOperand(0) & 0xFFFF));
+            try opcodes.handleGVAR(vm, instruction.getPointerOperand(0));
             return null;
         },
         .COPY => {

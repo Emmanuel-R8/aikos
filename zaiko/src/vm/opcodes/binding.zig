@@ -116,6 +116,7 @@ pub fn handleUNBIND(vm_obj: *VM) errors.VMError!void {
     // PHASE 1: Find the BIND marker by walking backwards through stack
     // C: for (; (((int)*--CSTKPTRL) >= 0););
     // Walks backwards until finding a negative (signed) value = BIND marker
+    var marker: LispPTR = 0;
     var iterations: u32 = 0;
     while (iterations < 100) : (iterations += 1) {
         if (vm_obj.cstkptrl == null) {
@@ -135,7 +136,9 @@ pub fn handleUNBIND(vm_obj: *VM) errors.VMError!void {
         if (@as(i32, @bitCast(v)) >= 0) {
             // Continue searching - this is a bound value, not the marker
         } else {
-            // Found the BIND marker (negative signed value); value read in PHASE 2
+            // Found the BIND marker (negative signed value)
+            marker = v;
+            // std.debug.print("DEBUG UNBIND: found marker=0x{x}\n", .{marker});
             break;
         }
     }
@@ -169,8 +172,8 @@ pub fn handleUNBIND(vm_obj: *VM) errors.VMError!void {
 
     // Extract offset from marker: GetLoWord(value) << 1
     const loword = types.getLoWord(value);
-    const offset = @as(usize, @intCast(loword)) << 1; // C: GetLoWord gives DLword offset, then << 1 for byte offset
-    const ppvar_offset = @as(usize, 2) + offset; // C: +2 for base offset in PVAR
+    const offset = loword << 1; // C: GetLoWord gives DLword offset, then << 1 for byte offset
+    const ppvar_offset = 2 + offset; // C: +2 for base offset in PVAR
     const ppvar_addr = pvar_base + ppvar_offset;
     var ppvar: [*]align(1) LispPTR = @ptrFromInt(ppvar_addr);
 
@@ -187,10 +190,16 @@ pub fn handleUNBIND(vm_obj: *VM) errors.VMError!void {
         // std.debug.print("DEBUG UNBIND: cleared variable at 0x{x} to 0xffffffff\n", .{@intFromPtr(ppvar)});
     }
 
-    // PHASE 5: TOPOFSTACK
-    // C's UNBIND macro does NOT set TOPOFSTACK; it leaves it unchanged.
-    // So after UNBIND, TOS remains the value that was there before (e.g. result of GVAR).
-    // Do not restore from (CSTKPTRL - 1) here; match C by leaving top_of_stack unchanged.
+    // PHASE 5: Restore environment (TOPOFSTACK)
+    // CRITICAL FIX: Use proper TOPOFSTACK synchronization after UNBIND stack manipulation
+    // The UNBIND macro modifies CSTKPTRL (walking stack backwards), so we need
+    // to re-read TOPOFSTACK from memory to get the correct new stack top.
+    // This matches the pattern that should be used in the C UNBIND macro.
+    const stack_module = @import("../stack.zig");
+    stack_module.readTopOfStackFromMemory(vm_obj);
+    // std.debug.print("DEBUG UNBIND: synchronized TOPOFSTACK to 0x{x} from memory\n", .{vm_obj.top_of_stack});
+
+    if (marker == 0) return errors_module.VMError.StackUnderflow;
 }
 
 /// DUNBIND: Dynamic unbind

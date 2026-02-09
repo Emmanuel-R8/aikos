@@ -1,0 +1,32 @@
+CMakeFiles/ldesdl.dir/src/typeof.c.o: \
+ /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/maiko/src/typeof.c \
+ /nix/store/dj43clc5ff7jjnfmhbaj6q4q0h8kpfpm-glibc-2.40-66-dev/include/stdc-predef.h \
+ /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/maiko/inc/version.h \
+ /nix/store/dj43clc5ff7jjnfmhbaj6q4q0h8kpfpm-glibc-2.40-66-dev/include/stdint.h \
+ /nix/store/dj43clc5ff7jjnfmhbaj6q4q0h8kpfpm-glibc-2.40-66-dev/include/bits/libc-header-start.h \
+ /nix/store/dj43clc5ff7jjnfmhbaj6q4q0h8kpfpm-glibc-2.40-66-dev/include/features.h \
+ /nix/store/dj43clc5ff7jjnfmhbaj6q4q0h8kpfpm-glibc-2.40-66-dev/include/features-time64.h \
+ /nix/store/dj43clc5ff7jjnfmhbaj6q4q0h8kpfpm-glibc-2.40-66-dev/include/bits/wordsize.h \
+ /nix/store/dj43clc5ff7jjnfmhbaj6q4q0h8kpfpm-glibc-2.40-66-dev/include/bits/timesize.h \
+ /nix/store/dj43clc5ff7jjnfmhbaj6q4q0h8kpfpm-glibc-2.40-66-dev/include/sys/cdefs.h \
+ /nix/store/dj43clc5ff7jjnfmhbaj6q4q0h8kpfpm-glibc-2.40-66-dev/include/bits/long-double.h \
+ /nix/store/dj43clc5ff7jjnfmhbaj6q4q0h8kpfpm-glibc-2.40-66-dev/include/gnu/stubs.h \
+ /nix/store/dj43clc5ff7jjnfmhbaj6q4q0h8kpfpm-glibc-2.40-66-dev/include/gnu/stubs-64.h \
+ /nix/store/dj43clc5ff7jjnfmhbaj6q4q0h8kpfpm-glibc-2.40-66-dev/include/bits/types.h \
+ /nix/store/dj43clc5ff7jjnfmhbaj6q4q0h8kpfpm-glibc-2.40-66-dev/include/bits/typesizes.h \
+ /nix/store/dj43clc5ff7jjnfmhbaj6q4q0h8kpfpm-glibc-2.40-66-dev/include/bits/time64.h \
+ /nix/store/dj43clc5ff7jjnfmhbaj6q4q0h8kpfpm-glibc-2.40-66-dev/include/bits/wchar.h \
+ /nix/store/dj43clc5ff7jjnfmhbaj6q4q0h8kpfpm-glibc-2.40-66-dev/include/bits/stdint-intn.h \
+ /nix/store/dj43clc5ff7jjnfmhbaj6q4q0h8kpfpm-glibc-2.40-66-dev/include/bits/stdint-uintn.h \
+ /nix/store/dj43clc5ff7jjnfmhbaj6q4q0h8kpfpm-glibc-2.40-66-dev/include/bits/stdint-least.h \
+ /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/maiko/inc/maiko/platform.h \
+ /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/maiko/inc/lispemul.h \
+ /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/maiko/inc/version.h \
+ /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/maiko/inc/lispmap.h \
+ /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/maiko/inc/lspglob.h \
+ /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/maiko/inc/ifpage.h \
+ /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/maiko/inc/lispemul.h \
+ /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/maiko/inc/iopage.h \
+ /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/maiko/inc/miscstat.h \
+ /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/maiko/inc/lsptypes.h \
+ /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/maiko/inc/typeofdefs.h

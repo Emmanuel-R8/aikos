@@ -28,19 +28,16 @@ const NEWATOM_PLIST_PTROFF: usize = 3; // Plist cell is at index 3
 // For non-BIGVM: Valspace, Defspace, etc. are separate
 const ATOMS_OFFSET: u32 = 0x2c0000; // Byte offset for AtomSpace (BIGVM)
 const ATOM_OFFSET: u32 = 0x00000; // Byte offset for ATOMSPACE (non-BIGVM)
-// C: Valspace = (DLword *)NativeAligned2FromLAddr(VALS_OFFSET) => LAddr is in DLword units.
-// So byte offset = VALS_OFFSET * 2 (lispmap.h VALS_OFFSET 0xC0000).
-// GetVALCELL68k(index) = (LispPTR *)Valspace + (index) => byte = VALS_OFFSET_BYTES + index*4.
-const VALS_OFFSET_BYTES: u32 = 0xC0000 * 2; // 0x180000: C uses DLword offset 0xC0000
 
 // Sysout/emulator build configuration.
 //
-// Value-cell and defcell addressing are centralized here (emulator-wide).
-// All GVAR/GVAR_/readAtomValue/writeAtomValue use getVALCELL/getDEFCELL so
-// memory layout and offset conventions stay consistent with C (DLword-based
-// LAddr in C => byte offset = LAddr*2).
+// For Medley starter.sysout in this repo, opcode operands like the initial GVAR
+// use 16-bit atom indices (non-BIGATOMS), and the C reference uses VALSPACE/DEFSPACE
+// indexing (`GetVALCELL68k(index) ((LispPTR*)Valspace + index)`).
+//
+// TODO: detect BIGATOMS from build/sysout once we support both.
 pub const BIGVM = true;
-const BIGATOMS = false; // Valspace for value cells (byte offset 0x180000)
+const BIGATOMS = false; // Changed to false for non-BIGATOMS mode (16-bit atom indices)
 
 // lispmap.h (BIGVM) offsets are DLword offsets (see `NativeAligned2FromLAddr` in maiko/inc/adr68k.h).
 // These are used for non-BIGATOMS Valspace/Defspace addressing.
@@ -51,10 +48,10 @@ const VALS_OFFSET_DLWORDS: usize = 0xC0000;
 /// Returns byte offset in virtual memory for the value cell
 pub fn getVALCELL(_: *VM, atom_index: LispPTR) errors.VMError!usize {
     if (!BIGATOMS) {
-        // Non-BIGATOMS: GetVALCELL68k(index) = (LispPTR *)Valspace + (index).
-        // Valspace = Lisp_world + VALS_OFFSET (bytes). Value cell = Valspace + index*4 bytes.
-        const byte_offset: usize = VALS_OFFSET_BYTES + (@as(usize, @intCast(atom_index)) * @sizeOf(LispPTR));
-        return byte_offset;
+        // Non-BIGATOMS: `GetLongWord(Valspace + ((x) << 1))`.
+        // Valspace base is VALS_OFFSET (DLwords); each LispPTR is 2 DLwords.
+        const laddr_dlwords: usize = VALS_OFFSET_DLWORDS + (@as(usize, @intCast(atom_index)) << 1);
+        return laddr_dlwords * 2;
     }
 
     // BIGATOMS: Check if NEWATOM or LITATOM
@@ -135,8 +132,7 @@ pub fn readAtomValue(vm: *VM, atom_index: LispPTR) errors.VMError!LispPTR {
         return error.InvalidAddress;
     }
 
-    // NOTE: Sysout pages are byte-swapped into native endianness during load (swapMemoryPage).
-    // So value cell is in native (little-endian) order; C GetLongWord reads native.
+    // NOTE: Sysout pages are byte-swapped into native endianness during load.
     const value_bytes = virtual_memory[value_cell_offset..][0..@sizeOf(LispPTR)];
     return std.mem.readInt(LispPTR, value_bytes, .little);
 }

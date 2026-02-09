@@ -130,7 +130,7 @@ pub fn printInstructionDecodeDebug(vm: *const VM, pc: usize, instruction_count: 
 }
 
 /// Print decoded instruction information for debugging
-pub fn printDecodedInstruction(pc: usize, opcode_val: u8, opcode_name: []const u8, inst_length: u8, instruction_count: u64) void {
+pub fn printDecodedInstruction(pc: usize, opcode_val: u32, opcode_name: []const u8, inst_length: u8, instruction_count: u64) void {
     if (instruction_count <= 3) {
         std.debug.print("DEBUG: Decoded opcode 0x{x:0>2} ({s}) at PC=0x{x}, length={}\n", .{ opcode_val, opcode_name, pc, inst_length });
     }

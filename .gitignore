@@ -1,11 +1,9 @@
 # Object files
 *.o
-
 # Editor backups and recovery files
 *~
 \#*#
 .DS_Store
-
 # build directories
 build/**
 cmake-build-*/**
@@ -33,18 +31,13 @@ cmake-build-*/**
 *.aarch64/**
 init.386/**
 *.universal/**
-
 # core files
 core
 *.core
 *.swp
 
-# build cache
-maiko/.cache
-maiko/build
-maiko/build-cmake
-
 # Zig build artifacts
+
 zig-out/
 **/.zig-cache/
 *.zig.obj
@@ -60,9 +53,8 @@ __pycache__/
 .venv/
 venv/
 
-*.log
-*log.txt
 *_emulator_execution_log*
 
-# Worktrees
-.worktrees/
+# Generated documentation PDFs (commit Typst source only)
+documentation/**/*.pdf
+

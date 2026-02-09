@@ -195,7 +195,7 @@ pub fn decodeOpcode(byte: ByteCode) ?Opcode {
         0x44 => Opcode.IVAR4,
         0x45 => Opcode.IVAR5,
         0x46 => Opcode.IVAR6,
-        0x47 => Opcode.IVARX,
+        0x47 => Opcode.IVARX, // Note: was IVARX_ in C
         0x48 => Opcode.PVAR0,
         0x49 => Opcode.PVAR1,
         0x4A => Opcode.PVAR2,
@@ -223,7 +223,7 @@ pub fn decodeOpcode(byte: ByteCode) ?Opcode {
         0x60 => Opcode.GVAR,
         0x61 => Opcode.ARG0,
         0x62 => Opcode.IVARX_,
-        0x63 => Opcode.FVARX_,
+        0x63 => Opcode.FVARX_N,
         0x64 => Opcode.COPY,
         0x65 => Opcode.MYARGCOUNT,
         0x66 => Opcode.MYALINK,

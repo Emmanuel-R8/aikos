@@ -3,17 +3,28 @@ const types = @import("../utils/types.zig");
 const errors = @import("../utils/errors.zig");
 const stack = @import("stack.zig");
 
-// Import from split modules
-const instruction = @import("dispatch/instruction.zig");
-const execution = @import("dispatch/execution.zig");
+// Import from split modules with unique names to avoid conflicts
+const vm_types = @import("../utils/types.zig");
+const vm_errors = @import("../utils/errors.zig");
+const stack_module = @import("stack.zig");
+const instruction_module = @import("dispatch/instruction.zig");
+const execution_module = @import("dispatch/execution.zig");
+const ufn_module = @import("vm/ufn.zig");
 
-const ByteCode = types.ByteCode;
-const LispPTR = types.LispPTR;
-const DLword = types.DLword;
-const IFPAGE = types.IFPAGE;
-const VM = stack.VM;
-const Instruction = instruction.Instruction;
-const Opcode = instruction.Opcode;
+// Use unique type names
+const VM = stack_module.VM;
+const Instruction = instruction_module.Instruction;
+// Rename the Opcode type to avoid conflict
+pub const InstructionOpcode = instruction_module.Opcode;
+// Update references to use InstructionOpcode where needed
+
+// Rename the Opcode type to avoid conflict
+pub const InstructionOpcode = instruction_module.Opcode;
+
+// Clean up duplicate declarations
+const Instruction = instruction_module.Instruction;
+const Opcode = instruction_module.Opcode;
+// const ufn_module = @import("vm/ufn.zig");
 
 // Re-export types and functions for backward compatibility
 pub const Instruction = instruction.Instruction;

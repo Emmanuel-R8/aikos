@@ -40,6 +40,12 @@
           # Build inputs (libraries and runtime dependencies)
           buildInputs =
             (with pkgs; [
+              # Basic utilities
+              ripgrep
+              hexdump
+              jq
+              xxd
+
               # C standard library headers (needed for ctype.h, errno.h, etc.)
               glibc.dev # C standard library development headers
 
