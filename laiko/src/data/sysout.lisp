@@ -1,114 +1,157 @@
 (in-package :maiko-lisp.data)
 
-;; Sysout file loading
-;; Per data-model.md and rewrite-spec/data-structures/sysout-format.md
+;; Sysout file reading - IFPAGE structure and reading functions
+;; Per maiko/src/ldsout.c and maiko/inc/ifpage.h
 
-;; Sysout validation key (matches C IFPAGE_KEYVAL)
-(defconstant +sysout-keyval+ #x12345678)
-
+;; IFPAGE structure (per maiko/inc/ifpage.h, non-BIGVM case)
 (defstruct (ifpage (:conc-name ifpage-))
-  "Interface page structure (matches C IFPAGE)"
-  (keyval 0 :type (unsigned-byte 32))
-  (lversion 0 :type (unsigned-byte 32))
-  (minbversion 0 :type (unsigned-byte 32))
-  (process-size 0 :type (unsigned-byte 32))
-  (nactivepages 0 :type (unsigned-byte 32))
-  (fptovpstart 0 :type (unsigned-byte 32))
-  (storagefullstate 0 :type (unsigned-byte 32))
-  (stackbase 0 :type maiko-lisp.utils:lisp-ptr)
-  (endofstack 0 :type maiko-lisp.utils:lisp-ptr)
-  (currentfxp 0 :type maiko-lisp.utils:lisp-ptr))
+  "Interface page structure (C IFPAGE from ifpage.h)"
+  (currentfxp 0 :type (unsigned-byte 16))
+  (resetsfxp 0 :type (unsigned-byte 16))
+  (subovfxp 0 :type (unsigned-byte 16))
+  (kbdfxp 0 :type (unsigned-byte 16))
+  (hardreturnfxp 0 :type (unsigned-byte 16))
+  (gcfxp 0 :type (unsigned-byte 16))
+  (faultfxp 0 :type (unsigned-byte 16))
+  (endofstack 0 :type (unsigned-byte 16))
+  (lversion 0 :type (unsigned-byte 16))
+  (minrversion 0 :type (unsigned-byte 16))
+  (minbversion 0 :type (unsigned-byte 16))
+  (rversion 0 :type (unsigned-byte 16))
+  (bversion 0 :type (unsigned-byte 16))
+  (machinetype 0 :type (unsigned-byte 16))
+  (miscfxp 0 :type (unsigned-byte 16))
+  (key 0 :type (unsigned-byte 16))
+  (serialnumber 0 :type (unsigned-byte 16))
+  (emulatorspace 0 :type (unsigned-byte 16))
+  (screenwidth 0 :type (unsigned-byte 16))
+  (nxtpmaddr 0 :type (unsigned-byte 16))
+  (nactivepages 0 :type (unsigned-byte 16))
+  (ndirtypages 0 :type (unsigned-byte 16))
+  (filepnpmp0 0 :type (unsigned-byte 16))
+  (filepnpmt0 0 :type (unsigned-byte 16))
+  (teleraidfxp 0 :type (unsigned-byte 16))
+  (filler1 0 :type (unsigned-byte 16))
+  (filler2 0 :type (unsigned-byte 16))
+  (filler3 0 :type (unsigned-byte 16))
+  (usernameaddr 0 :type (unsigned-byte 16))
+  (userpswdaddr 0 :type (unsigned-byte 16))
+  (stackbase 0 :type (unsigned-byte 32))
+  (faulthi 0 :type (unsigned-byte 32))
+  (faultlo 0 :type (unsigned-byte 32))
+  (devconfig 0 :type (unsigned-byte 16))
+  (rptsize 0 :type (unsigned-byte 16))
+  (rpoffset 0 :type (unsigned-byte 16))
+  (wasrptlast 0 :type (unsigned-byte 16))
+  (embufvp 0 :type (unsigned-byte 16))
+  (fptovpstart 0 :type (unsigned-byte 16))
+  (fakemousebits 0 :type (unsigned-byte 16))
+  (dl24bitaddressable 0 :type (unsigned-byte 16))
+  (realpagetableptr 0 :type (unsigned-byte 32))
+  (dllastvmempage 0 :type (unsigned-byte 16))
+  (process-size 0 :type (unsigned-byte 16))
+  (storagefullstate 0 :type (unsigned-byte 16)))
 
-(defun validate-sysout (ifpage)
-  "Validate sysout file by checking keyval"
-  (declare (type ifpage ifpage))
-  (= (ifpage-keyval ifpage) +sysout-keyval+))
-
+;; Read functions for endianness handling
 (defun read-dlword (stream)
-  "Read a DLword (16-bit little-endian) from stream.
-   Handles endianness conversion if needed per task T073."
+  "Read 16-bit big-endian word from stream."
   (declare (type stream stream))
-  (let ((byte1 (read-byte stream))
-        (byte2 (read-byte stream)))
+  (let ((b1 (read-byte stream)) (b2 (read-byte stream)))
     (if (maiko-lisp.utils:little-endian-p)
-        (logior byte1 (ash byte2 8))
-        (logior (ash byte1 8) byte2))))
+        (logior (ash b1 8) b2)
+        (logior (ash b2 8) b1))))
 
 (defun read-lisp-ptr (stream)
-  "Read a LispPTR (32-bit little-endian) from stream.
-   Handles endianness conversion if needed per task T073."
+  "Read 32-bit big-endian LispPTR from stream."
   (declare (type stream stream))
-  (let ((byte1 (read-byte stream))
-        (byte2 (read-byte stream))
-        (byte3 (read-byte stream))
-        (byte4 (read-byte stream)))
-    (if (maiko-lisp.utils:little-endian-p)
-        (logior byte1
-                (ash byte2 8)
-                (ash byte3 16)
-                (ash byte4 24))
-        (logior (ash byte1 24)
-                (ash byte2 16)
-                (ash byte3 8)
-                byte4))))
+  (let ((w1 (read-dlword stream)) (w2 (read-dlword stream)))
+    (logior (ash w1 16) w2)))
 
 (defun read-ifpage (stream)
-  "Read IFPAGE structure from stream"
+  "Read IFPAGE structure from stream."
   (declare (type stream stream))
   (make-ifpage
-   :keyval (read-lisp-ptr stream)
-   :lversion (read-lisp-ptr stream)
-   :minbversion (read-lisp-ptr stream)
-   :process-size (read-lisp-ptr stream)
-   :nactivepages (read-lisp-ptr stream)
-   :fptovpstart (read-lisp-ptr stream)
-   :storagefullstate (read-lisp-ptr stream)
-   :stackbase (read-lisp-ptr stream)
-   :endofstack (read-lisp-ptr stream)
-   :currentfxp (read-lisp-ptr stream)))
+   :currentfxp (read-dlword stream) :resetsfxp (read-dlword stream)
+   :subovfxp (read-dlword stream) :kbdfxp (read-dlword stream)
+   :hardreturnfxp (read-dlword stream) :gcfxp (read-dlword stream)
+   :faultfxp (read-dlword stream) :endofstack (read-dlword stream)
+   :lversion (read-dlword stream) :minrversion (read-dlword stream)
+   :minbversion (read-dlword stream) :rversion (read-dlword stream)
+   :bversion (read-dlword stream) :machinetype (read-dlword stream)
+   :miscfxp (read-dlword stream) :key (read-dlword stream)
+   :serialnumber (read-dlword stream) :emulatorspace (read-dlword stream)
+   :screenwidth (read-dlword stream) :nxtpmaddr (read-dlword stream)
+   :nactivepages (read-dlword stream) :ndirtypages (read-dlword stream)
+   :filepnpmp0 (read-dlword stream) :filepnpmt0 (read-dlword stream)
+   :teleraidfxp (read-dlword stream) :filler1 (read-dlword stream)
+   :filler2 (read-dlword stream) :filler3 (read-dlword stream)
+   :usernameaddr (read-dlword stream) :userpswdaddr (read-dlword stream)
+   :stackbase (read-lisp-ptr stream) :faulthi (read-lisp-ptr stream)
+   :faultlo (read-lisp-ptr stream) :devconfig (read-dlword stream)
+   :rptsize (read-dlword stream) :rpoffset (read-dlword stream)
+   :wasrptlast (read-dlword stream) :embufvp (read-dlword stream)
+   :fptovpstart (read-dlword stream) :fakemousebits (read-dlword stream)
+   :dl24bitaddressable (read-dlword stream) :realpagetableptr (read-lisp-ptr stream)
+   :dllastvmempage (read-dlword stream) :process-size (read-dlword stream)
+   :storagefullstate (read-dlword stream)))
+
+(defun read-page (stream)
+  "Read 512-byte page, byte-swapped if needed."
+  (declare (type stream stream))
+  (let ((page (make-array +bytesper-page+ :element-type '(unsigned-byte 8))))
+    (read-sequence page stream)
+    (when (maiko-lisp.utils:little-endian-p)
+      (loop for i from 0 to 510 by 2 do
+        (rotatef (aref page i) (aref page (1+ i)))))
+    page))
+
+(defun read-fptovp-table (stream fptovp-start sysout-halfpages)
+  "Read FPtoVP table from stream."
+  (declare (type stream stream))
+  (let* ((size (+ sysout-halfpages 2))
+         (table (make-array size :element-type '(unsigned-byte 16))))
+    (loop for i below size do (setf (aref table i) (read-dlword stream)))
+    (when (maiko-lisp.utils:little-endian-p)
+      (loop for i below size do
+        (let ((v (aref table i)))
+          (setf (aref table i) (logior (ash (ldb (byte 8 0) v) 8) (ldb (byte 8 8) v))))))
+    table))
 
 (defun load-sysout (path)
-  "Load sysout file from path.
-   Returns IFPAGE structure and file contents as byte array."
+  "Load sysout file, returning (values ifpage fptovp virtual-memory)."
   (declare (type string path))
-  (handler-case
-      (with-open-file (stream path
-                             :element-type '(unsigned-byte 8)
-                             :direction :input)
-        ;; Read IFPAGE from beginning of file
-        ;; In actual sysout format, IFPAGE is at a specific offset
-        ;; For now, assume it's at the start
-        (let ((ifpage (read-ifpage stream)))
-          ;; Validate sysout
-          (unless (validate-sysout ifpage)
-            ;; Edge case: sysout version mismatch per task T072
-            (let ((expected-keyval +sysout-keyval+)
-                  (actual-keyval (ifpage-keyval ifpage))
-                  (version (ifpage-lversion ifpage)))
-              (error 'maiko-lisp.utils:sysout-load-failed
-                     :message (format nil "Invalid sysout keyval: expected ~X, got ~X (version: ~A)"
-                                     expected-keyval actual-keyval version))))
-
-          ;; Edge case: Check version compatibility per task T072
-          (let ((min-version 1)
-                (max-version 999))
-            (when (or (< (ifpage-lversion ifpage) min-version)
-                     (> (ifpage-minbversion ifpage) max-version))
-              (error 'maiko-lisp.utils:sysout-load-failed
-                     :message (format nil "Sysout version incompatible: lversion=~A, minbversion=~A"
-                                     (ifpage-lversion ifpage)
-                                     (ifpage-minbversion ifpage)))))
-
-          ;; Read remaining file contents
-          (file-position stream :start)
-          (let ((file-size (file-length stream))
-                (file-contents (make-array file-size
-                                           :element-type '(unsigned-byte 8))))
-            (read-sequence file-contents stream)
-            (values ifpage file-contents))))
-    (file-error (err)
-      (error 'maiko-lisp.utils:sysout-load-failed
-             :message (format nil "Failed to open sysout file ~A: ~A" path err)))
-    (end-of-file (err)
-      (error 'maiko-lisp.utils:sysout-load-failed
-             :message (format nil "Unexpected end of file while reading sysout: ~A" err)))))
+  (labels ((inner (stream)
+             (file-position stream +ifpage-address+)
+             (let ((ifpage (read-ifpage stream)))
+               (unless (validate-sysout ifpage)
+                 (error 'maiko-lisp.utils:sysout-load-failed
+                        :message (format nil "Invalid sysout key: ~X" (ifpage-key ifpage))))
+               (file-position stream :end)
+               (let* ((file-size (file-position stream))
+                      (halfpages (ash file-size -1))
+                      (fptovp-off (calculate-fptovp-offset (ifpage-fptovpstart ifpage))))
+                 (file-position stream fptovp-off)
+                 (let ((fptovp (read-fptovp-table stream (ifpage-fptovpstart ifpage) halfpages)))
+                   (let* ((proc-size (ifpage-process-size ifpage))
+                           (vm-size (* (or proc-size 64) 1024 1024))
+                           (numpages (ash vm-size -9))
+                           (vmem (make-array numpages :initial-element nil)))
+                     (file-position stream :start)
+                     (loop for fp from 0 below halfpages
+                           for pg = (make-array +bytesper-page+ :element-type '(unsigned-byte 8))
+                           do (when (plusp (get-page-ok fptovp fp))
+                                (read-sequence pg stream)
+                                (when (maiko-lisp.utils:little-endian-p)
+                                  (loop for i from 0 to 510 by 2 do (rotatef (aref pg i) (aref pg (1+ i)))))
+                                (let ((vp (get-fptovp fptovp fp)))
+                                  (when (< vp numpages) (setf (aref vmem vp) pg))))
+                           finally (return (values ifpage fptovp vmem)))))))))
+    (handler-case
+        (with-open-file (stream path :element-type '(unsigned-byte 8) :direction :input)
+          (inner stream))
+      (file-error (e)
+        (error 'maiko-lisp.utils:sysout-load-failed
+               :message (format nil "Cannot open ~A: ~A" path e)))
+      (end-of-file (e)
+        (error 'maiko-lisp.utils:sysout-load-failed
+               :message (format nil "Unexpected EOF in ~A: ~A" path e))))))

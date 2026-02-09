@@ -148,6 +148,10 @@ pub fn dispatch(vm: *VM, max_steps_override: ?u64) errors.VMError!void {
                 return err;
             };
             if (!should_continue) {
+                // When step cap is set, ignore should_continue=false and continue until we hit the cap
+                if (max_steps_opt != null) {
+                    continue :dispatch_loop;
+                }
                 return; // Stop execution
             }
         } else {
@@ -178,6 +182,10 @@ pub fn dispatch(vm: *VM, max_steps_override: ?u64) errors.VMError!void {
                 return err;
             };
             if (!should_continue) {
+                // When step cap is set, ignore should_continue=false and continue until we hit the cap
+                if (max_steps_opt != null) {
+                    continue :dispatch_loop;
+                }
                 return; // Stop execution
             }
         }

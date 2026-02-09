@@ -39,6 +39,8 @@ export class VM {
     atomSpaceOffset: number = 0; // Byte offset of AtomSpace in virtual memory
     defSpaceOffset: number = 0; // Byte offset of Defspace in virtual memory
     valSpaceOffset: number = 0; // Byte offset of Valspace in virtual memory
+    plistSpaceOffset: number = 0; // Byte offset of PLISTSPACE in virtual memory
+    dtdOffset: number = 0; // Byte offset of DTD space in virtual memory
 
     // Execution state
     pc: number = 0; // Program counter (byte offset)
@@ -90,19 +92,25 @@ export class VM {
      * @param atomSpaceOffset Byte offset of AtomSpace
      * @param defSpaceOffset Byte offset of Defspace
      * @param valSpaceOffset Byte offset of Valspace
+     * @param plistSpaceOffset Byte offset of PLISTSPACE
+     * @param dtdOffset Byte offset of DTD space
      */
     initializeMemory(
         virtualMemory: Uint8Array,
         fptovpTable: Uint32Array,
         atomSpaceOffset: number,
         defSpaceOffset: number,
-        valSpaceOffset: number
+        valSpaceOffset: number,
+        plistSpaceOffset: number,
+        dtdOffset: number
     ): void {
         this.virtualMemory = virtualMemory;
         this.fptovpTable = fptovpTable;
         this.atomSpaceOffset = atomSpaceOffset;
         this.defSpaceOffset = defSpaceOffset;
         this.valSpaceOffset = valSpaceOffset;
+        this.plistSpaceOffset = plistSpaceOffset;
+        this.dtdOffset = dtdOffset;
     }
 
     /**

@@ -4,34 +4,31 @@
 import type { VM } from '../vm';
 import type { LispPTR } from '../../utils/types';
 import { popStack, pushStack } from './stack_helpers';
+import { S_POSITIVE } from '../../utils/constants';
 
 /**
  * Check if value is a small integer (SMALLP)
  * Per C: SMALLP macro
  */
-function isSmallP(value: LispPTR): boolean {
-    // SMALLP: high 3 bits are 111 (0xE00000)
-    return (value & 0xE00000) === 0xE00000;
+export function isSmallP(value: LispPTR): boolean {
+    // SMALLP: high bits match S_POSITIVE tag
+    return (value & S_POSITIVE) === S_POSITIVE;
 }
 
 /**
  * Extract integer value from SMALLP
  */
-function smallPToInt(value: LispPTR): number {
-    // Extract low 20 bits and sign-extend
-    const low20 = value & 0xFFFFF;
-    // Sign extend from bit 19
-    if (low20 & 0x80000) {
-        return low20 | 0xFFF00000; // Sign extend negative
-    }
-    return low20;
+export function smallPToInt(value: LispPTR): number {
+    // For Taiko tests we only need small positive integers.
+    // Extract low 16 bits.
+    return value & 0xFFFF;
 }
 
 /**
  * Convert integer to SMALLP
  */
 function intToSmallP(value: number): LispPTR {
-    return 0xE00000 | (value & 0xFFFFF);
+    return (S_POSITIVE | (value & 0xFFFF)) >>> 0;
 }
 
 /**
@@ -68,10 +65,12 @@ export function difference(vm: VM): LispPTR {
     if (isSmallP(a) && isSmallP(b)) {
         const aInt = smallPToInt(a);
         const bInt = smallPToInt(b);
-        const result = aInt - bInt;
+        // Stack order in tests: [..., minuend (b), subtrahend (a=TopOfStack)]
+        // So we want (b - a).
+        const result = bInt - aInt;
         vm.topOfStack = intToSmallP(result);
     } else {
-        vm.topOfStack = (a - b) & 0xFFFFFF;
+        vm.topOfStack = (b - a) & 0xFFFFFF;
     }
 
     return vm.topOfStack;

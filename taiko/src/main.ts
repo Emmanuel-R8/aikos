@@ -4,6 +4,7 @@ import { runVM, executeStep } from './vm/execution';
 import { loadSysout } from './io/sysout';
 import { WebGLRenderer } from './display/webgl';
 import { ExecutionTrace } from './vm/trace';
+import { initializeVM } from './vm/initialization';
 
 /**
  * Taiko emulator class
@@ -54,11 +55,26 @@ export class TaikoEmulator {
       result.fptovpTable,
       result.atomSpaceOffset,
       result.defSpaceOffset,
-      result.valSpaceOffset
+      result.valSpaceOffset,
+      result.plistSpaceOffset,
+      result.dtdOffset
     );
-    this.vm.pc = result.initialPC;
-    this.vm.stackPtr = result.initialSP;
-    this.vm.cstkptrl = result.initialSP;
+
+    // Initialize VM state (similar to C start_lisp())
+    // This sets up stack, frame, PC, IVar, FuncObj from the sysout state
+    console.error('Calling initializeVM...');
+    const initSuccess = initializeVM(this.vm, result.ifpage);
+    console.error(`initializeVM result: ${initSuccess}`);
+    if (!initSuccess) {
+      // Fallback: use initial values from sysout loading
+      // This happens when the stack is sparse (not loaded from sysout)
+      this.vm.pc = result.initialPC;
+      this.vm.stackPtr = result.initialSP;
+      this.vm.cstkptrl = result.initialSP;
+      console.error('VM initialization failed (sparse stack?), using fallback values');
+    } else {
+      console.error(`VM initialized successfully: PC=0x${this.vm.pc.toString(16)}, SP=0x${this.vm.stackPtr.toString(16)}`);
+    }
 
     // Initialize display region from IFPAGE
     // TODO: Get actual display address from IFPAGE or sysout

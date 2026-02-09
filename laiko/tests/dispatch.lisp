@@ -25,7 +25,7 @@
 
 (defun test-dispatch-simple-sequence ()
   "Test dispatch loop with simple opcode sequence"
-  (let ((vm (maiko-lisp.vm:make-vm 1024))
+  (let ((vm (maiko-lisp.vm:create-vm 1024))
         (code (make-array 5
                          :element-type 'maiko-lisp.utils:bytecode
                          :initial-contents '(#x68  ; NIL
@@ -39,7 +39,7 @@
         (progn
           ;; Initialize interrupt state
           (setf (maiko-lisp.vm:vm-interrupt-state vm)
-                (maiko-lisp.vm:make-interrupt-state))
+                (maiko-lisp.vm:create-interrupt-state))
           ;; Dispatch will check interrupts and execute opcodes
           ;; For now, just verify it doesn't crash
           (maiko-lisp.vm:dispatch vm code)

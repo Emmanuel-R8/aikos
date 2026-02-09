@@ -5,7 +5,7 @@
 
 (defun test-iplus2 ()
   "Test IPLUS2 opcode: Integer addition"
-  (let ((vm (maiko-lisp.vm:make-vm 1024)))
+  (let ((vm (maiko-lisp.vm:create-vm 1024)))
     ;; Push two values: 10 and 20
     (maiko-lisp.vm:push-stack vm 10)
     (maiko-lisp.vm:push-stack vm 20)
@@ -17,7 +17,7 @@
 
 (defun test-idifference ()
   "Test IDIFFERENCE opcode: Integer subtraction"
-  (let ((vm (maiko-lisp.vm:make-vm 1024)))
+  (let ((vm (maiko-lisp.vm:create-vm 1024)))
     ;; Push two values: 20 and 10
     (maiko-lisp.vm:push-stack vm 20)
     (maiko-lisp.vm:push-stack vm 10)
@@ -29,7 +29,7 @@
 
 (defun test-itimes2 ()
   "Test ITIMES2 opcode: Integer multiplication"
-  (let ((vm (maiko-lisp.vm:make-vm 1024)))
+  (let ((vm (maiko-lisp.vm:create-vm 1024)))
     ;; Push two values: 5 and 6
     (maiko-lisp.vm:push-stack vm 5)
     (maiko-lisp.vm:push-stack vm 6)
@@ -41,7 +41,7 @@
 
 (defun test-iquo ()
   "Test IQUO opcode: Integer division"
-  (let ((vm (maiko-lisp.vm:make-vm 1024)))
+  (let ((vm (maiko-lisp.vm:create-vm 1024)))
     ;; Push two values: 20 and 5
     (maiko-lisp.vm:push-stack vm 20)
     (maiko-lisp.vm:push-stack vm 5)
@@ -53,7 +53,7 @@
 
 (defun test-irem ()
   "Test IREM opcode: Integer remainder"
-  (let ((vm (maiko-lisp.vm:make-vm 1024)))
+  (let ((vm (maiko-lisp.vm:create-vm 1024)))
     ;; Push two values: 23 and 5
     (maiko-lisp.vm:push-stack vm 23)
     (maiko-lisp.vm:push-stack vm 5)

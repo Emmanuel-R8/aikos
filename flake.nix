@@ -72,14 +72,12 @@
 
               # IDEs
               bun # For amp
-              # openskills
-              # gemini-cli
-
               code-cursor
               vscode
             ])
             ++ (with llmsPkgs; [
               cursor-agent
+              amp
               kilocode-cli
               opencode
               openskills

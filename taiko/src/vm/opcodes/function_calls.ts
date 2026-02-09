@@ -81,8 +81,10 @@ function handleFN(vm: VM, instruction: Instruction, argCount: number): number | 
     // Calculate nextblock (IVAR base)
     // C: IVARL = (DLword *)(CSTKPTR - (argcount) + 1)
     // C: CURRENTFX->nextblock = StackOffsetFromNative(IVARL)
+    // IVAR points to where arguments start (before the frame)
     const ivarOffset = vm.stackPtr - (argCount * 4) + 4; // +4 for TOS
     const nextblock = (ivarOffset - vm.stackBase) / 2; // Convert to DLword offset
+    vm.ivar = ivarOffset; // Set IVAR pointer
 
     // Push TOS (save current top of stack)
     // C: HARD_PUSH(TOPOFSTACK)
@@ -185,7 +187,13 @@ function handleFNX(vm: VM, instruction: Instruction): number | null {
 /**
  * RETURN opcode handler
  * Return from function call
- * Per C: OPRETURN macro in maiko/inc/tosret.h
+ * Per C: OPRETURN macro and FastRetCALL in maiko/inc/retmacro.h
+ *
+ * Stack layout:
+ *   [returnValue] <- TOPOFSTACK
+ *   [FX marker]   <- Current frame
+ *   [BF marker]   <- Binding frame
+ *   [previous frame data]
  */
 function handleRETURN(vm: VM, instruction: Instruction): number | null {
     if (vm.virtualMemory === null || vm.cstkptrl === null) return null;
@@ -193,12 +201,13 @@ function handleRETURN(vm: VM, instruction: Instruction): number | null {
     // Get return value from TOPOFSTACK
     const returnValue = vm.topOfStack;
 
-    // Find FX marker on stack
-    // C: Walks backwards to find FX marker
+    // Find FX marker on stack (walk backwards from CSTKPTRL)
+    // C: Searches backwards for FX_MARK (0x40000000 in upper word)
     let fxFound = false;
     let fxOffset = vm.cstkptrl;
 
     // Search for FX marker (FX_MARK in upper word)
+    // FX marker is at: (FX_MARK << 16) | (pvarOffset & 0xFFFF)
     for (let i = 0; i < 1000; i++) {
         fxOffset -= 4;
         if (fxOffset < vm.stackEnd || fxOffset >= vm.stackBase) {
@@ -206,7 +215,7 @@ function handleRETURN(vm: VM, instruction: Instruction): number | null {
         }
 
         const value = MemoryManager.Access.readLispPTR(vm.virtualMemory, fxOffset);
-        if ((value & 0x40000000) !== 0) { // FX_MARK
+        if ((value & FX_MARK) !== 0) { // FX_MARK = 0x40000000
             fxFound = true;
             break;
         }
@@ -217,27 +226,52 @@ function handleRETURN(vm: VM, instruction: Instruction): number | null {
         return null;
     }
 
+    // Read frame structure (FX is 10 DLwords = 20 bytes)
+    // Per maiko/inc/stack.h: frameex2 structure
+    // Offset 0-1: flags_usecount, alink
+    // Offset 2-3: lofnheader, hi1fnheader_hi2fnheader (BIGVM: fnheader at offset 2)
+    // Offset 4-5: nextblock, pc
+    // Offset 6-7: lonametable, hi1nametable_hi2nametable (BIGVM: nametable at offset 6)
+    // Offset 8-9: blink, clink
+
+    // Get IVar from BF marker (word BEFORE FX)
+    // C: IVar = NativeAligned2FromStackOffset(GETWORD((DLword *)CURRENTFX - 1))
+    const bfMarkerOffset = fxOffset - 4; // BF marker is 4 bytes before FX
+    const bfMarker = MemoryManager.Access.readLispPTR(vm.virtualMemory, bfMarkerOffset);
+    const nextblock = bfMarker & 0xFFFF; // Extract nextblock from BF marker
+    const ivarOffset = vm.stackBase + (nextblock * 2); // Convert DLword offset to byte offset
+    vm.ivar = ivarOffset;
+
     // Read function header pointer from frame
     // C: FuncObj = (struct fnhead *)NativeAligned4FromLAddr(FX_FNHEADER)
-    const fnheaderPtr = MemoryManager.Access.readLispPTR(vm.virtualMemory, fxOffset);
-    const fnheader = DefCellManager.readFunctionHeader(vm.virtualMemory, fnheaderPtr & 0x7FFFFFFF);
+    // For BIGVM: fnheader is at offset 2 (single LispPTR)
+    // For non-BIGVM: lofnheader at offset 2, hi2fnheader at offset 3
+    const lofnheader = MemoryManager.Access.readDLword(vm.virtualMemory, fxOffset + 4);
+    const hifnheader = MemoryManager.Access.readDLword(vm.virtualMemory, fxOffset + 6);
+    const fnheaderPtr = (hifnheader << 16) | lofnheader;
 
+    const fnheader = DefCellManager.readFunctionHeader(vm.virtualMemory, fnheaderPtr);
     if (!fnheader) {
         console.warn('RETURN: Failed to read function header');
         return null;
     }
 
     // Restore PC from frame
-    // C: PC = FuncObj + returnFX->pc
-    const framePcOffset = fxOffset + 10; // PC is at offset 10 (5 DLwords) in frame
-    const savedPc = MemoryManager.Access.readDLword(vm.virtualMemory, framePcOffset);
-    const fnheaderByteOffset = MemoryManager.Address.lispPtrToByte(fnheaderPtr & 0x7FFFFFFF);
+    // C: PC = FuncObj + CURRENTFX->pc
+    const savedPc = MemoryManager.Access.readDLword(vm.virtualMemory, fxOffset + 10); // PC is at offset 10 (5 DLwords)
+    const fnheaderByteOffset = MemoryManager.Address.lispPtrToByte(fnheaderPtr);
     vm.pc = fnheaderByteOffset + savedPc;
     vm.funcObj = fnheaderByteOffset;
 
-    // Restore stack pointer (pop frame and BF)
-    // C: Restore CSTKPTRL to previous frame
-    // Simplified: restore to position before FX marker
+    // Restore PVAR from FX marker
+    // C: PVar = ((DLword *)returnFX) + FRAMESIZE
+    // FX marker contains pvarOffset: (FX_MARK << 16) | (pvarOffset & 0xFFFF)
+    const fxMarker = MemoryManager.Access.readLispPTR(vm.virtualMemory, fxOffset);
+    const pvarOffset = (fxMarker & 0xFFFF) * 2; // Convert DLword offset to byte offset
+    vm.pvar = vm.stackBase + pvarOffset;
+
+    // Restore stack pointer to position before FX marker
+    // C: CurrentStackPTR = next68k - 2 (before FX marker)
     vm.stackPtr = fxOffset;
     vm.cstkptrl = fxOffset;
 

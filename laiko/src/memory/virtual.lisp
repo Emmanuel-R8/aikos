@@ -13,7 +13,7 @@
   (page-map nil :type (simple-array (unsigned-byte 8) (*)))
   (size 0 :type (integer 0 *)))
 
-(defun make-virtual-memory (size)
+(defun create-virtual-memory (size)
   "Create virtual memory with given size"
   (declare (type (integer 1 *) size))
   (make-virtual-memory :fptovp (make-array size

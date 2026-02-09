@@ -31,6 +31,8 @@
     #:stack-overflow-message
     #:invalid-address
     #:vm-division-by-zero
+    #:vm-arithmetic-error
+    #:vm-arithmetic-error-message
     #:sysout-load-failed
     #:sysout-load-failed-message))
 
@@ -78,8 +80,14 @@
     #:*byte-opcode-map*
     #:*max-trace-steps*
     #:*trace-step*
+<<<<<<< Updated upstream
     #:bind-marker-msb
     #:unbound-marker
+=======
+    ;; Binding operations
+    #:+bind-marker-msb+
+    #:+unbound-marker+
+>>>>>>> Stashed changes
     #:get-pvar-slot
     #:set-pvar-slot
     ;; Opcode handlers

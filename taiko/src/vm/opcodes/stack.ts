@@ -38,6 +38,54 @@ function handlePOP_N(vm: VM, instruction: Instruction): number | null {
     return null;
 }
 
+/**
+ * SWAP opcode handler
+ * Swap top two stack values
+ * Per C: SWAP macro in maiko/inc/inlineC.h
+ *
+ * Stack: [tos, tos1] -> [tos1, tos]
+ *
+ * Algorithm:
+ * 1. Get TOPOFSTACK (tos)
+ * 2. Get GET_TOS_1 (tos1) - value below tos
+ * 3. Swap them: TOPOFSTACK = tos1, GET_TOS_1 = tos
+ */
+function handleSWAP(vm: VM, instruction: Instruction): number | null {
+    if (vm.virtualMemory === null) return null;
+
+    // Get TOPOFSTACK
+    const tos = vm.topOfStack;
+
+    // Get GET_TOS_1 (value below TOPOFSTACK on stack)
+    // This is at CSTKPTRL - 4 (one LispPTR below current)
+    const tos1Offset = vm.cstkptrl - 4;
+    if (tos1Offset < 0 || tos1Offset + 4 > vm.virtualMemory.length) {
+        return null; // Invalid stack position
+    }
+
+    const tos1 = MemoryManager.Access.readLispPTR(vm.virtualMemory, tos1Offset);
+
+    // Swap: TOPOFSTACK = tos1, GET_TOS_1 = tos
+    vm.topOfStack = tos1;
+    MemoryManager.Access.writeLispPTR(vm.virtualMemory, tos1Offset, tos);
+
+    return null;
+}
+
+/**
+ * NOP opcode handler
+ * No operation - just advances PC
+ * Per C: NOP macro (no-op)
+ *
+ * Stack: [] -> []
+ */
+function handleNOP(vm: VM, instruction: Instruction): number | null {
+    // No operation - just advance PC
+    return null;
+}
+
 // Register handlers
 registerOpcodeHandler(Opcode.POP, handlePOP);
 registerOpcodeHandler(Opcode.POP_N, handlePOP_N);
+registerOpcodeHandler(Opcode.SWAP, handleSWAP);
+registerOpcodeHandler(Opcode.NOP, handleNOP);

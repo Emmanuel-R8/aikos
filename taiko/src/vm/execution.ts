@@ -3,6 +3,7 @@ import type { VM } from './vm';
 import { decodeInstructionFromMemory } from './dispatch/decoder';
 import type { Instruction } from './dispatch/opcode';
 import { routeOpcode } from './opcodes/index';
+import type { ExecutionTrace } from './trace';
 
 // Import opcode handlers to register them
 import './opcodes/constants';
@@ -17,20 +18,17 @@ import './opcodes/list';
 import './opcodes/copy';
 import './opcodes/binding';
 import './opcodes/function_calls';
+import './opcodes/comparison';
+import './opcodes/memory_ops';
+import './opcodes/misc';
+import './opcodes/type_checking';
 
 /**
  * Execute a single instruction
  * Returns jump offset if instruction is a jump, null otherwise
  */
 export function executeInstruction(vm: VM, instruction: Instruction): number | null {
-    // CRITICAL: Sync CSTKPTRL and TOPOFSTACK before each instruction
-    // Per C: StackPtrRestore() macro restores CSTKPTRL from CurrentStackPTR
-    vm.initCSTKPTRLFromCurrentStackPTR();
-    // CRITICAL: TOPOFSTACK must be read from memory after restoring CSTKPTRL
-    vm.syncTopOfStack();
-
-    // TODO: Route to opcode handler
-    // For now, just advance PC
+    // Route to opcode handler and execute it
     const jumpOffset = executeOpcode(vm, instruction);
 
     return jumpOffset;
@@ -75,8 +73,11 @@ function executeOpcode(vm: VM, instruction: Instruction): number | null {
 /**
  * Execute one step of the VM
  * Returns true if execution should continue, false if it should stop
+ *
+ * @param vm VM instance
+ * @param tracer Optional execution tracer (for parity testing)
  */
-export function executeStep(vm: VM): boolean {
+export function executeStep(vm: VM, tracer?: ExecutionTrace): boolean {
     if (vm.virtualMemory === null) {
         return false;
     }
@@ -92,12 +93,21 @@ export function executeStep(vm: VM): boolean {
         return false;
     }
 
+    // CRITICAL: Sync CSTKPTRL and TOPOFSTACK before each instruction
+    vm.initCSTKPTRLFromCurrentStackPTR();
+    vm.syncTopOfStack();
+
     // Decode instruction at PC
     const instruction = decodeInstructionFromMemory(vm, vm.pc);
     if (instruction === null) {
         // Invalid instruction or end of memory
         vm.stopRequested = true;
         return false;
+    }
+
+    // Log instruction before execution (if tracer provided)
+    if (tracer) {
+        tracer.logInstruction(vm, instruction, false);
     }
 
     // Execute instruction

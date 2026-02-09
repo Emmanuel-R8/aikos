@@ -91,6 +91,19 @@ export class MemoryAccessManager {
     }
 
     /**
+     * Write byte to memory
+     *
+     * @param memory Memory array
+     * @param offset Byte offset
+     * @param value Byte value to write
+     */
+    static writeByte(memory: Uint8Array, offset: number, value: number): void {
+        if (offset >= 0 && offset < memory.length) {
+            memory[ offset ] = value & 0xFF;
+        }
+    }
+
+    /**
      * Write 16-bit DLword to memory (little-endian)
      *
      * @param memory Memory array
@@ -152,6 +165,15 @@ export class MemoryAccessManager {
 export class MemoryManager {
     static readonly Address = AddressManager;
     static readonly FPtoVP = FPtoVPManager;
-    static readonly Endianness = EndiannessManager;
+    static readonly Endianness = {
+        needsByteSwap: EndiannessManager.needsByteSwap,
+        swapU32: EndiannessManager.swapU32,
+        swapU16: EndiannessManager.swapU16,
+        applyXorAddressing: EndiannessManager.applyXorAddressing,
+        readWordXor: EndiannessManager.readWordXor,
+        readWordLittleEndian: EndiannessManager.readWordLittleEndian,
+        readByteXor: EndiannessManager.readByteXor,
+        getXorAddress: (addr: number) => EndiannessManager.applyXorAddressing(addr),
+    };
     static readonly Access = MemoryAccessManager;
 }

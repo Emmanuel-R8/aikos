@@ -4,7 +4,7 @@
 ;; Per rewrite documentation io/file-system.md
 ;; Per contracts/io-interface.lisp
 
-(defun translate-pathname (lisp-pathname)
+(defun maiko-translate-pathname (lisp-pathname)
   "Translate Lisp pathname to platform path per contracts/io-interface.lisp"
   (declare (type (or string pathname) lisp-pathname))
   (let ((path (if (stringp lisp-pathname)
@@ -23,7 +23,7 @@
   (declare (type (or string pathname) pathname)
            (type (member :input :output :io) direction))
   (handler-case
-      (let ((platform-path (translate-pathname pathname)))
+      (let ((platform-path (maiko-translate-pathname pathname)))
         (ecase direction
           (:input
            (open platform-path :direction :input :element-type '(unsigned-byte 8)))

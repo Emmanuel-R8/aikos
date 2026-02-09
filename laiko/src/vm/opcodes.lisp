@@ -1,5 +1,4 @@
 (in-package :maiko-lisp.vm)
-
 ;; Opcode handlers
 ;; Per rewrite documentation instruction-set/opcodes.md
 
@@ -1352,3 +1351,33 @@
   (declare (type vm vm))
   ;; For now, same as EQUAL
   (handle-equal vm))
+=======
+;; Opcode module re-export
+;; This file re-exports all modular opcode handlers
+;; Original handlers have been split into:
+;;   - op-stack.lisp: Stack and constant operations
+;;   - op-arithmetic.lisp: Integer arithmetic
+;;   - op-list.lisp: List operations
+;;   - op-comparison.lisp: Comparison operations
+;;   - op-variable.lisp: Variable access (IVAR, PVAR, FVAR, GVAR)
+;;   - op-control.lisp: Control flow (JUMP, FN*, RETURN)
+;;   - op-memory.lisp: Memory and array access
+;;   - op-logic.lisp: Bitwise and logical operations
+;;   - op-misc.lisp: Miscellaneous operations
+;;   - opcodes-main.lisp: Dispatch table and registration
+
+;; Re-export all handlers from modular files
+(require "op-stack")
+(require "op-arithmetic")
+(require "op-list")
+(require "op-comparison")
+(require "op-variable")
+(require "op-control")
+(require "op-memory")
+(require "op-logic")
+(require "op-const")
+(require "op-misc")
+(require "opcodes-main")
+
+;; Initialize handlers on load
+(initialize-opcode-handlers)

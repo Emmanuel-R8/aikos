@@ -15,14 +15,14 @@ import { MemoryManager } from '../memory/manager';
 export function pushStack(vm: VM, value: LispPTR): void {
     if (vm.virtualMemory === null) return;
 
-    // Update TopOfStack cache
-    vm.topOfStack = value;
-
-    // Update CSTKPTRL to point to new stack position
+    // Stack grows DOWN from stackBase.
+    // When empty, CSTKPTRL is null and stackPtr == stackBase.
     if (vm.cstkptrl === null) {
-        vm.cstkptrl = vm.stackPtr;
+        // First push: place value at stackBase - 4
+        vm.cstkptrl = vm.stackBase - 4;
     } else {
-        vm.cstkptrl += 4; // Move forward one LispPTR (4 bytes)
+        // Subsequent pushes: move down one cell (4 bytes)
+        vm.cstkptrl -= 4;
     }
 
     // Write value to memory at CSTKPTRL
@@ -30,7 +30,8 @@ export function pushStack(vm: VM, value: LispPTR): void {
         MemoryManager.Access.writeLispPTR(vm.virtualMemory, vm.cstkptrl, value);
     }
 
-    // Update stack pointer
+    // Update cached TopOfStack and stack pointer
+    vm.topOfStack = value;
     vm.stackPtr = vm.cstkptrl;
 }
 
@@ -44,25 +45,36 @@ export function pushStack(vm: VM, value: LispPTR): void {
 export function popStack(vm: VM): LispPTR {
     if (vm.virtualMemory === null) return 0;
 
-    // Read current TopOfStack
-    const value = vm.topOfStack;
+    // Empty stack
+    if (vm.cstkptrl === null) {
+        vm.topOfStack = 0;
+        vm.stackPtr = vm.stackBase;
+        return 0;
+    }
 
-    // Move CSTKPTRL back one position
-    if (vm.cstkptrl !== null && vm.cstkptrl >= 4) {
-        vm.cstkptrl -= 4; // Move back one LispPTR (4 bytes)
+    // Read value at current CSTKPTRL
+    let value = 0;
+    if (vm.cstkptrl >= 0 && vm.cstkptrl + 4 <= vm.virtualMemory.length) {
+        value = MemoryManager.Access.readLispPTR(vm.virtualMemory, vm.cstkptrl);
+    }
 
-        // Read new TopOfStack from memory
+    // If this was the last element (at stackBase - 4), clear the stack
+    if (vm.cstkptrl === vm.stackBase - 4) {
+        vm.cstkptrl = null;
+        vm.stackPtr = vm.stackBase;
+        vm.topOfStack = 0;
+    } else {
+        // Move CSTKPTRL up one cell (toward stackBase)
+        vm.cstkptrl += 4;
+        vm.stackPtr = vm.cstkptrl;
+
+        // Update TopOfStack to new top element
         if (vm.cstkptrl >= 0 && vm.cstkptrl + 4 <= vm.virtualMemory.length) {
             vm.topOfStack = MemoryManager.Access.readLispPTR(vm.virtualMemory, vm.cstkptrl);
         } else {
-            vm.topOfStack = 0; // NIL
+            vm.topOfStack = 0;
         }
-    } else {
-        vm.topOfStack = 0; // NIL
     }
-
-    // Update stack pointer
-    vm.stackPtr = vm.cstkptrl ?? vm.stackBase;
 
     return value;
 }

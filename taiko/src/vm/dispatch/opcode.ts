@@ -281,6 +281,19 @@ export function getInstructionLength(opcode: Opcode): number {
     if (opcode === Opcode.JUMPXX) {
         return 5; // opcode + 4-byte offset
     }
+    // Opcodes with 1-byte operands
+    if (opcode === Opcode.RPLPTR_N ||
+        opcode === Opcode.TYPEP ||
+        opcode === Opcode.GVAR_ ||
+        opcode === Opcode.GCREF ||
+        opcode === Opcode.ASSOC ||
+        opcode === Opcode.RESTLIST) {
+        return 2; // opcode + 1-byte operand
+    }
+    // Opcodes with 2-byte operands
+    if (opcode === Opcode.DTEST || opcode === Opcode.UNWIND) {
+        return 3; // opcode + 2-byte operand
+    }
     // Default: 1 byte opcode
     return 1;
 }

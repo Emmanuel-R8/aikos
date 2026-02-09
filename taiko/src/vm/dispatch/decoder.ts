@@ -27,14 +27,46 @@ export function decodeInstructionFromMemory(vm: VM, pc: number): Instruction | n
 
     const memory = vm.virtualMemory;
 
+    // Debug: Check bounds and XOR address
+    const xorAddr = pc ^ 3;
+    if (pc >= memory.length) {
+        console.error(`decodeInstructionFromMemory: PC=0x${pc.toString(16)} out of bounds (memory length=0x${memory.length.toString(16)})`);
+        return null;
+    }
+    if (xorAddr >= memory.length) {
+        // XOR address out of bounds - this means we're trying to read from a sparse/unloaded page
+        // This can happen when code spans multiple pages and some are sparse
+        // In a real sysout, this shouldn't happen for valid code, but we handle it gracefully
+        console.error(`decodeInstructionFromMemory: XOR address=0x${xorAddr.toString(16)} out of bounds (memory length=0x${memory.length.toString(16)})`);
+        console.error(`decodeInstructionFromMemory: Sparse page detected - code page not loaded`);
+        console.error(`decodeInstructionFromMemory: Execution stopped at PC=0x${pc.toString(16)} - sparse page encountered`);
+        return null;
+    }
+
+    // Check if the page containing the XOR address is sparse (all zeros)
+    const pageStart = Math.floor(xorAddr / 512) * 512;
+    const pageEnd = Math.min(pageStart + 512, memory.length);
+    if (pageEnd > pageStart) {
+        const pageBytes = memory.slice(pageStart, pageEnd);
+        const isSparse = pageBytes.every(b => b === 0);
+        if (isSparse) {
+            console.error(`decodeInstructionFromMemory: Page at 0x${pageStart.toString(16)} is sparse (all zeros)`);
+            console.error(`decodeInstructionFromMemory: Execution stopped at PC=0x${pc.toString(16)} - sparse page encountered`);
+            return null;
+        }
+    }
+
     // Fetch opcode byte with XOR addressing
     const opcodeByte = MemoryManager.Access.readByteXor(memory, pc);
     if (opcodeByte === null) {
+        console.error(`decodeInstructionFromMemory: Failed to read opcode byte at PC=0x${pc.toString(16)}, XOR addr=0x${xorAddr.toString(16)}`);
+        console.error(`decodeInstructionFromMemory: Raw byte at PC=0x${memory[pc]?.toString(16) ?? 'undefined'}, at XOR addr=0x${memory[xorAddr]?.toString(16) ?? 'undefined'}`);
         return null;
     }
 
     const opcode = decodeOpcode(opcodeByte);
     if (opcode === null) {
+        console.error(`decodeInstructionFromMemory: Unknown opcode 0x${opcodeByte.toString(16)} at PC=0x${pc.toString(16)} (XOR addr=0x${xorAddr.toString(16)}, raw byte=0x${memory[xorAddr]?.toString(16) ?? 'undefined'})`);
         return null; // Unknown opcode
     }
 

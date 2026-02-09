@@ -1,6 +1,6 @@
 (in-package :maiko-lisp.vm)
 
-;; Dispatch loop
+;; dispatch loop
 ;; Per rewrite documentation vm-core/execution-model.md
 
 (defun fetch-instruction-byte (pc code)
@@ -9,7 +9,7 @@
            (type (simple-array maiko-lisp.utils:bytecode (*)) code))
   (if (< pc (length code))
       (aref code pc)
-      0)) ; Invalid/end of code
+      0))
 
 (defun fetch-operands (pc code length)
   "Fetch operands for instruction starting at PC.
@@ -17,11 +17,11 @@
   (declare (type maiko-lisp.utils:lisp-ptr pc)
            (type (simple-array maiko-lisp.utils:bytecode (*)) code)
            (type (integer 1 *) length))
-  (let ((operand-count (1- length))) ; Subtract 1 for opcode byte
+  (let ((operand-count (1- length)))
     (if (<= (+ pc length) (length code))
         (loop for i from 1 to operand-count
               collect (aref code (+ pc i)))
-        nil))) ; Not enough bytes
+        nil)))
 
 (defun decode-opcode (byte)
   "Decode opcode from byte. Returns opcode value."
@@ -32,23 +32,17 @@
   "Get instruction length for opcode based on opcode value.
    Returns total instruction length in bytes (opcode + operands)."
   (declare (type (unsigned-byte 8) opcode))
-  ;; Most opcodes are 1 byte (opcode only)
-  ;; Some opcodes have operands:
-  ;; - TYPEP (0x05): 2 bytes (opcode + 1 byte type)
-  ;; - BIND (0x0A): 2 bytes (opcode + 1 byte count)
-  ;; - JUMP variants: 2 bytes (opcode + 1 byte signed offset)
-  ;; - Atom references: 2-3 bytes depending on BIGATOMS
   (case opcode
-    ;; 1-byte opcodes (most common)
-    (#x67 3) ; ACONST (opcode + 2 byte atom index)
+    ;; 1-byte opcodes
+    (#x67 3) ; ACONST
     (#x68 1) ; NIL
     (#x69 1) ; T
     (#x6A 1) ; CONST_0
     (#x6B 1) ; CONST_1
-    (#x6C 2) ; SIC (opcode + 1 byte value)
-    (#x6D 2) ; SNIC (opcode + 1 byte value)
-    (#x6E 3) ; SICX (opcode + 2 byte value)
-    (#x6F 3) ; GCONST (opcode + 2 byte index)
+    (#x6C 2) ; SIC
+    (#x6D 2) ; SNIC
+    (#x6E 3) ; SICX
+    (#x6F 3) ; GCONST
     (#x01 1) ; CAR
     (#x02 1) ; CDR
     (#x1A 1) ; CONS
@@ -56,6 +50,10 @@
     (#x19 1) ; RPLACD
     (#x1F 1) ; CREATECELL
     (#x26 1) ; RPLCONS
+    (#x27 1) ; NTH
+    (#x28 1) ; NTHCDR
+    (#x29 1) ; LAST
+    (#x2A 1) ; LISTLENGTH
     (#xD8 1) ; IPLUS2
     (#xD9 1) ; IDIFFERENCE
     (#xDA 1) ; ITIMES2
@@ -91,30 +89,21 @@
     (#xE1 1) ; LOGIOR
     (#xE2 1) ; LOGXOR
     (#xE3 1) ; LOGNOT
-    (#xE4 1) ; IPLUS
-    (#xE5 1) ; IDIFFERENCE1
-    (#x3C 1) ; EQUAL
-    (#x3D 1) ; NUMEQUAL
-    (#xE0 1) ; LLSH1
-    (#xE1 1) ; LLSH8
-    (#xE2 1) ; LRSH1
-    (#xE3 1) ; LRSH8
     (#xE4 1) ; LOGOR2
     (#xE5 1) ; LOGAND2
     (#xE6 1) ; LOGXOR2
-    (#xE7 1) ; LOGNOT (approximate)
-    (#xEC 1) ; LSH (approximate)
+    (#xEC 1) ; LSH
     (#xD4 1) ; PLUS2
     (#xD5 1) ; DIFFERENCE
     (#xD6 1) ; TIMES2
     (#xD7 1) ; QUOTIENT
-    (#xE8 1) ; FPLUS2 (floating-point addition)
-    (#xE9 1) ; FDIFFERENCE (floating-point subtraction)
-    (#xEA 1) ; FTIMES2 (floating-point multiplication)
-    (#xEB 1) ; FQUOTIENT (floating-point division)
-    (#xE9 1) ; IMINUS
-    (#xEA 1) ; IDIVIDE
-    (#xEB 1) ; IMOD
+    (#xE8 1) ; FPLUS2
+    (#xE9 1) ; FDIFFERENCE
+    (#xEA 1) ; FTIMES2
+    (#xEB 1) ; FQUOTIENT
+    (#x9A 1) ; IMINUS
+    (#x9B 1) ; IDIVIDE
+    (#x9C 1) ; IMOD
     (#x12 1) ; UNBIND
     (#x64 1) ; COPY
     (#x2F 1) ; STKSCAN
@@ -128,30 +117,30 @@
     (#x16 1) ; ASSOC
     (#x1C 1) ; FMEMB
     ;; 2-byte opcodes
-    (#x60 3) ; GVAR (opcode + 2 byte atom index)
-    (#x05 2) ; TYPEP (opcode + 1 byte type)
-    (#x08 2) ; FN0 (2 bytes)
-    (#x09 2) ; FN1 (2 bytes)
-    (#x0A 2) ; FN2 (2 bytes) - Note: 0x0A is FN2, not BIND in Maiko
-    (#x0B 2) ; FN3 (2 bytes)
-    (#x0C 2) ; FN4 (2 bytes)
-    (#x11 2) ; BIND (opcode + 1 byte count, 0x11 = 17)
-    (#x0D 4) ; FNX (4 bytes with atom index + arg count)
-    (#xEE 2) ; GETAEL1 (opcode + 1 byte index) or AREF2 (1 byte)
-    (#xEF 3) ; GETAEL2 (opcode + 2 byte index) or ASET2 (1 byte)
+    (#x60 3) ; GVAR
+    (#x05 2) ; TYPEP
+    (#x08 2) ; FN0
+    (#x09 2) ; FN1
+    (#x0A 2) ; FN2
+    (#x0B 2) ; FN3
+    (#x0C 2) ; FN4
+    (#x11 2) ; BIND
+    (#x0D 4) ; FNX
+    (#xEE 2) ; GETAEL1
+    (#xEF 3) ; GETAEL2
     (#xB6 1) ; AREF1
     (#xB7 1) ; ASET1
     (#xC2 1) ; GETBASEBYTE
     (#xC7 1) ; PUTBASEBYTE
-    (#xC8 2) ; GETBASE_N (opcode + 1 byte index)
-    (#xC9 2) ; GETBASEPTR_N (opcode + 1 byte index)
-    (#xCD 2) ; PUTBASE_N (opcode + 1 byte index)
-    (#xCE 2) ; PUTBASEPTR_N (opcode + 1 byte index)
+    (#xC8 2) ; GETBASE_N
+    (#xC9 2) ; GETBASEPTR_N
+    (#xCD 2) ; PUTBASE_N
+    (#xCE 2) ; PUTBASEPTR_N
     (#xD2 1) ; HILOC
     (#xD3 1) ; LOLOC
-    (#xF0 1) ; EQ (alternative)
-    (#xF3 1) ; GREATERP (alternative)
-    (#xF4 1) ; EQUAL (alternative)
+    (#xF0 1) ; EQ (alt)
+    (#xF3 1) ; GREATERP (alt)
+    (#xF4 1) ; EQUAL (alt)
     (#xF5 1) ; MAKENUMBER
     (#xFF 1) ; CL_EQUAL
     (#xB8 1) ; PVARSETPOP0
@@ -161,17 +150,227 @@
     (#xBC 1) ; PVARSETPOP4
     (#xBD 1) ; PVARSETPOP5
     (#xBE 1) ; PVARSETPOP6
-    (#xC0 2) ; POP_N (opcode + 1 byte count)
-    (#x15 2) ; GCREF (opcode + 1 byte ref type)
+    (#xC0 2) ; POP_N
+    (#x15 2) ; GCREF
     (#x13 1) ; DUNBIND
     (#xF1 1) ; IGREATERP
     ;; Default: assume 1 byte
     (otherwise 1)))
 
+;; Byte-to-symbol opcode map for dispatch
+(defvar *byte-opcode-map* (make-hash-table :test 'eql))
+
+;; Handler registry - maps opcode names to handler functions
+(defvar *opcode-handlers* (make-hash-table :test 'eq))
+
+;; Register an opcode handler
+(defun register-opcode-handler (opcode handler)
+  "Register a handler function for an opcode"
+  (setf (gethash opcode *opcode-handlers*) handler))
+
+;; Get an opcode handler
+(defun get-opcode-handler (opcode)
+  "Get the handler function for an opcode"
+  (gethash opcode *opcode-handlers*))
+
+;; Initialize the byte-to-symbol map
+(defun initialize-byte-opcode-map ()
+  "Initialize the mapping from byte opcodes to symbol names"
+  (clrhash *byte-opcode-map*)
+  ;; Constants
+  (setf (gethash #x67 *byte-opcode-map*) 'aconst)
+  (setf (gethash #x68 *byte-opcode-map*) 'nil)
+  (setf (gethash #x69 *byte-opcode-map*) 't)
+  (setf (gethash #x6A *byte-opcode-map*) 'const-0)
+  (setf (gethash #x6B *byte-opcode-map*) 'const-1)
+  (setf (gethash #x6C *byte-opcode-map*) 'sic)
+  (setf (gethash #x6D *byte-opcode-map*) 'snic)
+  (setf (gethash #x6E *byte-opcode-map*) 'sicx)
+  (setf (gethash #x6F *byte-opcode-map*) 'gconst)
+  ;; List operations
+  (setf (gethash #x01 *byte-opcode-map*) 'car)
+  (setf (gethash #x02 *byte-opcode-map*) 'cdr)
+  (setf (gethash #x1A *byte-opcode-map*) 'cons)
+  (setf (gethash #x18 *byte-opcode-map*) 'rplaca)
+  (setf (gethash #x19 *byte-opcode-map*) 'rplacd)
+  (setf (gethash #x1F *byte-opcode-map*) 'createcell)
+  (setf (gethash #x26 *byte-opcode-map*) 'rplcons)
+  ;; Integer arithmetic
+  (setf (gethash #xD8 *byte-opcode-map*) 'iplus2)
+  (setf (gethash #xD9 *byte-opcode-map*) 'idifference)
+  (setf (gethash #xDA *byte-opcode-map*) 'itimes2)
+  (setf (gethash #xDB *byte-opcode-map*) 'iquo)
+  (setf (gethash #xDC *byte-opcode-map*) 'irem)
+  ;; General arithmetic
+  (setf (gethash #xD4 *byte-opcode-map*) 'plus2)
+  (setf (gethash #xD5 *byte-opcode-map*) 'difference)
+  (setf (gethash #xD6 *byte-opcode-map*) 'times2)
+  (setf (gethash #xD7 *byte-opcode-map*) 'quotient)
+  ;; Comparison
+  (setf (gethash #x3A *byte-opcode-map*) 'eq)
+  (setf (gethash #x3B *byte-opcode-map*) 'eql)
+  (setf (gethash #x3E *byte-opcode-map*) 'leq)
+  (setf (gethash #x3F *byte-opcode-map*) 'geq)
+  (setf (gethash #xF0 *byte-opcode-map*) 'eq-alt)
+  (setf (gethash #xF1 *byte-opcode-map*) 'igreaterp)
+  (setf (gethash #xF3 *byte-opcode-map*) 'greaterp-alt)
+  (setf (gethash #xF4 *byte-opcode-map*) 'equal-alt)
+  (setf (gethash #xF5 *byte-opcode-map*) 'makenumber)
+  (setf (gethash #xFF *byte-opcode-map*) 'cl-equal)
+  ;; Variable access
+  (setf (gethash #x40 *byte-opcode-map*) 'ivar0)
+  (setf (gethash #x41 *byte-opcode-map*) 'ivar1)
+  (setf (gethash #x42 *byte-opcode-map*) 'ivar2)
+  (setf (gethash #x43 *byte-opcode-map*) 'ivar3)
+  (setf (gethash #x44 *byte-opcode-map*) 'ivar4)
+  (setf (gethash #x45 *byte-opcode-map*) 'ivar5)
+  (setf (gethash #x46 *byte-opcode-map*) 'ivar6)
+  (setf (gethash #x48 *byte-opcode-map*) 'pvar0)
+  (setf (gethash #x49 *byte-opcode-map*) 'pvar1)
+  (setf (gethash #x4A *byte-opcode-map*) 'pvar2)
+  (setf (gethash #x4B *byte-opcode-map*) 'pvar3)
+  (setf (gethash #x4C *byte-opcode-map*) 'pvar4)
+  (setf (gethash #x4D *byte-opcode-map*) 'pvar5)
+  (setf (gethash #x4E *byte-opcode-map*) 'pvar6)
+  (setf (gethash #x50 *byte-opcode-map*) 'fvar0)
+  (setf (gethash #x51 *byte-opcode-map*) 'fvar1)
+  (setf (gethash #x52 *byte-opcode-map*) 'fvar2)
+  (setf (gethash #x53 *byte-opcode-map*) 'fvar3)
+  (setf (gethash #x54 *byte-opcode-map*) 'fvar4)
+  (setf (gethash #x55 *byte-opcode-map*) 'fvar5)
+  (setf (gethash #x56 *byte-opcode-map*) 'fvar6)
+  ;; Control flow
+  (setf (gethash #x10 *byte-opcode-map*) 'return)
+  (setf (gethash #x80 *byte-opcode-map*) 'jump0)
+  (setf (gethash #x81 *byte-opcode-map*) 'jump1)
+  (setf (gethash #x82 *byte-opcode-map*) 'jump2)
+  (setf (gethash #x83 *byte-opcode-map*) 'jump3)
+  (setf (gethash #x84 *byte-opcode-map*) 'jump4)
+  (setf (gethash #x85 *byte-opcode-map*) 'jump5)
+  (setf (gethash #x86 *byte-opcode-map*) 'jump6)
+  (setf (gethash #x87 *byte-opcode-map*) 'jump7)
+  (setf (gethash #x88 *byte-opcode-map*) 'jump8)
+  (setf (gethash #x89 *byte-opcode-map*) 'jump9)
+  (setf (gethash #x8A *byte-opcode-map*) 'jump10)
+  (setf (gethash #x8B *byte-opcode-map*) 'jump11)
+  (setf (gethash #x8C *byte-opcode-map*) 'jump12)
+  (setf (gethash #x8D *byte-opcode-map*) 'jump13)
+  (setf (gethash #x8E *byte-opcode-map*) 'jump14)
+  (setf (gethash #x8F *byte-opcode-map*) 'jump15)
+  (setf (gethash #x90 *byte-opcode-map*) 'fjump0)
+  (setf (gethash #x91 *byte-opcode-map*) 'fjump1)
+  (setf (gethash #x92 *byte-opcode-map*) 'fjump2)
+  (setf (gethash #x93 *byte-opcode-map*) 'fjump3)
+  (setf (gethash #x94 *byte-opcode-map*) 'fjump4)
+  (setf (gethash #x95 *byte-opcode-map*) 'fjump5)
+  (setf (gethash #x96 *byte-opcode-map*) 'fjump6)
+  (setf (gethash #x97 *byte-opcode-map*) 'fjump7)
+  (setf (gethash #x98 *byte-opcode-map*) 'fjump8)
+  (setf (gethash #x99 *byte-opcode-map*) 'fjump9)
+  (setf (gethash #x9A *byte-opcode-map*) 'fjump10)
+  (setf (gethash #x9B *byte-opcode-map*) 'fjump11)
+  (setf (gethash #x9C *byte-opcode-map*) 'fjump12)
+  (setf (gethash #x9D *byte-opcode-map*) 'fjump13)
+  (setf (gethash #x9E *byte-opcode-map*) 'fjump14)
+  (setf (gethash #x9F *byte-opcode-map*) 'fjump15)
+  (setf (gethash #xA0 *byte-opcode-map*) 'tjump0)
+  (setf (gethash #xA1 *byte-opcode-map*) 'tjump1)
+  (setf (gethash #xA2 *byte-opcode-map*) 'tjump2)
+  (setf (gethash #xA3 *byte-opcode-map*) 'tjump3)
+  (setf (gethash #xA4 *byte-opcode-map*) 'tjump4)
+  (setf (gethash #xA5 *byte-opcode-map*) 'tjump5)
+  (setf (gethash #xA6 *byte-opcode-map*) 'tjump6)
+  (setf (gethash #xA7 *byte-opcode-map*) 'tjump7)
+  (setf (gethash #xA8 *byte-opcode-map*) 'tjump8)
+  (setf (gethash #xA9 *byte-opcode-map*) 'tjump9)
+  (setf (gethash #xAA *byte-opcode-map*) 'tjump10)
+  (setf (gethash #xAB *byte-opcode-map*) 'tjump11)
+  (setf (gethash #xAC *byte-opcode-map*) 'tjump12)
+  (setf (gethash #xAD *byte-opcode-map*) 'tjump13)
+  (setf (gethash #xAE *byte-opcode-map*) 'tjump14)
+  (setf (gethash #xAF *byte-opcode-map*) 'tjump15)
+  (setf (gethash #xB0 *byte-opcode-map*) 'jumpx)
+  (setf (gethash #xB2 *byte-opcode-map*) 'fjumpx)
+  (setf (gethash #xB3 *byte-opcode-map*) 'tjumpx)
+  (setf (gethash #x08 *byte-opcode-map*) 'fn0)
+  (setf (gethash #x09 *byte-opcode-map*) 'fn1)
+  (setf (gethash #x0A *byte-opcode-map*) 'fn2)
+  (setf (gethash #x0B *byte-opcode-map*) 'fn3)
+  (setf (gethash #x0C *byte-opcode-map*) 'fn4)
+  (setf (gethash #x0D *byte-opcode-map*) 'fnx)
+  (setf (gethash #x0E *byte-opcode-map*) 'applyfn)
+  ;; Memory operations
+  (setf (gethash #xEE *byte-opcode-map*) 'getael1)
+  (setf (gethash #xEF *byte-opcode-map*) 'getael2)
+  (setf (gethash #xB6 *byte-opcode-map*) 'aref1)
+  (setf (gethash #xB7 *byte-opcode-map*) 'aset1)
+  (setf (gethash #xC2 *byte-opcode-map*) 'getbasebyte)
+  (setf (gethash #xC7 *byte-opcode-map*) 'putbasebyte)
+  (setf (gethash #xC8 *byte-opcode-map*) 'getbase-n)
+  (setf (gethash #xC9 *byte-opcode-map*) 'getbaseptr-n)
+  (setf (gethash #xCD *byte-opcode-map*) 'putbase-n)
+  (setf (gethash #xCE *byte-opcode-map*) 'putbaseptr-n)
+  (setf (gethash #xD2 *byte-opcode-map*) 'hiloc)
+  (setf (gethash #xD3 *byte-opcode-map*) 'loloc)
+  (setf (gethash #xD0 *byte-opcode-map*) 'addbase)
+  ;; Bitwise operations
+  (setf (gethash #xE0 *byte-opcode-map*) 'logand)
+  (setf (gethash #xE1 *byte-opcode-map*) 'logior)
+  (setf (gethash #xE2 *byte-opcode-map*) 'logxor)
+  (setf (gethash #xE3 *byte-opcode-map*) 'lognot)
+  (setf (gethash #xE4 *byte-opcode-map*) 'logor2)
+  (setf (gethash #xE5 *byte-opcode-map*) 'logand2)
+  (setf (gethash #xE6 *byte-opcode-map*) 'logxor2)
+  (setf (gethash #xE7 *byte-opcode-map*) 'llsh1)
+  (setf (gethash #xE8 *byte-opcode-map*) 'llsh8)
+  (setf (gethash #xE9 *byte-opcode-map*) 'lrsh1)
+  (setf (gethash #xEA *byte-opcode-map*) 'lrsh8)
+  (setf (gethash #xEC *byte-opcode-map*) 'lsh)
+  ;; Floating point
+  (setf (gethash #xEB *byte-opcode-map*) 'fplus2)
+  (setf (gethash #xED *byte-opcode-map*) 'fdifference)
+  (setf (gethash #xEE *byte-opcode-map*) 'ftimes2)
+  (setf (gethash #xEF *byte-opcode-map*) 'fquotient)
+  ;; Miscellaneous
+  (setf (gethash #x05 *byte-opcode-map*) 'typep)
+  (setf (gethash #x11 *byte-opcode-map*) 'bind)
+  (setf (gethash #x12 *byte-opcode-map*) 'unbind)
+  (setf (gethash #x13 *byte-opcode-map*) 'dunbind)
+  (setf (gethash #x60 *byte-opcode-map*) 'gvar)
+  (setf (gethash #x61 *byte-opcode-map*) 'arg0)
+  (setf (gethash #x64 *byte-opcode-map*) 'copy)
+  (setf (gethash #x65 *byte-opcode-map*) 'myargcount)
+  (setf (gethash #xBF *byte-opcode-map*) 'pop)
+  (setf (gethash #xC0 *byte-opcode-map*) 'pop-n)
+  (setf (gethash #x07 *byte-opcode-map*) 'unwind)
+  (setf (gethash #x15 *byte-opcode-map*) 'gcref)
+  (setf (gethash #x16 *byte-opcode-map*) 'assoc)
+  (setf (gethash #x1C *byte-opcode-map*) 'fmemb)
+  (setf (gethash #x27 *byte-opcode-map*) 'listget)
+  (setf (gethash #x28 *byte-opcode-map*) 'nth)
+  (setf (gethash #x29 *byte-opcode-map*) 'nthcdr)
+  (setf (gethash #x2A *byte-opcode-map*) 'last)
+  (setf (gethash #x2B *byte-opcode-map*) 'listlength)
+  (setf (gethash #x2C *byte-opcode-map*) 'append)
+  (setf (gethash #x2D *byte-opcode-map*) 'reverse)
+  (setf (gethash #x2F *byte-opcode-map*) 'stkscan)
+  (setf (gethash #xFD *byte-opcode-map*) 'swap)
+  (setf (gethash #xFE *byte-opcode-map*) 'nop)
+  (setf (gethash #xB8 *byte-opcode-map*) 'pvarsetpop0)
+  (setf (gethash #xB9 *byte-opcode-map*) 'pvarsetpop1)
+  (setf (gethash #xBA *byte-opcode-map*) 'pvarsetpop2)
+  (setf (gethash #xBB *byte-opcode-map*) 'pvarsetpop3)
+  (setf (gethash #xBC *byte-opcode-map*) 'pvarsetpop4)
+  (setf (gethash #xBD *byte-opcode-map*) 'pvarsetpop5)
+  (setf (gethash #xBE *byte-opcode-map*) 'pvarsetpop6)
+  )
+
 (defun dispatch (vm code)
   "Main dispatch loop"
   (declare (type vm vm)
            (type (simple-array maiko-lisp.utils:bytecode (*)) code))
+  ;; Initialize tracing
+  (trace-begin)
   (let ((pc (vm-pc vm)))
     (loop while (< pc (length code))
           do
@@ -200,9 +399,13 @@
               (return)) ; End of code or invalid
 
             ;; Decode opcode
-            (let ((opcode (decode-opcode opcode-byte))
-                  (instruction-length (get-instruction-length opcode-byte))
-                  (operands (fetch-operands pc code instruction-length)))
+            (let* ((opcode (decode-opcode opcode-byte))
+                   (instruction-len (get-instruction-length opcode-byte))
+                   (operands (fetch-operands pc code instruction-len)))
+              ;; Log trace before execution
+              (multiple-value-bind (opcode-name found) (gethash opcode *byte-opcode-map*)
+                (when found
+                  (trace-log vm pc opcode operands :instruction-name opcode-name)))
 
               ;; Execute opcode handler (pass operands)
               (handler-case
@@ -210,8 +413,8 @@
                 (maiko-lisp.utils:vm-error (err)
                   (error err))
                 (error (err)
-                (error 'maiko-lisp.utils:vm-error
-                       :message (format nil "Error executing opcode ~A: ~A" opcode err))))
+                  (error 'maiko-lisp.utils:vm-error
+                         :message (format nil "Error executing opcode ~A: ~A" opcode err))))
 
               ;; Update program counter (unless opcode modified it)
               ;; Control flow opcodes (JUMP, RETURN) modify PC themselves
@@ -219,7 +422,7 @@
                 (if (= current-pc pc)
                     ;; PC wasn't modified, advance normally
                     (progn
-                      (setf pc (+ pc instruction-length))
+                      (setf pc (+ pc instruction-len))
                       (setf (vm-pc vm) pc))
                     ;; PC was modified by opcode (e.g., JUMP, RETURN)
                     (setf pc current-pc)))))
@@ -244,218 +447,26 @@
                    (handle-interrupt vm :timer)))))))))
 
 (defun execute-opcode (vm opcode operands)
-  "Execute opcode with operands"
+  "Execute opcode with operands using handler registry"
   (declare (type vm vm)
            (type (unsigned-byte 8) opcode)
            (type list operands))
-  (case opcode
-    ;; Constants
-    (#x67 (handle-aconst vm operands)) ; ACONST (0x67 = 103)
-    (#x68 (handle-nil vm))          ; NIL (0x68 = 104)
-    (#x69 (handle-t vm))            ; T (0x69 = 105)
-    (#x6A (handle-const-0 vm))      ; CONST_0 (0x6A = 106)
-    (#x6B (handle-const-1 vm))      ; CONST_1 (0x6B = 107)
-    (#x6C (handle-sic vm operands)) ; SIC (0x6C = 108)
-    (#x6D (handle-snic vm operands)) ; SNIC (0x6D = 109)
-    (#x6E (handle-sicx vm operands)) ; SICX (0x6E = 110)
-    (#x6F (handle-gconst vm operands)) ; GCONST (0x6F = 111)
-    ;; List operations
-    (#x01 (handle-car vm))          ; CAR
-    (#x02 (handle-cdr vm))          ; CDR
-    (#x1A (handle-cons vm))          ; CONS (0x1A = 26)
-    (#x18 (handle-rplaca vm))       ; RPLACA (0x18 = 24)
-    (#x19 (handle-rplacd vm))       ; RPLACD (0x19 = 25)
-    (#x1F (handle-createcell vm))   ; CREATECELL (31 = 0x1F)
-    (#x26 (handle-rplcons vm))      ; RPLCONS (38 = 0x26)
-    ;; Integer arithmetic
-    (#xD8 (handle-iplus2 vm))        ; IPLUS2 (216 = 0xD8)
-    (#xD9 (handle-idifference vm))   ; IDIFFERENCE (217 = 0xD9)
-    (#xDA (handle-itimes2 vm))       ; ITIMES2 (218 = 0xDA)
-    (#xDB (handle-iquo vm))          ; IQUO (219 = 0xDB)
-    (#xDC (handle-irem vm))          ; IREM (220 = 0xDC)
-    ;; General arithmetic (handles integers and floats)
-    (#xD4 (handle-plus2 vm))         ; PLUS2 (212 = 0xD4)
-    (#xD5 (handle-difference vm))   ; DIFFERENCE (213 = 0xD5)
-    (#xD6 (handle-times2 vm))        ; TIMES2 (214 = 0xD6)
-    (#xD7 (handle-quotient vm))      ; QUOTIENT (215 = 0xD7)
-    ;; Comparison
-    (#x3A (handle-eq vm))            ; EQ (0x3A = 58)
-    (#x3B (handle-eql vm))           ; EQL (0x3B = 59, approximate)
-    (#x3E (handle-leq vm))           ; LEQ (less than or equal, approximate)
-    (#x3F (handle-geq vm))           ; GEQ (greater than or equal, approximate)
-    (#xF0 (handle-eq-alt vm))        ; EQ (alternative, 240 = 0xF0)
-    (#xF1 (handle-igreaterp vm))      ; IGREATERP (241 = 0xF1)
-    (#xF3 (handle-greaterp-alt vm))   ; GREATERP (alternative, 243 = 0xF3)
-    (#xF4 (handle-equal-alt vm))      ; EQUAL (alternative, 244 = 0xF4)
-    (#xF5 (handle-makenumber vm))    ; MAKENUMBER (245 = 0xF5)
-    (#xFF (handle-cl-equal vm))      ; CL_EQUAL (255 = 0xFF)
-    ;; Variable access - IVAR (local variables)
-    (#x40 (handle-ivar0 vm))         ; IVAR0 (0x40 = 64)
-    (#x41 (handle-ivar1 vm))         ; IVAR1 (0x41 = 65)
-    (#x42 (handle-ivar2 vm))         ; IVAR2 (0x42 = 66)
-    (#x43 (handle-ivar3 vm))         ; IVAR3 (0x43 = 67)
-    (#x44 (handle-ivar4 vm))         ; IVAR4 (0x44 = 68)
-    (#x45 (handle-ivar5 vm))         ; IVAR5 (0x45 = 69)
-    (#x46 (handle-ivar6 vm))         ; IVAR6 (0x46 = 70)
-    ;; Variable access - PVAR (parameters)
-    (#x48 (handle-pvar0 vm))         ; PVAR0 (0x48 = 72)
-    (#x49 (handle-pvar1 vm))         ; PVAR1 (0x49 = 73)
-    (#x4A (handle-pvar2 vm))         ; PVAR2 (0x4A = 74)
-    (#x4B (handle-pvar3 vm))         ; PVAR3 (0x4B = 75)
-    (#x4C (handle-pvar4 vm))         ; PVAR4 (0x4C = 76)
-    (#x4D (handle-pvar5 vm))         ; PVAR5 (0x4D = 77)
-    (#x4E (handle-pvar6 vm))         ; PVAR6 (0x4E = 78)
-    ;; Variable access - FVAR (free variables)
-    (#x50 (handle-fvar0 vm))         ; FVAR0 (0x50 = 80)
-    (#x51 (handle-fvar1 vm))         ; FVAR1 (0x51 = 81)
-    (#x52 (handle-fvar2 vm))         ; FVAR2 (0x52 = 82)
-    (#x53 (handle-fvar3 vm))         ; FVAR3 (0x53 = 83)
-    (#x54 (handle-fvar4 vm))         ; FVAR4 (0x54 = 84)
-    (#x55 (handle-fvar5 vm))         ; FVAR5 (0x55 = 85)
-    (#x56 (handle-fvar6 vm))         ; FVAR6 (0x56 = 86)
-    ;; Control flow
-    (#x10 (handle-return vm))        ; RETURN (0x10 = 16)
-    ;; Optimized jumps (offset encoded in opcode)
-    (#x80 (handle-jump0 vm))         ; JUMP0 (0x80 = 128)
-    (#x81 (handle-jump1 vm))         ; JUMP1
-    (#x82 (handle-jump2 vm))         ; JUMP2
-    (#x83 (handle-jump3 vm))         ; JUMP3
-    (#x84 (handle-jump4 vm))         ; JUMP4
-    (#x85 (handle-jump5 vm))         ; JUMP5
-    (#x86 (handle-jump6 vm))         ; JUMP6
-    (#x87 (handle-jump7 vm))         ; JUMP7
-    (#x88 (handle-jump8 vm))         ; JUMP8
-    (#x89 (handle-jump9 vm))         ; JUMP9
-    (#x8A (handle-jump10 vm))        ; JUMP10
-    (#x8B (handle-jump11 vm))        ; JUMP11
-    (#x8C (handle-jump12 vm))        ; JUMP12
-    (#x8D (handle-jump13 vm))        ; JUMP13
-    (#x8E (handle-jump14 vm))        ; JUMP14
-    (#x8F (handle-jump15 vm))       ; JUMP15
-    (#x90 (handle-fjump0 vm))       ; FJUMP0 (0x90 = 144)
-    (#x91 (handle-fjump1 vm))        ; FJUMP1
-    (#x92 (handle-fjump2 vm))        ; FJUMP2
-    (#x93 (handle-fjump3 vm))        ; FJUMP3
-    (#x94 (handle-fjump4 vm))        ; FJUMP4
-    (#x95 (handle-fjump5 vm))        ; FJUMP5
-    (#x96 (handle-fjump6 vm))        ; FJUMP6
-    (#x97 (handle-fjump7 vm))        ; FJUMP7
-    (#x98 (handle-fjump8 vm))        ; FJUMP8
-    (#x99 (handle-fjump9 vm))        ; FJUMP9
-    (#x9A (handle-fjump10 vm))       ; FJUMP10
-    (#x9B (handle-fjump11 vm))       ; FJUMP11
-    (#x9C (handle-fjump12 vm))       ; FJUMP12
-    (#x9D (handle-fjump13 vm))       ; FJUMP13
-    (#x9E (handle-fjump14 vm))       ; FJUMP14
-    (#x9F (handle-fjump15 vm))       ; FJUMP15
-    (#xA0 (handle-tjump0 vm))        ; TJUMP0 (0xA0 = 160)
-    (#xA1 (handle-tjump1 vm))        ; TJUMP1
-    (#xA2 (handle-tjump2 vm))       ; TJUMP2
-    (#xA3 (handle-tjump3 vm))       ; TJUMP3
-    (#xA4 (handle-tjump4 vm))       ; TJUMP4
-    (#xA5 (handle-tjump5 vm))       ; TJUMP5
-    (#xA6 (handle-tjump6 vm))       ; TJUMP6
-    (#xA7 (handle-tjump7 vm))       ; TJUMP7
-    (#xA8 (handle-tjump8 vm))       ; TJUMP8
-    (#xA9 (handle-tjump9 vm))       ; TJUMP9
-    (#xAA (handle-tjump10 vm))       ; TJUMP10
-    (#xAB (handle-tjump11 vm))       ; TJUMP11
-    (#xAC (handle-tjump12 vm))       ; TJUMP12
-    (#xAD (handle-tjump13 vm))       ; TJUMP13
-    (#xAE (handle-tjump14 vm))      ; TJUMP14
-    (#xAF (handle-tjump15 vm))       ; TJUMP15
-    ;; Extended jumps
-    (#xB0 (handle-jumpx vm operands)) ; JUMPX (0xB0 = 176)
-    (#xB2 (handle-fjumpx vm operands)) ; FJUMPX (0xB2 = 178)
-    (#xB3 (handle-tjumpx vm operands)) ; TJUMPX (0xB3 = 179)
-    ;; Function calls
-    (#x08 (handle-fn0 vm))           ; FN0 (0x08 = 8)
-    (#x09 (handle-fn1 vm))           ; FN1 (0x09 = 9)
-    (#x0A (handle-fn2 vm))           ; FN2 (0x0A = 10)
-    (#x0B (handle-fn3 vm))           ; FN3 (0x0B = 11)
-    (#x0C (handle-fn4 vm))           ; FN4 (0x0C = 12)
-    (#x0D (handle-fnx vm operands))  ; FNX (0x0D = 13)
-    ;; Array access
-    (#xEE (handle-getael1 vm operands)) ; GETAEL1 (0xEE = 238)
-    (#xEF (handle-getael2 vm operands)) ; GETAEL2 (0xEF = 239)
-    (#xB6 (handle-aref1 vm))           ; AREF1 (182 = 0xB6)
-    (#xB7 (handle-aset1 vm))           ; ASET1 (183 = 0xB7)
-    (#xEE (handle-aref2 vm))           ; AREF2 (238 = 0xEE, conflicts with GETAEL1)
-    (#xEF (handle-aset2 vm))           ; ASET2 (239 = 0xEF, conflicts with GETAEL2)
-    ;; Type checking
-    (#x05 (handle-typep vm operands)) ; TYPEP (0x05 = 5)
-    ;; Bitwise operations
-    (#xE0 (handle-llsh1 vm))          ; LLSH1 (224 = 0xE0)
-    (#xE1 (handle-llsh8 vm))          ; LLSH8 (225 = 0xE1)
-    (#xE2 (handle-lrsh1 vm))          ; LRSH1 (226 = 0xE2)
-    (#xE3 (handle-lrsh8 vm))          ; LRSH8 (227 = 0xE3)
-    ;; Bitwise logical operations
-    (#xE4 (handle-logor2 vm))        ; LOGOR2 (228 = 0xE4)
-    (#xE5 (handle-logand2 vm))        ; LOGAND2 (229 = 0xE5)
-    (#xE6 (handle-logxor2 vm))        ; LOGXOR2 (230 = 0xE6)
-    ;; Note: LOGNOT and LSH are at different opcodes
-    (#xE7 (handle-lognot vm))        ; LOGNOT (231 = 0xE7)
-    (#xEC (handle-lsh vm))           ; LSH (using 0xEC as placeholder)
-    ;; Floating-point arithmetic (decimal opcodes: 232-235 = 0xE8-0xEB)
-    (#xE8 (handle-fplus2 vm))        ; FPLUS2 (232 = 0xE8)
-    (#xE9 (handle-fdifference vm))   ; FDIFFERENCE (233 = 0xE9)
-    (#xEA (handle-ftimes2 vm))       ; FTIMES2 (234 = 0xEA)
-    (#xEB (handle-fquotient vm))     ; FQUOTIENT (235 = 0xEB)
-    ;; Stack operations
-    (#x2F (handle-stkscan vm))       ; STKSCAN (0x2F = 47)
-    ;; Function metadata
-    (#x65 (handle-myargcount vm))   ; MYARGCOUNT (0x65 = 101)
-    (#x61 (handle-arg0 vm))          ; ARG0 (0x61 = 97)
-    ;; Additional comparison
-    (#x3C (handle-equal vm))         ; EQUAL (approximate)
-    (#x3D (handle-numequal vm))      ; NUMEQUAL (approximate)
-    ;; Character operations (stubs, opcodes TBD)
-    ;; (#xE7 (handle-charcode vm))      ; CHARCODE (conflicts with LOGNOT)
-    ;; (#xE8 (handle-charn vm))         ; CHARN (conflicts with FPLUS2)
-    ;; Binding
-    (#x11 (handle-bind vm operands)) ; BIND (0x11 = 17)
-    (#x12 (handle-unbind vm))       ; UNBIND (0x12 = 18)
-    ;; Copy
-    (#x64 (handle-copy vm))          ; COPY (0x64 = 100)
-    ;; Global variables
-    (#x60 (handle-gvar vm operands)) ; GVAR (0x60 = 96)
-    ;; Store (note: STORE_N is at 0x3C, but we use different opcode)
-    ;; (#x3C already used for EQUAL)
-    ;; Apply
-    (#x0E (handle-applyfn vm))       ; APPLYFN (0x0E = 14)
-    ;; Unwind
-    (#x07 (handle-unwind vm))        ; UNWIND (0x07 = 7)
-    ;; List operations
-    (#x27 (handle-listget vm))       ; LISTGET (0x27 = 39)
-    ;; Atom operations
-    (#x16 (handle-assoc vm))         ; ASSOC (0x16 = 22)
-    (#x1C (handle-fmemb vm))         ; FMEMB (0x1C = 28)
-    ;; Stack operations
-    (#xD0 (handle-push vm))          ; PUSH/ADDBASE (208 = 0xD0)
-    (#xBF (handle-pop vm))           ; POP (0xBF = 191)
-    (#xC0 (handle-pop-n vm operands)) ; POP_N (192 = 0xC0)
-    (#xC2 (handle-getbasebyte vm))   ; GETBASEBYTE (194 = 0xC2)
-    (#xC7 (handle-putbasebyte vm))   ; PUTBASEBYTE (199 = 0xC7)
-    (#xC8 (handle-getbase-n vm operands)) ; GETBASE_N (200 = 0xC8)
-    (#xC9 (handle-getbaseptr-n vm operands)) ; GETBASEPTR_N (201 = 0xC9)
-    (#xCD (handle-putbase-n vm operands)) ; PUTBASE_N (205 = 0xCD)
-    (#xCE (handle-putbaseptr-n vm operands)) ; PUTBASEPTR_N (206 = 0xCE)
-    (#xD2 (handle-hiloc vm))         ; HILOC (210 = 0xD2)
-    (#xD3 (handle-loloc vm))         ; LOLOC (211 = 0xD3)
-    (#xFD (handle-swap vm))          ; SWAP (0xFD = 253)
-    (#xFE (handle-nop vm))           ; NOP (0xFE = 254)
-    ;; Variable setting
-    (#xB8 (handle-pvarsetpop0 vm))   ; PVARSETPOP0 (184 = 0xB8)
-    (#xB9 (handle-pvarsetpop1 vm))   ; PVARSETPOP1 (185 = 0xB9)
-    (#xBA (handle-pvarsetpop2 vm))   ; PVARSETPOP2 (186 = 0xBA)
-    (#xBB (handle-pvarsetpop3 vm))   ; PVARSETPOP3 (187 = 0xBB)
-    (#xBC (handle-pvarsetpop4 vm))   ; PVARSETPOP4 (188 = 0xBC)
-    (#xBD (handle-pvarsetpop5 vm))   ; PVARSETPOP5 (189 = 0xBD)
-    (#xBE (handle-pvarsetpop6 vm))   ; PVARSETPOP6 (190 = 0xBE)
-    ;; GC operations
-    (#x15 (handle-gcref vm operands)) ; GCREF (21 = 0x15)
-    ;; Binding
-    (#x13 (handle-dunbind vm))       ; DUNBIND (19 = 0x13)
-    (otherwise
-     (error 'maiko-lisp.utils:vm-error
-            :message (format nil "Unknown opcode: ~A (0x~2,'0X)" opcode opcode)))))
+  ;; Look up handler symbol from byte-to-symbol map
+  (multiple-value-bind (opcode-symbol found) (gethash opcode *byte-opcode-map*)
+    (if found
+        ;; Look up handler function from symbol registry
+        (let ((handler (gethash opcode-symbol *opcode-handlers*)))
+          (if handler
+              ;; Call handler - handlers that need operands get them, others ignore
+              (if (or (null operands) (zerop (length operands)))
+                  (funcall handler vm)
+                  (funcall handler vm operands))
+              (error 'maiko-lisp.utils:vm-error
+                     :message (format nil "No handler for opcode: ~A (0x~2,'0X)"
+                                     opcode-symbol opcode))))
+        ;; Unknown opcode
+        (error 'maiko-lisp.utils:vm-error
+               :message (format nil "Unknown opcode: 0x~2,'0X" opcode)))))
+
+;; Auto-initialize byte-opcode-map when this file is loaded
+(initialize-byte-opcode-map)

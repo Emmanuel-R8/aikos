@@ -2,12 +2,22 @@
 
 *Navigation*: Implementations README | Main README
 
-*Date*: 2026-01-20 08:01
-*Status*: ✅ 97% Complete - CSTKPTRL Bug Fixed, Emulator Executes 30+ Instructions
+*Date*: 2026-02-06 14:30
+*Status*: ✅ 95% Complete - Parity Achieved for First 15 Steps
 *Location*: `zaiko/`
 *Build System*: Zig build system (`build.zig`)
 *Display Backend*: SDL2 (linked, integration complete)
-*Runtime Status*: Successfully executes through POP, GVAR, UNBIND, TJUMP, FJUMP and 30+ instructions
+*Runtime Status*: Successfully executes through 15+ instructions with matching C trace
+
+**Key Recent Fixes (2026-02-01 to 2026-02-06):**
+- ✅ **Stack/Frame Pointer Initialization**: Fixed SP=0x02e88, FP=0x307864 to match C
+- ✅ **GVAR Instruction**: Handled 5-byte format and correct atom indexing
+- ✅ **Trace Timing**: Log before instruction execution to match C trace format
+- ✅ **UNBIND Semantics**: Ensured TOS remains unchanged after unbind
+- ✅ **TOPOFSTACK Synchronization**: Now reads from memory when restoring CSTKPTRL
+- ✅ **SP Trace Logging**: Uses CSTKPTRL for accurate stack pointer representation
+- ✅ **Function Return**: Handled alink=0 for top-level return correctly
+- ✅ **Opcode Name Mapping**: Aligned opcode names with C trace names (including RECLAIMCELL)
 
 == Overview
 

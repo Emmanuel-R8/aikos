@@ -294,6 +294,16 @@ pub fn handleRPLACA(vm: *VM) errors.VMError!void {
             return errors_module.VMError.MemoryAccessFailed;
         };
 
+        // Ensure 4-byte alignment (ConsCell requires 4-byte alignment)
+        // C: NativeAligned4FromLAddr ensures 4-byte alignment
+        // Since LispPTR is DLword offset * 2, byte address should be divisible by 4 for cons cells
+        const ptr_addr = @intFromPtr(native_ptr);
+        if (ptr_addr % 4 != 0) {
+            // Pointer not 4-byte aligned - this shouldn't happen for valid cons cells
+            // Return error which will be caught and handled when step cap is set
+            return errors_module.VMError.MemoryAccessFailed;
+        }
+        // After alignment check, safe to use @alignCast
         const cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(native_ptr)));
 
         // Handle indirect CDR encoding

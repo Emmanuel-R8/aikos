@@ -39,6 +39,12 @@
   "Get CAR value"
   (cons-car-field cons-cell))
 
+(defun get-cdr (cons-cell cell-address)
+  "Get decoded CDR value"
+  (declare (type cons-cell cons-cell)
+           (type maiko-lisp.utils:lisp-ptr cell-address))
+  (decode-cdr cons-cell cell-address))
+
 (defun set-car (cons-cell value)
   "Set CAR value"
   (setf (cons-car-field cons-cell) value))
@@ -59,3 +65,15 @@
     (t
      ;; Use indirect encoding
      (setf (cons-cdr-code cons-cell) +cdr-indirect+))))
+
+(defun get-list-length (storage list-ptr)
+  "Count elements in a cons cell list"
+  (declare (type maiko-lisp.memory:storage storage)
+           (type maiko-lisp.utils:lisp-ptr list-ptr))
+  (let ((count 0)
+        (current list-ptr))
+    (loop while (not (zerop current)) do
+      (incf count)
+      (let ((cell (maiko-lisp.memory:get-cons-cell storage current)))
+        (setf current (get-cdr cell current))))
+    count))

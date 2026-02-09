@@ -16,7 +16,7 @@
   (waiting-interrupt nil :type boolean)
   (int-char-code 0 :type maiko-lisp.utils:dlword))
 
-(defun make-interrupt-state ()
+(defun create-interrupt-state ()
   "Create new interrupt state with all flags cleared"
   (make-interrupt-state))
 

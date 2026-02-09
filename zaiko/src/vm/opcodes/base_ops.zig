@@ -9,6 +9,14 @@ const VM = stack.VM;
 const LispPTR = types.LispPTR;
 const DLword = types.DLword;
 
+/// n_mask_array: Bit masks for N-bit values (1-16 bits)
+/// INDEX: n-1 gives mask for n bits (n_mask_array[0] = 1, [15] = 0xffff)
+/// Matches C definition in maiko/src/xc.c:396-398
+const n_mask_array: [16]DLword = .{
+    1, 3, 7, 0xf, 0x1f, 0x3f, 0x7f, 0xff,
+    0x1ff, 0x3ff, 0x7ff, 0xfff, 0x1fff, 0x3fff, 0x7fff, 0xffff,
+};
+
 /// GETBASEBYTE: Get base byte
 /// Per rewrite documentation instruction-set/opcodes.md
 /// C: GETBASEBYTE - Read byte from base + byteoffset
@@ -430,21 +438,24 @@ pub fn handlePUTBASEPTR_N(vm: *VM, index: u8) errors.VMError!void {
 /// Stack: [value, base] -> [base]
 /// arg1 = offset (a), arg2 = field descriptor (b)
 /// Field descriptor format: [shift:4][size:4]
+/// Exact translation of maiko/inc/inlineC.h:585-600 PUTBITS_N_M macro
 pub fn handlePUTBITS_N_FD(vm: *VM, arg1: u8, arg2: u8) errors.VMError!void {
     const stack_module = @import("../stack.zig");
     const errors_module = @import("../../utils/errors.zig");
 
-    // Validate value is S_POSITIVE
+    // C: if ((SEGMASK & TOPOFSTACK) != S_POSITIVE) { goto op_ufn; };
     const value = stack_module.getTopOfStack(vm);
     if ((value & types.SEGMASK) != types.S_POSITIVE) {
         // C: goto op_ufn
         return;
     }
 
+    // C: base = POINTERMASK & POP_TOS_1;
     const base = try stack_module.popStack(vm);
     const base_ptr = types.POINTERMASK & base;
 
-    // Translate address to native pointer
+    // C: pword = NativeAligned2FromLAddr(base + (a));
+    // Translate address to native pointer (DLword aligned)
     const virtual_memory_mut = if (vm.virtual_memory) |vmem| @constCast(vmem) else {
         return errors_module.VMError.MemoryAccessFailed;
     };
@@ -453,42 +464,56 @@ pub fn handlePUTBITS_N_FD(vm: *VM, arg1: u8, arg2: u8) errors.VMError!void {
     };
 
     const virtual_memory = vm.virtual_memory orelse return error.MemoryAccessFailed;
-    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, base_ptr + @as(LispPTR, arg1), fptovp_table, 2) catch {
-        return errors_module.VMError.InvalidAddress;
-    };
+    const target_addr = base_ptr + @as(LispPTR, arg1);
+    const native_ptr = if (vm.storage) |storage|
+        virtual_memory_module.translateAddressExtended(
+            virtual_memory,
+            storage,
+            target_addr,
+            fptovp_table,
+            2,
+        ) catch {
+            return errors_module.VMError.InvalidAddress;
+        }
+    else
+        virtual_memory_module.translateAddress(virtual_memory, target_addr, fptovp_table, 2) catch {
+            return errors_module.VMError.InvalidAddress;
+        };
 
-    // Read current DLword (2 bytes, big-endian)
+    // C: field_size = 0xF & bb;
+    const field_size = 0xF & arg2;
+
+    // C: shift_size = 15 - (0xF & (bb >> 4)) - field_size;
+    const shift_pos = 0xF & (arg2 >> 4);
+    const shift_size = 15 - shift_pos - field_size;
+
+    // C: fmask = n_mask_array[field_size] << shift_size;
+    const fmask = n_mask_array[field_size] << @as(u4, @intCast(shift_size));
+
+    // C: GETWORD(pword) = ((TOPOFSTACK << shift_size) & fmask) | (GETWORD(pword) & (~fmask));
+    // Read current DLword (big-endian format from sysout)
     const byte_offset = @intFromPtr(native_ptr) - @intFromPtr(virtual_memory_mut.ptr);
     if (byte_offset + 2 > virtual_memory_mut.len) {
         return errors_module.VMError.InvalidAddress;
     }
 
     const word_bytes = virtual_memory_mut[byte_offset..][0..2];
-    var word_value: DLword = (@as(DLword, word_bytes[0]) << 8) | @as(DLword, word_bytes[1]);
+    const current_word: DLword = (@as(DLword, word_bytes[0]) << 8) | @as(DLword, word_bytes[1]);
 
-    // Parse field descriptor: b = [shift:4][size:4]
-    const field_size = 0xF & arg2; // Low 4 bits = field size
-    const shift_pos = 0xF & (arg2 >> 4); // High 4 bits = shift position
+    // C uses TOPOFSTACK directly (which is value, still on TOS before pop)
+    // TOPOFSTACK is a LispPTR, but we need the low word for bit operations
+    const value_word = types.getLoWord(value);
 
-    // Calculate shift: 15 - shift_pos - field_size
-    const shift = 15 - (@as(u8, shift_pos) + field_size);
+    // Apply bit field write: ((value << shift_size) & fmask) | (current_word & (~fmask))
+    const new_word: DLword = ((value_word << @as(u4, @intCast(shift_size))) & fmask) | (current_word & ~fmask);
 
-    // Create mask for field_size bits at shift position
-    const field_mask: DLword = if (field_size == 0) 0 else (@as(DLword, 1) << @as(u4, @intCast(field_size))) - 1;
-    const shifted_mask = field_mask << @as(u4, @intCast(shift));
+    // Write back (big-endian format)
+    virtual_memory_mut[byte_offset] = @as(u8, @truncate(new_word >> 8));
+    virtual_memory_mut[byte_offset + 1] = @as(u8, @truncate(new_word));
 
-    // Extract value to write (low field_size bits)
-    const value_to_write = types.getLoWord(value) & field_mask;
-
-    // Update word: clear field, then set new value
-    word_value = (word_value & ~shifted_mask) | (value_to_write << @as(u4, @intCast(shift)));
-
-    // Write back (big-endian)
-    virtual_memory_mut[byte_offset] = @as(u8, @truncate(word_value >> 8));
-    virtual_memory_mut[byte_offset + 1] = @as(u8, @truncate(word_value));
-
-    // Push base back on stack
-    try stack_module.pushStack(vm, base);
+    // C: TOPOFSTACK = base;
+    // Set TOS directly (don't push) to match C semantics
+    stack_module.setTopOfStack(vm, base);
 }
 
 /// ADDBASE: Add base

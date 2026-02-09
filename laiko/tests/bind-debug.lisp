@@ -1,0 +1,32 @@
+(in-package :maiko-lisp-tests)
+
+(defun test-bind-debug ()
+  "Debug BIND operation step by step"
+  (format t "~%Debugging BIND operation...~%")
+  (let ((vm (maiko-lisp.vm:create-vm 1024)))
+    ;; Set up pvar-ptr
+    (format t "  Initial pvar-ptr: ~A~%" (maiko-lisp.vm::vm-pvar-ptr vm))
+    (setf (maiko-lisp.vm::vm-pvar-ptr vm) 10)
+    (format t "  After set, pvar-ptr: ~A~%" (maiko-lisp.vm::vm-pvar-ptr vm))
+    
+    ;; Push value
+    (maiko-lisp.vm:push-stack vm 42)
+    (format t "  After push: stack-ptr=~A, stack[0]=~A~%"
+            (maiko-lisp.vm:vm-stack-ptr vm)
+            (aref (maiko-lisp.vm:vm-stack vm) 0))
+    
+    ;; Now call bind
+    (format t "  Calling handle-bind with operand 0x11 (n1=1, n2=1)~%")
+    (maiko-lisp.vm:handle-bind vm '(#x11))
+    
+    (format t "  After bind: stack-ptr=~A~%" (maiko-lisp.vm:vm-stack-ptr vm))
+    (format t "  After bind: pvar-ptr=~A~%" (maiko-lisp.vm::vm-pvar-ptr vm))
+    (format t "  After bind: marker at stack[1]=~X~%" (aref (maiko-lisp.vm:vm-stack vm) 1))
+    
+    ;; Check pvar slots
+    (let ((slot0 (maiko-lisp.vm:get-pvar-slot vm 0))
+          (slot1 (maiko-lisp.vm:get-pvar-slot vm 1)))
+      (format t "  PVAR0 (at offset 10): ~A~%" slot0)
+      (format t "  PVAR1 (at offset 11): ~A~%" slot1))))
+
+(test-bind-debug)

@@ -29,6 +29,10 @@
   ()
   (:documentation "Division by zero"))
 
+(define-condition vm-arithmetic-error (vm-error)
+  ((message :initarg :message :reader vm-arithmetic-error-message :initform "Arithmetic error"))
+  (:documentation "Arithmetic error in VM"))
+
 (define-condition sysout-load-failed (memory-error)
   ((message :initarg :message :reader sysout-load-failed-message))
   (:documentation "Failed to load sysout file"))

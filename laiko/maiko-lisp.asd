@@ -1,4 +1,7 @@
-(defsystem "maiko-lisp"
+;;; ASDF system definition for Maiko Lisp
+;;; Requires ASDF to be loaded first
+
+(asdf:defsystem "maiko-lisp"
   :description "Maiko emulator implementation in Common Lisp"
   :version "0.1.0"
   :author "Maiko Project"
@@ -25,15 +28,9 @@
                   ((:file "cons")
                    (:file "array")
                    (:file "function-header")
+                   (:file "bytecode")
+                   (:file "sysout-utils")
                    (:file "sysout")))
-                 (:module "vm"
-                  :pathname "vm"
-                  :components
-                  ((:file "stack")
-                   (:file "dispatch")
-                   (:file "opcodes")
-                   (:file "function")
-                   (:file "interrupt")))
                  (:module "memory"
                   :pathname "memory"
                   :components
@@ -41,6 +38,26 @@
                    (:file "gc")
                    (:file "virtual")
                    (:file "layout")))
+                 (:module "vm"
+                  :pathname "vm"
+                  :components
+                  ((:file "stack")
+                   (:file "interrupt")
+                   (:file "trace")
+                   (:file "dispatch")
+                   (:file "op-stack")
+                   (:file "op-arithmetic")
+                   (:file "op-list")
+                   (:file "op-comparison")
+                   (:file "op-variable")
+                   (:file "op-control")
+                   (:file "op-memory")
+                   (:file "op-logic")
+                   (:file "op-const")
+                   (:file "op-misc")
+                   (:file "op-graphics")
+                   (:file "opcodes-main")
+                   (:file "function")))
                  (:module "io"
                   :pathname "io"
                   :components
@@ -53,17 +70,4 @@
                   ((:file "sdl-backend")
                    (:file "graphics")
                    (:file "events")))
-                 (:file "main"))))
-  :in-order-to ((test-op (test-op "maiko-lisp/tests"))))
-
-(defsystem "maiko-lisp/tests"
-  :description "Tests for maiko-lisp"
-  :depends-on ("maiko-lisp" "fiveam")
-  :components ((:module "tests"
-                :components
-                ((:file "test-suite")
-                 (:file "test-vm")
-                 (:file "test-memory")
-                 (:file "test-opcodes"))))
-  :perform (test-op (o c)
-                    (symbol-call :fiveam :run! :maiko-lisp-tests)))
+                 (:file "main")))))

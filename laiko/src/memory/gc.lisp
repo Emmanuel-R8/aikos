@@ -16,7 +16,7 @@
   (enabled t :type boolean)
   (reclaim-countdown nil :type (or null (integer 0 *))))
 
-(defun make-gc (hash-table-size)
+(defun create-gc (hash-table-size)
   "Create GC with given hash table size"
   (declare (type (integer 1 *) hash-table-size))
   (make-gc :hash-table (make-hash-table :test 'eql :size hash-table-size)
@@ -37,8 +37,8 @@
   (unless (refcntp ptr)
     (return-from add-ref))
 
-  (let ((ht (gc-hash-table gc))
-        (entry (gethash ptr ht)))
+  (let* ((ht (gc-hash-table gc))
+         (entry (gethash ptr ht)))
     (if entry
         ;; Entry exists: increment reference count
         (incf (gce-refcnt entry))
@@ -53,8 +53,8 @@
   (unless (refcntp ptr)
     (return-from del-ref))
 
-  (let ((ht (gc-hash-table gc))
-        (entry (gethash ptr ht)))
+  (let* ((ht (gc-hash-table gc))
+         (entry (gethash ptr ht)))
     (when entry
       (decf (gce-refcnt entry))
       ;; If count reaches zero, mark for reclamation
@@ -69,8 +69,8 @@
   (unless (refcntp ptr)
     (return-from mark-stack-ref))
 
-  (let ((ht (gc-hash-table gc))
-        (entry (gethash ptr ht)))
+  (let* ((ht (gc-hash-table gc))
+         (entry (gethash ptr ht)))
     (if entry
         (setf (gce-stackref entry) t)
         ;; Create new entry with stack reference

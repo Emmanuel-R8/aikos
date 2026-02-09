@@ -42,6 +42,36 @@ export const FRAMESIZE = 10;
 export const FRAMESIZE_BYTES = 20;
 
 /**
+ * Free Stack Block marker word
+ * Per C: STK_FSB_WORD = 0xA000u (maiko/inc/stack.h:26)
+ */
+export const STK_FSB_WORD = 0xA000;
+
+/**
+ * Stack Guard Block marker word
+ * Per C: STK_GUARD_WORD = 0xE000u (maiko/inc/stack.h:27)
+ */
+export const STK_GUARD_WORD = 0xE000;
+
+/**
+ * Binding Frame marker
+ * Per C: BF_MARK = 0x8000u (maiko/inc/stack.h:28)
+ */
+export const BF_MARK = 0x8000;
+
+/**
+ * Frame marker
+ * Per C: FX_MARK = 0xc000u (maiko/inc/stack.h:30)
+ */
+export const FX_MARK = 0xC000;
+
+/**
+ * Minimum extra stack words
+ * Per C: MINEXTRASTACKWORDS = 32 (maiko/inc/stack.h:39)
+ */
+export const MINEXTRASTACKWORDS = 32;
+
+/**
  * NIL pointer (0)
  * Per C: NIL_PTR = 0
  */
@@ -52,6 +82,32 @@ export const NIL_PTR = 0;
  * Per C: ATOM_T
  */
 export const ATOM_T = 1;
+
+/**
+ * SMALLP positive segment mask
+ * Per C: S_POSITIVE = 0xE0000000 (top 3 bits set)
+ * Used to tag small positive integers
+ */
+export const S_POSITIVE = 0xE0000000;
+
+/**
+ * SMALLP negative segment mask
+ * Per C: S_NEGATIVE = 0xC0000000 (top 2 bits set)
+ * Used to tag small negative integers
+ */
+export const S_NEGATIVE = 0xC0000000;
+
+/**
+ * Segment mask (top 3 bits)
+ * Per C: SEGMASK = 0xE0000000
+ */
+export const SEGMASK = 0xE0000000;
+
+/**
+ * Pointer mask (low 28 bits)
+ * Per C: POINTERMASK = 0x0FFFFFFF
+ */
+export const POINTERMASK = 0x0FFFFFFF;
 
 /**
  * Machine type for Maiko emulator
@@ -81,3 +137,17 @@ export const DEFS_OFFSET = 0xA0000;
  * BIGVM: 0xC0000 (12 * 0x10000)
  */
 export const VALS_OFFSET = 0xC0000;
+
+/**
+ * PLISTSPACE offset (DLword offset from Lisp_world)
+ * Per maiko/inc/lispmap.h
+ * BIGVM: 0x30000 (3 * 0x10000)
+ */
+export const PLIS_OFFSET = 0x30000;
+
+/**
+ * DTDSPACE offset (DLword offset from Lisp_world)
+ * Per maiko/inc/lispmap.h
+ * BIGVM: 0x141000
+ */
+export const DTD_OFFSET = 0x141000;
