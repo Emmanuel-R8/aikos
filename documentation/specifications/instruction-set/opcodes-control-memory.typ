@@ -16,9 +16,9 @@ Control flow and memory operation opcodes (0x00-0x7F).
 - *APPLYFN (0x0E)* [1] Apply function to arg list on stack.
   - *Purpose*: Apply a function to a list of arguments (Lisp APPLY semantics)
   - *Stack State Before*: [arg_list, function] where arg_list is a cons cell list
-  - *Algorithm*: 
+  - *Algorithm*:
     1. Pop argument list from stack
-    2. Pop function object from stack  
+    2. Pop function object from stack
     3. Spread list elements onto stack as individual arguments
     4. Count arguments while spreading
     5. Call function with spread arguments (similar to FNX)
@@ -59,7 +59,7 @@ Control flow and memory operation opcodes (0x00-0x7F).
 - *BIND (0x11)* [2] Bind variables in PVAR area.
   - *Operands*: byte1 (n1:4, n2:4), byte2 (offset)
   - *Stack*: `[values..., TOS] -> [marker]`
-  - *Algorithm*: 
+  - *Algorithm*:
     - Calculates `ppvar = (LispPTR *)PVAR + 1 + offset`
     - Pushes `n1` NIL values backwards from `ppvar`
     - If `n2 == 0`: pushes TOS onto stack
@@ -70,10 +70,17 @@ Control flow and memory operation opcodes (0x00-0x7F).
   - *Stack*: `[marker, ...] -> []`
   - *Algorithm*:
     - Walks backwards through stack until finding negative value (marker)
-    - Extracts `num = (~marker) >> 16` and `offset = GetLoWord(marker) >> 1`
+      - *CRITICAL*: Uses SIGNED comparison `((int)*--CSTKPTRL >= 0)`, NOT unsigned
+      - Markers have sign bit set (e.g., `0xfffe0002`) but represent negative values when interpreted as signed integers
+    - Extracts `num = (~marker) >> 16` and `offset = GetLoWord(marker)`
+      - Note: `offset` is used directly (not shifted), calculation is `ppvar = (LispPTR *)((DLword *)PVAR + 2 + offset)`
     - Calculates `ppvar = (LispPTR *)((DLword *)PVAR + 2 + offset)`
     - Restores `num` values to `0xFFFFFFFF` (unbound marker) backwards from `ppvar`
-    - Pops marker from stack
+    - After unbinding, `CSTKPTRL` points to the marker
+    - *TOPOFSTACK Synchronization*: UNBIND does NOT explicitly update TOPOFSTACK
+      - The dispatch loop reads TOPOFSTACK from memory after UNBIND completes
+      - This is different from RET which explicitly syncs: `TOPOFSTACK = TopOfStack`
+      - See `maiko/inc/inlineC.h:636-685` for implementation details
 - *DUNBIND (0x13)* [1] Dynamic unbind.
   - *Stack*: `[marker, ...]` or `[TOS] -> []`
   - *Algorithm*: Similar to UNBIND, but checks TOS first
@@ -85,18 +92,24 @@ Control flow and memory operation opcodes (0x00-0x7F).
 
 === Variable Access
 - *IVAR0-IVAR6 (0x40-0x46)* [1] Push local variable 0-6.
-  - Uses LispPTR offset (index \* 4 bytes)
+  - Uses LispPTR offset (index * 4 bytes)
+  - *C Implementation*: `IVARMACRO(x): PUSH(IVAR[x]);` where `IVAR = ((LispPTR *)IVar)`
+  - *IVar Setup*: `IVar = NativeAligned2FromStackOffset(CURRENTFX->nextblock)` = `Stackspace + nextblock`
+  - *CRITICAL*: `IVar` is a `DLword*` pointer to stack memory, NOT virtual memory
+  - *Access*: `IVAR[x]` reads a `LispPTR` (4 bytes) at offset `x` from `IVar`
+  - *Memory Location*: Stack memory (`Stackspace`), not virtual memory
 - *IVARX (0x47)* [2] Push indexed local variable.
   - *Stack*: `[] -> [value]`
   - *Operand*: `x` (1B, DLword offset)
   - *CRITICAL*: Uses DLword offset, NOT LispPTR offset
   - *C*: `IVARX(x): PUSH(GetLongWord((DLword *)IVAR + (x)));`
   - *Access*: Reads LispPTR from `(DLword *)IVAR + x` (x is in DLword units)
-  - *IVAR Base*: `IVAR` is `frame.nextblock` (LispPTR address, must be translated to native)
+  - *IVAR Base*: `IVAR = ((LispPTR *)IVar)` where `IVar = Stackspace + nextblock`
   - *Element Size*: Reads 2 DLwords (4 bytes) as LispPTR using `GetLongWord()`
+  - *Memory Location*: Stack memory (`Stackspace`), not virtual memory
   - *Byte Order*: Handles big-endian byte order from sysout format
 - *PVAR0-PVAR6 (0x48-0x4E)* [2] Push parameter 0-6.
-  - Uses LispPTR offset (index \* 4 bytes)
+  - Uses LispPTR offset (index * 4 bytes)
 - *PVARX (0x4F)* [2] Push indexed parameter.
   - *Stack*: `[] -> [value]`
   - *Operand*: `x` (1B, DLword offset)
@@ -109,7 +122,7 @@ Control flow and memory operation opcodes (0x00-0x7F).
 - *FVAR0-FVAR6 (0x50-0x56)* [1] Push free variable 0-6.
 - *FVARX (0x57)* [2] Push indexed free variable.
 - *PVAR_0-PVAR_6 (0x58-0x5E)* [1] Alternative PVAR access.
-- *PVARX\_ (0x5F)* [2] Alternative indexed PVAR.
+- *PVARX_ (0x5F)* [2] Alternative indexed PVAR.
   - *Stack*: `[value] -> []`
   - *Operand*: `x` (1B, DLword offset)
   - *CRITICAL*: Uses DLword offset, NOT LispPTR offset
@@ -118,14 +131,14 @@ Control flow and memory operation opcodes (0x00-0x7F).
   - *Byte Order*: Writes in big-endian byte order for sysout format
 - *GVAR (0x60)* [3] Atom index (2B). Push global variable value.
 - *ARG0 (0x61)* [1] Push argument 0.
-- *IVARX\_ (0x62)* [2] Set indexed local variable.
+- *IVARX_ (0x62)* [2] Set indexed local variable.
   - *Stack*: `[value] -> []`
   - *Operand*: `x` (1B, DLword offset)
   - *CRITICAL*: Uses DLword offset, NOT LispPTR offset
   - *C*: `IVARX_(x): *((LispPTR *)((DLword *)IVAR + (x))) = TOPOFSTACK;`
   - *Access*: Writes LispPTR to `(DLword *)IVAR + x` (x is in DLword units)
   - *Byte Order*: Writes in big-endian byte order for sysout format
-- *GVAR\_ (0x63)* [3] Atom index (2B). Set global variable value.
+- *GVAR_ (0x63)* [3] Atom index (2B). Set global variable value.
   - *Stack*: `[value] -> []`
   - *Operand*: atom_index (2B)
   - *CRITICAL*: Updates GC refs when setting global variable values
