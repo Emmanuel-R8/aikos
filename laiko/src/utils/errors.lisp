@@ -25,7 +25,7 @@
   ()
   (:documentation "Invalid memory address"))
 
-(define-condition division-by-zero (vm-error)
+(define-condition vm-division-by-zero (vm-error)
   ()
   (:documentation "Division by zero"))
 

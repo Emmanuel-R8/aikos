@@ -1,114 +1,259 @@
-# ZIG EMULATOR STEP-WISE COMPARISON STATUS
+# Step-Wise Comparison Status - Multi-Implementation
 
-**Session Date**: 2025-01-17 19:45
-**Priority**: STEP-WISE COMPARATIVE EXECUTION (ABSOLUTE PRIORITY)
-**Skill**: superpowers:executing-plans
+**Last Updated**: 2026-02-09
+**Priority**: Parity testing across all three emulator implementations
 
-## CRITICAL FINDING - FIRST DIVERGENCE IDENTIFIED ✅
+---
 
-**DIVERGENCE POINT**: Stack/Frame Pointer Initialization
-- **C EMULATOR**: SP=0x02e88, FP=0x307864 (correct IFPAGE values)
-- **ZIG EMULATOR**: SP=0x002e88, FP=0x002e72 (wrong values)
+## Overview
 
-**ROOT CAUSE**: Zig VM initialization not properly setting stack/frame pointers from IFPAGE
+This document tracks step-wise execution parity between:
+1. **C (Maiko)** - Reference implementation
+2. **Common Lisp (Laiko)** - New implementation under development
+3. **Zig (Zaiko)** - Alternative implementation (15-step parity achieved)
 
-## CURRENT COMPARISON INFRASTRUCTURE STATUS
+---
 
-### ✅ WORKING COMPONENTS
-1. **C Emulator Trace Generation**
-   - Command: `EMULATOR_MAX_STEPS=N ./maiko/linux.x86_64/ldesdl sysout`
-   - Output: `c_emulator_execution_log.txt` 
-   - Format: C native detailed trace format
-   - Working: ✅ Generates 5+ instruction traces successfully
+## C Implementation (maiko/) - BASELINE
 
-2. **Zig Emulator Trace Generation**
-   - Command: `EMULATOR_MAX_STEPS=N zig build run -- sysout`
-   - Output: `zaiko/zig_emulator_execution_log.txt`
-   - Format: Unified single-line trace format
-   - Working: ✅ Generates matching instruction traces
+**Status**: ✅ REFERENCE IMPLEMENTATION
 
-3. **Comparison Capability**
-   - Both emulators run for same number of instructions
-   - Both generate trace files
-   - First instruction comparison completed
-   - Divergence identified at instruction 0
-
-### 📋 COMPARISON RESULTS (First 5 Instructions)
-
-**INSTRUCTION 0**:
-- C: `PC:0x60f130 POP` with SP=0x02e88, FP=0x307864
-- Zig: `PC:0x60f130 POP` with SP=0x002e88, FP=0x002e72
-- **RESULT**: ❌ Stack/frame pointers wrong
-
-**INSTRUCTION 1**:  
-- C: `PC:0x60f131 GVAR` with correct stack state
-- Zig: `PC:0x60f131 GVAR` with wrong stack state
-- **RESULT**: ❌ Stack/frame pointers still wrong
-
-**INSTRUCTIONS 2-4**: Similar pattern - PC and opcodes match, stack pointers wrong
-
-## IMMEDIATE NEXT STEP REQUIRED
-
-**FIX VM INITIALIZATION** in `zaiko/src/vm/vm_initialization.zig`:
-- Line ~41: `currentfxp_stack_offset = ifpage.currentfxp` 
-- Issue: Not properly converting IFPAGE DLword offsets to VM stack pointers
-- C emulator uses: SP=0x02e88, FP=0x307864
-- Zig calculates: SP=0x002e88, FP=0x002e72
-
-## FILES TO INVESTIGATE
-
-### Primary Issue
-- `zaiko/src/vm/vm_initialization.zig` - Stack/frame pointer initialization
-- Lines 40-60: currentfxp calculation and pointer setting
-- Compare with C implementation in `maiko/src/main.c` start_lisp()
-
-### Reference Traces
-- `c_emulator_execution_log.txt` - C emulator trace (working)
-- `zaiko/zig_emulator_execution_log.txt` - Zig emulator trace (wrong SP/FP)
-
-### Working Commands
+**Trace Command**:
 ```bash
-# Run C emulator (baseline)
 cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp
-EMULATOR_MAX_STEPS=5 ./maiko/linux.x86_64/ldesdl /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/medley/internal/loadups/starter.sysout
-
-# Run Zig emulator (comparison)
-cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/zaiko  
-env ZIG_GLOBAL_CACHE_DIR=zaiko/.zig-cache EMULATOR_MAX_STEPS=5 zig build run -- /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/medley/internal/loadups/starter.sysout
-
-# Compare traces
-cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp
-head -3 c_emulator_execution_log.txt
-head -3 zaiko/zig_emulator_execution_log.txt
+EMULATOR_MAX_STEPS=N ./maiko/build/c/linux.x86_64/lde ./medley/internal/loadups/starter.sysout
 ```
 
-## PROJECT STATUS CONTEXT
+**Trace Format**:
+```
+LINE#|PC|INSTRUCTION|OPCODE|OPERANDS|REGISTERS|FLAGS|SP_FP|STACK_SUMMARY|MEMORY_CONTEXT|FP_VP_FO_VA|BS_MEM|NOTES
+```
 
-**NOT DOCUMENTATION COMPLETE** - Despite task tracking showing 100%, the emulator has critical runtime bugs
-**ACTUAL STATUS**: ~95% complete - Core infrastructure works, stack initialization broken
-**PRIORITY**: Fix stack/frame pointer initialization to enable proper comparison
+**Sample Output (Steps 0-2)**:
+```
+0|0x60f130|RECLAIMCELL|0xbf|-| | |SP:0x012e8a FP:0x012e72|TOS:0x00000000|@mem:[vpage:1231 off:0x130]||
+1|0x60f131|UNKNOWN|0x60|...| | |SP:0x012e88 FP:0x012e72|TOS:0x0000000e|...|
+2|0x60f136|FN2|0x12|...| | |SP:0x012e86 FP:0x012e72|TOS:0x00140000|...|
+```
 
-## SESSION CONTINUITY INSTRUCTIONS
+---
 
-1. **IMMEDIATE**: Fix VM initialization stack/frame pointers to match C (SP=0x02e88, FP=0x307864)
-2. **VERIFY**: Run step-wise comparison again after fix
-3. **CONTINUE**: Fix next divergence if stack/frame pointers resolved
-4. **ITERATE**: Continue until both emulators produce identical traces
+## Laiko Implementation (laiko/) - NEW
 
-## CURRENT ACTION: STEP-WISE PROGRESS
+**Status**: 🔧 IN DEVELOPMENT - Testing Infrastructure
 
-**STATUS**: Attempting to fix VM initialization stack/frame pointer calculation
-**CURRENT ISSUE**: Zig compilation errors with @ptrCast const qualifier issues
-**TARGET**: Achieve SP=0x02e88, FP=0x307864 to match C emulator
-**FILE**: `zaiko/src/vm/vm_initialization.zig` 
-**PROGRESS**: Stack pointer fixes attempted but Zig emulator still not running
-**NEXT**: Need systematic debugging approach to fix compilation and achieve correct SP/FP values
+### Fixes Applied (2026-02-09)
 
-## DEBUGGING ENVIRONMENT
+1. **Package lock violation**: Renamed `division-by-zero` → `vm-division-by-zero`
+2. **Struct constructor calls**: Fixed `make-maiko-lisp.data:cons-cell` → `maiko-lisp.data:make-cons-cell`
+3. **Load script**: Removed non-existent files, fixed load order
+4. **Package exports**: Added IFPAGE accessors, page functions, missing opcodes
 
-- Working directory: `/home/emmanuel/Sync/Development/Emulation/_gits/Interlisp`
-- Zig cache: `ZIG_GLOBAL_CACHE_DIR=zaiko/.zig-cache`  
-- Sysout: `/home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/medley/internal/loadups/starter.sysout`
-- Step limit: `EMULATOR_MAX_STEPS=5` (for controlled testing)
+**Trace Command**:
+```bash
+cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/laiko
+sbcl --non-interactive --load load-emulator.lisp --eval "(trace-log ...)"
+```
 
-**KEY INSIGHT**: The comparison infrastructure is working perfectly - we can now systematically fix each divergence step by step.
+**Trace Format**: Identical to C implementation
+
+**Load Command**:
+```bash
+cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/laiko
+./load-emulator.lisp
+```
+
+**Current Issues**:
+- ⚠️ Load script testing in progress
+- ⚠️ Some opcode handlers not loading correctly
+- ⚠️ IFPAGE accessor functions need verification
+
+**Files for Laiko Parity**:
+- `tests/run-parity.lisp` - Parity testing framework
+- `src/vm/dispatch.lisp` - Dispatch loop
+- `src/main.lisp` - VM initialization
+- `src/vm/opcodes.lisp` - Opcode handlers
+
+**Next Steps for Laiko**:
+1. Verify load script works correctly
+2. Test opcode handler registration
+3. Achieve first successful VM execution
+4. Run parity test against C
+
+---
+
+## Zaiko Implementation (zaiko/) - 15-STEP PARITY
+
+**Status**: ⚠️ PARTIAL PARITY - 15 Steps Match, Then Diverges
+
+### ✅ PARITY ACHIEVED: EMULATOR_MAX_STEPS=15
+
+**Comparison Command**:
+```bash
+cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp
+EMULATOR_MAX_STEPS=15 ./scripts/compare_emulator_execution.sh ./medley/internal/loadups/starter.sysout
+```
+
+**Result**: ✅ 14-line traces are byte-for-byte identical
+
+**Matching Fields** (Steps 0-14):
+- ✅ PC values match exactly
+- ✅ SP (stack pointer) matches
+- ✅ FP (frame pointer) matches
+- ✅ TOS (top of stack) matches
+- ✅ Opcode names match (via getOpcodeNameForTrace)
+- ✅ Memory context fields match
+
+**Format Alignment**:
+- ✅ SP_FP: `SP:0x012e8a FP:0x012e72`
+- ✅ TOS: `TOS:0x00000000`
+- ✅ MEMORY: `@mem:[vpage:N off:0xNNN]`
+- ✅ Last line: Truncated to match C format
+
+### ⚠️ CURRENT DIVERGENCE: EMULATOR_MAX_STEPS=100
+
+**Problem**:
+- C produces: ~86 trace lines
+- Zig produces: ~40 trace lines
+- Zig exits early at step ~40
+
+**Root Cause**:
+- Zig hits RETURN with non-zero alink
+- Bounds check sets stop_requested = true
+- C has no such check and continues
+
+**Location**: `zaiko/src/vm/function.zig` (returnFromFunction)
+
+### 📋 ZIG PARITY FIXES (Completed)
+
+| Fix | Date | Status |
+|-----|------|--------|
+| Stack/Frame Pointer Initialization | 2026-02-03 | ✅ |
+| FastRetCALL Validation Logic | 2026-02-03 | ✅ |
+| GVAR Value and PC Advance | 2026-02-04 | ✅ |
+| Line 0 TOS Sync | 2026-02-04 | ✅ |
+| RETURN alink=0 Handling | 2026-02-04 | ✅ |
+| Trace Format Identity | 2026-02-05 | ✅ |
+| UNBIND Semantics | 2026-02-03 | ✅ |
+| SP Trace Logging | 2026-02-04 | ✅ |
+| Opcode Name Mapping | 2026-02-06 | ✅ |
+| 15-Step Parity | 2026-02-06 | ✅ |
+
+---
+
+## Comparison Infrastructure
+
+### Working Components
+
+| Component | C | Laiko | Zig |
+|----------|---|-------|-----|
+| Trace Generation | ✅ | 🔧 | ✅ |
+| Step Counting | ✅ | 🔧 | ✅ |
+| Memory Context | ✅ | 🔧 | ✅ |
+| SP/FP Logging | ✅ | 🔧 | ✅ |
+| TOS Logging | ✅ | 🔧 | ✅ |
+| Format Matching | ✅ | 🔧 | ✅ |
+| Comparison Script | N/A | 🔧 | ✅ |
+
+### Comparison Scripts
+
+**Main Script**:
+```bash
+./scripts/compare_emulator_execution.sh <sysout>
+```
+
+**Python Analysis**:
+```bash
+./scripts/compare_unified_traces.py c_trace.txt z_trace.txt
+```
+
+**AWK Quick Compare**:
+```bash
+./scripts/compare_unified_traces.awk c_trace.txt z_trace.txt
+```
+
+---
+
+## Documentation Accuracy Note
+
+**Previous Overstatement**:
+- Task tracking claimed 89.2% Zig completion
+- **Actual**: ~60-70% with significant gaps
+
+**Documented Issues**:
+- 245 TODO/FIXME markers in Zig (8x more than C)
+- Completely stubbed floating point operations
+- Missing/incomplete graphics operations (BitBLT, drawing)
+- Incomplete I/O subsystems
+- Early exit at ~40 steps (not full execution)
+
+---
+
+## Next Steps
+
+### Laiko (Priority 1)
+1. Test load script after fixes
+2. Verify opcode handler count (~190+)
+3. Run first successful VM execution
+4. Generate first trace file
+5. Begin step-by-step parity comparison
+
+### Zaiko (Priority 2)
+1. Fix early exit at ~40 steps
+2. Extend parity beyond 15 steps
+3. Implement missing floating point operations
+4. Complete graphics operations
+
+### General
+1. Rebuild C emulator with unified trace format
+2. Update all documentation to reflect actual completion
+3. Add Laiko coverage to all status documents
+
+---
+
+## Key Files by Implementation
+
+### C (Reference)
+- `maiko/src/xc.c` - Trace generation
+- `maiko/src/main.c` - Entry point
+- `maiko/inc/ifpage.h` - IFPAGE structure
+
+### Laiko (Common Lisp)
+- `laiko/src/vm/dispatch.lisp` - Dispatch loop
+- `laiko/src/vm/opcodes.lisp` - Opcode handlers
+- `laiko/src/main.lisp` - VM initialization
+- `laiko/tests/run-parity.lisp` - Parity testing
+
+### Zig (Zaiko)
+- `zaiko/src/vm/execution_trace.zig` - Trace generation
+- `zaiko/src/vm/function.zig` - RETURN handling
+- `zaiko/src/vm/vm_initialization.zig` - VM init
+- `zaiko/src/main.zig` - Entry point
+
+---
+
+## Environment Variables
+
+| Variable | Purpose | Example |
+|----------|---------|---------|
+| `EMULATOR_MAX_STEPS` | Limit execution steps | `EMULATOR_MAX_STEPS=15` |
+| `ZIG_GLOBAL_CACHE_DIR` | Zig cache location | `zaiko/.zig-cache` |
+| `DISPLAY` | X11 display | `:0` |
+
+---
+
+## Session Continuity
+
+### If C Emulator Issues
+1. Rebuild: `./medley/scripts/build/build-c-emulator.sh --display-backend sdl --force`
+2. Test: `./maiko/build/c/linux.x86_64/lde ./medley/internal/loadups/starter.sysout`
+
+### If Laiko Issues
+1. Clear cache: `find ~/.cache/common-lisp -name "*.fasl" -path "*Interlisp*" -delete`
+2. Load: `./load-emulator.lisp`
+3. Check handlers: `(hash-table-count maiko-lisp.vm:*opcode-handlers*)`
+
+### If Zig Issues
+1. Clear cache: `rm -rf zaiko/.zig-cache`
+2. Rebuild: `ZIG_GLOBAL_CACHE_DIR=zaiko/.zig-cache zig build`
+3. Test: `EMULATOR_MAX_STEPS=15 ./zaiko/build/zaiko ./medley/internal/loadups/starter.sysout`

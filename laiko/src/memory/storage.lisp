@@ -62,7 +62,7 @@
                             (ash (aref heap (+ offset 2)) 16)
                             (ash (aref heap (+ offset 3)) 24)))
           (cdr-code (aref heap (+ offset 6))))
-      (make-maiko-lisp.data:cons-cell :car-field car-field :cdr-code cdr-code))))
+      (maiko-lisp.data:make-cons-cell :car-field car-field :cdr-code cdr-code))))
 
 (defun set-cons-cell (storage ptr cons-cell)
   "Set cons cell at given pointer."
@@ -122,7 +122,7 @@
                              (ash (aref heap (+ offset 2)) 16)
                              (ash (aref heap (+ offset 3)) 24)))
           (cdr-code (aref heap (+ offset 6))))
-      (make-maiko-lisp.data:cons-cell :car-field car-field :cdr-code cdr-code))))
+      (maiko-lisp.data:make-cons-cell :car-field car-field :cdr-code cdr-code))))
 
 (defun put-cons-cell (storage ptr cons-cell)
   "Write cons cell to storage at given LispPTR address."
