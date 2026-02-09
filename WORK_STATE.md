@@ -215,7 +215,11 @@ ls -la /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/*execution_log*
 
 ## Environment Variables
 
-- `ZIG_GLOBAL_CACHE_DIR=zaiko/.zig-cache` - Required for Zig builds
+<<<<<<< HEAD
+
+- # `ZIG_GLOBAL_CACHE_DIR=zaiko/.zig-cache` - Required for Zig builds
+- `ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache` - Required for Zig builds
+  > > > > > > > execution-parity-2026-01-26
 - `EMULATOR_MAX_STEPS=N` - Limit execution steps for testing
 
 ## Session Context

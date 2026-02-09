@@ -504,6 +504,13 @@ When a file exceeds 500 lines:
 - **Architecture**: `documentation/components/vm-core.typ`
 - **Glossary**: `documentation/reference/glossary.typ`
 
+### Specifications
+
+- **Zig Completion Spec**: `specs/spec.md`
+- **Implementation Plan**: `specs/plan.md`
+- **Tasks**: `specs/tasks.md`
+- **Current State**: `specs/current-state-analysis.md`
+
 ### Implementation Notes
 
 - **Zig Implementation**: `documentation/implementations/zig-implementation.typ`
@@ -517,6 +524,7 @@ When a file exceeds 500 lines:
 - Zig tests: `zaiko/tests/`
 - C reference: `maiko/src/`
 - Documentation: `documentation/`
+- Specs: `specs/`
 
 ### Important Constants
 
@@ -616,6 +624,8 @@ medley/scripts/build/build-c-emulator.sh
 ## Contact & Support
 
 - **Project Documentation**: See `documentation/README.md`
+- **Implementation Status**: See `specs/current-state-analysis.md`
+- **Task Tracking**: See `specs/tasks.md`
 
 ---
 
