@@ -81,6 +81,8 @@ pub fn handleBIND(vm: *VM, byte1: u8, byte2: u8) errors.VMError!void {
 /// Stack: [marker, ...] -> []
 pub fn handleUNBIND(vm_obj: *VM) errors.VMError!void {
     const errors_module = @import("../../utils/errors.zig");
+    const types_module = @import("../../utils/types.zig");
+    const DLword = types_module.DLword;
     // CRITICAL: CSTKPTRL is a pointer to LispPTR (4-byte) values
     // C: for (; (((int)*--CSTKPTRL) >= 0););
     // CSTKPTRL is declared as LispPTR* (see maiko/src/xc.c:133)
@@ -88,11 +90,11 @@ pub fn handleUNBIND(vm_obj: *VM) errors.VMError!void {
     var marker: LispPTR = 0;
 
     // DEBUG: Verify CSTKPTRL is in virtual memory
-    const cstkptrl_addr = @intFromPtr(vm_obj.cstkptrl.?);
+    const cstkptrl_addr_debug = @intFromPtr(vm_obj.cstkptrl.?);
     const vmem_base = if (vm_obj.virtual_memory) |vm| @intFromPtr(vm.ptr) else 0;
     const vmem_len = if (vm_obj.virtual_memory) |vm| vm.len else 0;
-    std.debug.print("DEBUG UNBIND: CSTKPTRL=0x{x}, vmem_base=0x{x}, vmem_len=0x{x}\n", .{ cstkptrl_addr, vmem_base, vmem_len });
-    std.debug.print("DEBUG UNBIND: CSTKPTRL in vmem range: {}\n", .{cstkptrl_addr >= vmem_base and cstkptrl_addr < vmem_base + vmem_len});
+    std.debug.print("DEBUG UNBIND: CSTKPTRL=0x{x}, vmem_base=0x{x}, vmem_len=0x{x}\n", .{ cstkptrl_addr_debug, vmem_base, vmem_len });
+    std.debug.print("DEBUG UNBIND: CSTKPTRL in vmem range: {}\n", .{cstkptrl_addr_debug >= vmem_base and cstkptrl_addr_debug < vmem_base + vmem_len});
 
     while (true) {
         // C: *--CSTKPTRL - decrement by 1 LispPTR (4 bytes) BEFORE reading
@@ -110,6 +112,29 @@ pub fn handleUNBIND(vm_obj: *VM) errors.VMError!void {
     // CSTKPTRL now correctly points to the negative marker (matching C behavior)
 
     if (marker == 0) return errors_module.VMError.StackUnderflow;
+
+    // CRITICAL: After UNBIND, CSTKPTRL points to the marker
+    // C: UNBIND modifies CSTKPTRL directly but does NOT update CurrentStackPTR
+    // This means CurrentStackPTR becomes stale after UNBIND
+    // However, the C dispatch loop doesn't call StackPtrRestore at nextopcode:
+    // So CSTKPTRL stays at the marker position, and TOPOFSTACK is read from memory
+    //
+    // In Zig, the dispatch loop calls initCSTKPTRLFromCurrentStackPTR before each opcode
+    // This would restore CSTKPTRL from the stale stack_ptr, undoing UNBIND's work
+    // So we need to update stack_ptr to match CSTKPTRL's new position
+    // C equivalent: CurrentStackPTR = (void *)(CSTKPTR - 1) (StackPtrSave pattern)
+    if (vm_obj.cstkptrl) |cstkptrl| {
+        // Convert CSTKPTRL (LispPTR*) to stack_ptr (DLword*)
+        // CSTKPTRL points to LispPTR values, stack_ptr points to DLword values
+        // CSTKPTRL - 1 gives us the position before the marker
+        // Convert to DLword*: (LispPTR* - 1) = (LispPTR* - 4 bytes) = (DLword* - 2 DLwords)
+        const cstkptrl_addr = @intFromPtr(cstkptrl);
+        const stack_ptr_addr = cstkptrl_addr - 4; // -1 LispPTR = -4 bytes = -2 DLwords
+        vm_obj.stack_ptr = @as([*]DLword, @ptrFromInt(stack_ptr_addr));
+    }
+
+    // TOPOFSTACK will be read from memory by the dispatch loop's initCSTKPTRLFromCurrentStackPTR
+    // This matches C behavior where TopOfStack (MachineState.tosvalue) is read from memory
 }
 
 /// DUNBIND: Dynamic unbind

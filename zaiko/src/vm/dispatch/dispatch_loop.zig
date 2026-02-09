@@ -124,7 +124,7 @@ pub fn decodeInstruction(vm: *VM, instruction_count: u64) errors.VMError!?instru
     // Decode full instruction with operands from virtual memory
     // DEBUG: Print PC and first few bytes for first few instructions
     // CRITICAL: Also check PC 0x307898 specifically (known mismatch location)
-    if (instruction_count <= 3 or vm.pc == 0x307898 or vm.pc == 0x60f14f) {
+    if (instruction_count <= 3 or vm.pc == 0x307898 or vm.pc == 0x60f14f or vm.pc == 0x60f14a or vm.pc == 0x60f13c) {
         if (vm.virtual_memory) |vmem| {
             if (vm.pc < vmem.len and vm.pc + 8 <= vmem.len) {
                 // CRITICAL: Show BOTH raw bytes and XOR-addressed bytes

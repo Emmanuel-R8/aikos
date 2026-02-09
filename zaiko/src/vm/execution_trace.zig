@@ -45,10 +45,9 @@ pub const ExecutionTrace = struct {
     pub fn unifiedTraceLog(self: *ExecutionTrace, vm: *VM, inst: Instruction) !void {
         if (self.log_file == null) return;
 
-        // Only log first 100 instructions or PC 0x307898
+        // Log all instructions for step-by-step parity validation
+        // No limit - let EMULATOR_MAX_STEPS control execution length
         const pc_byte_offset = vm.pc;
-        const should_log = self.instruction_count <= 100 or pc_byte_offset == 0x307898;
-        if (!should_log) return;
 
         var buffer: [2048]u8 = undefined;
         var pos: usize = 0;
@@ -241,8 +240,9 @@ pub const ExecutionTrace = struct {
             return;
         }
 
-        // Generate unified trace format for rapid comparison
-        try self.unifiedTraceLog(vm, inst);
+        // NOTE: Unified trace format disabled - using detailed format to match C emulator
+        // Uncomment below to enable unified trace format for rapid comparison:
+        // try self.unifiedTraceLog(vm, inst);
 
         // ENHANCED TRACING: Match C emulator's first instruction tracing
         const ENHANCED_TRACING = @import("builtin").mode == .Debug;
@@ -320,11 +320,8 @@ pub const ExecutionTrace = struct {
             return;
         }
 
-        // Stop logging after 1000 steps for comparison
-        if (self.instruction_count >= 1000) {
-            return;
-        }
-
+        // No instruction limit - log all instructions for step-by-step parity validation
+        // Execution length is controlled by EMULATOR_MAX_STEPS in dispatch.zig
         self.instruction_count += 1;
 
         // Column 1-6: Instruction count (right-aligned, 5 digits + 1 space)
@@ -756,8 +753,14 @@ pub const ExecutionTrace = struct {
             const dlword_off: usize = i * 2; // 2 DLwords = 1 LispPTR cell
             const stack_slot: [*]DLword = vm.stack_ptr - dlword_off;
             if (@intFromPtr(stack_slot) <= @intFromPtr(vm.stack_base)) break;
-            const cell_ptr: [*]align(1) LispPTR = @ptrCast(@as([*]u8, @ptrCast(stack_slot)));
-            values[i] = cell_ptr[0];
+            // Read LispPTR from stack_slot - must match C's GetLongWord behavior
+            // C's GetLongWord reads 4 bytes in big-endian format from sysout
+            const stack_slot_bytes: [*]const u8 = @ptrCast(stack_slot);
+            const value: LispPTR = (@as(LispPTR, stack_slot_bytes[0]) << 24) |
+                (@as(LispPTR, stack_slot_bytes[1]) << 16) |
+                (@as(LispPTR, stack_slot_bytes[2]) << 8) |
+                @as(LispPTR, stack_slot_bytes[3]);
+            values[i] = value;
         }
         return values;
     }

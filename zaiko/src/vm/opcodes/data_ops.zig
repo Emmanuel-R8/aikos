@@ -1,3 +1,4 @@
+const std = @import("std");
 const errors = @import("../../utils/errors.zig");
 const stack = @import("../stack.zig");
 const types = @import("../../utils/types.zig");
@@ -78,7 +79,7 @@ pub fn handleCAR(vm: *VM) errors.VMError!void {
 
         // Read cons cell fields (big-endian from sysout)
         // Cons cell layout: CAR (4 bytes), CDR (4 bytes)
-        const cell_bytes = virtual_memory[cell_byte_offset..cell_byte_offset+8];
+        const cell_bytes = virtual_memory[cell_byte_offset .. cell_byte_offset + 8];
         const car_low_word = (@as(types.DLword, cell_bytes[0]) << 8) | @as(types.DLword, cell_bytes[1]);
         const car_high_word = (@as(types.DLword, cell_bytes[2]) << 8) | @as(types.DLword, cell_bytes[3]);
         var car_value: types.LispPTR = (@as(types.LispPTR, car_high_word) << 16) | @as(types.LispPTR, car_low_word);
@@ -110,7 +111,7 @@ pub fn handleCAR(vm: *VM) errors.VMError!void {
             }
 
             // Read CAR from indirect cell
-            const indirect_cell_bytes = virtual_memory[indirect_cell_byte_offset..indirect_cell_byte_offset+4];
+            const indirect_cell_bytes = virtual_memory[indirect_cell_byte_offset .. indirect_cell_byte_offset + 4];
             const indirect_car_low_word = (@as(types.DLword, indirect_cell_bytes[0]) << 8) | @as(types.DLword, indirect_cell_bytes[1]);
             const indirect_car_high_word = (@as(types.DLword, indirect_cell_bytes[2]) << 8) | @as(types.DLword, indirect_cell_bytes[3]);
             car_value = (@as(types.LispPTR, indirect_car_high_word) << 16) | @as(types.LispPTR, indirect_car_low_word);
@@ -148,23 +149,43 @@ pub fn handleCDR(vm: *VM) errors.VMError!void {
     }
 
     // Get cons cell from memory using address translation
-    if (vm.virtual_memory) |vmem| {
-        // Translate LispPTR to native pointer (4-byte aligned for cons cell)
-        // C: NativeAligned4FromLAddr(TOPOFSTACK)
-        const native_ptr = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(vmem, list_ptr, fptovp_table, 4) catch {
-            // Invalid address - trigger UFN (for now, leave value unchanged)
-            return;
-        } else {
-            // No FPtoVP table - can't translate address
-            return;
-        };
+    if (vm.virtual_memory) |_| {
+        // Calculate byte offset in virtual memory
+        const page_num = (list_ptr >> 9) & 0x7FFF; // Page number (15 bits)
+        const page_offset_dlwords = list_ptr & 0x1FF; // Page offset (9 bits, in DLwords)
+        const page_offset_bytes = page_offset_dlwords * 2; // Convert DLwords to bytes
 
-        // Cast to cons cell pointer
-        const cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(native_ptr)));
+        // Get virtual page from FPtoVP table
+        if (vm.fptovp == null) {
+            return;
+        }
+
+        const fptovp_table = vm.fptovp.?;
+        if (page_num >= fptovp_table.entries.len) {
+            return;
+        }
+
+        const virtual_page = fptovp_table.getFPtoVP(page_num);
+        if (virtual_page == 0) {
+            return;
+        }
+
+        // Calculate byte offset in virtual memory: virtual_page * 512 + page_offset_bytes
+        const BYTESPER_PAGE: usize = 512;
+        const cell_byte_offset = (@as(usize, virtual_page) * BYTESPER_PAGE) + page_offset_bytes;
+
+        const virtual_memory = vm.virtual_memory.?;
+        if (cell_byte_offset + 8 > virtual_memory.len) {
+            return;
+        }
+
+        // Read cons cell fields (big-endian from sysout)
+        const cell_bytes = virtual_memory[cell_byte_offset .. cell_byte_offset + 8];
 
         // Decode CDR using CDR coding (NEWCDRCODING version)
-        // C: CDRCODEX = DATUM68K->cdr_code
-        const cdr_code = cell.cdr_code;
+        // CDR code is stored in low 8 bits of CDR field
+        const cdr_low_word = (@as(types.DLword, cell_bytes[4]) << 8) | @as(types.DLword, cell_bytes[5]);
+        const cdr_code = @as(u8, @truncate(cdr_low_word & 0xFF));
 
         var cdr_value: LispPTR = 0;
 
@@ -180,29 +201,42 @@ pub fn handleCDR(vm: *VM) errors.VMError!void {
         } else if (cdr_code == cons.CDR_INDIRECT) {
             // C: CDR_INDIRECT (0) -> TOPOFSTACK = cdr(DATUM68K->car_field) (recursive)
             // Recursive CDR call on indirect cell
-            const indirect_addr = cons.getCAR(cell);
-            const indirect_native = if (vm.fptovp) |fptovp_table| blk: {
-                const vmem_inner = vm.virtual_memory orelse return;
-                break :blk virtual_memory_module.translateAddress(vmem_inner, indirect_addr, fptovp_table, 4) catch {
-                    return;
-                };
-            } else return;
-            const indirect_cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(indirect_native)));
-            // Recursive call to getCDR
-            cdr_value = cons.getCDR(indirect_cell, indirect_addr);
+            const car_low_word = (@as(types.DLword, cell_bytes[0]) << 8) | @as(types.DLword, cell_bytes[1]);
+            const car_high_word = (@as(types.DLword, cell_bytes[2]) << 8) | @as(types.DLword, cell_bytes[3]);
+            const indirect_addr: types.LispPTR = (@as(types.LispPTR, car_high_word) << 16) | @as(types.LispPTR, car_low_word);
+
+            // Recursive call to handleCDR on indirect address
+            stack_module.setTopOfStack(vm, indirect_addr);
+            try handleCDR(vm);
+            return;
         } else {
             // C: CDR different page (1-7) -> TOPOFSTACK = ((ConsCell *)NativeAligned4FromLAddr(TOPOFSTACK + (CDRCODEX << 1)))->car_field
             // Different page encoding: CDR stored in another cell's CAR field
             const offset = @as(u32, cdr_code) << 1;
             const cdr_addr = list_ptr + offset;
-            const cdr_native = if (vm.fptovp) |fptovp_table| blk: {
-                const vmem_inner2 = vm.virtual_memory orelse return;
-                break :blk virtual_memory_module.translateAddress(vmem_inner2, cdr_addr, fptovp_table, 4) catch {
-                    return;
-                };
-            } else return;
-            const cdr_cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(cdr_native)));
-            cdr_value = cons.getCAR(cdr_cell);
+            const cdr_page_num = (cdr_addr >> 9) & 0x7FFF;
+            const cdr_page_offset_dlwords = cdr_addr & 0x1FF;
+            const cdr_page_offset_bytes = cdr_page_offset_dlwords * 2;
+
+            if (cdr_page_num >= fptovp_table.entries.len) {
+                return;
+            }
+
+            const cdr_virtual_page = fptovp_table.getFPtoVP(cdr_page_num);
+            if (cdr_virtual_page == 0) {
+                return;
+            }
+
+            const cdr_cell_byte_offset = (@as(usize, cdr_virtual_page) * BYTESPER_PAGE) + cdr_page_offset_bytes;
+            if (cdr_cell_byte_offset + 4 > virtual_memory.len) {
+                return;
+            }
+
+            // Read CAR from cdr cell
+            const cdr_cell_bytes = virtual_memory[cdr_cell_byte_offset .. cdr_cell_byte_offset + 4];
+            const cdr_car_low_word = (@as(types.DLword, cdr_cell_bytes[0]) << 8) | @as(types.DLword, cdr_cell_bytes[1]);
+            const cdr_car_high_word = (@as(types.DLword, cdr_cell_bytes[2]) << 8) | @as(types.DLword, cdr_cell_bytes[3]);
+            cdr_value = (@as(types.LispPTR, cdr_car_high_word) << 16) | @as(types.LispPTR, cdr_car_low_word);
         }
 
         // C: TOPOFSTACK = cdr_value; nextop1;
@@ -280,27 +314,56 @@ pub fn handleRPLACA(vm: *VM) errors.VMError!void {
     // Get cons cell from memory
     if (vm.virtual_memory) |vmem| {
         const native_ptr = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(vmem, cons_cell_ptr, fptovp_table, 4) catch {
-            return errors_module.VMError.MemoryAccessFailed;
+            // Invalid address - leave value unchanged (should trigger UFN)
+            try stack_module.pushStack(vm, cons_cell_ptr);
+            return;
         } else {
-            return errors_module.VMError.MemoryAccessFailed;
+            // No FPtoVP table - leave value unchanged
+            try stack_module.pushStack(vm, cons_cell_ptr);
+            return;
         };
 
-        const cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(native_ptr)));
+        // Convert to mutable pointer
+        const vmem_ptr = @constCast(vmem.ptr);
+        const cell_ptr = vmem_ptr + @as(usize, @intFromPtr(native_ptr) - @intFromPtr(vmem.ptr));
+        const cell_bytes = @as([*]u8, @ptrCast(cell_ptr))[0..5];
 
-        // Handle indirect CDR encoding
-        if (cell.cdr_code == cons.CDR_INDIRECT) {
+        // Check CDR code (byte 4)
+        const cdr_code = cell_bytes[4];
+        if (cdr_code == cons.CDR_INDIRECT) {
             // CAR is stored in indirect cell
-            const indirect_addr = cell.car_field;
+            // Read car_field (bytes 0-3, big-endian)
+            const car_low_word = (@as(types.DLword, cell_bytes[0]) << 8) | @as(types.DLword, cell_bytes[1]);
+            const car_high_word = (@as(types.DLword, cell_bytes[2]) << 8) | @as(types.DLword, cell_bytes[3]);
+            const indirect_addr: types.LispPTR = (@as(types.LispPTR, car_high_word) << 16) | @as(types.LispPTR, car_low_word);
+
             const indirect_native = if (vm.fptovp) |fptovp_table| virtual_memory_module.translateAddress(vmem, indirect_addr, fptovp_table, 4) catch {
+                try stack_module.pushStack(vm, cons_cell_ptr);
                 return;
             } else {
+                try stack_module.pushStack(vm, cons_cell_ptr);
                 return;
             };
-            const indirect_cell: *cons.ConsCell = @as(*cons.ConsCell, @ptrCast(@alignCast(indirect_native)));
-            cons.setCAR(indirect_cell, new_car);
+
+            const indirect_ptr_val = @intFromPtr(indirect_native);
+            if (indirect_ptr_val % 4 != 0) {
+                try stack_module.pushStack(vm, cons_cell_ptr);
+                return;
+            }
+
+            const indirect_cell_ptr = vmem_ptr + @as(usize, indirect_ptr_val - @intFromPtr(vmem.ptr));
+            const indirect_cell_bytes = @as([*]u8, @ptrCast(indirect_cell_ptr))[0..5];
+            // Write new_car to indirect cell's CAR (bytes 0-3, big-endian)
+            indirect_cell_bytes[0] = @as(u8, @truncate((new_car >> 24) & 0xFF));
+            indirect_cell_bytes[1] = @as(u8, @truncate((new_car >> 16) & 0xFF));
+            indirect_cell_bytes[2] = @as(u8, @truncate((new_car >> 8) & 0xFF));
+            indirect_cell_bytes[3] = @as(u8, @truncate(new_car & 0xFF));
         } else {
-            // Normal CAR update
-            cons.setCAR(cell, new_car);
+            // Normal CAR update: write new_car to bytes 0-3 (big-endian)
+            cell_bytes[0] = @as(u8, @truncate((new_car >> 24) & 0xFF));
+            cell_bytes[1] = @as(u8, @truncate((new_car >> 16) & 0xFF));
+            cell_bytes[2] = @as(u8, @truncate((new_car >> 8) & 0xFF));
+            cell_bytes[3] = @as(u8, @truncate(new_car & 0xFF));
         }
 
         // Push cons cell pointer back

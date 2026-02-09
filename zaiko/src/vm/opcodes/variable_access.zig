@@ -25,35 +25,26 @@ pub fn handleIVAR(vm: *VM, index: u8) errors.VMError!void {
 
     // IVar access: variables stored at nextblock offset
     // CRITICAL: frame.nextblock is a DLword offset from Stackspace, not a LispPTR
-    // C: IVAR = NativeAligned2FromStackOffset(CURRENTFX->nextblock) = Stackspace + nextblock
-    // Stackspace is DLword*, so Stackspace + nextblock adds nextblock DLwords = nextblock * 2 bytes
+    // C: IVar = NativeAligned2FromStackOffset(CURRENTFX->nextblock) = Stackspace + nextblock
+    // C: IVAR = ((LispPTR *)IVar), so IVAR[x] reads LispPTR at offset x from IVar
+    // CRITICAL: IVar points to STACK MEMORY, not virtual memory!
     const nextblock = stack_module.getNextblock(frame);
     if (nextblock == 0) {
         try stack_module.pushStack(vm, 0); // No IVar area - return NIL
         return;
     }
 
-    // Calculate IVAR base address: Stackspace + nextblock (in bytes)
-    // Stackspace is at STK_OFFSET * 2 = 0x20000 bytes
-    const STK_OFFSET: u32 = 0x00010000; // DLword offset from Lisp_world
-    const stackspace_byte_offset = STK_OFFSET * 2; // Convert DLword offset to byte offset
-    const ivar_base_byte_offset = stackspace_byte_offset + (@as(usize, @intCast(nextblock)) * 2); // nextblock is in DLwords
+    // Calculate IVar pointer: Stackspace + nextblock (in DLwords)
+    // C: IVar = NativeAligned2FromStackOffset(nextblock) = Stackspace + nextblock
+    // vm.stack_base is the equivalent of Stackspace in C
+    const ivar_ptr: [*]DLword = vm.stack_base + @as(usize, @intCast(nextblock));
 
-    // Access IVar at index (each IVar is LispPTR = 4 bytes)
-    const ivar_offset_bytes = @as(usize, index) * @sizeOf(types.LispPTR);
-    const ivar_addr = ivar_base_byte_offset + ivar_offset_bytes;
+    // Cast to LispPTR* for access (C: IVAR = ((LispPTR *)IVar))
+    const ivar_lispptr: [*]align(1) LispPTR = @ptrCast(ivar_ptr);
 
-    // Read from virtual memory (big-endian from sysout)
-    if (vm.virtual_memory == null or ivar_addr + 4 > vm.virtual_memory.?.len) {
-        try stack_module.pushStack(vm, 0);
-        return;
-    }
-
-    const virtual_memory = vm.virtual_memory.?;
-    const ivar_bytes = virtual_memory[ivar_addr .. ivar_addr + 4];
-    const low_word = (@as(types.DLword, ivar_bytes[0]) << 8) | @as(types.DLword, ivar_bytes[1]);
-    const high_word = (@as(types.DLword, ivar_bytes[2]) << 8) | @as(types.DLword, ivar_bytes[3]);
-    const ivar_value: types.LispPTR = (@as(types.LispPTR, high_word) << 16) | @as(types.LispPTR, low_word);
+    // Access IVAR[x] - read LispPTR at index x
+    // C: IVAR[x] = ((LispPTR *)IVar)[x]
+    const ivar_value: types.LispPTR = ivar_lispptr[index];
 
     try stack_module.pushStack(vm, ivar_value);
 }
@@ -431,9 +422,10 @@ pub fn handleIVARX(vm: *VM, word_offset: u8) errors.VMError!void {
     const types_module = @import("../../utils/types.zig");
 
     // C: IVARX(x): PUSH(GetLongWord((DLword *)IVAR + (x)));
-    // IVAR is frame.nextblock (LispPTR address)
+    // IVAR = ((LispPTR *)IVar) where IVar = Stackspace + nextblock
     // x is a DLword offset, not a LispPTR offset
     // GetLongWord reads 2 DLwords (4 bytes) as a LispPTR
+    // CRITICAL: IVar points to STACK MEMORY, not virtual memory!
 
     const frame = vm.current_frame orelse {
         return errors_module.VMError.InvalidAddress;
@@ -446,26 +438,21 @@ pub fn handleIVARX(vm: *VM, word_offset: u8) errors.VMError!void {
         return;
     }
 
-    // Calculate IVAR base address: Stackspace + nextblock (in bytes)
-    const STK_OFFSET: u32 = 0x00010000; // DLword offset from Lisp_world
-    const stackspace_byte_offset = STK_OFFSET * 2;
-    const ivar_base_byte_offset = stackspace_byte_offset + (@as(usize, @intCast(nextblock)) * 2);
+    // Calculate IVar pointer: Stackspace + nextblock (in DLwords)
+    // C: IVar = NativeAligned2FromStackOffset(nextblock) = Stackspace + nextblock
+    const ivar_ptr: [*]DLword = vm.stack_base + @as(usize, @intCast(nextblock));
 
     // Access IVAR at word_offset (DLword units)
-    const ivar_offset_bytes = @as(usize, word_offset) * @sizeOf(types_module.DLword);
-    const ivar_addr = ivar_base_byte_offset + ivar_offset_bytes;
+    // C: (DLword *)IVAR + x = (DLword *)((LispPTR *)IVar) + x
+    // Since IVAR is cast to LispPTR*, we need to access as DLword* first, then offset
+    const ivar_at_offset: [*]DLword = ivar_ptr + @as(usize, @intCast(word_offset));
 
-    // Read from virtual memory (big-endian from sysout)
-    if (vm.virtual_memory == null or ivar_addr + 4 > vm.virtual_memory.?.len) {
-        try stack_module.pushStack(vm, 0);
-        return;
-    }
-
-    const virtual_memory = vm.virtual_memory.?;
-    const ivar_bytes = virtual_memory[ivar_addr .. ivar_addr + 4];
-    const low_word = (@as(types_module.DLword, ivar_bytes[0]) << 8) | @as(types_module.DLword, ivar_bytes[1]);
-    const high_word = (@as(types_module.DLword, ivar_bytes[2]) << 8) | @as(types_module.DLword, ivar_bytes[3]);
-    const value: types.LispPTR = (@as(types.LispPTR, high_word) << 16) | @as(types.LispPTR, low_word);
+    // Read 2 DLwords (4 bytes) as LispPTR using GetLongWord logic
+    // C: GetLongWord reads big-endian from memory
+    // But stack memory is already in native byte order (little-endian on x86_64)
+    // So we read directly as LispPTR
+    const ivar_lispptr: [*]align(1) LispPTR = @ptrCast(ivar_at_offset);
+    const value: types.LispPTR = ivar_lispptr[0];
 
     try stack_module.pushStack(vm, value);
 }
@@ -481,6 +468,7 @@ pub fn handleIVARX_(vm: *VM, word_offset: u8) errors.VMError!void {
     const types_module = @import("../../utils/types.zig");
 
     // C: IVARX_(x): *((LispPTR *)((DLword *)IVAR + (x))) = TOPOFSTACK;
+    // CRITICAL: IVar points to STACK MEMORY, not virtual memory!
     const value = try stack_module.popStack(vm);
 
     const frame = vm.current_frame orelse {
@@ -493,19 +481,18 @@ pub fn handleIVARX_(vm: *VM, word_offset: u8) errors.VMError!void {
         return; // No IVAR area - ignore
     }
 
-    // Calculate IVAR base address: Stackspace + nextblock (in bytes)
-    const STK_OFFSET: u32 = 0x00010000; // DLword offset from Lisp_world
-    const stackspace_byte_offset = STK_OFFSET * 2;
-    const ivar_base_byte_offset = stackspace_byte_offset + (@as(usize, @intCast(nextblock)) * 2);
+    // Calculate IVar pointer: Stackspace + nextblock (in DLwords)
+    // C: IVar = NativeAligned2FromStackOffset(nextblock) = Stackspace + nextblock
+    const ivar_ptr: [*]DLword = vm.stack_base + @as(usize, @intCast(nextblock));
 
     // Access IVAR at word_offset (DLword units)
-    const ivar_offset_bytes = @as(usize, word_offset) * @sizeOf(types_module.DLword);
-    const ivar_addr = ivar_base_byte_offset + ivar_offset_bytes;
+    // C: (DLword *)IVAR + x = (DLword *)((LispPTR *)IVar) + x
+    const ivar_at_offset: [*]DLword = ivar_ptr + @as(usize, @intCast(word_offset));
 
-    // Write to virtual memory (big-endian from sysout)
-    if (vm.virtual_memory == null or ivar_addr + 4 > vm.virtual_memory.?.len) {
-        return;
-    }
+    // Cast to LispPTR* and write value
+    // C: *((LispPTR *)((DLword *)IVAR + (x))) = TOPOFSTACK;
+    const ivar_lispptr: [*]align(1) LispPTR = @ptrCast(ivar_at_offset);
+    ivar_lispptr[0] = value;
 
     const virtual_memory_mut: []u8 = @constCast(vm.virtual_memory.?);
     const ivar_bytes = virtual_memory_mut[ivar_addr .. ivar_addr + 4];

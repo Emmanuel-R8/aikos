@@ -53,15 +53,14 @@ fn handleFN(vm: *VM, instruction: *const @import("../dispatch.zig").Instruction,
     const atom_index_raw: u16 = instruction.getWordOperand(0); // DLword (2 bytes)
     const atom_index: LispPTR = @as(LispPTR, atom_index_raw);
 
-    std.debug.print("DEBUG handleFN: atom_index_raw=0x{x:0>4} ({d}), atom_index=0x{x} ({d})\n",
-        .{ atom_index_raw, atom_index_raw, atom_index, atom_index });
+    std.debug.print("DEBUG handleFN: atom_index_raw=0x{x:0>4} ({d}), atom_index=0x{x} ({d})\n", .{ atom_index_raw, atom_index_raw, atom_index, atom_index });
     std.debug.print("  atom_index / 2: {d} (0x{x})\n", .{ atom_index / 2, atom_index / 2 });
     std.debug.print("  atom_index * 2: {d} (0x{x})\n", .{ atom_index * 2, atom_index * 2 });
 
     // Lookup function definition from atom table
     // C: defcell = GetDEFCELL68k(atom_index)
     const defcell_module = @import("../../data/defcell.zig");
-    std.debug.print("DEBUG handleFN: Calling readDefCell with atom_index=0x{x}\n", .{atom_index});
+    std.debug.print("DEBUG handleFN: atom_index_raw=0x{x:0>4} ({d}), calling readDefCell\n", .{ atom_index_raw, atom_index_raw });
     const defcell = defcell_module.readDefCell(vm, atom_index) catch |err| {
         std.debug.print("ERROR handleFN: readDefCell failed with error: {}\n", .{err});
         std.debug.print("  atom_index=0x{x} ({d})\n", .{ atom_index, atom_index });
@@ -70,7 +69,9 @@ fn handleFN(vm: *VM, instruction: *const @import("../dispatch.zig").Instruction,
 
     // Check if C code (ccodep flag)
     // C: if (!(fn_defcell->ccodep)) { /* it's not a CCODEP */ }
-    if (defcell_module.isCCode(defcell)) {
+    const is_c_code = defcell_module.isCCode(defcell);
+    std.debug.print("DEBUG handleFN: atom_index=0x{x}, isCCode={}\n", .{ atom_index, is_c_code });
+    if (is_c_code) {
         // C code function - TODO: Handle C code functions
         // For now, return error (C functions not yet supported)
         return errors.VMError.InvalidOpcode;

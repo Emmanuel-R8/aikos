@@ -71,6 +71,32 @@ Top 10 stack entries (from CurrentStackPTR backwards):
 
 **Algorithm**: Walk backwards through stack until finding a negative value (high bit set)
 
+=== TOPOFSTACK Synchronization Behavior
+
+*Date*: 2026-01-28 08:34
+*Status*: ✅ Documented - Understanding Complete
+
+**Key Finding**: UNBIND does NOT explicitly update TOPOFSTACK. The dispatch loop reads TOPOFSTACK from memory after UNBIND completes.
+
+**Evidence from Execution Traces**:
+- Before UNBIND: TOS = `0x0000000e` (from GVAR push)
+- After UNBIND: TOS = `0x00140000` (read from memory by dispatch loop)
+- CSTKPTRL points to marker after UNBIND
+- Value before marker is `0x000efffe`, but TOS becomes `0x00140000`
+
+**Implementation Details**:
+- UNBIND macro (`maiko/inc/inlineC.h:636-685`) walks CSTKPTRL backwards
+- After finding marker, CSTKPTRL points to the marker
+- UNBIND uses `nextop1` which only advances PC, does not update TOPOFSTACK
+- The dispatch loop at `nextopcode:` reads TOPOFSTACK from memory (via `TopOfStack = MachineState.tosvalue`)
+- This is different from RET which explicitly syncs: `TOPOFSTACK = TopOfStack` (see `maiko/inc/tos1defs.h:83-88`)
+
+**Cross-References**:
+- C implementation: `maiko/inc/inlineC.h:636-685`
+- RET macro (correct pattern): `maiko/inc/tos1defs.h:83-88`
+- TopOfStack definition: `maiko/inc/lispemul.h:315`
+- StackPtrRestore: `maiko/inc/tos1defs.h:73-74`
+
 1. **Step 0**: `[0x7f71f8025d0e] = 0x000efffe` (positive, continue)
 2. **Found**: `[0x7f71f8025d0c] = 0xfffe0002` (negative, this is the marker)
 

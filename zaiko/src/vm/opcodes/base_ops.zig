@@ -208,32 +208,55 @@ pub fn handleGETBASE_N(vm: *VM, index: u8) errors.VMError!void {
 /// C: GETBASEPTR_N(N) - Read LispPTR from base + offset
 /// Stack: [base] -> [pointer]
 pub fn handleGETBASEPTR_N(vm: *VM, index: u8) errors.VMError!void {
+    std.debug.print("DEBUG handleGETBASEPTR_N: index=0x{x}, TOS=0x{x}\n", .{ index, @import("../stack.zig").getTopOfStack(vm) });
     const stack_module = @import("../stack.zig");
     const errors_module = @import("../../utils/errors.zig");
 
     const base = stack_module.getTopOfStack(vm);
     const base_ptr = types.POINTERMASK & base;
 
+    std.debug.print("DEBUG handleGETBASEPTR_N: base=0x{x}, base_ptr=0x{x}\n", .{ base, base_ptr });
+
     // Translate address to native pointer
     const virtual_memory = vm.virtual_memory orelse {
+        std.debug.print("DEBUG handleGETBASEPTR_N: virtual_memory is null\n", .{});
         return errors_module.VMError.MemoryAccessFailed;
     };
     const fptovp_table = vm.fptovp orelse {
+        std.debug.print("DEBUG handleGETBASEPTR_N: fptovp_table is null\n", .{});
         return errors_module.VMError.MemoryAccessFailed;
     };
 
-    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, base_ptr + @as(LispPTR, index), fptovp_table, 4) catch {
+    const target_addr = base_ptr + @as(LispPTR, index);
+    std.debug.print("DEBUG handleGETBASEPTR_N: target_addr=0x{x}\n", .{target_addr});
+
+    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, target_addr, fptovp_table, 4) catch |err| {
+        std.debug.print("DEBUG handleGETBASEPTR_N: translateAddress failed: {}\n", .{err});
         return errors_module.VMError.InvalidAddress;
     };
 
-    // Read LispPTR (4 bytes) from native pointer.
-    // Pages are already byte-swapped into native endianness on load, but the address may be
-    // unaligned (C tolerates this on x86). Avoid `@alignCast` and read via bytes.
-    const ptr_bytes: *const [4]u8 = @ptrCast(native_ptr);
-    const ptr_value: LispPTR = std.mem.readInt(LispPTR, ptr_bytes, .little);
+    // Read LispPTR (4 bytes, big-endian from sysout)
+    const byte_offset = @intFromPtr(native_ptr) - @intFromPtr(virtual_memory.ptr);
+    std.debug.print("DEBUG handleGETBASEPTR_N: byte_offset=0x{x}\n", .{byte_offset});
+
+    if (byte_offset + 4 > virtual_memory.len) {
+        std.debug.print("DEBUG handleGETBASEPTR_N: byte_offset out of bounds\n", .{});
+        return errors_module.VMError.InvalidAddress;
+    }
+
+    const ptr_bytes = virtual_memory[byte_offset .. byte_offset + 4];
+    std.debug.print("DEBUG handleGETBASEPTR_N: ptr_bytes=0x{x}{x}{x}{x}\n", .{ ptr_bytes[0], ptr_bytes[1], ptr_bytes[2], ptr_bytes[3] });
+
+    const low_word = (@as(DLword, ptr_bytes[0]) << 8) | @as(DLword, ptr_bytes[1]);
+    const high_word = (@as(DLword, ptr_bytes[2]) << 8) | @as(DLword, ptr_bytes[3]);
+    const ptr_value: LispPTR = (@as(LispPTR, high_word) << 16) | @as(LispPTR, low_word);
+
+    std.debug.print("DEBUG handleGETBASEPTR_N: low_word=0x{x}, high_word=0x{x}, ptr_value=0x{x}\n", .{ low_word, high_word, ptr_value });
 
     // Push as POINTERMASK & ptr_value
     const result = types.POINTERMASK & ptr_value;
+    std.debug.print("DEBUG handleGETBASEPTR_N: result=0x{x}\n", .{result});
+
     stack_module.setTopOfStack(vm, result);
 }
 
@@ -283,7 +306,7 @@ pub fn handleGETBITS_N_FD(vm: *VM, arg1: u8, arg2: u8) errors.VMError!void {
     }
 
     // Read DLword (2 bytes, big-endian)
-    const word_bytes = virtual_memory[byte_offset..byte_offset+2];
+    const word_bytes = virtual_memory[byte_offset .. byte_offset + 2];
     const word_value: DLword = (@as(DLword, word_bytes[0]) << 8) | @as(DLword, word_bytes[1]);
 
     // Parse field descriptor: b = [shift:4][size:4]

@@ -1,3 +1,4 @@
+const std = @import("std");
 const errors = @import("../../utils/errors.zig");
 const stack = @import("../stack.zig");
 const types = @import("../../utils/types.zig");
@@ -142,15 +143,37 @@ pub fn handleGETBASEPTR_N(vm: *VM, index: u8) errors.VMError!void {
         return errors_module.VMError.MemoryAccessFailed;
     };
 
-    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, base_ptr + @as(LispPTR, index), fptovp_table, 4) catch {
+    const target_addr = base_ptr + @as(LispPTR, index);
+
+    // DEBUG: Check if this is the problematic case
+    if (base_ptr == 0x140000 and index == 0x36) {
+        std.debug.print("DEBUG GETBASEPTR_N: base=0x{x}, index=0x{x}, target_addr=0x{x}\n", .{ base_ptr, index, target_addr });
+    }
+
+    const native_ptr = virtual_memory_module.translateAddress(virtual_memory, target_addr, fptovp_table, 4) catch {
+        if (base_ptr == 0x140000 and index == 0x36) {
+            std.debug.print("DEBUG GETBASEPTR_N: translateAddress failed for 0x{x}\n", .{target_addr});
+        }
         return errors_module.VMError.InvalidAddress;
     };
 
     // Read LispPTR (4 bytes) directly from native pointer in native byte order
     // C: *((LispPTR *)NativeAligned4FromLAddr(...)) reads in native byte order (little-endian on x86_64)
     // The native_ptr points to memory that has already been byte-swapped during page loading
-    const native_lispptr_ptr: [*]const LispPTR = @ptrCast(@alignCast(native_ptr));
-    const ptr_value = native_lispptr_ptr[0]; // Read directly in native byte order
+    // Ensure 4-byte alignment: calculate byte offset and read as aligned LispPTR
+    const byte_offset = @intFromPtr(native_ptr) - @intFromPtr(virtual_memory.ptr);
+    if (byte_offset + 4 > virtual_memory.len) {
+        return errors_module.VMError.InvalidAddress;
+    }
+
+    // Read 4 bytes and interpret as LispPTR in native byte order (little-endian)
+    const bytes = virtual_memory[byte_offset..][0..4];
+    const ptr_value = std.mem.readInt(LispPTR, bytes, .little);
+
+    // DEBUG: Check if this is the problematic case
+    if (base_ptr == 0x140000 and index == 0x36) {
+        std.debug.print("DEBUG GETBASEPTR_N: byte_offset=0x{x}, bytes=0x{x}{x}{x}{x}, ptr_value=0x{x}\n", .{ byte_offset, bytes[0], bytes[1], bytes[2], bytes[3], ptr_value });
+    }
 
     // Push as POINTERMASK & ptr_value
     const result = types.POINTERMASK & ptr_value;
@@ -203,7 +226,7 @@ pub fn handleGETBITS_N_FD(vm: *VM, arg1: u8, arg2: u8) errors.VMError!void {
     }
 
     // Read DLword (2 bytes, big-endian)
-    const word_bytes = virtual_memory[byte_offset..byte_offset+2];
+    const word_bytes = virtual_memory[byte_offset .. byte_offset + 2];
     const word_value: DLword = (@as(DLword, word_bytes[0]) << 8) | @as(DLword, word_bytes[1]);
 
     // Parse field descriptor: b = [shift:4][size:4]
