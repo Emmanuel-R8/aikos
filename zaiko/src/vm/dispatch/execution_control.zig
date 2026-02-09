@@ -109,8 +109,13 @@ pub fn handleControlFlow(vm: *VM, opcode: Opcode, instruction: Instruction) erro
             return null;
         },
         .RETURN => {
+            const is_top_level = if (vm.current_frame) |frame| stack.getAlink(frame) == 0 else true;
             try opcodes.handleRETURN(vm);
-            return null;
+            if (is_top_level) {
+                return -1; // Don't advance PC for top-level return
+            } else {
+                return null; // Advance PC for non-top-level return
+            }
         },
         .BIND => {
             // BIND takes 2 byte operands: byte1 (n1:4, n2:4), byte2 (offset)
