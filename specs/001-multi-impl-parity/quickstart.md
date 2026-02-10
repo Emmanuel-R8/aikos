@@ -23,8 +23,9 @@ Start by verifying the very first window (steps 0–5) across implementations:
 ```bash
 cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp
 python3 scripts/iterative_parity_workflow.py \
-  --max-iterations 1 \
-  --window-size 6 \
+  --start-step 0 \
+  --window-size 5 \
+  --max-step 5 \
   --sysout medley/internal/loadups/starter.sysout
 ```
 
@@ -46,8 +47,9 @@ in the same way:
 ```bash
 cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp
 python3 scripts/iterative_parity_workflow.py \
-  --max-iterations 2 \
-  --window-size 6 \
+  --resume \
+  --window-size 5 \
+  --max-step 11 \
   --sysout medley/internal/loadups/starter.sysout
 ```
 
@@ -97,8 +99,9 @@ The canonical default window size is 6 steps, but you can override it per run:
 
 ```bash
 python3 scripts/iterative_parity_workflow.py \
-  --max-iterations 1 \
-  --window-size 10 \
+  --start-step 0 \
+  --window-size 9 \
+  --max-step 9 \
   --sysout medley/internal/loadups/starter.sysout
 ```
 
