@@ -1,7 +1,6 @@
 = Zig Stack Pointer Initialization Fix
 
-*Date*: 2026-02-03 05:00
-*Status*: ✅ Fixed
+*Date*: 2026-02-03 05:00 *Status*: ✅ Fixed
 
 == Problem
 
@@ -13,7 +12,9 @@ Zig emulator had incorrect stack pointer initialization:
 
 Line 198 in `zaiko/src/vm/vm_initialization.zig` set `vm.stack_ptr = pvar_ptr` instead of `current_stack_ptr`.
 
-The issue was that `vm.stack_ptr` should point to `CurrentStackPTR` (the active stack pointer used for push/pop operations), but the code was setting it to `PVar` (CurrentStackPTR + FRAMESIZE), which is used only for accessing local variables.
+The issue was that `vm.stack_ptr` should point to `CurrentStackPTR` (the active stack pointer used for push/pop
+operations), but the code was setting it to `PVar` (CurrentStackPTR + FRAMESIZE), which is used only for accessing local
+variables.
 
 == Solution
 
@@ -43,7 +44,7 @@ After the fix:
 - `zaiko/src/vm/vm_initialization.zig` - VM initialization code
 - `zaiko/src/vm/stack.zig` - Stack management structures
 - `maiko/src/main.c` - C reference implementation (start_lisp function)
-- `WORK_STATE.md` - Project work state documentation
+- `reports/WORK_STATE.md` - Project work state documentation
 
 == Cross-References
 

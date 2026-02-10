@@ -15,10 +15,12 @@
 
    Per maiko/src/xc.c: Bytecode is accessed via PC-relative addressing
    through the virtual memory system."
-  (declare (type (simple-array (simple-array (unsigned-byte 8) (*)) (*)) virtual-memory)
-           (type (unsigned-byte 32) start-address)
+  (declare (type (unsigned-byte 32) start-address)
            (type (integer 1 *) max-bytes)
            (optimize (speed 3)))
+  (unless (and virtual-memory (arrayp virtual-memory))
+    (return-from extract-bytecode-from-vm
+      (make-array max-bytes :element-type '(unsigned-byte 8) :initial-element 0)))
   (let* ((num-pages (length virtual-memory))
          (bytecode (make-array max-bytes :element-type '(unsigned-byte 8)))
          (offset 0))
@@ -30,13 +32,15 @@
                (when (>= page-num num-pages)
                  (return bytecode))
                (let ((page (aref virtual-memory page-num)))
-                 (when (null page)
-                   (return bytecode))
-                 (when (>= byte-index 512)
-                   (return bytecode))
-                 (setf (aref bytecode offset)
-                       (aref page byte-index))))
-               (incf offset))
+                 (if (null page)
+                     ;; Page not loaded - fill with zero
+                     (setf (aref bytecode offset) 0)
+                     (progn
+                       (when (>= byte-index 512)
+                         (return bytecode))
+                       (setf (aref bytecode offset)
+                             (aref page byte-index)))))
+               (incf offset)))
     bytecode))
 
 (defun get-vm-byte (virtual-memory address)

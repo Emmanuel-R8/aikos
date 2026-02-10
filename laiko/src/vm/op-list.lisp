@@ -4,24 +4,44 @@
 ;; car, cdr, cons, rplaca, rplacd, createcell, rplcons
 
 (defun handle-car (vm)
-  "CAR: Get first element of cons cell"
+  "CAR: Get first element of cons cell
+   Per maiko/src/car-cdr.c:N_OP_car() - operates on TOS, replaces TOS"
   (declare (type vm vm))
-  (let ((cell (pop-stack vm)))
-    (when (zerop cell)
-      (error 'maiko-lisp.utils:vm-error :message "CAR of NIL"))
-    (let ((cell-obj (maiko-lisp.memory:get-cons-cell (vm-storage vm) cell)))
-      (let ((car-value (maiko-lisp.data:get-car cell-obj)))
-        (push-stack vm car-value)))))
+  (let ((tos (get-top-of-stack vm)))
+    (cond
+      ((zerop tos) ; NIL_PTR - CAR of NIL is NIL
+       (set-top-of-stack vm 0))
+      ((= tos 1) ; ATOM_T - CAR of T is T
+       (set-top-of-stack vm 1))
+      (t
+       (let* ((storage (vm-storage vm))
+              (byte-offset (ash tos 1)) ; Convert word offset to byte offset
+              (cell-obj (maiko-lisp.memory:get-cons-cell storage byte-offset))
+              (car-field (maiko-lisp.data:cons-car-field cell-obj))
+              (cdr-code (maiko-lisp.data:cons-cdr-code cell-obj)))
+         ;; Handle CDR_INDIRECT case: car_field points to another cons cell
+         (if (= cdr-code maiko-lisp.data:+cdr-indirect+)
+             ;; Indirect: follow the pointer
+             (let* ((indirect-byte-offset (ash car-field 1))
+                    (indirect-cell (maiko-lisp.memory:get-cons-cell storage indirect-byte-offset)))
+               (set-top-of-stack vm (maiko-lisp.data:cons-car-field indirect-cell)))
+             ;; Normal case: return car_field directly
+             (set-top-of-stack vm car-field)))))))
 
 (defun handle-cdr (vm)
-  "CDR: Get rest of cons cell"
+  "CDR: Get rest of cons cell
+   Per maiko/src/car-cdr.c:N_OP_cdr() - operates on TOS, replaces TOS"
   (declare (type vm vm))
-  (let ((cell (pop-stack vm)))
-    (when (zerop cell)
-      (error 'maiko-lisp.utils:vm-error :message "CDR of NIL"))
-    (let ((cell-obj (maiko-lisp.memory:get-cons-cell (vm-storage vm) cell)))
-      (let ((cdr-value (maiko-lisp.data:get-cdr cell-obj cell)))
-        (push-stack vm cdr-value)))))
+  (let ((tos (get-top-of-stack vm)))
+    (cond
+      ((zerop tos) ; NIL_PTR - CDR of NIL is NIL
+       (set-top-of-stack vm 0))
+      (t
+       (let* ((storage (vm-storage vm))
+              (byte-offset (ash tos 1)) ; Convert word offset to byte offset
+              (cell-obj (maiko-lisp.memory:get-cons-cell storage byte-offset))
+              (cdr-value (maiko-lisp.data:decode-cdr cell-obj tos)))
+         (set-top-of-stack vm cdr-value))))))
 
 (defun handle-cons (vm)
   "CONS: Create new cons cell"

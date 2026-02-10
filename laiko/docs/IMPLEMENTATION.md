@@ -10,6 +10,7 @@
 The IFPAGE (Interface Page) structure was corrected to match the C implementation in `maiko/inc/ifpage.h`:
 
 **Critical Fixes**:
+
 1. `IFPAGE_KEYVAL` changed from `#x12345678` to `#x15e3` (16-bit value)
 2. IFPAGE reading offset changed from byte 0 to byte 512 (`+ifpage-address+`)
 3. IFPAGE struct fields corrected to use `DLword` (16-bit) for most fields
@@ -42,6 +43,7 @@ The FPtoVP (File Page to Virtual Page) table maps file page numbers to virtual p
 ## Virtual Memory Layout
 
 Virtual memory is organized as an array of 512-byte pages:
+
 - `BYTESPER_PAGE = 512` bytes (256 DLwords)
 - Pages stored in big-endian, byte-swapped on little-endian hosts
 - Page access via `read-vm-word(address)` helper function
@@ -50,26 +52,26 @@ Virtual memory is organized as an array of 512-byte pages:
 
 ### Files Modified
 
-| File | Changes |
-|------|---------|
+| File                   | Changes                                     |
+| ---------------------- | ------------------------------------------- |
 | `src/data/sysout.lisp` | Complete rewrite for correct sysout loading |
-| `src/utils/types.lisp` | Added `little-endian-p` function |
-| `src/package.lisp` | Updated exports for new functions |
-| `src/vm/stack.lisp` | Added `fptovp` slot to VM struct |
-| `src/main.lisp` | Updated to use new sysout loading |
-| `maiko-lisp.asd` | Fixed ASDF system definition |
+| `src/utils/types.lisp` | Added `little-endian-p` function            |
+| `src/package.lisp`     | Updated exports for new functions           |
+| `src/vm/stack.lisp`    | Added `fptovp` slot to VM struct            |
+| `src/main.lisp`        | Updated to use new sysout loading           |
+| `maiko-lisp.asd`       | Fixed ASDF system definition                |
 
 ### Key Functions Added
 
-| Function | Purpose |
-|----------|---------|
-| `little-endian-p` | Detect host endianness |
-| `read-dlword` | Read 16-bit word (with byte-swap) |
-| `read-lisp-ptr` | Read 32-bit pointer (with byte-swap) |
-| `read-ifpage` | Parse IFPAGE structure |
-| `byte-swap-page` | Byte-swap 512-byte page |
-| `read-fptovp-table` | Load FPtoVP mapping |
-| `load-sysout` | Complete sysout loading |
+| Function            | Purpose                              |
+| ------------------- | ------------------------------------ |
+| `little-endian-p`   | Detect host endianness               |
+| `read-dlword`       | Read 16-bit word (with byte-swap)    |
+| `read-lisp-ptr`     | Read 32-bit pointer (with byte-swap) |
+| `read-ifpage`       | Parse IFPAGE structure               |
+| `byte-swap-page`    | Byte-swap 512-byte page              |
+| `read-fptovp-table` | Load FPtoVP mapping                  |
+| `load-sysout`       | Complete sysout loading              |
 
 ## Known Issues
 

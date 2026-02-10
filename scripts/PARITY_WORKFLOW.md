@@ -7,6 +7,7 @@ This document describes the workflow for achieving execution parity between C an
 ## Prerequisites
 
 1. **C Emulator Rebuild Required**: The C emulator must be rebuilt after the trace format update to generate traces with comma-separated sub-fields.
+
    ```bash
    cd maiko
    ./medley/scripts/build/build-c-emulator.sh --display-backend sdl --build-system cmake --force
@@ -78,16 +79,19 @@ Repeat steps 2-4 until 100% parity is achieved.
 ## Sub-Field Parsing Examples
 
 ### Extract TOS value
+
 ```awk
 awk -F'|' '{split($9, stack, ","); split(stack[1], tos, ":"); print tos[2]}' trace.txt
 ```
 
 ### Extract SP value
+
 ```awk
 awk -F'|' '{split($8, spfp, ","); split(spfp[1], sp, ":"); print sp[2]}' trace.txt
 ```
 
 ### Extract register r1
+
 ```awk
 awk -F'|' '{split($6, regs, ","); split(regs[1], r1, ":"); print r1[2]}' trace.txt
 ```
@@ -95,6 +99,7 @@ awk -F'|' '{split($6, regs, ","); split(regs[1], r1, ":"); print r1[2]}' trace.t
 ## Visual Comparison
 
 Generate HTML report:
+
 ```bash
 python3 scripts/visual_diff.py c_emulator_execution_log.txt zig_emulator_execution_log.txt comparison.html
 ```
@@ -106,4 +111,4 @@ Open `comparison.html` in a browser for side-by-side comparison with color-coded
 - **Always re-run from step 0** after any fix to catch regressions
 - **Use sub-field analysis** to pinpoint exact differences
 - **Check C reference** implementation when fixing divergences
-- **Document findings** in STEP_COMPARISON_STATUS.md
+- **Document findings** in reports/STEP_COMPARISON_STATUS.md

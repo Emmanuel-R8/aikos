@@ -365,15 +365,30 @@
   (setf (gethash #xBE *byte-opcode-map*) 'pvarsetpop6)
   )
 
-(defun dispatch (vm code)
-  "Main dispatch loop"
+(defun dispatch (vm code &optional (base-pc 0))
+  "Main dispatch loop
+   code: extracted bytecode array (starts at index 0)
+   base-pc: original PC address for trace reporting (default 0)"
   (declare (type vm vm)
-           (type (simple-array maiko-lisp.utils:bytecode (*)) code))
+           (type (simple-array maiko-lisp.utils:bytecode (*)) code)
+           (type maiko-lisp.utils:lisp-ptr base-pc))
   ;; Initialize tracing
   (trace-begin)
-  (let ((pc (vm-pc vm)))
-    (loop while (< pc (length code))
+  ;; Reset PC to 0 for array indexing (code array starts at index 0)
+  (setf (vm-pc vm) 0)
+  (format t "DEBUG: Dispatch starting, base-PC=0x~X, code-length=~D, max-steps=~D, trace-output=~A~%"
+          base-pc (length code) *max-trace-steps* *vm-trace-output*)
+  (let ((pc 0) ; Start at 0 for array indexing
+        (step-count 0))
+    (format t "DEBUG: Loop condition: pc=0x~X < code-length=~D: ~A, step-count=~D < max-steps=~D: ~A~%"
+            pc (length code) (< pc (length code)) step-count *max-trace-steps*
+            (or (zerop *max-trace-steps*) (< step-count *max-trace-steps*)))
+    (loop while (and (< pc (length code))
+                     (or (zerop *max-trace-steps*)
+                         (< step-count *max-trace-steps*)))
           do
+          (incf step-count)
+          (format t "DEBUG: Loop iteration ~D, PC=0x~X~%" step-count pc)
           ;; Check interrupts before execution
           (when (check-interrupts vm)
             ;; Handle pending interrupts
@@ -396,16 +411,18 @@
           ;; Fetch instruction
           (let ((opcode-byte (fetch-instruction-byte pc code)))
             (when (zerop opcode-byte)
+              (format t "DEBUG: Exiting dispatch loop at PC 0x~X, opcode-byte=0~%" pc)
               (return)) ; End of code or invalid
 
             ;; Decode opcode
             (let* ((opcode (decode-opcode opcode-byte))
                    (instruction-len (get-instruction-length opcode-byte))
                    (operands (fetch-operands pc code instruction-len)))
-              ;; Log trace before execution
+              ;; Log trace before execution (always log if trace output is set)
+              ;; Report absolute PC (base-pc + relative pc) in traces
               (multiple-value-bind (opcode-name found) (gethash opcode *byte-opcode-map*)
-                (when found
-                  (trace-log vm pc opcode operands :instruction-name opcode-name)))
+                (when *vm-trace-output*
+                  (trace-log vm (+ base-pc pc) opcode operands :instruction-name (if found opcode-name nil))))
 
               ;; Execute opcode handler (pass operands)
               (handler-case

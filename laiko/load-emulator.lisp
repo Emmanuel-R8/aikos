@@ -9,6 +9,7 @@ sbcl --non-interactive --eval "(require :asdf)" \
   --eval "(load \"src/data/cons.lisp\")" \
   --eval "(load \"src/data/array.lisp\")" \
   --eval "(load \"src/data/function-header.lisp\")" \
+  --eval "(load \"src/data/sysout-utils.lisp\")" \
   --eval "(load \"src/data/sysout.lisp\")" \
   --eval "(load \"src/memory/storage.lisp\")" \
   --eval "(load \"src/memory/gc.lisp\")" \
@@ -30,7 +31,7 @@ sbcl --non-interactive --eval "(require :asdf)" \
   --eval "(load \"src/vm/op-const.lisp\")" \
   --eval "(load \"src/vm/op-misc.lisp\")" \
   --eval "(load \"src/vm/op-graphics.lisp\")" \
-  --eval "(load \"src/vm/opcodes.lisp\")" \
+  --eval "(load \"src/vm/opcodes-main.lisp\")" \
   --eval "(load \"src/vm/function.lisp\")" \
   --eval "(load \"src/main.lisp\")" \
   --eval "(format t \"All modules loaded!~%\")" \

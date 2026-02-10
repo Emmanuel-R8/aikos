@@ -3,60 +3,63 @@
 
   inputs = {
     nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-25.11";
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     llms.url = "github:numtide/llm-agents.nix";
   };
 
-  outputs =
-    {
-      self,
-      nixpkgs,
-      flake-utils,
-      nixpkgs-stable,
-      llms,
-    }:
+  outputs = {
+    self,
+    flake-utils,
+    nixpkgs-stable,
+    nixpkgs-unstable,
+    llms,
+  }:
     flake-utils.lib.eachDefaultSystem (
-      system:
-      let
-        pkgs = import nixpkgs {
+      system: let
+        pkgs = import nixpkgs-unstable {
+          inherit system;
+          config = {
+            allowUnfree = true;
+          };
+        };
+        pkgs-stable = import nixpkgs-stable {
           inherit system;
           config = {
             allowUnfree = true;
           };
         };
         llmsPkgs = llms.packages.${pkgs.stdenv.hostPlatform.system};
-      in
-      {
+      in {
         devShells.default = pkgs.mkShell {
           # Use stdenv to get proper C compilation environment
           # This ensures standard C library headers (ctype.h, errno.h, etc.) are available
           stdenv = pkgs.stdenv;
 
           # Native build inputs (tools needed during build)
-          nativeBuildInputs = with pkgs; [
+          nativeBuildInputs = with pkgs-stable; [
           ];
 
           # Build inputs (libraries and runtime dependencies)
           buildInputs =
-            (with pkgs; [
+            (with pkgs-stable; [
               # Basic utilities
-              ripgrep
-              hexdump
-              jq
-              xxd
-
-              # C standard library headers (needed for ctype.h, errno.h, etc.)
-              glibc.dev # C standard library development headers
+              ripgrep # Text search utility
+              hexdump # Hexadecimal dump utility
+              jq # JSON processor
+              xxd # Hexadecimal editor
 
               # C compiler (both for compatibility)
               clang # Preferred C compiler
               gcc # Alternative C compiler (useful for compatibility testing)
 
+              # C standard library headers (needed for ctype.h, errno.h, etc.)
+              # stdenv provides CC (C compiler) with proper includes
+              glibc.dev # C standard library development headers
+
               pkg-config # For library detection and linking
               cmake # CMake build system (for C emulator)
               gnumake # Make build system (for C emulator)
-              # stdenv provides CC (C compiler) with proper includes
 
               # Display libraries - include all for maximum compatibility
               # SDL2: Required for C and Zig emulators
@@ -74,12 +77,15 @@
 
               # Language compilers
               zig # Zig compiler (for Zig emulator)
-              sbcl # Steel Bank Common Lisp (for Lisp emulator)
+              openssl # OpenSSL library (for MCP)
 
               # IDEs
               bun # For amp
               code-cursor
               vscode
+
+              roswell
+              sbcl # Steel Bank Common Lisp (for Lisp emulator)
             ])
             ++ (with llmsPkgs; [
               cursor-agent
@@ -98,23 +104,25 @@
 
             # Set up library paths for runtime linking
             # Nix automatically sets up library paths, but we ensure SDL2/X11 are available
-            export LD_LIBRARY_PATH="${
-              pkgs.lib.makeLibraryPath [
-                pkgs.SDL2
-                pkgs.sdl3
-                pkgs.xorg.libX11
-                pkgs.xorg.libXext
-              ]
+            export LD_LIBRARY_PATH="${pkgs-stable.openssl.out}/lib:${
+              pkgs-stable.lib.makeLibraryPath (with pkgs-stable; [
+                openssl
+
+                SDL2
+                sdl3
+                xorg.libX11
+                xorg.libXext
+              ])
             }:$LD_LIBRARY_PATH"
 
             # Set up PKG_CONFIG_PATH for pkg-config to find SDL2/X11
             export PKG_CONFIG_PATH="${
-              pkgs.lib.makeSearchPath "lib/pkgconfig" [
-                pkgs.SDL2
-                pkgs.sdl3
-                pkgs.xorg.libX11
-                pkgs.xorg.libXext
-              ]
+              pkgs-stable.lib.makeSearchPath "lib/pkgconfig" (with pkgs-stable; [
+                SDL2
+                sdl3
+                xorg.libX11
+                xorg.libXext
+              ])
             }:$PKG_CONFIG_PATH"
 
             echo "Maiko emulator development environment"
@@ -136,7 +144,7 @@
             command -v make >/dev/null && echo "  ✓ Make found" || echo "  ✗ Make not found"
             echo ""
             echo "C library headers:"
-            [ -f "${pkgs.glibc.dev}/include/ctype.h" ] && echo "  ✓ glibc headers found" || echo "  ✗ glibc headers not found"
+            [ -f "${pkgs-stable.glibc.dev}/include/ctype.h" ] && echo "  ✓ glibc headers found" || echo "  ✗ glibc headers not found"
             echo ""
             echo "Ready to build emulators!"
             echo "  C emulator:   ./medley/scripts/build/build-emulator.sh --emulator c"

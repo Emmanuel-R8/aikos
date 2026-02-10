@@ -11,7 +11,7 @@ const sdl_backend = @import("display/sdl_backend.zig");
 const events = @import("display/events.zig");
 const keyboard = @import("io/keyboard.zig");
 const mouse = @import("io/mouse.zig");
-const enhanced_tracer = @import("enhanced_execution.zig");
+// const enhanced_tracer = @import("enhanced_execution.zig"); // TODO: Create enhanced_execution.zig
 
 /// Command-line options structure
 const Options = struct {

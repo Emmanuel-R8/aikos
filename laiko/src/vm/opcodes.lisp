@@ -1351,7 +1351,6 @@
   (declare (type vm vm))
   ;; For now, same as EQUAL
   (handle-equal vm))
-=======
 ;; Opcode module re-export
 ;; This file re-exports all modular opcode handlers
 ;; Original handlers have been split into:

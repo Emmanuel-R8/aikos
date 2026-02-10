@@ -6,7 +6,9 @@
     #:print-info
     #:print-help
     #:run-emulator
-    #:quit))
+    #:quit
+    #:get-command-line-arguments
+    #:getenv))
 
 (defpackage :maiko-lisp.utils
   (:use :cl)
@@ -80,14 +82,10 @@
     #:*byte-opcode-map*
     #:*max-trace-steps*
     #:*trace-step*
-<<<<<<< Updated upstream
-    #:bind-marker-msb
-    #:unbound-marker
-=======
+    #:get-emulator-max-steps
     ;; Binding operations
     #:+bind-marker-msb+
     #:+unbound-marker+
->>>>>>> Stashed changes
     #:get-pvar-slot
     #:set-pvar-slot
     ;; Opcode handlers
@@ -151,7 +149,8 @@
     #:collect
     #:virtual-memory
     #:get-page-number
-    #:get-page-offset))
+    #:get-page-offset
+    #:+mds-offset+))
 
 (defpackage :maiko-lisp.data
   (:use :cl)
@@ -183,6 +182,9 @@
     #:ifpage
     #:load-sysout
     #:validate-sysout
+    #:read-ifpage
+    #:read-fptovp-table
+    #:read-page
     #:extract-bytecode-from-vm
     #:get-vm-byte
     #:get-vm-word

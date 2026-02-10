@@ -48,20 +48,20 @@ def run_c_emulator(
   timeout: int,
 ) -> Tuple[int, str | None]:
   """Run the C emulator and extract trace window.
-  
+
   Args:
     repo_root: Repository root directory path.
     sysout_path: Path to the sysout file to load.
     end_step: Maximum step number to execute (inclusive).
     output_file: Path where the extracted trace window will be written.
     timeout: Maximum execution time in seconds.
-  
+
   Returns:
     Tuple of (exit_code, error_message):
       - (0, None) on success
       - (1, error_msg) on execution failure or timeout
       - (3, error_msg) if emulator executable not found
-  
+
   The function:
     1. Locates the C emulator executable (ldesdl)
     2. Sets EMULATOR_MAX_STEPS environment variable
@@ -112,20 +112,20 @@ def run_zig_emulator(
   timeout: int,
 ) -> Tuple[int, str | None]:
   """Run the Zig emulator and extract trace window.
-  
+
   Args:
     repo_root: Repository root directory path.
     sysout_path: Path to the sysout file to load.
     end_step: Maximum step number to execute (inclusive).
     output_file: Path where the extracted trace window will be written.
     timeout: Maximum execution time in seconds.
-  
+
   Returns:
     Tuple of (exit_code, error_message):
       - (0, None) on success
       - (1, error_msg) on execution failure or timeout
       - (3, error_msg) if Zig directory not found or zig command unavailable
-  
+
   The function:
     1. Verifies the zaiko directory exists
     2. Archives any existing trace log
@@ -184,20 +184,20 @@ def run_lisp_emulator(
   timeout: int,
 ) -> Tuple[int, str | None]:
   """Run the Laiko (Common Lisp) emulator and extract trace window.
-  
+
   Args:
     repo_root: Repository root directory path.
     sysout_path: Path to the sysout file to load.
     end_step: Maximum step number to execute (inclusive).
     output_file: Path where the extracted trace window will be written.
     timeout: Maximum execution time in seconds.
-  
+
   Returns:
     Tuple of (exit_code, error_message):
       - (0, None) on success
       - (1, error_msg) on execution failure or timeout
       - (3, error_msg) if laiko directory not found or sbcl command unavailable
-  
+
   The function:
     1. Verifies the laiko directory exists
     2. Archives any existing trace log
@@ -258,18 +258,18 @@ def run_typescript_emulator(
   timeout: int,
 ) -> Tuple[int, str | None]:
   """Run the Taiko (TypeScript) emulator and extract trace window.
-  
+
   Args:
     repo_root: Repository root directory path.
     sysout_path: Path to the sysout file to load.
     end_step: Maximum step number to execute (inclusive).
     output_file: Path where the extracted trace window would be written.
     timeout: Maximum execution time in seconds.
-  
+
   Returns:
     Tuple of (exit_code, error_message):
       - (3, error_msg) if taiko directory not found or execution not yet implemented
-  
+
   Note:
     Execution is currently not implemented; this is a placeholder that
     returns a clear diagnostic so callers can handle the absence of TS support.

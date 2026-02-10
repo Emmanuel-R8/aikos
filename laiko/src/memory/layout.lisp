@@ -8,7 +8,9 @@
 (defconstant +stk-offset+ #x00010000)
 (defconstant +atmht-offset+ #x00020000)
 (defconstant +atoms-offset+ #x00030000)
-(defconstant +mds-offset+ #x00100000)
+;; NOTE: Use DEFVAR/DEFPARAMETER here to avoid DEFCONSTANT redefinition
+;; issues when reloading during development; treat it as constant in practice.
+(defparameter +mds-offset+ #x00100000)
 (defconstant +ds-offset+ #x00200000)
 (defconstant +vs-offset+ #x00300000)
 (defconstant +cs-offset+ #x00400000)

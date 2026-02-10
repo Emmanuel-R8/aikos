@@ -39,12 +39,12 @@
   (register-opcode-handler 'rplacd #'handle-rplacd)
   (register-opcode-handler 'createcell #'handle-createcell)
   (register-opcode-handler 'rplcons #'handle-rplcons)
-  (register-opcode-handler 'nth #'handle-nth)
-  (register-opcode-handler 'nthcdr #'handle-nthcdr)
-  (register-opcode-handler 'last #'handle-last)
-  (register-opcode-handler 'listlength #'handle-list-length)
-  (register-opcode-handler 'append #'handle-append)
-  (register-opcode-handler 'reverse #'handle-reverse)
+  (when (fboundp 'handle-nth) (register-opcode-handler 'nth #'handle-nth))
+  (when (fboundp 'handle-nthcdr) (register-opcode-handler 'nthcdr #'handle-nthcdr))
+  (when (fboundp 'handle-last) (register-opcode-handler 'last #'handle-last))
+  (when (fboundp 'handle-list-length) (register-opcode-handler 'listlength #'handle-list-length))
+  (when (fboundp 'handle-append) (register-opcode-handler 'append #'handle-append))
+  (when (fboundp 'handle-reverse) (register-opcode-handler 'reverse #'handle-reverse))
 
   ;; Comparison operations
   (register-opcode-handler 'eq #'handle-eq)

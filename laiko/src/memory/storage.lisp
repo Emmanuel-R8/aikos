@@ -9,10 +9,10 @@
   (free-list nil :type list)
   (size 0 :type (integer 0 *)))
 
-(defun create-storage (&key ((size size-param) 0))
+(defun create-storage (&key (size 0))
   "Create a storage with the given heap size in bytes"
-  (make-storage :heap (make-array size-param :element-type '(unsigned-byte 8))
-                :size size-param))
+  (make-storage :heap (make-array size :element-type '(unsigned-byte 8))
+                :size size))
 
 (defconstant +cons-cell-size+ 8 "Size of cons cell in bytes")
 

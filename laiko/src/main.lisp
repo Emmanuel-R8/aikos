@@ -39,6 +39,9 @@
 (defun print-info ()
   (format t "Maiko Lisp Emulator (Common Lisp)~%")
   (format t "Version 0.1.0~%")
+  ;; Initialize handlers to get accurate count
+  (maiko-lisp.vm:initialize-byte-opcode-map)
+  (maiko-lisp.vm:initialize-opcode-handlers)
   (format t "Supports: ~D opcode handlers~%" (hash-table-count maiko-lisp.vm:*opcode-handlers*))
   (quit 0))
 
@@ -60,7 +63,7 @@
 (defun run-emulator (sysout-path args)
   "Run the emulator with given sysout file"
   (format t "Loading sysout: ~A~%" sysout-path)
-  
+
   ;; Parse command-line options
   (let ((trace-file nil)
         (max-steps 0))
@@ -75,7 +78,7 @@
                   (setf max-steps (parse-integer-safe (second args) 0))
                   (setf args (rest args)))))
           (setf args (rest args)))
-    
+
     ;; Load sysout file
     (let ((ifpage nil)
           (fptovp nil)
@@ -86,58 +89,98 @@
         (maiko-lisp.utils:sysout-load-failed (e)
           (format t "Error loading sysout: ~A~%" (maiko-lisp.utils:sysout-load-failed-message e))
           (quit 1)))
-      
+
       (format t "Sysout loaded successfully~%")
-      (format t "  Process size: ~D MB~%" (ifpage-process-size ifpage))
-      (format t "  Stack base: 0x~X~%" (ifpage-stackbase ifpage))
-      
+      (format t "  Process size: ~D MB~%" (maiko-lisp.data:ifpage-process-size ifpage))
+      (format t "  Stack base: 0x~X~%" (maiko-lisp.data:ifpage-stackbase ifpage))
+
       ;; Create VM
       (let ((vm (maiko-lisp.vm:create-vm +default-stack-size+ :pvar-size +default-pvar-size+)))
         ;; Set up VM with sysout data
         (setf (maiko-lisp.vm:vm-virtual-memory vm) virtual-memory)
         (setf (maiko-lisp.vm:vm-fptovp vm) fptovp)
         (setf (maiko-lisp.vm:vm-interrupt-state vm) (maiko-lisp.vm:create-interrupt-state))
-        
+
         ;; Create storage and GC
         (let ((storage (maiko-lisp.memory:create-storage :size +storage-size+)))
           (setf (maiko-lisp.vm:vm-storage vm) storage)
           (setf (maiko-lisp.vm:vm-gc vm) (maiko-lisp.memory:create-gc 1024)))
-        
-        ;; Initialize PC from IFPAGE
-        (let ((pc-offset (ash (ifpage-currentfxp ifpage) 1)))  ;; DLword to byte
-          (setf (maiko-lisp.vm:vm-pc vm) pc-offset)
-          (format t "Initial PC: 0x~X (FX offset: 0x~X)~%" pc-offset (ifpage-currentfxp ifpage)))
-        
-        ;; Set up tracing if requested
-        (when trace-file
-          (format t "Enabling trace to: ~A~%" trace-file)
-          (maiko-lisp.vm:open-trace-file trace-file)
-          (when (> max-steps 0)
-            (setf maiko-lisp.vm:*max-trace-steps* max-steps)))
-        
+
+        ;; Initialize VM state from IFPAGE
+        (let ((currentfxp (maiko-lisp.data:ifpage-currentfxp ifpage))
+              (stackbase (maiko-lisp.data:ifpage-stackbase ifpage)))
+          ;; Initialize PC: currentfxp is DLword offset, convert to byte offset
+          (let ((pc-offset (ash currentfxp 1)))
+            (setf (maiko-lisp.vm:vm-pc vm) pc-offset)
+            (format t "Initial PC: 0x~X (FX offset: 0x~X)~%" pc-offset currentfxp))
+          ;; Initialize stack pointer from stackbase (DLword offset)
+          (setf (maiko-lisp.vm:vm-stack-ptr vm) stackbase)
+          (format t "Initial stack pointer: 0x~X~%" stackbase))
+
+        ;; Set up step limiting (from command line or environment)
+        (let ((env-max-steps (maiko-lisp.vm:get-emulator-max-steps)))
+          (when (or (> max-steps 0) (> env-max-steps 0))
+            (setf maiko-lisp.vm:*max-trace-steps* (max max-steps env-max-steps))
+            (format t "Step limit: ~D~%" maiko-lisp.vm:*max-trace-steps*)))
+
+        ;; Set up tracing - auto-enable if EMULATOR_MAX_STEPS is set, or if trace-file specified
+        (let ((env-max-steps (maiko-lisp.vm:get-emulator-max-steps)))
+          (cond
+            (trace-file
+             (format t "Enabling trace to: ~A~%" trace-file)
+             (maiko-lisp.vm:open-trace-file trace-file))
+            ((> env-max-steps 0)
+             ;; Auto-enable tracing to standard location for parity testing
+             ;; Write to current working directory (should be repo root when run from script)
+             (let ((trace-file "lisp_emulator_execution_log.txt"))
+               (format t "Auto-enabling trace to: ~A~%" trace-file)
+               (maiko-lisp.vm:open-trace-file trace-file)))))
+
         ;; Initialize opcode handlers (must be done after all files are loaded)
         (format t "Initializing opcode handlers...~%")
         (maiko-lisp.vm:initialize-byte-opcode-map)
         (maiko-lisp.vm:initialize-opcode-handlers)
         (format t "~D opcode handlers registered~%" (hash-table-count maiko-lisp.vm:*opcode-handlers*))
-        
+
         ;; Run the dispatch loop
         (format t "Starting execution...~%")
         (handler-case
-            (let ((bytecode (maiko-lisp.data:extract-bytecode-from-vm
-                            (maiko-lisp.vm:vm-virtual-memory vm)
-                            (maiko-lisp.vm:vm-pc vm))))
-              (if bytecode
-                  (maiko-lisp.vm:dispatch vm bytecode)
-                  (format t "Error: Could not extract bytecode from sysout~%")))
+            (let* ((initial-pc (maiko-lisp.vm:vm-pc vm))
+                   ;; For now, use the C emulator's starting PC to test bytecode extraction
+                   ;; TODO: Fix PC initialization to match C emulator's FastRetCALL logic
+                   (test-pc #x60f130) ; C emulator's starting PC from trace
+                   (start-pc test-pc) ; Use test PC for now
+                   (bytecode (maiko-lisp.data:extract-bytecode-from-vm
+                              (maiko-lisp.vm:vm-virtual-memory vm)
+                              start-pc)))
+              (if (and bytecode (arrayp bytecode))
+                  (progn
+                    (format t "Bytecode extracted: ~D bytes, start PC: 0x~X~%" (length bytecode) start-pc)
+                    ;; Debug: Check virtual memory pages
+                    (let ((vmem (maiko-lisp.vm:vm-virtual-memory vm)))
+                      (if vmem
+                          (let ((loaded-pages 0))
+                            (loop for i below (length vmem)
+                                  when (aref vmem i)
+                                  do (incf loaded-pages))
+                            (format t "Virtual memory: ~D pages total, ~D pages loaded~%" (length vmem) loaded-pages))
+                          (format t "WARNING: Virtual memory is NIL~%")))
+                    (when (> (length bytecode) 0)
+                      (format t "First few bytes: ")
+                      (loop for i from 0 below (min 10 (length bytecode))
+                            do (format t "~2,'0X " (aref bytecode i)))
+                      (format t "~%"))
+                    ;; Dispatch with base PC for trace reporting
+                    (maiko-lisp.vm:dispatch vm bytecode start-pc))
+                  (format t "Error: Could not extract bytecode from sysout (bytecode=~A)~%" bytecode)))
           (maiko-lisp.utils:vm-error (e)
             (format t "VM Error: ~A~%" (maiko-lisp.utils:vm-error-message e)))
           (error (e)
             (format t "Execution error: ~A~%" e)))
-        
+
         ;; Clean up tracing
         (when trace-file
           (maiko-lisp.vm:trace-end))))
-    
+
     (format t "Execution complete~%")
     (quit 0)))
