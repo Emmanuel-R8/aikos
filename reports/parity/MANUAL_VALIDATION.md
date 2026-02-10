@@ -32,7 +32,8 @@ make
 # Should produce c_emulator_execution_log.txt in repo root
 ```
 
-**Success criteria**: 
+**Success criteria**:
+
 - ✅ Emulator builds without errors
 - ✅ Can load sysout and produce trace log
 - ✅ Trace log contains unified format lines
@@ -47,6 +48,7 @@ zig build run -- medley/internal/loadups/starter.sysout
 ```
 
 **Success criteria**:
+
 - ✅ `zig build` completes without errors
 - ✅ Emulator runs and produces trace log
 - ✅ Trace log contains unified format lines
@@ -60,6 +62,7 @@ cd laiko
 ```
 
 **Success criteria**:
+
 - ✅ SBCL is available (`sbcl --version`)
 - ✅ `run.sh` executes without errors
 - ✅ Produces trace log with unified format
@@ -74,6 +77,7 @@ npm run build  # if needed
 ```
 
 **Success criteria**:
+
 - ✅ TypeScript emulator directory exists
 - ✅ Returns clear "not yet implemented" message (expected for now)
 
@@ -103,6 +107,7 @@ python3 scripts/iterative_parity_workflow.py \
 ```
 
 **Expected output**:
+
 - Script runs C emulator for steps 0-5
 - Script runs other available emulators (Zig, Laiko, etc.)
 - Compares traces against C reference
@@ -130,6 +135,7 @@ ls -lh reports/parity/analysis/
 ```
 
 **Success criteria**:
+
 - ✅ Workflow completes without errors
 - ✅ `last_verified_step` is 5 (or appropriate if divergence detected)
 - ✅ Dashboard shows 1 window verified (or divergence count if found)
@@ -137,6 +143,7 @@ ls -lh reports/parity/analysis/
 - ✅ Analysis JSON files are generated
 
 **If divergence detected**:
+
 - ✅ Script stops and reports which implementations diverged
 - ✅ Divergence log entry created in `reports/parity/divergence_reports.jsonl`
 - ✅ You can inspect the divergence details
@@ -179,6 +186,7 @@ python3 scripts/iterative_parity_workflow.py \
 ```
 
 **Expected behavior**:
+
 - Script reads `parity_workflow_state.json`
 - Starts from `last_verified_step + 1` (e.g., if last was 5, starts at 6)
 - Does NOT re-run windows 0-5
@@ -197,6 +205,7 @@ cat parity_workflow_dashboard.json
 ```
 
 **Success criteria**:
+
 - ✅ Resume starts from `last_verified_step + 1`, not from step 0
 - ✅ Previously verified windows are NOT re-run
 - ✅ New windows are processed correctly
@@ -220,6 +229,7 @@ mv parity_workflow_state.json.bak parity_workflow_state.json
 ```
 
 **Success criteria**:
+
 - ✅ Missing state file handled gracefully
 - ✅ Starts from step 0 with clear message
 - ✅ Does not crash or produce confusing errors
@@ -250,6 +260,7 @@ cat parity_workflow_dashboard.json | python3 -m json.tool
 ```
 
 **Expected structure**:
+
 ```json
 {
   "current_step": 30,
@@ -262,6 +273,7 @@ cat parity_workflow_dashboard.json | python3 -m json.tool
 ```
 
 **Success criteria**:
+
 - ✅ Dashboard contains all expected fields
 - ✅ `windows_verified` matches number of successful windows
 - ✅ `total_divergences_found` matches number of divergent windows
@@ -276,6 +288,7 @@ cat reports/parity/divergence_reports.jsonl | python3 -m json.tool
 ```
 
 **Expected structure** (one entry per divergent window):
+
 ```json
 {
   "window_start_step": 18,
@@ -287,6 +300,7 @@ cat reports/parity/divergence_reports.jsonl | python3 -m json.tool
 ```
 
 **Success criteria**:
+
 - ✅ Divergence log exists (even if empty if no divergences)
 - ✅ Each divergent window has one JSON entry
 - ✅ Entries contain correct window boundaries
@@ -300,6 +314,7 @@ cat parity_workflow_state.json | python3 -m json.tool
 ```
 
 **Expected structure**:
+
 ```json
 {
   "current_step": 30,
@@ -312,6 +327,7 @@ cat parity_workflow_state.json | python3 -m json.tool
 ```
 
 **Success criteria**:
+
 - ✅ State file matches dashboard values
 - ✅ `last_verified_step` is last successfully verified step (not beyond divergences)
 - ✅ Counts are consistent between state and dashboard
@@ -325,6 +341,7 @@ ls -lh reports/parity/analysis/
 ```
 
 **Success criteria**:
+
 - ✅ Analysis JSON files exist for processed windows
 - ✅ Files contain structured analysis data
 - ✅ Files are named consistently (e.g., by window range)
@@ -348,6 +365,7 @@ python3 scripts/iterative_parity_workflow.py \
 **Note**: The quickstart uses `--max-iterations` but the actual script uses `--max-step`. Verify which parameter works, or update quickstart if needed.
 
 **Alternative** (if `--max-iterations` doesn't exist):
+
 ```bash
 python3 scripts/iterative_parity_workflow.py \
   --start-step 0 \
@@ -357,6 +375,7 @@ python3 scripts/iterative_parity_workflow.py \
 ```
 
 **Success criteria**:
+
 - ✅ Command executes successfully
 - ✅ Produces expected outputs (state, dashboard, traces)
 - ✅ Matches quickstart.md description
@@ -372,6 +391,7 @@ python3 scripts/iterative_parity_workflow.py \
 ```
 
 **Or with --resume flag**:
+
 ```bash
 python3 scripts/iterative_parity_workflow.py \
   --resume \
@@ -381,6 +401,7 @@ python3 scripts/iterative_parity_workflow.py \
 ```
 
 **Success criteria**:
+
 - ✅ Resume behavior works as documented
 - ✅ State file is read correctly
 - ✅ Continues from last verified step
@@ -399,6 +420,7 @@ cat reports/parity/divergence_reports.jsonl
 ```
 
 **Success criteria**:
+
 - ✅ All files exist and are readable
 - ✅ JSON is valid and well-formed
 - ✅ Content matches quickstart.md examples
@@ -415,6 +437,7 @@ python3 scripts/iterative_parity_workflow.py \
 ```
 
 **Success criteria**:
+
 - ✅ Window size parameter is respected
 - ✅ Correct number of steps are processed
 - ✅ Window boundaries are correct
@@ -446,6 +469,7 @@ python3 scripts/iterative_parity_workflow.py \
 ```
 
 **Success criteria**:
+
 - ✅ Each window processes correctly
 - ✅ Resume works between windows
 - ✅ State accumulates correctly
