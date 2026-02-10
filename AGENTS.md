@@ -16,7 +16,7 @@ This repository contains the **Interlisp** project, which includes:
 
 ### Must-Read Files
 
-1. Read ./WORK_STATE.md, then ./STEP_COMPARISON_STATUS.md
+1. Read ./reports/WORK_STATE.md, then ./reports/STEP_COMPARISON_STATUS.md
 
 1. When **compressing or summarizing context**, follow **§7**: Phase 1 (aggressive compression of tool/command/trace/linter outputs only) is mandatory and first; Phase 2 (re-read AGENTS.md, then compress the remainder) only if further compression is needed.
 
@@ -48,6 +48,13 @@ Interlisp/
 ├── zaiko/                     # Zig Implementation (INCOMPLETE)
 │   ├── src/                   # 60-70% complete, many placeholders
 │   └── tests/                 # Basic test structure
+├── reports/                   # Reports and in markdown format
+│   ├── CURRENT_STATUS.md      # Current status of the project
+│   ├── WORK_STATE.md          # Work state of the project
+│   ├── STEP_COMPARISON_STATUS.md # Step-wise comparison status of the project
+│   ├── NEXT_STEPS.md          # Next steps for the project
+│   ├── COMPARISON_REPORT.md   # Comparison report of the project
+│   └── COMMIT_MESSAGE.md      # Commit message for the project
 ├── specs/                     # Task tracking (89.2% - inaccurate)
 └── medley/                    # Medley Interlisp system
 ```
@@ -145,7 +152,26 @@ Avoid committing machine/local outputs that create noisy diffs:
 - **Build outputs**: Zig `zig-out/`, `**/.zig-cache/`, C/CMake build directories
 - **Binary documents**: generated PDFs (commit the Typst source instead)
 
-### 1.3 File System Access Restrictions (CRITICAL)
+### 1.3 Markdown Document Storage (CRITICAL)
+
+**REQUIREMENT**: All new Markdown documents (`.md` files) MUST be stored in the `reports/` directory or its subdirectories.
+
+- **Location**: `reports/` or `reports/[subdirectory]/` (e.g., `reports/parity/`)
+- **Examples**: 
+  - ✅ `reports/MANUAL_VALIDATION.md`
+  - ✅ `reports/parity/MANUAL_VALIDATION.md`
+  - ✅ `reports/WORK_STATE.md`
+  - ❌ `specs/001-multi-impl-parity/MANUAL_VALIDATION.md` (WRONG)
+  - ❌ `scripts/MANUAL_VALIDATION.md` (WRONG)
+- **Rationale**: Maintains consistent project organization; all markdown reports belong in `reports/` alongside existing status documents
+- **Exception**: Specification artifacts in `specs/` directories (e.g., `specs/001-multi-impl-parity/spec.md`, `plan.md`, `tasks.md`) are allowed as they are part of the specification workflow, not reports
+
+**When creating new markdown documents**:
+1. Determine if it's a report/documentation → place in `reports/` or `reports/[subdirectory]/`
+2. Determine if it's a specification artifact → place in `specs/[feature]/`
+3. If unsure, default to `reports/`
+
+### 1.4 File System Access Restrictions (CRITICAL)
 
 **SECURITY REQUIREMENT**: Agents must not access any files or folders outside the project directory containing this AGENTS.md file.
 
@@ -346,7 +372,7 @@ These apply **only in Phase 2** and **only to the remainder**.
 **7.4.1 Retain with highest priority** (always keep, or a one‑line pointer)
 
 - **AGENTS.md**: At least a minimal stub: Critical Documentation, Common Debugging Gotchas, Important Paths, submodule policy, and a pointer to §7. If the full file does not fit, retain those plus §7.
-- **Session / work state**: `WORK_STATE.md`, `STEP_COMPARISON_STATUS.md` (or the current "session" file). Current blocker, first divergence, next action.
+- **Session / work state**: `reports/WORK_STATE.md`, `STEP_COMPARISON_STATUS.md` (or the current "session" file). Current blocker, first divergence, next action.
 - **Current blocker or first divergence**: 1–3 lines (e.g. "Zig SP/FP init wrong at `zaiko/src/vm/vm_initialization.zig`; C SP=0x02e88 FP=0x307864, Zig differs").
 - **Critical pitfalls**: Full "Common Debugging Gotchas" or: PC=byte not DLword; FPtoVP=512‑byte pages; byte swap vs XOR; CSTKPTRL/TOPOFSTACK re-read from memory after restore; VM/stack init (SP/FP from IFPAGE). See `documentation/core/critical-debugging-technique.typ` Part III.
 - **Key paths**: `zaiko/src/`, `maiko/src/`, `scripts/compare_emulator_execution.sh`, `documentation/specifications/`, `documentation/implementations/`
