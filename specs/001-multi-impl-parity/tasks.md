@@ -110,10 +110,10 @@
 
 **Purpose**: Improvements that affect multiple user stories and long-term maintainability.
 
-- [ ] T037 [P] Add or refine inline documentation and docstrings in all new scripts under /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/scripts/
-- [ ] T038 [P] Ensure all new Python modules stay under file size guidelines and refactor into smaller modules where necessary in /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/scripts/
+- [x] T037 [P] Add or refine inline documentation and docstrings in all new scripts under /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/scripts/
+- [x] T038 [P] Ensure all new Python modules stay under file size guidelines and refactor into smaller modules where necessary in /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/scripts/
 - [ ] T039 Run quickstart.md validation by following the documented steps end-to-end for a short parity run using specs/001-multi-impl-parity/quickstart.md
-- [ ] T040 [P] Integrate parity workflow into existing comparison/reporting scripts where beneficial in /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/scripts/
+- [x] T040 [P] Integrate parity workflow into existing comparison/reporting scripts where beneficial in /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/scripts/
 
 ---
 
