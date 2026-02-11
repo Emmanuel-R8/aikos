@@ -19,7 +19,7 @@ git checkout 001-multi-impl-parity
 
 ```bash
 # Build C emulator (adjust path based on your build system)
-cd maiko
+cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/maiko/
 # Option 1: CMake build
 mkdir -p build-cmake && cd build-cmake
 cmake .. && make
@@ -27,8 +27,11 @@ cmake .. && make
 cd ../linux.x86_64
 make
 
-# Test run
-./ldesdl ../medley/internal/loadups/starter.sysout
+# Test run (from repo root)
+cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp
+EMULATOR_MAX_STEPS=5 ./maiko/build-cmake/ldesdl medley/internal/loadups/starter.sysout
+# Or if using traditional build:
+# EMULATOR_MAX_STEPS=5 ./maiko/linux.x86_64/ldesdl medley/internal/loadups/starter.sysout
 # Should produce c_emulator_execution_log.txt in repo root
 ```
 
@@ -41,10 +44,21 @@ make
 ### Zig Emulator
 
 ```bash
-cd zaiko
+# Build from zaiko directory (set cache directory to avoid permission issues)
+cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/zaiko/
+export ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache
+# Or use a local cache directory:
+# export ZIG_GLOBAL_CACHE_DIR=$(pwd)/.zig-cache
 zig build
-zig build run -- medley/internal/loadups/starter.sysout
-# Should produce zig_emulator_execution_log.txt
+
+# Test run (from zaiko directory, use absolute path for sysout)
+cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/zaiko/
+export ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache
+zig build run -- --max-steps 5 /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/medley/internal/loadups/starter.sysout
+# Or use relative path from repo root:
+# cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp
+# cd zaiko && export ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache && zig build run -- --max-steps 5 ../medley/internal/loadups/starter.sysout
+# Should produce zig_emulator_execution_log.txt in zaiko/ directory
 ```
 
 **Success criteria**:
@@ -56,8 +70,12 @@ zig build run -- medley/internal/loadups/starter.sysout
 ### Laiko (Common Lisp) Emulator
 
 ```bash
-cd laiko
-./run.sh medley/internal/loadups/starter.sysout
+# Test run (from laiko directory, use absolute path for sysout)
+cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/laiko/
+EMULATOR_MAX_STEPS=5 ./run.sh /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/medley/internal/loadups/starter.sysout
+# Or use relative path from repo root:
+# cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp
+# cd laiko && EMULATOR_MAX_STEPS=5 ./run.sh ../medley/internal/loadups/starter.sysout
 # Should produce lisp_emulator_execution_log.txt in repo root or laiko/
 ```
 
@@ -70,7 +88,7 @@ cd laiko
 ### Taiko (TypeScript) Emulator
 
 ```bash
-cd taiko
+cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/taiko/
 npm install  # if needed
 npm run build  # if needed
 # Execution not yet implemented - should return clear diagnostic
@@ -88,13 +106,6 @@ npm run build  # if needed
 **Goal**: Run a single parity window (steps 0-5) and verify the workflow completes successfully.
 
 ### Step 1: Clean State (Optional)
-
-```bash
-# Remove any existing state files for a fresh start
-rm -f parity_workflow_state.json parity_workflow_dashboard.json
-rm -rf reports/parity/analysis/*
-rm -f reports/parity/divergence_reports.jsonl
-```
 
 ### Step 2: Run Single Window
 
