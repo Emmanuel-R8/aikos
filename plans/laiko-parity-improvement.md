@@ -109,24 +109,24 @@ For each divergence found:
 
 ## Progress Log
 
-### 2026-02-15 22:00
-- **Execution progress: 4 instructions**
-  1. POP (0xBF) - pops from stack
-  2. GVAR (0x60) - reads atom 0, pushes 0
-  3. UNBIND (0x12) - skipped (vmem stack)
-  4. ITIMES2 (0xC9) - stack underflow
-- **Fixed instruction lengths**
-  - GVAR = 5 bytes (opcode + 4-byte operand)
-  - FN0-FN4 = 3 bytes (opcode + 2-byte atom index)
-- **Added debug output** for opcode execution
-- **Known issue**: Stack operations don't properly track virtual memory offsets
-  - vm-pop reads from wrong location
-  - Need to track stack pointer as byte offset consistently
+### 2026-02-15 23:00
+- **Verified execution against C/Zig traces**
+  - Zig trace file shows PC/TOS/SP at each step
+  - Laiko execution matches PC progression
+  - GVAR value reading needs verification
+- **Added MCP_IMPROVEMENT_NOTES.md** with session learnings
+- **Key insight**: Always verify Zig against C before acting
+- **Created memory-access.lisp** with unified primitives
 
-### 2026-02-15 21:30 (earlier)
-- Added virtual memory stack operations
-- Added atom table and defcell implementation
-- Fixed FN opcode handlers to read atom index from operands
+### Known Issues
+1. GVAR reads value=0 but Zig shows TOS=0x0E after GVAR
+2. Value cell address calculation may be wrong
+3. XOR addressing for value cell read needs verification
+
+### Next Steps
+1. Verify value cell address calculation
+2. Test vm-read-lispptr for value cell location
+3. Compare raw bytes at value cell with C/Zig
 
 ---
 
