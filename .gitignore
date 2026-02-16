@@ -45,8 +45,13 @@ core
 maiko/.cache
 maiko/build 
 maiko/build-cmake/CMakeFiles
+taiko/node_modules/
+taiko/package-lock.json
 
-node-modules
+
+maiko_untouched
+medley
+node-modules/
 
 # Zig build artifacts
 zig-out/
