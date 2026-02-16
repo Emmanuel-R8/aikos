@@ -281,3 +281,56 @@ Zig decodes from **RAW bytes** for the opcode, but the trace log shows **XOR byt
 (swank_backtrace)
 ```
 
+### 11. Valspace Pages Not Loaded from Sysout (CRITICAL FINDING)
+
+**Problem**: GVAR reads value=0 but C/Zig show TOS=0x0E after GVAR push.
+
+**Root Cause Discovery**:
+1. Valspace pages (VP 3072-3080 for atom 0x20A) are **NOT in the FPtoVP table**
+2. These pages are **never loaded** from the sysout file
+3. C emulator initializes Valspace separately via `initsout.c`:
+   ```c
+   Valspace = (DLword *)NativeAligned2FromLAddr(VALS_OFFSET);
+   ```
+4. The sysout file only contains code/data pages, not runtime-allocated areas
+
+**Verification**:
+```python
+# Check if VP 3072-3080 in FPtoVP
+with open('./medley/internal/loadups/starter.sysout', 'rb') as f:
+    f.seek(523268)  # FPtoVP start
+    for i in range(16635):
+        entry = struct.unpack('>I', f.read(4))[0]
+        vp = entry & 0xFFFF
+        if 3072 <= vp <= 3080:
+            print(f"Found VP {vp}")
+# Result: NONE FOUND
+```
+
+**Impact**: Any GVAR reading from atoms whose value cells are in Valspace will return 0.
+
+**Solution Required**:
+1. Initialize Valspace pages in virtual memory (allocate and zero-initialize)
+2. Value cells are populated at runtime by Lisp initialization code
+3. Or: Pre-populate from sysout if values are stored elsewhere
+
+**Key Insight**: The first GVAR reads atom 0x20A which has its value cell at VP 3076. This page must be allocated but isn't in the sysout - it's runtime memory.
+
+### 12. C vs Zig Verification Success
+
+**Verified**: C and Zig traces are **IDENTICAL** for first 10 instructions:
+```
+C trace:
+     0|0x60f130|RECLAIMCELL     |0xbf|...|TOS:0x00000000
+     1|0x60f131|UNKNOWN         |0x60|...|TOS:0x0000000e
+
+Zig trace:
+     0|0x60f130|RECLAIMCELL     |0xbf|...|TOS:0x00000000
+     1|0x60f131|UNKNOWN         |0x60|...|TOS:0x0000000e
+```
+
+**Conclusion**: Zig is a reliable reference after all. The "UNKNOWN" in opcode name is because 0x60 (GVAR) isn't in the opcode name table, but execution is correct.
+
+**Lesson**: The problem is NOT with Zig - it's with Laiko's Valspace page allocation.
+
+
