@@ -171,3 +171,113 @@ Executes one instruction and returns state change.
 3. [ ] Add unit tests for memory access functions
 4. [ ] Remove legacy stack fields from VM structure
 5. [ ] Always verify Zig against C before acting on trace data
+
+---
+
+## Additional Notes (2026-02-15 23:30)
+
+### 6. Package System Causing Silent Failures
+
+**Problem**: Many SBCL tests failed with stack traces instead of useful error messages. The root cause was often missing exports or undefined functions, but errors were silently swallowed.
+
+**Root Cause**: 
+- `DEFPACKAGE` for `MAIKO-LISP-TESTS` was being evaluated repeatedly
+- Missing exports caused "unbound variable" errors that were hard to diagnose
+- The MCP's SBCL calls used `--disable-debugger` which hid useful info
+
+**Solution**:
+- Use `swank_eval` to get proper error messages
+- Add exports to package before using them
+- Create a "check exports" utility function
+
+### 7. Value Cell Address Verification Issue
+
+**Problem**: GVAR reads value=0 but Zig shows TOS=0x0E after GVAR push.
+
+**Debugging Steps**:
+1. Verify value cell byte offset calculation
+2. Check if page containing value cell is loaded
+3. Verify XOR addressing for value cell read
+4. Compare raw bytes at value cell location with C/Zig
+
+**Key Learning**: The value cell address calculation:
+```
+VALS_OFFSET_DLWORDS = 0xC0000
+byte_offset = (0xC0000 + (atom_index << 1)) * 2
+```
+
+For atom 0x20A:
+- laddr_dlwords = 0xC0000 + 0x414 = 0xC0414
+- byte_offset = 0x180828 (page 3076, offset 0x28)
+
+### 8. Zig vs C Verification Critical Example
+
+**Problem**: Zig trace showed opcode 0x0A (FN2) at PC 0x60F136, but trace also showed opcode 0x12 (UNBIND).
+
+**Critical Discovery**: Looking at the Zig output:
+```
+DEBUG dispatch: PC=0x60f136, RAW bytes (no XOR): 0x0a 0x02...
+DEBUG dispatch: PC=0x60f136, XOR bytes: 0x12 0xc9...
+DEBUG: Decoded opcode 0xa (FN2) at PC=0x60f136
+```
+
+Zig decodes from **RAW bytes** for the opcode, but the trace log shows **XOR bytes**. This means:
+- Opcode decoding uses XOR addressing (0x0A)
+- Trace display shows XOR bytes (0x12)
+- The trace display is **misleading**!
+
+**Lesson**: Always check the actual decoded opcode, not just the trace display.
+
+### 9. Recommended Debugging Workflow
+
+```markdown
+## When debugging memory/execution issues:
+
+1. **Check C first**: Run C emulator, capture trace
+2. **Check Zig second**: Run Zig, compare with C
+3. **Check Laiko**: Compare with both
+
+## For memory access issues:
+
+1. Calculate expected address
+2. Check if page is loaded (VP from FPtoVP)
+3. Check raw bytes at that address
+4. Verify XOR addressing is applied correctly
+
+## For stack issues:
+
+1. Verify stack pointer initialization from FX->nextblock
+2. Check stack grows DOWN (decreasing addresses)
+3. Verify TOS caching matches C behavior
+```
+
+### 10. MCP Session Management Issues
+
+**Problem**: Started Swank server but couldn't connect from MCP.
+
+**Root Cause**:
+- No `swank_connect` implementation in MCP
+- Server was running but no way to send commands
+
+**Workaround Used**:
+- Created separate SBCL processes with `--eval` for each test
+- Very slow iteration cycle (reloading all files each time)
+
+**Ideal MCP Functions**:
+```lisp
+;; Start persistent SBCL session
+(swank_start :port 4006)  ; Returns connection handle
+
+;; Evaluate in running session
+(swank_eval "(+ 1 2)")   ; Uses existing connection
+
+;; Load file in session
+(swank_load "path/to/file.lisp")
+
+;; Inspect variable
+(swank_inspect '*vm*)
+
+;; Get backtrace on error
+(swank_backtrace)
+```
+
