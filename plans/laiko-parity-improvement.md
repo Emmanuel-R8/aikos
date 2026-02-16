@@ -109,39 +109,30 @@ For each divergence found:
 
 ## Progress Log
 
-### 2026-02-15 20:34
-- Analyzed C emulator PC initialization (PC = fnheader + FX->pc)
-- Created `frame-extension.lisp` with FX structure
-- Updated `main.lisp` to read FX from `currentfxp`
-- **Completed: Full rewrite of `sysout.lisp`**
-  - Fixed IFPAGE field layout to match BIGVM format
-  - Fixed byte ordering (big-endian file reads)
-  - Fixed FPtoVP to use 32-bit entries for BIGVM
-  - IFPAGE key now validates correctly (0x15E3)
-  - FPtoVP table loads correctly (SPARSE markers work)
-  - Pages load to correct virtual addresses (16,633 pages)
-- **CRITICAL FIX: 32-bit word swap (not 16-bit pair swap!)**
-  - C uses `word_swap_page` which swaps 32-bit words: [0,1,2,3] → [3,2,1,0]
-  - Was doing 16-bit pair swap: [0,1] → [1,0] (WRONG)
-- **CRITICAL FIX: Stack offset calculation**
-  - STK_OFFSET = 0x00010000 is a DLword offset, not byte offset
-  - Stackspace byte offset = STK_OFFSET * 2 = 0x20000
-  - Frame offset = 0x20000 + (currentfxp * 2) = 0x25CE4
-- **CRITICAL FIX: XOR addressing for bytecode access**
-  - In BYTESWAP mode, bytecode must be read with XOR addressing
-  - GETBYTE(base) = *(base ^ 3)
-  - For PC 0x60F130, first opcode byte is at 0x60F130 ^ 3 = 0x60F133
-  - Now correctly reads opcode 0xBF (POP) as first instruction
-- **Current status**: First instruction executing!
-  - FX fnheader=0x307864 ✅ (matches Zig)
-  - PC=0x60F130 ✅ (matches Zig)
-  - First opcode 0xBF (POP) ✅ (matches Zig)
-  - Stack operations need architecture fix (use virtual memory, not separate array)
+### 2026-02-15 21:30
+- **Completed: Virtual memory stack operations**
+  - Added vm-stack-base-offset, vm-stack-ptr-offset, vm-stack-end-offset
+  - Added vm-top-of-stack (cached TOS per C behavior)
+  - Added vm-push, vm-pop, vm-tos, vm-set-tos
+  - Added vm-read-lispptr, vm-write-lispptr with XOR addressing
+- **Fixed FN opcode handlers**
+  - Updated FN0-FN4 to use vm-pop/vm-push
+- **Current execution progress**
+  - 4 instructions execute successfully:
+    1. NOP (0x00)
+    2. NOP (0x00)
+    3. GVAR (0x60) - reads atom index
+    4. FN2 (0x0A) - needs atom/defcell lookup
+- **Blocking issue**: FN opcodes need DEFCELL/ATOMCELL implementation
+  - Need to read atom definition from atom table
+  - Need function header lookup
+  - See zaiko/src/data/defcell.zig for reference
 
-### Architecture Issue Discovered
-Laiko uses a separate stack array (65,536 elements), but C/Zig use virtual memory directly.
-The stack pointer 0x25D10 = 154,896 bytes, far beyond the 65,536-element array.
-Need to refactor stack operations to use virtual memory like C/Zig.
+### 2026-02-15 20:34 (earlier)
+- Fixed 32-bit word swap (not 16-bit pair swap)
+- Fixed stack offset calculation (STK_OFFSET * 2)
+- Fixed XOR addressing for bytecode (GETBYTE = base ^ 3)
+- PC = 0x60F130, first opcode 0xBF (POP) ✅
 
 ---
 
