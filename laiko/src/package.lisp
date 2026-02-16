@@ -252,7 +252,18 @@
     #:read-defcell
     #:is-c-code
     #:get-function-header
-    #:read-function-header))
+    #:read-function-header
+    ;; Memory access (unified)
+    #:vm-read-byte
+    #:vm-read-word
+    #:vm-read-lispptr
+    #:vm-write-byte
+    #:vm-write-word
+    #:vm-write-lispptr
+    #:vm-stack-push
+    #:vm-stack-pop
+    #:vm-stack-tos
+    #:vm-stack-set-tos))
 
 (defpackage :maiko-lisp.io
   (:use :cl)

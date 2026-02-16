@@ -394,7 +394,7 @@
            (format t "DEBUG: Loop iteration ~D, PC=0x~X~%" step-count pc)
            ;; DEBUG: Show opcode byte
            (let ((debug-opcode (fetch-instruction-byte pc code)))
-             (format t "DEBUG:   opcode byte = 0x~2,48X~%" debug-opcode))
+             (format t "DEBUG:   opcode byte = 0x~2,'0X~%" debug-opcode))
            ;; Check interrupts before execution
           (when (check-interrupts vm)
             ;; Handle pending interrupts
@@ -426,7 +426,7 @@
               (let* ((opcode (decode-opcode opcode-byte))
                     (instruction-len (get-instruction-length opcode-byte))
                     (operands (fetch-operands pc code instruction-len)))
-               (format t "DEBUG:   opcode=0x~2,48X len=~D operands=~A~%" opcode-byte instruction-len operands)
+               (format t "DEBUG:   opcode=0x~2,'0X len=~D operands=~A~%" opcode-byte instruction-len operands)
                ;; Log trace before execution (always log if trace output is set)
                ;; Report absolute PC (base-pc + relative pc) in traces
                (multiple-value-bind (opcode-name found) (gethash opcode *byte-opcode-map*)

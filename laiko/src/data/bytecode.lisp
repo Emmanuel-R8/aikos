@@ -46,9 +46,9 @@
 
    Returns: Simple array of bytecode bytes
 
-   CRITICAL: Uses XOR addressing for byte access (BYTESWAP mode)!
-   Per C: GETBYTE(base) = *(base ^ 3)
-   This compensates for 32-bit word swapping on little-endian hosts."
+   CRITICAL: Pages were 32-bit word-swapped during load, so bytecode
+   access requires XOR addressing. Per C: GETBYTE(base) = *(base ^ 3)
+   This compensates for the word swap."
   (declare (type (unsigned-byte 32) start-address)
            (type (integer 1 *) max-bytes)
            (optimize (speed 3)))
@@ -60,17 +60,14 @@
          (offset 0))
     (loop while (< offset max-bytes)
           do (let* ((address (+ start-address offset))
-                    ;; CRITICAL: Apply XOR addressing for byte access
-                    (xor-address (if (maiko-lisp.utils:little-endian-p)
-                                    (apply-xor-addressing-byte address)
-                                    address))
+                    ;; XOR addressing needed for bytecode after word swap
+                    (xor-address (logxor address +xor-byte-mask+))
                     (page-num (ash xor-address -9))
                     (page-offset (logand xor-address #x1FF)))
                (when (>= page-num num-pages)
                  (return bytecode))
                (let ((page (aref virtual-memory page-num)))
                  (if (null page)
-                     ;; Page not loaded - fill with zero
                      (setf (aref bytecode offset) 0)
                      (progn
                        (when (>= page-offset 512)
