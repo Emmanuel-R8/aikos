@@ -1,1 +1,0 @@
-/nix/store/r9wbjib6xxjkyb9yvjvrkl4sq61i2lyn-gcc-wrapper-15.2.0/bin/gcc -Wl,--dependency-file=CMakeFiles/tstsout.dir/link.d CMakeFiles/tstsout.dir/src/tstsout.c.o CMakeFiles/tstsout.dir/src/byteswap.c.o -o tstsout

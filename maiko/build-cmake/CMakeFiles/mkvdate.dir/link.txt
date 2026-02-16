@@ -1,1 +1,0 @@
-/nix/store/r9wbjib6xxjkyb9yvjvrkl4sq61i2lyn-gcc-wrapper-15.2.0/bin/gcc -Wl,--dependency-file=CMakeFiles/mkvdate.dir/link.d CMakeFiles/mkvdate.dir/src/mkvdate.c.o -o mkvdate

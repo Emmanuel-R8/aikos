@@ -44,11 +44,13 @@ core
 # build cache 
 maiko/.cache
 maiko/build 
-maiko/build-cmake
+maiko/build-cmake/CMakeFiles
+
+node-modules
 
 # Zig build artifacts
 zig-out/
-**/.zig-cache/
+.zig-cache/
 *.zig.obj
 *.zig.o
 

@@ -1,2 +1,0 @@
-# Hashes of file build rules.
-b4cf1f742f26e3211bcac15a7c7e3a05 vdate.c

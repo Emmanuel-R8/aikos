@@ -1,1 +1,0 @@
-/nix/store/r9wbjib6xxjkyb9yvjvrkl4sq61i2lyn-gcc-wrapper-15.2.0/bin/gcc -Wl,--dependency-file=CMakeFiles/lde.dir/link.d CMakeFiles/lde.dir/src/ldeboot.c.o CMakeFiles/lde.dir/src/unixfork.c.o -o lde
