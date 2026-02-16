@@ -22,15 +22,16 @@
                   ((:file "types")
                    (:file "errors")
                    (:file "address")))
-                 (:module "data"
-                  :pathname "data"
-                  :components
-                  ((:file "cons")
-                   (:file "array")
-                   (:file "function-header")
-                   (:file "bytecode")
-                   (:file "sysout-utils")
-                   (:file "sysout")))
+                  (:module "data"
+                   :pathname "data"
+                   :components
+                   ((:file "cons")
+                    (:file "array")
+                    (:file "function-header")
+                    (:file "bytecode")
+                    (:file "frame-extension" :depends-on ("bytecode"))
+                    (:file "sysout-utils")
+                    (:file "sysout")))
                  (:module "memory"
                   :pathname "memory"
                   :components

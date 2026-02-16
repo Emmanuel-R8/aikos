@@ -30,7 +30,7 @@
   (pvar-size 0 :type (integer 0 *))
   (storage nil :type (or null maiko-lisp.memory:storage))
   (virtual-memory nil :type (or null (simple-array (or null (simple-array (unsigned-byte 8) (*))) (*))))
-  (fptovp nil :type (or null (simple-array (unsigned-byte 16) (*))))
+  (fptovp nil :type (or null (simple-array (unsigned-byte 32) (*))))
   (gc nil :type (or null maiko-lisp.memory:gc))
   (interrupt-state nil :type (or null interrupt-state))
   (pc 0 :type maiko-lisp.utils:lisp-ptr)

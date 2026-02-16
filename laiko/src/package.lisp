@@ -188,9 +188,32 @@
     #:extract-bytecode-from-vm
     #:get-vm-byte
     #:get-vm-word
+    ;; IFPAGE accessors
     #:ifpage-process-size
     #:ifpage-stackbase
-    #:ifpage-currentfxp))
+    #:ifpage-currentfxp
+    #:ifpage-key
+    #:ifpage-fptovpstart
+    #:ifpage-nactivepages
+    #:ifpage-lversion
+    #:ifpage-minbversion
+    #:ifpage-machinetype
+    #:ifpage-storagefullstate
+    ;; Frame Extension
+    #:frame-extension
+    #:+framesize+
+    #:+stk-offset-dlword+
+    #:+stackspace-byte-offset+
+    #:fx-flags
+    #:fx-usecount
+    #:fx-alink
+    #:fx-fnheader
+    #:fx-nextblock
+    #:fx-pc
+    #:fx-nametable
+    #:fx-blink
+    #:fx-clink
+    #:read-fx-from-vm))
 
 (defpackage :maiko-lisp.io
   (:use :cl)

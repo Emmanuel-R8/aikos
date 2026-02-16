@@ -177,6 +177,9 @@
 (defun initialize-byte-opcode-map ()
   "Initialize the mapping from byte opcodes to symbol names"
   (clrhash *byte-opcode-map*)
+  ;; Opcode 0x00: opc_unused_0 - handled via name table (per codetbl.c)
+  ;; For now, implement as no-op that advances to next instruction
+  (setf (gethash #x00 *byte-opcode-map*) 'nop)
   ;; Constants
   (setf (gethash #x67 *byte-opcode-map*) 'aconst)
   (setf (gethash #x68 *byte-opcode-map*) 'nil)
@@ -409,13 +412,15 @@
                    (handle-interrupt vm :timer))))))
 
           ;; Fetch instruction
-          (let ((opcode-byte (fetch-instruction-byte pc code)))
-            (when (zerop opcode-byte)
-              (format t "DEBUG: Exiting dispatch loop at PC 0x~X, opcode-byte=0~%" pc)
-              (return)) ; End of code or invalid
+           (let ((opcode-byte (fetch-instruction-byte pc code)))
+             ;; Note: opcode 0x00 is NOT invalid - it's handled via name table (per codetbl.c)
+             ;; Only exit if we're past the end of code
+             (when (>= pc (length code))
+               (format t "DEBUG: Exiting dispatch loop - past end of code~%")
+               (return))
 
-            ;; Decode opcode
-            (let* ((opcode (decode-opcode opcode-byte))
+             ;; Decode opcode
+             (let* ((opcode (decode-opcode opcode-byte))
                    (instruction-len (get-instruction-length opcode-byte))
                    (operands (fetch-operands pc code instruction-len)))
               ;; Log trace before execution (always log if trace output is set)

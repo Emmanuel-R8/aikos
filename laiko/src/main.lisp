@@ -106,16 +106,39 @@
           (setf (maiko-lisp.vm:vm-storage vm) storage)
           (setf (maiko-lisp.vm:vm-gc vm) (maiko-lisp.memory:create-gc 1024)))
 
-        ;; Initialize VM state from IFPAGE
+        ;; Initialize VM state from IFPAGE using FX structure
         (let ((currentfxp (maiko-lisp.data:ifpage-currentfxp ifpage))
               (stackbase (maiko-lisp.data:ifpage-stackbase ifpage)))
-          ;; Initialize PC: currentfxp is DLword offset, convert to byte offset
-          (let ((pc-offset (ash currentfxp 1)))
-            (setf (maiko-lisp.vm:vm-pc vm) pc-offset)
-            (format t "Initial PC: 0x~X (FX offset: 0x~X)~%" pc-offset currentfxp))
-          ;; Initialize stack pointer from stackbase (DLword offset)
-          (setf (maiko-lisp.vm:vm-stack-ptr vm) stackbase)
-          (format t "Initial stack pointer: 0x~X~%" stackbase))
+          (declare (ignore stackbase))
+          ;; Read the Frame Extension structure from virtual memory
+          ;; currentfxp is a DLword offset from Stackspace (NOT from Lisp_world!)
+          ;; Per Zig vm_initialization.zig:38-46:
+          ;;   STK_OFFSET = 0x00010000 (DLword offset)
+          ;;   stackspace_byte_offset = STK_OFFSET * 2 = 0x20000
+          ;;   frame_offset = stackspace_byte_offset + (currentfxp * 2)
+          (let ((fx (maiko-lisp.data:read-fx-from-vm virtual-memory currentfxp)))
+            (format t "Initial FX: fnheader=0x~X, pc=~D, nextblock=0x~X~%"
+                    (maiko-lisp.data:fx-fnheader fx) (maiko-lisp.data:fx-pc fx) (maiko-lisp.data:fx-nextblock fx))
+            ;; PC = FuncObj + CURRENTFX->pc
+            ;; Per C FastRetCALL macro and Zig vm_initialization.zig:419-448:
+            ;;   FuncObj = FX_FNHEADER * 2 (DLword to byte conversion)
+            ;;   PC = FuncObj + CURRENTFX->pc (byte offset)
+            (let* ((fnheader-dlword (maiko-lisp.data:fx-fnheader fx))
+                   (func-obj-byte-offset (* fnheader-dlword 2))
+                   (pc-offset (maiko-lisp.data:fx-pc fx))
+                   (initial-pc (+ func-obj-byte-offset pc-offset)))
+              (format t "  fnheader DLword offset: 0x~X~%" fnheader-dlword)
+              (format t "  FuncObj byte offset: 0x~X (fnheader * 2)~%" func-obj-byte-offset)
+              (format t "  FX->pc: ~D (byte offset)~%" pc-offset)
+              (format t "  Initial PC: 0x~X (FuncObj + pc)~%" initial-pc)
+              (setf (maiko-lisp.vm:vm-pc vm) initial-pc))
+            ;; Stack pointer from FX->nextblock
+            ;; Per Zig: CurrentStackPTR = Stackspace + nextblock - 2 DLwords
+            (let* ((nextblock (maiko-lisp.data:fx-nextblock fx))
+                   (stackspace-offset maiko-lisp.data:+stackspace-byte-offset+)
+                   (current-stack-ptr (+ stackspace-offset (* nextblock 2) -4)))
+              (setf (maiko-lisp.vm:vm-stack-ptr vm) current-stack-ptr)
+              (format t "  Stack pointer (CurrentStackPTR): 0x~X~%" current-stack-ptr))))
 
         ;; Set up step limiting (from command line or environment)
         (let ((env-max-steps (maiko-lisp.vm:get-emulator-max-steps)))
@@ -145,11 +168,7 @@
         ;; Run the dispatch loop
         (format t "Starting execution...~%")
         (handler-case
-            (let* ((initial-pc (maiko-lisp.vm:vm-pc vm))
-                   ;; For now, use the C emulator's starting PC to test bytecode extraction
-                   ;; TODO: Fix PC initialization to match C emulator's FastRetCALL logic
-                   (test-pc #x60f130) ; C emulator's starting PC from trace
-                   (start-pc test-pc) ; Use test PC for now
+            (let* ((start-pc (maiko-lisp.vm:vm-pc vm))
                    (bytecode (maiko-lisp.data:extract-bytecode-from-vm
                               (maiko-lisp.vm:vm-virtual-memory vm)
                               start-pc)))

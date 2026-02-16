@@ -3,6 +3,14 @@
 ;; Miscellaneous operations
 ;; bind, unbind, typep, fixp, smallp, charcode, charn, etc.
 
+(defun handle-nop (vm)
+  "NOP: No operation (opcode 0x00 - opc_unused_0).
+   Per maiko/inc/opcodes.h, opcode 0x00 is opc_unused_0.
+   Per maiko/src/codetbl.c:418, it's handled via name table.
+   For now, this is a no-op that just advances PC."
+  (declare (type vm vm))
+  nil)
+
 (defun get-pvar-slot (vm index)
   "Get value from PVAR slot at given index."
   (declare (type vm vm)

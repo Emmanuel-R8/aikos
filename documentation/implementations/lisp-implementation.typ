@@ -3,8 +3,8 @@
 *Navigation*: README | Index | Architecture
 
 *Feature*: 002-lisp-implementation
-*Date*: 2026-02-09
-*Status*: 🔧 IN DEVELOPMENT - Infrastructure Complete, Execution Testing In Progress
+*Date*: 2026-02-15 20:34
+*Status*: 🔧 IN DEVELOPMENT - Sysout Loading Complete, FX Reading In Progress
 
 == Overview
 
@@ -14,12 +14,12 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL), following t
 
 - *Source Files*: 24+ Lisp files
 - *Test Files*: 11 test files
-- *Opcodes Implemented*: ~190+ opcode handlers registered
-- *Actual Completeness*: ~10-15% (infrastructure complete, execution testing needed)
+- *Opcodes Implemented*: ~191 opcode handlers registered
+- *Actual Completeness*: ~20% (sysout loading complete, execution testing in progress)
 - *Build System*: ASDF
 - *Target Platform*: Linux (SBCL), macOS, Windows (partial)
 
-== Current Status (2026-02-09)
+== Current Status (2026-02-15)
 
 === ✅ Completed
 
@@ -27,24 +27,32 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL), following t
 - ✅ Sysout file loading (BIGVM format, FPtoVP table loading)
 - ✅ VM state structure (stack, PC, frame pointers, registers)
 - ✅ Dispatch loop with opcode fetching and execution
-- ✅ ~190+ opcode handlers registered
+- ✅ ~191 opcode handlers registered
 - ✅ Trace infrastructure matching unified format
 - ✅ Parity testing framework
 - ✅ IFPAGE structure corrected (stackbase/faulthi/faultlo as DLwords)
+- ✅ **Full rewrite of sysout.lisp** (2026-02-15)
+  - Correct IFPAGE field layout for BIGVM format
+  - Proper big-endian file reading
+  - 32-bit FPtoVP entries for 256MB address space
+  - IFPAGE key validation working (0x15E3)
+  - Page loading to correct virtual addresses (16,633 pages)
+- ✅ Frame Extension structure and reader
+- ✅ PC initialization from FX->fnheader + FX->pc
 
 === ⚠️ Known Issues
 
+- ⚠️ FX reading returns zeros - stack page mapping needs verification
 - ⚠️ Some compilation warnings (undefined function/types - non-blocking)
 - ⚠️ Execution trace generation needs verification
-- ⚠️ Opcode handler loading verification needed
-- ⚠️ First successful execution trace pending
+- ⚠️ currentfxp = 0x2E72 points to byte offset 0x15CE4 (page 174)
+- ⚠️ Need to verify stack pages are loaded correctly
 
 === 🔧 In Progress
 
-- Sysout loading verified and working
-- FPtoVP table loading correct (16,635 entries)
-- Virtual memory page loading functional
-- Bytecode extraction needs testing
+- Debugging FX (Frame Extension) reading from virtual memory
+- Verifying stack page mapping in FPtoVP table
+- PC initialization from FX structure
 
 == Architecture
 
