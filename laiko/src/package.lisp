@@ -36,7 +36,13 @@
     #:vm-arithmetic-error
     #:vm-arithmetic-error-message
     #:sysout-load-failed
-    #:sysout-load-failed-message))
+    #:sysout-load-failed-message
+    ;; Function header
+    #:function-header
+    #:make-function-header
+    #:function-header-startpc
+    #:function-header-nv
+    #:function-header-na))
 
 (defpackage :maiko-lisp.vm
   (:use :cl)
@@ -225,7 +231,28 @@
     #:fx-nametable
     #:fx-blink
     #:fx-clink
-    #:read-fx-from-vm))
+    #:read-fx-from-vm
+    ;; Function header
+    #:function-header
+    #:make-function-header
+    #:function-header-startpc
+    #:function-header-nv
+    #:function-header-na
+    ;; Atom table
+    #:get-valcell
+    #:get-defcell
+    #:read-atom-value
+    #:write-atom-value
+    ;; DefCell
+    #:defcell
+    #:defcell-ccodep
+    #:defcell-fastp
+    #:defcell-argtype
+    #:defcell-defpointer
+    #:read-defcell
+    #:is-c-code
+    #:get-function-header
+    #:read-function-header))
 
 (defpackage :maiko-lisp.io
   (:use :cl)

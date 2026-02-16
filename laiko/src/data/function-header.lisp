@@ -1,13 +1,13 @@
 (in-package :maiko-lisp.data)
 
 ;; Function header structure (matches C fnhead)
-;; Per data-model.md
+;; Per maiko/inc/stack.h struct fnhead
 
 (defstruct (function-header (:conc-name fn-))
   "Function header structure"
   (stkmin 0 :type maiko-lisp.utils:dlword)
   (na 0 :type maiko-lisp.utils:dlword)
-  (pv 0 :type maiko-lisp.utils:dlword)
+  (nv 0 :type maiko-lisp.utils:dlword)
   (startpc 0 :type maiko-lisp.utils:dlword)
   (framename 0 :type maiko-lisp.utils:lisp-ptr)
   (ntsize 0 :type maiko-lisp.utils:dlword)
@@ -16,8 +16,8 @@
 
 (defmethod print-object ((obj function-header) stream)
   "Print function header for debugging"
-  (format stream "#<FN-HEADER startpc=~D na=~D pv=~D nlocals=~D>"
-           (fn-startpc obj) (fn-na obj) (fn-pv obj) (fn-nlocals obj)))
+  (format stream "#<FN-HEADER startpc=~D na=~D nv=~D nlocals=~D>"
+           (fn-startpc obj) (fn-na obj) (fn-nv obj) (fn-nlocals obj)))
 
 (defun get-start-pc (header)
   "Get function start PC"

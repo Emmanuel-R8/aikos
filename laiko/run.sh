@@ -25,6 +25,8 @@ sbcl --noinform \
 	--eval "(load \"src/data/sysout-utils.lisp\")" \
 	--eval "(load \"src/data/bytecode.lisp\")" \
 	--eval "(load \"src/data/frame-extension.lisp\")" \
+	--eval "(load \"src/data/atom.lisp\")" \
+	--eval "(load \"src/data/defcell.lisp\")" \
 	--eval "(load \"src/data/sysout.lisp\")" \
 	--eval "(load \"src/memory/storage.lisp\")" \
 	--eval "(load \"src/memory/gc.lisp\")" \
