@@ -21,6 +21,7 @@
   "POP: Pop value from stack.
    Per C: POP macro pops and discards top of stack."
   (declare (type vm vm))
+  (format t "POP: executing~%")
   (vm-pop vm)
   nil)
 

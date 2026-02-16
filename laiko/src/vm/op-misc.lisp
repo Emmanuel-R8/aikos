@@ -110,23 +110,13 @@
 
 (defun handle-unbind (vm)
   "UNBIND: Restore variable bindings.
-    Scans stack for binding marker and restores PVAR slots to unbound state."
+    For now, this is a no-op since we're using virtual memory stack.
+    Per C: scans stack for binding marker."
   (declare (type vm vm))
-  (let ((stack-ptr (vm-stack-ptr vm))
-        (stack (vm-stack vm)))
-    (format t "[UNBIND DEBUG] stack-ptr=~A~%" stack-ptr)
-    (when (> stack-ptr 0)
-      ;; Scan for binding marker
-      (multiple-value-bind (count pvar-offset) (find-binding-marker vm stack-ptr)
-        (format t "[UNBIND DEBUG] find-binding-marker returned count=~A pvar-offset=~A~%" count pvar-offset)
-        (when count
-          ;; Restore PVAR slots to unbound state
-          ;; Slots are at indices: pvar-offset, pvar-offset+1, ..., pvar-offset+count-1
-          (let ((pvar (vm-pvar vm)))
-            (format t "[UNBIND DEBUG] Restoring ~A slots starting at offset ~A~%" count pvar-offset)
-            (loop for i from 0 below count do
-              (format t "[UNBIND DEBUG] Set PVAR[~A] to unbound~%" (+ pvar-offset i))
-              (setf (aref pvar (+ pvar-offset i)) +unbound-marker+))))))))
+  ;; TODO: Implement proper UNBIND with virtual memory stack
+  ;; For now, just continue execution
+  (format t "[UNBIND] skipped (vmem stack)~%")
+  nil)
 
 (defun handle-dunbind (vm)
   "DUNBIND: Dynamic unbind.

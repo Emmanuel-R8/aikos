@@ -390,9 +390,12 @@
                      (or (zerop *max-trace-steps*)
                          (< step-count *max-trace-steps*)))
           do
-          (incf step-count)
-          (format t "DEBUG: Loop iteration ~D, PC=0x~X~%" step-count pc)
-          ;; Check interrupts before execution
+           (incf step-count)
+           (format t "DEBUG: Loop iteration ~D, PC=0x~X~%" step-count pc)
+           ;; DEBUG: Show opcode byte
+           (let ((debug-opcode (fetch-instruction-byte pc code)))
+             (format t "DEBUG:   opcode byte = 0x~2,48X~%" debug-opcode))
+           ;; Check interrupts before execution
           (when (check-interrupts vm)
             ;; Handle pending interrupts
             (let ((int-state (vm-interrupt-state vm)))
@@ -419,15 +422,17 @@
                (format t "DEBUG: Exiting dispatch loop - past end of code~%")
                (return))
 
-             ;; Decode opcode
-             (let* ((opcode (decode-opcode opcode-byte))
-                   (instruction-len (get-instruction-length opcode-byte))
-                   (operands (fetch-operands pc code instruction-len)))
-              ;; Log trace before execution (always log if trace output is set)
-              ;; Report absolute PC (base-pc + relative pc) in traces
-              (multiple-value-bind (opcode-name found) (gethash opcode *byte-opcode-map*)
-                (when *vm-trace-output*
-                  (trace-log vm (+ base-pc pc) opcode operands :instruction-name (if found opcode-name nil))))
+              ;; Decode opcode
+              (let* ((opcode (decode-opcode opcode-byte))
+                    (instruction-len (get-instruction-length opcode-byte))
+                    (operands (fetch-operands pc code instruction-len)))
+               (format t "DEBUG:   opcode=0x~2,48X len=~D operands=~A~%" opcode-byte instruction-len operands)
+               ;; Log trace before execution (always log if trace output is set)
+               ;; Report absolute PC (base-pc + relative pc) in traces
+               (multiple-value-bind (opcode-name found) (gethash opcode *byte-opcode-map*)
+                 (format t "DEBUG:   name=~A found=~A~%" opcode-name found)
+                 (when *vm-trace-output*
+                   (trace-log vm (+ base-pc pc) opcode operands :instruction-name (if found opcode-name nil))))
 
               ;; Execute opcode handler (pass operands)
               (handler-case
