@@ -94,17 +94,44 @@
       (format t "  Process size: ~D MB~%" (maiko-lisp.data:ifpage-process-size ifpage))
       (format t "  Stack base: 0x~X~%" (maiko-lisp.data:ifpage-stackbase ifpage))
 
-      ;; Create VM
-      (let ((vm (maiko-lisp.vm:create-vm +default-stack-size+ :pvar-size +default-pvar-size+)))
-        ;; Set up VM with sysout data
-        (setf (maiko-lisp.vm:vm-virtual-memory vm) virtual-memory)
-        (setf (maiko-lisp.vm:vm-fptovp vm) fptovp)
-        (setf (maiko-lisp.vm:vm-interrupt-state vm) (maiko-lisp.vm:create-interrupt-state))
+        ;; Create VM
+        (let ((vm (maiko-lisp.vm:create-vm +default-stack-size+ :pvar-size +default-pvar-size+)))
+          ;; Set up VM with sysout data
+          (setf (maiko-lisp.vm:vm-virtual-memory vm) virtual-memory)
+          (setf (maiko-lisp.vm:vm-fptovp vm) fptovp)
+          (setf (maiko-lisp.vm:vm-interrupt-state vm) (maiko-lisp.vm:create-interrupt-state))
 
-        ;; Create storage and GC
-        (let ((storage (maiko-lisp.memory:create-storage :size +storage-size+)))
-          (setf (maiko-lisp.vm:vm-storage vm) storage)
-          (setf (maiko-lisp.vm:vm-gc vm) (maiko-lisp.memory:create-gc 1024)))
+          ;; Create storage and GC
+          (let ((storage (maiko-lisp.memory:create-storage :size +storage-size+)))
+            (setf (maiko-lisp.vm:vm-storage vm) storage)
+            (setf (maiko-lisp.vm:vm-gc vm) (maiko-lisp.memory:create-gc 1024)))
+
+          ;; CRITICAL: Allocate runtime memory pages (Valspace, Defspace, etc.)
+          ;; These are NOT loaded from sysout but allocated at runtime
+          ;; Per maiko/src/initsout.c:269-273 and maiko/inc/lispmap.h:
+          ;;   Valspace = NativeAligned2FromLAddr(VALS_OFFSET)
+          ;;   VALS_OFFSET = 0xC0000 DLwords = 0x180000 bytes
+          ;;   Defspace = NativeAligned2FromLAddr(DEFS_OFFSET)
+          ;;   DEFS_OFFSET = 0xA0000 DLwords = 0x140000 bytes
+          ;; These pages must be allocated in virtual_memory
+          ;; For now, we'll check if they're already allocated (from sysout)
+          ;; If not, we need to allocate them
+          (let ((vals-page-start (ash #x180000 -9))  ; VP 3072
+                (defs-page-start (ash #x140000 -9))  ; VP 2560
+                (vals-pages 512)  ; 0x20000 bytes / 512 = 512 pages
+                (defs-pages 512)) ; 0x20000 bytes / 512 = 512 pages
+            (declare (ignore defs-page-start defs-pages))
+            ;; Check if Valspace pages are allocated
+            (when (< vals-page-start (length virtual-memory))
+              (let ((vals-page (aref virtual-memory vals-page-start)))
+                (unless vals-page
+                  ;; Valspace not loaded from sysout - need to allocate
+                  (format t "  Allocating Valspace pages ~D-~D~%"
+                          vals-page-start (+ vals-page-start vals-pages -1))
+                  (loop for vp from vals-page-start below (+ vals-page-start vals-pages)
+                        when (< vp (length virtual-memory))
+                        do (setf (aref virtual-memory vp)
+                                 (make-array 512 :element-type '(unsigned-byte 8) :initial-element 0)))))))
 
         ;; Initialize VM state from IFPAGE using FX structure
         (let ((currentfxp (maiko-lisp.data:ifpage-currentfxp ifpage))
