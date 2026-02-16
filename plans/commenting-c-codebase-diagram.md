@@ -4,7 +4,7 @@
 
 ```mermaid
 graph TD
-    A[Analyze AGENTS.md] --> B[Read WORK_STATE.md and STEP_COMPARISON_STATUS.md]
+    A[Analyze AGENTS.md] --> B[Read reports/WORK_STATE.md and reports/STEP_COMPARISON_STATUS.md]
     B --> C[Create accurate todo list]
     C --> D[Comment memory management files]
     D --> E[Comment display and I/O files]
@@ -17,7 +17,7 @@ graph TD
     K --> L[Comment assembly and platform-specific files]
     L --> M[Update documentation integration]
     M --> N[Complete quality assurance and verification]
-    
+
     style A fill:#e6f2ff,stroke:#0066cc
     style B fill:#e6f2ff,stroke:#0066cc
     style C fill:#e6f2ff,stroke:#0066cc

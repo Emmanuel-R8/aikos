@@ -17,7 +17,7 @@ const variable_access = @import("opcodes/variable_access.zig");
 
 const floating_point = @import("opcodes/floating_point.zig");
 const misc = @import("opcodes/misc.zig");
-const gc_ops = @import("opcodes/gc_ops.zig");
+// gc_ops already imported above
 
 // Re-export all handlers with original names
 // Arithmetic
@@ -209,6 +209,4 @@ pub const handleSTORE_N = misc.handleSTORE_N;
 pub const handleCOPY_N = misc.handleCOPY_N;
 pub const handleRAID = misc.handleRAID;
 pub const handleGCONST = misc.handleGCONST;
-pub const handleRECLAIMCELL = gc_ops.handleRECLAIMCELL;
-pub const handleGCSCAN1 = gc_ops.handleGCSCAN1;
-pub const handleGCSCAN2 = gc_ops.handleGCSCAN2;
+// handleRECLAIMCELL, handleGCSCAN1, handleGCSCAN2 already exported above (lines 141-143)

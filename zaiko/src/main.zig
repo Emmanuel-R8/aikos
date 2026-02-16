@@ -482,28 +482,7 @@ pub fn main() !void {
 
     // PHASE 6: INITIALIZE DISPLAY (optional for headless / parity comparison)
     // When display init fails (e.g. no video device), run headless: VM only, no events.
-    const screen_width = options.screen_width orelse 1024;
-    const screen_height = options.screen_height orelse 768;
-    const pixel_scale = options.pixel_scale orelse 1;
-    const window_title = options.window_title orelse "Medley Interlisp (Zig)";
-
-    const display_opt: ?*sdl_backend.DisplayInterface = blk: {
-        break :blk sdl_backend.initDisplay(
-            window_title,
-            screen_width,
-            screen_height,
-            pixel_scale,
-            allocator,
-        ) catch |err| {
-            std.debug.print("SDL2 display unavailable ({}), running headless for trace/parity\n", .{err});
-            break :blk null;
-        };
-    };
-    const display = display_opt;
-    defer if (display) |d| sdl_backend.destroyDisplay(d, allocator);
-
-    var key_queue: ?keyboard.KeyEventQueue = null;
-    var mouse_state: ?mouse.MouseState = null;
+    // Note: Display already initialized above (line 419), key_queue and mouse_state already initialized (lines 438-445)
     if (display) |_| {
         key_queue = try keyboard.KeyEventQueue.init(allocator, 256);
         defer key_queue.?.deinit(allocator);

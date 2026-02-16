@@ -87,14 +87,19 @@
 (defun handle-gvar (vm operands)
   "GVAR: Access global variable.
    GVAR looks up a global variable by atom index and pushes its value.
-   For old atoms: VALSPACE + (atom_index * 2)
-   For new atoms: ATOMSPACE + offset"
+   Instruction: 5 bytes (opcode + 4-byte operand)
+   Atom index = operand & 0xFFFF for Valspace access."
   (declare (type vm vm)
            (type list operands))
-  (when operands
-    (let ((atom-index (first operands)))
-      (let ((value (maiko-lisp.data:get-global-value atom-index)))
-        (push-stack vm value)))))
+  ;; Need 4 bytes of operands
+  (when (>= (length operands) 2)
+    ;; Atom index is in first 2 bytes of operand (non-BIGATOMS mode)
+    (let ((atom-index (logior (first operands) (ash (second operands) 8))))
+      (format t "GVAR: atom-index=~X~%" atom-index)
+      ;; Read value from value cell
+      (let ((value (maiko-lisp.data:read-atom-value vm atom-index)))
+        (vm-push vm value)
+        (format t "  value=~X~%" value)))))
 
 (defun handle-arg0 (vm)
   "ARG0: Access argument 0 (same as PVAR0)"

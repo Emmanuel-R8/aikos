@@ -30,7 +30,7 @@
    
    Returns a defcell structure."
   (declare (type (unsigned-byte 32) atom-index))
-  (let ((vmem (vm-virtual-memory vm)))
+  (let ((vmem (maiko-lisp.vm:vm-virtual-memory vm)))
     (unless vmem
       (return-from read-defcell (make-defcell-raw)))
     
@@ -88,7 +88,7 @@
    Per C: struct fnhead at offset.
    Returns a function-header structure."
   (declare (type (unsigned-byte 32) fnheader-offset))
-  (let ((vmem (vm-virtual-memory vm)))
+  (let ((vmem (maiko-lisp.vm:vm-virtual-memory vm)))
     (unless vmem
       (return-from read-function-header nil))
     

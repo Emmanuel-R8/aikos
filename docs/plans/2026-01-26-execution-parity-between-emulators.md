@@ -13,7 +13,7 @@
 ## Prerequisites
 
 - Read AGENTS.md for project guidelines
-- Read CURRENT_STATUS.md for current issues
+- Read reports/CURRENT_STATUS.md for current issues
 - Understand FPtoVP table: maps file pages to virtual pages for BIGVM sysout format
 - Know critical constants: BYTESPER_PAGE=512, STK_OFFSET=0x00010000
 - Have access to starter.sysout in medley/internal/loadups/

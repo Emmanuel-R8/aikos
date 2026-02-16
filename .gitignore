@@ -5,7 +5,12 @@
 \#*#
 .DS_Store
 # build directories
-build/**
+**/build/**
+**/build-cmake/**
+*.make
+*.cmake
+
+
 cmake-build-*/**
 .idea/
 *.m68k-x/**
@@ -36,14 +41,11 @@ core
 *.core
 *.swp
 
-<<<<<<< Updated upstream
-=======
 # build cache 
 maiko/.cache
 maiko/build 
-maiko/build-cmake 
+maiko/build-cmake
 
->>>>>>> Stashed changes
 # Zig build artifacts
 zig-out/
 **/.zig-cache/
@@ -64,4 +66,7 @@ venv/
 
 # Generated documentation PDFs (commit Typst source only)
 documentation/**/*.pdf
+
+# Nix
+flake.lock
 

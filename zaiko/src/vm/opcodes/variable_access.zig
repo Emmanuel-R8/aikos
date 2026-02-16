@@ -7,6 +7,7 @@ const virtual_memory_module = @import("../../memory/virtual.zig");
 
 const VM = stack.VM;
 const LispPTR = types.LispPTR;
+const DLword = types.DLword;
 
 // ============================================================================
 // Variable Access Opcodes

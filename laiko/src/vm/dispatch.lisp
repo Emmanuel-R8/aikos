@@ -106,31 +106,31 @@
     (#x9C 1) ; IMOD
     (#x12 1) ; UNBIND
     (#x64 1) ; COPY
-    (#x2F 1) ; STKSCAN
-    (#x65 1) ; MYARGCOUNT
-    (#x61 1) ; ARG0
-    (#x3E 1) ; LEQ
-    (#x3F 1) ; GEQ
-    (#x0E 1) ; APPLYFN
-    (#x07 1) ; UNWIND
-    (#x27 1) ; LISTGET
-    (#x16 1) ; ASSOC
-    (#x1C 1) ; FMEMB
-    ;; 2-byte opcodes
-    (#x60 3) ; GVAR
-    (#x05 2) ; TYPEP
-    (#x08 2) ; FN0
-    (#x09 2) ; FN1
-    (#x0A 2) ; FN2
-    (#x0B 2) ; FN3
-    (#x0C 2) ; FN4
-    (#x11 2) ; BIND
-    (#x0D 4) ; FNX
-    (#xEE 2) ; GETAEL1
-    (#xEF 3) ; GETAEL2
-    (#xB6 1) ; AREF1
-    (#xB7 1) ; ASET1
-    (#xC2 1) ; GETBASEBYTE
+     (#x2F 1) ; STKSCAN
+     (#x65 1) ; MYARGCOUNT
+     (#x61 1) ; ARG0
+     (#x3E 1) ; LEQ
+     (#x3F 1) ; GEQ
+     (#x0E 1) ; APPLYFN
+     (#x07 1) ; UNWIND
+     (#x27 1) ; LISTGET
+     (#x16 1) ; ASSOC
+     (#x1C 1) ; FMEMB
+     ;; Variable-length opcodes
+     (#x60 5) ; GVAR (opcode + 4-byte operand, index = operand & 0xFFFF)
+     (#x05 2) ; TYPEP
+     (#x08 3) ; FN0 (opcode + 2-byte atom index)
+     (#x09 3) ; FN1
+     (#x0A 3) ; FN2
+     (#x0B 3) ; FN3
+     (#x0C 3) ; FN4
+     (#x11 2) ; BIND
+     (#x0D 4) ; FNX
+     (#xEE 2) ; GETAEL1
+     (#xEF 3) ; GETAEL2
+     (#xB6 1) ; AREF1
+     (#xB7 1) ; ASET1
+     (#xC2 1) ; GETBASEBYTE
     (#xC7 1) ; PUTBASEBYTE
     (#xC8 2) ; GETBASE_N
     (#xC9 2) ; GETBASEPTR_N
