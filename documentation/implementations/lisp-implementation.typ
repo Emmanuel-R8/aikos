@@ -3,8 +3,8 @@
 *Navigation*: README | Index | Architecture
 
 *Feature*: 002-lisp-implementation
-*Date*: 2026-02-15 21:00
-*Status*: 🔧 IN DEVELOPMENT - First Instruction Executing!
+*Date*: 2026-02-16
+*Status*: 🔧 IN DEVELOPMENT - Valspace Allocation Implemented
 
 == Overview
 
@@ -12,14 +12,14 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL), following t
 
 == Implementation Statistics
 
-- *Source Files*: 24+ Lisp files
+- *Source Files*: 26+ Lisp files
 - *Test Files*: 11 test files
 - *Opcodes Implemented*: ~191 opcode handlers registered
-- *Actual Completeness*: ~25% (sysout loading complete, first instruction executing)
+- *Actual Completeness*: ~30% (sysout loading, Valspace allocation, 4+ instructions executing)
 - *Build System*: ASDF
 - *Target Platform*: Linux (SBCL), macOS, Windows (partial)
 
-== Current Status (2026-02-15)
+== Current Status (2026-02-16)
 
 === ✅ Completed
 
@@ -28,41 +28,43 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL), following t
 - ✅ VM state structure (stack, PC, frame pointers, registers)
 - ✅ Dispatch loop with opcode fetching and execution
 - ✅ ~191 opcode handlers registered
-- ✅ Trace infrastructure matching unified format
-- ✅ Parity testing framework
-- ✅ **Full rewrite of sysout.lisp** (2026-02-15)
-  - Correct IFPAGE field layout for BIGVM format
-  - Proper big-endian file reading
-  - 32-bit FPtoVP entries for 256MB address space
-  - IFPAGE key validation working (0x15E3)
-  - Page loading to correct virtual addresses (16,633 pages)
-- ✅ **Frame Extension structure and reader** (2026-02-15)
-  - STK_OFFSET correctly handled as DLword offset
-  - Stackspace byte offset = STK_OFFSET * 2 = 0x20000
-  - Frame at correct offset: 0x20000 + (currentfxp * 2)
-  - fnheader extracted as 24-bit value
-- ✅ **PC initialization from FX** (2026-02-15)
-  - PC = fnheader * 2 + fx->pc
-  - Matches C FastRetCALL behavior
-  - PC = 0x60F130 ✅ matches C/Zig
-- ✅ **XOR addressing for bytecode** (2026-02-15)
-  - GETBYTE(base) = *(base ^ 3) in BYTESWAP mode
-  - First opcode 0xBF (POP) executes correctly ✅
-- ✅ **32-bit word swapping** (2026-02-15)
-  - Pages swapped correctly: [0,1,2,3] → [3,2,1,0]
-  - Was incorrectly doing 16-bit pair swap
+- ✅ **32-bit word swapping** for page loading
+- ✅ **XOR addressing** for bytecode access
+- ✅ **Frame Extension reading** and PC initialization
+- ✅ **Virtual memory stack operations**
+- ✅ **Atom/Defcell infrastructure**
+- ✅ **Valspace page allocation** (runtime memory, not from sysout)
+- ✅ **4+ instructions executing**:
+  1. POP (0xBF) at PC 0x60F130
+  2. GVAR (0x60) at PC 0x60F131
+  3. UNBIND (0x12) at PC 0x60F136
+  4. GETBASEPTR-N (0xC9) at PC 0x60F137
 
 === ⚠️ Known Issues
 
-- ⚠️ Stack operations use separate array instead of virtual memory
-- ⚠️ Stack pointer 0x25D10 exceeds 65K element array limit
-- ⚠️ Need to refactor stack to use vmem like C/Zig
+- ⚠️ GVAR reads value=0 instead of expected 0x0E
+- ⚠️ Value cells need initialization from Lisp startup code
+- ⚠ Stack underflow at instruction 4 (GETBASEPTR-N)
 
 === 🔧 In Progress
 
-- Refactoring stack operations to use virtual memory
-- Implementing POP opcode handler
-- Trace comparison with C/Zig for first 10 instructions
+- Investigating value cell initialization
+- Checking C/Zig for Valspace value population
+
+== Critical Discovery: Valspace Architecture
+
+Valspace pages are **NOT loaded from sysout file**:
+
+#codeblock(lang: "text", [
+FPtoVP table has NO entries for VP 3072-3583 (Valspace)
+These pages are runtime-allocated memory
+C: Valspace = NativeAligned2FromLAddr(VALS_OFFSET) in initsout.c
+])
+
+Laiko now allocates Valspace pages at runtime:
+- VP 3072-3583 (512 pages, 256KB)
+- Zero-initialized
+- Values populated by Lisp startup code
 
 == Architecture
 

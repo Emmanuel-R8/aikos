@@ -2,15 +2,14 @@
 
 *Navigation*: Implementations README | Main README
 
-*Date*: 2026-02-09
-*Status*: 🔍 EXISTS - Status Verification Needed
-*Location*: `taiko/`
-*Build System*: TypeScript/Node.js
-*Target Platform*: Browser/WebGL
+*Date*: 2026-02-09 *Status*: 🔍 EXISTS - Status Verification Needed *Location*: `taiko/` *Build
+System*: TypeScript/Node.js *Target Platform*: Browser/WebGL
 
 == Overview
 
-The TypeScript implementation (Taiko) provides a browser-based emulator implementation using WebGL for display rendering. The implementation exists with unified trace format support, but full parity status needs verification.
+The TypeScript implementation (Taiko) provides a browser-based emulator implementation using WebGL
+for display rendering. The implementation exists with unified trace format support, but full parity
+status needs verification.
 
 == Current Status
 
@@ -45,15 +44,15 @@ The TypeScript implementation (Taiko) provides a browser-based emulator implemen
 
 == Trace Format
 
-The TypeScript implementation supports the unified trace format as defined in `documentation/specifications/vm-core/trace-and-logging-formats.typ`.
+The TypeScript implementation supports the unified trace format as defined in
+`documentation/specifications/vm-core/trace-and-logging-formats.typ`.
 
-Format: `LINE#|PC|INSTRUCTION|OPCODE|OPERANDS|REGISTERS|FLAGS|SP_FP|STACK_SUMMARY|MEMORY_CONTEXT|FP_VP_FO_VA|BS_MEM|NOTES`
+Format:
+`LINE#|PC|INSTRUCTION|OPCODE|OPERANDS|REGISTERS|FLAGS|SP_FP|STACK_SUMMARY|MEMORY_CONTEXT|FP_VP_FO_VA|BS_MEM|NOTES`
 
 == Testing Status
 
-*Status*: Needs verification
-*Parity Tests*: Not yet run
-*Trace Generation*: Needs verification
+*Status*: Needs verification *Parity Tests*: Not yet run *Trace Generation*: Needs verification
 
 == Related Documentation
 
