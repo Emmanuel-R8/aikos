@@ -88,18 +88,26 @@
   "GVAR: Access global variable.
    GVAR looks up a global variable by atom index and pushes its value.
    Instruction: 5 bytes (opcode + 4-byte operand)
-   Atom index = operand & 0xFFFF for Valspace access."
+   
+   Per Zig instruction_struct.zig:44-50:
+   For BIGVM: atom_index = [op0]<<24 | [op1]<<16 | [op2]<<8 | [op3]
+   Then mask with 0xFFFF for non-BIGATOMS Valspace access."
   (declare (type vm vm)
            (type list operands))
-  ;; Need 4 bytes of operands
-  (when (>= (length operands) 2)
-    ;; Atom index is in first 2 bytes of operand (non-BIGATOMS mode)
-    (let ((atom-index (logior (first operands) (ash (second operands) 8))))
-      (format t "GVAR: atom-index=~X~%" atom-index)
-      ;; Read value from value cell
-      (let ((value (maiko-lisp.data:read-atom-value vm atom-index)))
-        (vm-push vm value)
-        (format t "  value=~X~%" value)))))
+  ;; Need 4 bytes of operands for BIGVM
+  (when (>= (length operands) 4)
+    ;; BIGVM byte order: [op0]<<24 | [op1]<<16 | [op2]<<8 | [op3]
+    (let ((atom-index (logior (ash (first operands) 24)
+                              (ash (second operands) 16)
+                              (ash (third operands) 8)
+                              (fourth operands))))
+      ;; For non-BIGATOMS: atom_index & 0xFFFF for Valspace access
+      (let ((valspace-index (logand atom-index #xFFFF)))
+        (format t "GVAR: atom-index=0x~X valspace-index=0x~X~%" atom-index valspace-index)
+        ;; Read value from value cell
+        (let ((value (maiko-lisp.data:read-atom-value vm valspace-index)))
+          (vm-push vm value)
+          (format t "  value=0x~X~%" value))))))
 
 (defun handle-arg0 (vm)
   "ARG0: Access argument 0 (same as PVAR0)"
