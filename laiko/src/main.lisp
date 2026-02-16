@@ -140,7 +140,12 @@
               ;; Set stack pointer offset (byte offset into virtual_memory)
               (setf (maiko-lisp.vm:vm-stack-ptr-offset vm) current-stack-ptr)
               (setf (maiko-lisp.vm:vm-stack-base-offset vm) stackspace-offset)
-              (format t "  Stack pointer (CurrentStackPTR): 0x~X~%" current-stack-ptr))))
+              (format t "  Stack pointer (CurrentStackPTR): 0x~X~%" current-stack-ptr)
+              ;; Initialize top-of-stack from the stack memory
+              ;; Per C: TopOfStack is cached, read from CurrentStackPTR location
+              (setf (maiko-lisp.vm:vm-top-of-stack vm)
+                    (maiko-lisp.vm:vm-read-lispptr vm current-stack-ptr))
+              (format t "  Top-of-stack (cached): 0x~X~%" (maiko-lisp.vm:vm-top-of-stack vm)))))
 
         ;; Set up step limiting (from command line or environment)
         (let ((env-max-steps (maiko-lisp.vm:get-emulator-max-steps)))
