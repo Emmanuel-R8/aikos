@@ -5,11 +5,12 @@
 
 ## Critical Documentation (Must-Read Files)
 
-1. Read ./WORK_STATE.md, then ./STEP_COMPARISON_STATUS.md
+1. Read ./reports/WORK_STATE.md, then ./reports/STEP_COMPARISON_STATUS.md
 
 1. When **compressing or summarizing context**, follow **§7**: Phase 1 (aggressive compression of tool/command/trace/linter outputs only) is mandatory and first; Phase 2 (re-read AGENTS.md, then compress the remainder) only if further compression is needed.
 
 1. **`documentation/core/critical-memory.typ`** - **CRITICAL**: Rules for documentation updates
+
    - All documentation improvements MUST be emulator-independent in `specifications/`
    - Language-specific details go in `implementations/`
    - **ALWAYS** write documentation using the Typst document format

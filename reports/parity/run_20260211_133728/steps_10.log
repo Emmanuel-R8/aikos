@@ -1,0 +1,13 @@
+=== COMPARING ALL IMPLEMENTATIONS ===
+Max steps: 10
+Sysout: medley/internal/loadups/starter.sysout
+Sysout path: /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/medley/internal/loadups/starter.sysout
+
+--- Running C emulator (reference) ---
+/home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/scripts/compare_all_implementations.sh: line 70: 3215131 Killed                     timeout --kill-after 11 10 "$C_EMULATOR" "$SYSOUT_PATH" > /dev/null 2>&1
+✓ C emulator: 0 lines
+--- Running Zig emulator ---
+✗ Zig emulator: No trace file generated
+--- Running TypeScript emulator ---
+✗ TypeScript emulator: Requires Node.js/browser environment (not automated yet)
+--- Running Lisp emulator ---

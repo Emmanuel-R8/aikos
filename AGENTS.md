@@ -154,10 +154,10 @@ Avoid committing machine/local outputs that create noisy diffs:
 
 ### 1.3 Markdown Document Storage (CRITICAL)
 
-**REQUIREMENT**: All new Markdown documents (`.md` files) MUST be stored in the `reports/` directory or its subdirectories.
+**REQUIREMENT**: All new Markdown documents (`.md` files) containing intermediary reports or temporary finformationMUST be stored in the `reports/` directory or its subdirectories.
 
 - **Location**: `reports/` or `reports/[subdirectory]/` (e.g., `reports/parity/`)
-- **Examples**: 
+- **Examples**:
   - ✅ `reports/MANUAL_VALIDATION.md`
   - ✅ `reports/parity/MANUAL_VALIDATION.md`
   - ✅ `reports/WORK_STATE.md`
@@ -167,9 +167,11 @@ Avoid committing machine/local outputs that create noisy diffs:
 - **Exception**: Specification artifacts in `specs/` directories (e.g., `specs/001-multi-impl-parity/spec.md`, `plan.md`, `tasks.md`) are allowed as they are part of the specification workflow, not reports
 
 **When creating new markdown documents**:
+
 1. Determine if it's a report/documentation → place in `reports/` or `reports/[subdirectory]/`
 2. Determine if it's a specification artifact → place in `specs/[feature]/`
-3. If unsure, default to `reports/`
+3. Determine if it's long term documentation that will be used to generate a PDF → place in `documentation/` in Typst format
+4. If unsure, default to `reports/`
 
 ### 1.4 File System Access Restrictions (CRITICAL)
 
@@ -181,6 +183,10 @@ Avoid committing machine/local outputs that create noisy diffs:
 - **Reason**: Security, isolation, and reproducibility requirements
 
 **Violation will result in immediate termination of the session.**
+
+### 1.5 Command line restrictions (CRITICAL)
+
+**REQUIREMENT**: Agents must not use the command `rm` or `rm -f` or `rm -rf`. Alternatives **must** be sought such as using `find` to locate files with specific file names or extensions. You must always use specific file names or extensions to locate files to delete. **NEVER** use wildcards or patterns to delete files. Always make sure that the files backed up before deletion (preferably with Git). Acceptable exceptions are `.fasl` files.
 
 ### 2. Documentation Updates
 

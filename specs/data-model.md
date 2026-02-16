@@ -16,6 +16,7 @@ This document defines the data structures and entities needed to complete the Zi
 **Structure**: Matches C `IFPAGE` structure exactly (from `maiko/inc/ifpage.h`)
 
 **Key Fields**:
+
 - `key: DLword` - Validation key (must be `IFPAGE_KEYVAL = 0x15e3`)
 - `lversion: DLword` - Lisp version
 - `minbversion: DLword` - Minimum bytecode version
@@ -29,6 +30,7 @@ This document defines the data structures and entities needed to complete the Zi
 - ~90 additional VM state fields
 
 **Validation Rules**:
+
 - `key == IFPAGE_KEYVAL` (0x15e3)
 - `lversion >= LVERSION` (version compatibility check)
 - `minbversion <= MINBVERSION` (bytecode version compatibility)
@@ -44,15 +46,18 @@ This document defines the data structures and entities needed to complete the Zi
 **Purpose**: Maps file page numbers to virtual page numbers for sparse page loading.
 
 **Structure**:
+
 - **BIGVM**: Array of `u32` entries (REQUIRED - all implementations use this)
   - Each entry: Low 16 bits = virtual page number, High 16 bits = page OK flag
   - GETFPTOVP returns low 16 bits, GETPAGEOK returns high 16 bits
 
 **Entry Values**:
+
 - `0xFFFF` (0177777): Page not present in file (sparse page marker)
 - Other values: Virtual page number where file page should be mapped
 
 **Location**:
+
 - Offset: `(ifpage.fptovpstart - 1) * BYTESPER_PAGE + offset`
   - BIGVM: `+ 4` bytes (REQUIRED)
 
@@ -69,10 +74,12 @@ This document defines the data structures and entities needed to complete the Zi
 **Purpose**: Represents a 256-byte page of memory data from sysout file.
 
 **Structure**:
+
 - **Size**: `BYTESPER_PAGE = 512` bytes (256 words)
 - **Content**: Raw memory data (may need byte swapping)
 
 **Loading Process**:
+
 1. Check FPtoVP entry for file page
 2. If entry != 0xFFFF, seek to file page offset
 3. Read 512 bytes
@@ -88,6 +95,7 @@ This document defines the data structures and entities needed to complete the Zi
 **Purpose**: Represents the complete Lisp virtual memory space.
 
 **Structure**:
+
 - **Size**: `process_size * MBYTE` bytes (from IFPAGE)
 - **Organization**: Page-based (512-byte pages)
 - **Regions**: Stack space, atom space, heap space (MDS), interface page
@@ -105,6 +113,7 @@ This document defines the data structures and entities needed to complete the Zi
 **Purpose**: Represents the current execution state of the VM.
 
 **Key Components**:
+
 - **Stack Pointers**: `stackbase`, `endofstack`, `currentfxp` (from IFPAGE)
 - **Program Counter**: Current bytecode execution position
 - **Frame Pointer**: Current stack frame
@@ -122,11 +131,13 @@ This document defines the data structures and entities needed to complete the Zi
 **Purpose**: Function implementing a bytecode instruction's semantics.
 
 **Structure**:
+
 - **Input**: VM state, opcode arguments
 - **Output**: Modified VM state, return value (if applicable)
 - **Side Effects**: Stack manipulation, memory access, I/O operations
 
 **Categories**:
+
 - **Essential**: Function calls, cons cells, variable access (priority)
 - **Basic**: Arithmetic, comparison, type checking (already implemented)
 - **Advanced**: Complex operations, I/O, display (lower priority)
@@ -140,11 +151,13 @@ This document defines the data structures and entities needed to complete the Zi
 **Purpose**: Tracks reference count for a memory object.
 
 **Structure**:
+
 - **Key**: Object address (LispPTR)
 - **Value**: Reference count (u32)
 - **Overflow**: Linked to HTcoll if hash collision
 
 **Operations**:
+
 - **ADDREF**: Increment count, add to HTmain or HTcoll
 - **DELREF**: Decrement count, remove if zero
 - **Reclamation**: Mark for reclamation when count reaches zero
@@ -158,12 +171,14 @@ This document defines the data structures and entities needed to complete the Zi
 **Purpose**: Manages SDL2 window, renderer, and texture for display output.
 
 **Structure**:
+
 - **Window**: SDL_Window pointer
 - **Renderer**: SDL_Renderer pointer
 - **Texture**: SDL_Texture pointer (for display region)
 - **Display Buffer**: Memory region representing screen contents
 
 **Operations**:
+
 - **Initialize**: Create window, renderer, texture
 - **BitBLT**: Copy display buffer to texture, render to screen
 - **Event Polling**: Poll for keyboard/mouse events
@@ -175,30 +190,37 @@ This document defines the data structures and entities needed to complete the Zi
 ## Relationships
 
 ### IFPAGE → FPtoVP
+
 - IFPAGE contains `fptovpstart` field pointing to FPtoVP table location
 - One-to-one relationship
 
 ### FPtoVP → Memory Pages
+
 - FPtoVP maps file pages to virtual pages
 - One-to-many relationship (one FPtoVP entry per file page)
 
 ### Memory Pages → Virtual Memory
+
 - Memory pages are loaded into virtual memory at mapped addresses
 - Many-to-one relationship (many pages in one virtual memory space)
 
 ### IFPAGE → VM State
+
 - IFPAGE contains VM state fields used to initialize VM
 - One-to-one relationship
 
 ### VM State → Opcode Handlers
+
 - VM state is modified by opcode handlers during execution
 - Many-to-many relationship
 
 ### Virtual Memory → GC Hash Tables
+
 - GC hash tables track references to objects in virtual memory
 - One-to-many relationship (one memory space, many tracked objects)
 
 ### SDL2 Display Context → Virtual Memory
+
 - Display buffer is a region in virtual memory
 - One-to-one relationship
 
@@ -213,6 +235,7 @@ This document defines the data structures and entities needed to complete the Zi
 ```
 
 **Validation Points**:
+
 - IFPAGE key validation (must be 0x15e3)
 - Version compatibility checks
 - File size validation
@@ -229,6 +252,7 @@ This document defines the data structures and entities needed to complete the Zi
 ```
 
 **State Transitions**:
+
 - Ready → Executing: After sysout loading completes
 - Executing → Paused: On interrupt
 - Paused → Executing: After interrupt handling
@@ -236,22 +260,26 @@ This document defines the data structures and entities needed to complete the Zi
 ## Validation Rules
 
 ### IFPAGE Validation
+
 - `key == IFPAGE_KEYVAL` (0x15e3)
 - `lversion >= LVERSION`
 - `minbversion <= MINBVERSION`
 - `process_size > 0` and `process_size <= MAX_EXPLICIT_SYSOUTSIZE`
 
 ### FPtoVP Validation
+
 - Table size matches `nactivepages`
 - File offset calculation is valid
 - Entry values are valid virtual page numbers or 0xFFFF
 
 ### Memory Page Validation
+
 - Page size is exactly 512 bytes
 - Virtual address is within allocated memory range
 - Byte swapping applied correctly if needed
 
 ### VM State Validation
+
 - Stack pointers are within valid range
 - Frame pointer is valid
 - Program counter points to valid code
@@ -259,17 +287,20 @@ This document defines the data structures and entities needed to complete the Zi
 ## Constraints
 
 ### Memory Constraints
+
 - Virtual memory size must match `process_size` from IFPAGE
 - Page addresses must be aligned to 512-byte boundaries
 - Stack must not overflow allocated space
 
 ### Compatibility Constraints
+
 - IFPAGE structure must match C implementation exactly
 - FPtoVP format must match C implementation
 - Opcode semantics must match C implementation exactly
 - Memory layout must match C implementation
 
 ### Performance Constraints
+
 - Sysout loading should complete in < 5 seconds for typical files
 - Page loading should be efficient (sequential file reads)
 - GC operations should not block execution for long periods

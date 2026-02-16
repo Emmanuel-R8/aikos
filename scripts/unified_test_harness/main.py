@@ -23,9 +23,9 @@ DEFAULT_SYSOUT = "medley/internal/loadups/starter.sysout"
 
 def get_repo_root() -> Path:
   """Get the repository root directory."""
-  script_dir = Path(__file__).parent.absolute()
-  # scripts/unified_test_harness/ -> scripts/ -> repo root
-  return script_dir.parent
+  script_dir = Path(__file__).resolve().parent
+  # main.py lives in scripts/unified_test_harness/ -> parent=scripts/ -> parent.parent=repo root
+  return script_dir.parent.parent
 
 
 def _resolve_sysout(repo_root: Path, sysout_arg: str) -> Path:

@@ -10,14 +10,22 @@ Orchestrates the iterative STEP-by-STEP parity verification process using:
 State is persisted to `parity_workflow_state.json` in the repo root so runs
 can resume from the last verified STEP. A high-level dashboard summary is
 written to `parity_workflow_dashboard.json`.
+
+Lock: Prevents concurrent runs. Stale lock = PID dead or lock older than 24h.
+Release: normal exit (try/finally), SIGINT/SIGTERM. Crash leaves lock; next
+run removes stale lock per spec.md "Concurrency and Locking".
 """
 
 from __future__ import annotations
 
 import argparse
+import atexit
 import json
+import os
+import signal
 import subprocess
 import sys
+import time
 from dataclasses import dataclass, asdict
 from datetime import datetime
 from pathlib import Path
@@ -31,6 +39,81 @@ DASHBOARD_FILE = REPO_ROOT / "parity_workflow_dashboard.json"
 REPORTS_DIR = REPO_ROOT / "reports" / "parity"
 ANALYSIS_DIR = REPORTS_DIR / "analysis"
 DIVERGENCE_LOG = REPORTS_DIR / "divergence_reports.jsonl"
+LOCK_FILE = REPORTS_DIR / ".parity_workflow.lock"
+STALE_LOCK_AGE_SECONDS = 24 * 60 * 60  # 24 hours
+
+_lock_held = False
+
+
+def _pid_alive(pid: int) -> bool:
+  """Check if process with given PID is still running."""
+  try:
+    os.kill(pid, 0)
+    return True
+  except OSError:
+    return False
+
+
+def _is_lock_stale() -> bool:
+  """Stale if PID dead OR lock older than 24h (per spec.md)."""
+  if not LOCK_FILE.exists():
+    return False
+  try:
+    data = json.loads(LOCK_FILE.read_text())
+    pid = data.get("pid")
+    ts = data.get("timestamp", 0)
+    if pid is not None and _pid_alive(pid):
+      return False
+    return (
+      (pid is not None and not _pid_alive(pid))
+      or (time.time() - ts >= STALE_LOCK_AGE_SECONDS)
+    )
+  except Exception:
+    return True
+
+
+def _remove_lock() -> None:
+  """Remove lock file if we hold it."""
+  global _lock_held
+  if _lock_held and LOCK_FILE.exists():
+    try:
+      LOCK_FILE.unlink()
+      _lock_held = False
+    except OSError:
+      pass
+
+
+def acquire_lock() -> bool:
+  """Acquire workflow lock. Remove stale lock first. Return True if acquired."""
+  global _lock_held
+  REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+  if _is_lock_stale():
+    try:
+      LOCK_FILE.unlink()
+    except OSError:
+      pass
+  if LOCK_FILE.exists():
+    return False
+  try:
+    LOCK_FILE.write_text(json.dumps({
+      "pid": os.getpid(),
+      "timestamp": time.time(),
+      "hostname": os.environ.get("HOSTNAME", ""),
+    }))
+    _lock_held = True
+    atexit.register(_remove_lock)
+    return True
+  except OSError:
+    return False
+
+
+def release_lock() -> None:
+  """Release workflow lock."""
+  _remove_lock()
+  try:
+    atexit.unregister(_remove_lock)
+  except Exception:
+    pass
 
 
 @dataclass
@@ -275,6 +358,29 @@ def main() -> int:
 
   args = parser.parse_args()
 
+  if not acquire_lock():
+    print(
+      "ERROR: Another parity workflow is running, or stale lock present. "
+      f"Lock file: {LOCK_FILE}. If no other run is active, remove the lock file.",
+      file=sys.stderr,
+    )
+    return 2
+
+  def _signal_handler(signum: int, frame: object) -> None:
+    release_lock()
+    sys.exit(128 + (signum if signum < 128 else 0))
+
+  signal.signal(signal.SIGINT, _signal_handler)
+  signal.signal(signal.SIGTERM, _signal_handler)
+
+  try:
+    return _run_workflow(args)
+  finally:
+    release_lock()
+
+
+def _run_workflow(args: argparse.Namespace) -> int:
+  """Main workflow logic (called after lock acquired)."""
   state = load_state()
   state.window_size = args.window_size
 

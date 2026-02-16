@@ -160,6 +160,19 @@ activity without requiring log spelunking.
 - **Divergence Report**: A structured description of where and how one or more
   implementations differ from the reference for a specific step window.
 
+## Concurrency and Locking
+
+The parity workflow uses a lock file to prevent accidental concurrent runs.
+
+- **Stale lock definition**: A lock is considered stale if (a) the PID recorded
+  in the lock file is no longer running on the system, or (b) the lock file's
+  timestamp is older than 24 hours.
+- **Normal exit**: The workflow releases the lock by deleting the lock file on
+  successful completion and on clean interrupt (e.g., SIGINT, SIGTERM).
+- **Crash**: If the process crashes without releasing the lock, the next run
+  detects a stale lock (via PID liveness or age) and removes it before
+  proceeding.
+
 ## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes

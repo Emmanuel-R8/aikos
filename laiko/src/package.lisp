@@ -64,6 +64,18 @@
     #:set-interrupt-flag
     #:clear-interrupt-flag
     #:create-vm
+    ;; Virtual memory stack operations
+    #:vm-stack-base-offset
+    #:vm-stack-ptr-offset
+    #:vm-stack-end-offset
+    #:vm-top-of-stack
+    #:vm-push
+    #:vm-pop
+    #:vm-tos
+    #:vm-set-tos
+    #:vm-read-lispptr
+    #:vm-write-lispptr
+    ;; Legacy stack operations
     #:push-stack
     #:pop-stack
     #:get-top-of-stack

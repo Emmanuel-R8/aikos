@@ -137,7 +137,9 @@
             (let* ((nextblock (maiko-lisp.data:fx-nextblock fx))
                    (stackspace-offset maiko-lisp.data:+stackspace-byte-offset+)
                    (current-stack-ptr (+ stackspace-offset (* nextblock 2) -4)))
-              (setf (maiko-lisp.vm:vm-stack-ptr vm) current-stack-ptr)
+              ;; Set stack pointer offset (byte offset into virtual_memory)
+              (setf (maiko-lisp.vm:vm-stack-ptr-offset vm) current-stack-ptr)
+              (setf (maiko-lisp.vm:vm-stack-base-offset vm) stackspace-offset)
               (format t "  Stack pointer (CurrentStackPTR): 0x~X~%" current-stack-ptr))))
 
         ;; Set up step limiting (from command line or environment)

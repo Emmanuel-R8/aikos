@@ -12,6 +12,7 @@ API contract for sysout file loading functionality, defining the interface for l
 ### `loadSysout`
 
 **Signature**:
+
 ```zig
 pub fn loadSysout(
     allocator: std.mem.Allocator,
@@ -22,15 +23,18 @@ pub fn loadSysout(
 **Purpose**: Load a sysout file into virtual memory and return VM state.
 
 **Parameters**:
+
 - `allocator`: Memory allocator for virtual memory and temporary buffers
 - `filename`: Path to sysout file
 
 **Returns**: `SysoutLoadResult` containing:
+
 - `ifpage: IFPAGE` - Interface page with VM state
 - `virtual_memory: []u8` - Allocated virtual memory space
 - `fptovp: FPtoVPTable` - File page to virtual page mapping table
 
 **Errors**:
+
 - `error.SysoutFileNotFound` - File cannot be opened
 - `error.InvalidSysoutKey` - IFPAGE key validation failed (not 0x15e3)
 - `error.VersionMismatch` - Version compatibility check failed
@@ -38,10 +42,12 @@ pub fn loadSysout(
 - `error.SysoutLoadFailed` - General loading error
 
 **Preconditions**:
+
 - `filename` must be a valid file path
 - `allocator` must be a valid allocator
 
 **Postconditions**:
+
 - Virtual memory allocated and pages loaded
 - IFPAGE validated and returned
 - FPtoVP table loaded and returned
@@ -51,6 +57,7 @@ pub fn loadSysout(
 ### `validateSysout`
 
 **Signature**:
+
 ```zig
 pub fn validateSysout(ifpage: *const IFPAGE) !void
 ```
@@ -58,19 +65,23 @@ pub fn validateSysout(ifpage: *const IFPAGE) !void
 **Purpose**: Validate IFPAGE structure for sysout compatibility.
 
 **Parameters**:
+
 - `ifpage`: Pointer to IFPAGE structure to validate
 
 **Returns**: `void` on success, error on validation failure
 
 **Errors**:
+
 - `error.InvalidSysoutKey` - Key is not IFPAGE_KEYVAL (0x15e3)
 - `error.VersionTooOld` - Lisp version too old (lversion < LVERSION)
 - `error.VersionTooNew` - Bytecode version too new (minbversion > MINBVERSION)
 
 **Preconditions**:
+
 - `ifpage` must point to valid IFPAGE structure
 
 **Postconditions**:
+
 - IFPAGE validated or error returned
 
 ---
@@ -78,6 +89,7 @@ pub fn validateSysout(ifpage: *const IFPAGE) !void
 ### `loadFPtoVPTable`
 
 **Signature**:
+
 ```zig
 pub fn loadFPtoVPTable(
     allocator: std.mem.Allocator,
@@ -89,6 +101,7 @@ pub fn loadFPtoVPTable(
 **Purpose**: Load FPtoVP (File Page to Virtual Page) mapping table from sysout file.
 
 **Parameters**:
+
 - `allocator`: Memory allocator for table storage
 - `file`: Open sysout file handle
 - `ifpage`: IFPAGE structure containing `fptovpstart` offset
@@ -96,15 +109,18 @@ pub fn loadFPtoVPTable(
 **Returns**: `FPtoVPTable` containing mapping entries
 
 **Errors**:
+
 - `error.FileSeekFailed` - Cannot seek to FPtoVP table location
 - `error.FileReadFailed` - Cannot read FPtoVP table data
 - `error.AllocationFailed` - Memory allocation failed
 
 **Preconditions**:
+
 - `file` must be open and positioned correctly
 - `ifpage` must contain valid `fptovpstart` value
 
 **Postconditions**:
+
 - FPtoVP table loaded and returned
 
 ---
@@ -112,6 +128,7 @@ pub fn loadFPtoVPTable(
 ### `loadMemoryPages`
 
 **Signature**:
+
 ```zig
 pub fn loadMemoryPages(
     allocator: std.mem.Allocator,
@@ -124,6 +141,7 @@ pub fn loadMemoryPages(
 **Purpose**: Load memory pages from sysout file into virtual memory using FPtoVP mapping.
 
 **Parameters**:
+
 - `allocator`: Memory allocator for temporary buffers
 - `file`: Open sysout file handle
 - `fptovp`: FPtoVP table for page mapping
@@ -132,16 +150,19 @@ pub fn loadMemoryPages(
 **Returns**: `void` on success, error on failure
 
 **Errors**:
+
 - `error.FileSeekFailed` - Cannot seek to page location
 - `error.FileReadFailed` - Cannot read page data
 - `error.InvalidPageAddress` - Virtual page address out of range
 
 **Preconditions**:
+
 - `file` must be open
 - `fptovp` must be valid and loaded
 - `virtual_memory` must be allocated with sufficient size
 
 **Postconditions**:
+
 - All pages mapped by FPtoVP are loaded into virtual memory
 - Sparse pages (0xFFFF) are skipped
 
@@ -154,6 +175,7 @@ pub fn loadMemoryPages(
 **Definition**: `packed struct` matching C `IFPAGE` structure exactly
 
 **Key Fields**:
+
 - `key: DLword` - Validation key (must be 0x15e3)
 - `lversion: DLword` - Lisp version
 - `minbversion: DLword` - Minimum bytecode version
@@ -166,6 +188,7 @@ pub fn loadMemoryPages(
 - ~90 additional VM state fields
 
 **Constraints**:
+
 - Must match C structure exactly (byte-for-byte)
 - Must use `packed struct` for exact layout
 
@@ -174,11 +197,12 @@ pub fn loadMemoryPages(
 ### `FPtoVPTable`
 
 **Definition**:
+
 ```zig
 pub const FPtoVPTable = struct {
     entries: []u32, // BIGVM format - 32-bit entries (REQUIRED)
     allocator: std.mem.Allocator,
-    
+
     pub fn getFPtoVP(self: *const FPtoVPTable, file_page: usize) u16;
     pub fn getPageOK(self: *const FPtoVPTable, file_page: usize) u16;
     pub fn isSparse(self: *const FPtoVPTable, file_page: usize) bool;
@@ -190,16 +214,19 @@ pub const FPtoVPTable = struct {
 **CRITICAL**: All implementations MUST use BIGVM format (32-bit entries). Non-BIGVM format is NOT supported.
 
 **Fields**:
+
 - `entries`: Array of 32-bit mapping entries (BIGVM format)
 - `allocator`: Memory allocator for table management
 
 **Entry Structure** (BIGVM format):
+
 - Each entry is a 32-bit `u32` value
 - Low 16 bits: Virtual page number (accessed via `getFPtoVP()`)
 - High 16 bits: Page OK flag (accessed via `getPageOK()`)
 - `getPageOK() == 0xFFFF`: Page not present (sparse page marker)
 
 **Constraints**:
+
 - Entry size: 32 bits (4 bytes) per entry
 - Table size: `nactivepages * 4` bytes (BIGVM format)
 - Table reading: `sysout_size * 2` bytes from sysout file
@@ -209,6 +236,7 @@ pub const FPtoVPTable = struct {
 ### `SysoutLoadResult`
 
 **Definition**:
+
 ```zig
 pub const SysoutLoadResult = struct {
     ifpage: IFPAGE,
@@ -220,6 +248,7 @@ pub const SysoutLoadResult = struct {
 **Purpose**: Result of successful sysout loading
 
 **Fields**:
+
 - `ifpage`: Validated IFPAGE structure
 - `virtual_memory`: Allocated and loaded virtual memory
 - `fptovp`: Loaded FPtoVP mapping table
@@ -265,6 +294,7 @@ pub const SysoutLoadResult = struct {
 All functions use Zig error unions (`!Type`) for error handling.
 
 **Error Types**:
+
 - `SysoutFileNotFound` - File cannot be opened
 - `InvalidSysoutKey` - IFPAGE key validation failed
 - `VersionMismatch` - Version compatibility check failed

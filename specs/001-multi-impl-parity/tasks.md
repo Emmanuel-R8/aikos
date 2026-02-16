@@ -1,7 +1,7 @@
 # Tasks: Multi-Implementation Parity Workflow
 
 **Input**: Design documents from `/specs/001-multi-impl-parity/`
-**Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, quickstart.md
+**Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, quickstart.md, contracts/ (optional; see contracts/README.md)
 
 **Tests**: No explicit test-first requirement was specified in the spec; tasks focus on implementing the workflow and its observable behavior. Tests may still be added within implementation work where useful.
 
@@ -114,6 +114,7 @@
 - [x] T038 [P] Ensure all new Python modules stay under file size guidelines and refactor into smaller modules where necessary in /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/scripts/
 - [ ] T039 Run quickstart.md validation by following the documented steps end-to-end for a short parity run using specs/001-multi-impl-parity/quickstart.md
 - [x] T040 [P] Integrate parity workflow into existing comparison/reporting scripts where beneficial in /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/scripts/
+- [x] T041 [Compliance] Implement lock mechanism for parity workflow per constitution V in scripts/iterative_parity_workflow.py (stale-lock definition, cleanup on exit/crash). See plan.md Complexity Tracking.
 
 ---
 

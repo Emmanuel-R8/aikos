@@ -22,6 +22,7 @@ This guide provides a quick start for completing the Zig emulator implementation
 **Goal**: Successfully load existing sysout files
 
 **Tasks**:
+
 1. Fix IFPAGE_KEYVAL: Change from `0x12345678` to `0x15e3` in `src/data/sysout.zig`
 2. Implement complete IFPAGE structure: Match C `ifpage.h` exactly with all ~100 fields
 3. Implement FPtoVP table loading: Read table at correct offset (BIGVM format - 32-bit entries, REQUIRED)
@@ -29,10 +30,12 @@ This guide provides a quick start for completing the Zig emulator implementation
 5. Add byte swapping support: Handle BYTESWAP for cross-platform compatibility
 
 **Files to Modify**:
+
 - `zaiko/src/data/sysout.zig` - Complete sysout loading implementation
 - `zaiko/src/utils/types.zig` - Add IFPAGE structure definition
 
 **Testing**:
+
 ```bash
 cd zaiko
 zig build
@@ -49,17 +52,20 @@ zig build
 **Goal**: Enter dispatch loop after sysout loading
 
 **Tasks**:
+
 1. Initialize VM state from IFPAGE: Set stack pointers, frame pointer, program counter
 2. Uncomment dispatch loop in `main.zig`: Activate execution
 3. Set up initial program counter: From sysout state or function entry point
 4. Initialize interrupt handling: Set up interrupt state
 
 **Files to Modify**:
+
 - `zaiko/src/main.zig` - Activate dispatch loop
 - `zaiko/src/vm/dispatch.zig` - Ensure dispatch loop is ready
 - `zaiko/src/vm/` - VM state initialization
 
 **Testing**:
+
 ```bash
 zig build
 ./zig-out/bin/zaiko ../../medley/loadups/starter.sysout
@@ -75,6 +81,7 @@ zig build
 **Goal**: Execute enough opcodes for Medley startup
 
 **Tasks**:
+
 1. Complete function call opcodes: CALL, RETURN, UNWIND
 2. Complete cons cell operations: CAR, CDR, CONS
 3. Complete variable access: IVAR, PVAR, FVAR, GVAR (all variants)
@@ -82,10 +89,12 @@ zig build
 5. Complete list operations: LIST, APPEND, RPLACA, RPLACD
 
 **Files to Modify**:
+
 - `zaiko/src/vm/opcodes.zig` - Implement opcode handlers
 - `zaiko/src/data/cons.zig` - Complete cons cell operations
 
 **Testing**:
+
 ```bash
 zig build test  # Run opcode tests
 zig build
@@ -102,15 +111,18 @@ zig build
 **Goal**: Proper memory management with reference counting
 
 **Tasks**:
+
 1. Implement ADDREF: Increment reference count, add to HTmain or HTcoll
 2. Implement DELREF: Decrement reference count, remove when zero
 3. Implement reclamation: Mark objects for reclamation when count reaches zero
 4. Implement hash table operations: HTmain and HTcoll management
 
 **Files to Modify**:
+
 - `zaiko/src/memory/gc.zig` - Complete GC operations
 
 **Testing**:
+
 ```bash
 zig build test  # Run GC tests
 zig build
@@ -127,16 +139,19 @@ zig build
 **Goal**: Display graphics and handle input
 
 **Tasks**:
+
 1. Initialize SDL2: Create window, renderer, texture
 2. Implement BitBLT rendering: Copy display buffer to texture, render to screen
 3. Implement event polling: Keyboard and mouse event handling
 4. Integrate with VM: Connect display operations to VM execution
 
 **Files to Modify**:
+
 - `zaiko/src/display/sdl_backend.zig` - Complete SDL2 integration
 - `zaiko/src/display/graphics.zig` - Implement BitBLT operations
 
 **Testing**:
+
 ```bash
 zig build
 ./zig-out/bin/zaiko ../../medley/loadups/starter.sysout -sc 1024x768
@@ -152,12 +167,14 @@ zig build
 ### Unit Tests
 
 Test individual components:
+
 ```bash
 cd zaiko
 zig build test
 ```
 
 **Test Coverage**:
+
 - Sysout loading and validation
 - FPtoVP table loading
 - Page loading algorithm
@@ -167,6 +184,7 @@ zig build test
 ### Integration Tests
 
 Test with actual sysout files:
+
 ```bash
 ./zig-out/bin/zaiko ../../medley/loadups/starter.sysout
 ./zig-out/bin/zaiko ../../medley/loadups/lisp.sysout
@@ -176,6 +194,7 @@ Test with actual sysout files:
 ### Comparison Tests
 
 Compare behavior with C emulator:
+
 ```bash
 # C emulator
 ../../linux.x86_64/ldesdl ../../medley/loadups/starter.sysout -sc 1024x768

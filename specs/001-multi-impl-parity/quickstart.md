@@ -7,6 +7,8 @@ given sysout and interpret the results.
 
 - The C reference emulator and at least one alternate implementation (e.g., Zig)
   build and run successfully.
+- Only one parity workflow run at a time (a lock file prevents concurrent runs;
+  see spec.md "Concurrency and Locking" for stale lock handling).
 - The default sysout exists, typically
   `medley/internal/loadups/starter.sysout`.
 - You are on the feature branch:

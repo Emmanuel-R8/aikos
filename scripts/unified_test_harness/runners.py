@@ -9,7 +9,7 @@ from typing import Tuple
 from .trace_extractor import extract_trace_window, archive_file
 
 
-DEFAULT_ZIG_CACHE_DIR = "/tmp/zig-cache"
+DEFAULT_ZIG_CACHE_DIR = "/home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/zaiko/.zig-cache"
 
 
 def find_c_emulator(repo_root: str) -> str | None:

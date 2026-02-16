@@ -27,6 +27,7 @@ Determine the exact implementation details needed to complete the Zig emulator, 
 **Rationale**: Exact keyval match is required for sysout validation. Complete IFPAGE structure is needed to access all VM state fields during initialization.
 
 **Alternatives Considered**:
+
 - Using simplified IFPAGE: Breaks compatibility, many fields are needed for VM initialization
 - Different keyval: Would break sysout file compatibility
 
@@ -56,6 +57,7 @@ Determine the exact implementation details needed to complete the Zig emulator, 
 **Rationale**: FPtoVP table is essential for mapping sysout file pages to virtual memory addresses. Incorrect loading breaks memory mapping.
 
 **Alternatives Considered**:
+
 - Simplified page loading: Would break sparse page handling
 - Different table format: Would break sysout compatibility
 
@@ -85,6 +87,7 @@ Determine the exact implementation details needed to complete the Zig emulator, 
 **Rationale**: Page loading is core to sysout file loading. Must match C behavior exactly for compatibility.
 
 **Alternatives Considered**:
+
 - Memory-mapped files: Zig doesn't have direct mmap equivalent, allocator approach is portable
 - Different page size: Would break compatibility
 
@@ -114,6 +117,7 @@ Determine the exact implementation details needed to complete the Zig emulator, 
   4. Start main loop (requires function calls, control flow)
 
 **Decision**: Prioritize implementing opcodes in this order:
+
 1. Function calls (CALL, RETURN) - critical for any execution
 2. Cons cell operations (CAR, CDR, CONS) - fundamental Lisp operations
 3. Variable access completion (IVAR, PVAR, FVAR, GVAR) - needed for function execution
@@ -123,6 +127,7 @@ Determine the exact implementation details needed to complete the Zig emulator, 
 **Rationale**: Function calls are absolutely essential - without them, no Lisp code can execute. Cons cells are fundamental Lisp data structures. Variable access is needed for function parameters and locals.
 
 **Alternatives Considered**:
+
 - Implement all 256 opcodes first: Too large scope, essential set enables Medley startup
 - Different opcode order: Function calls must come first, others can follow
 
@@ -149,6 +154,7 @@ Determine the exact implementation details needed to complete the Zig emulator, 
 **Rationale**: GC is essential for memory management. Reference counting must match C behavior for correctness.
 
 **Alternatives Considered**:
+
 - Simplified GC: Would break memory management correctness
 - Different hash implementation: Must match C behavior for compatibility
 
@@ -177,6 +183,7 @@ Determine the exact implementation details needed to complete the Zig emulator, 
 **Rationale**: SDL2 is already linked. Framework is ready. Need to complete rendering and event handling.
 
 **Alternatives Considered**:
+
 - SDL3 instead: C emulator uses SDL2, matching is better for compatibility
 - Different rendering approach: Texture-based matches C implementation
 
@@ -204,6 +211,7 @@ Determine the exact implementation details needed to complete the Zig emulator, 
 **Rationale**: Dispatch loop is the execution engine. Must be activated after sysout loading and VM state initialization.
 
 **Alternatives Considered**:
+
 - Activate before sysout loading: Would fail - no code loaded yet
 - Different initialization order: Must match C emulator sequence
 
@@ -229,6 +237,7 @@ Determine the exact implementation details needed to complete the Zig emulator, 
 **Rationale**: Knowledge base must be accurate and complete. Future implementations benefit from correct documentation. Critical for maintaining project knowledge.
 
 **Alternatives Considered**:
+
 - No documentation updates: Violates FR-015 requirement
 - Minimal documentation: Insufficient for future reference
 
@@ -238,16 +247,16 @@ Determine the exact implementation details needed to complete the Zig emulator, 
 
 ## Key Decisions Summary
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| IFPAGE_KEYVAL | 0x15e3 | Matches C implementation, required for sysout validation |
-| IFPAGE Structure | Complete C structure | Needed for VM state initialization |
-| FPtoVP Loading | Match C algorithm exactly | Required for correct memory mapping |
-| Page Loading | Match C algorithm with byte swapping | Required for sysout compatibility |
-| Essential Opcodes | Function calls, cons cells, variables first | Enables Medley startup |
-| GC Operations | Match C hash table implementation | Required for memory management |
-| SDL2 Integration | Texture-based rendering, event polling | Matches C implementation pattern |
-| Documentation | Update documentation/ with all findings | Required by FR-015, improves project knowledge |
+| Decision          | Choice                                      | Rationale                                                |
+| ----------------- | ------------------------------------------- | -------------------------------------------------------- |
+| IFPAGE_KEYVAL     | 0x15e3                                      | Matches C implementation, required for sysout validation |
+| IFPAGE Structure  | Complete C structure                        | Needed for VM state initialization                       |
+| FPtoVP Loading    | Match C algorithm exactly                   | Required for correct memory mapping                      |
+| Page Loading      | Match C algorithm with byte swapping        | Required for sysout compatibility                        |
+| Essential Opcodes | Function calls, cons cells, variables first | Enables Medley startup                                   |
+| GC Operations     | Match C hash table implementation           | Required for memory management                           |
+| SDL2 Integration  | Texture-based rendering, event polling      | Matches C implementation pattern                         |
+| Documentation     | Update documentation/ with all findings     | Required by FR-015, improves project knowledge           |
 
 ## Unresolved Questions
 

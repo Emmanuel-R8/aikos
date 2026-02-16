@@ -8,15 +8,17 @@
     llms.url = "github:numtide/llm-agents.nix";
   };
 
-  outputs = {
-    self,
-    flake-utils,
-    nixpkgs-stable,
-    nixpkgs-unstable,
-    llms,
-  }:
+  outputs =
+    {
+      self,
+      flake-utils,
+      nixpkgs-stable,
+      nixpkgs-unstable,
+      llms,
+    }:
     flake-utils.lib.eachDefaultSystem (
-      system: let
+      system:
+      let
         pkgs = import nixpkgs-unstable {
           inherit system;
           config = {
@@ -30,7 +32,8 @@
           };
         };
         llmsPkgs = llms.packages.${pkgs.stdenv.hostPlatform.system};
-      in {
+      in
+      {
         devShells.default = pkgs.mkShell {
           # Use stdenv to get proper C compilation environment
           # This ensures standard C library headers (ctype.h, errno.h, etc.) are available
@@ -42,7 +45,8 @@
 
           # Build inputs (libraries and runtime dependencies)
           buildInputs =
-            (with pkgs-stable; [
+            (with pkgs-stable; [ roswell ])
+            ++ (with pkgs; [
               # Basic utilities
               ripgrep # Text search utility
               hexdump # Hexadecimal dump utility
@@ -69,12 +73,6 @@
               # SDL3: Required for Lisp emulator (preferred)
               sdl3 # SDL3 display backend (for Lisp emulator, preferred)
 
-              # X11: Required for C emulator X11 backend (alternative to SDL2)
-              xorg.libX11 # X11 library (for C emulator X11 backend)
-              xorg.libX11.dev # X11 development headers
-              xorg.libXext # X11 extensions
-              xorg.libXext.dev # X11 extensions development headers
-
               # Language compilers
               zig # Zig compiler (for Zig emulator)
               openssl # OpenSSL library (for MCP)
@@ -84,7 +82,6 @@
               code-cursor
               vscode
 
-              roswell
               sbcl # Steel Bank Common Lisp (for Lisp emulator)
             ])
             ++ (with llmsPkgs; [
@@ -104,25 +101,27 @@
 
             # Set up library paths for runtime linking
             # Nix automatically sets up library paths, but we ensure SDL2/X11 are available
-            export LD_LIBRARY_PATH="${pkgs-stable.openssl.out}/lib:${
-              pkgs-stable.lib.makeLibraryPath (with pkgs-stable; [
-                openssl
+            export LD_LIBRARY_PATH="${pkgs.openssl.out}/lib:${
+              pkgs.lib.makeLibraryPath (
+                with pkgs-stable;
+                [
+                  openssl
 
-                SDL2
-                sdl3
-                xorg.libX11
-                xorg.libXext
-              ])
+                  SDL2
+                  sdl3
+                ]
+              )
             }:$LD_LIBRARY_PATH"
 
             # Set up PKG_CONFIG_PATH for pkg-config to find SDL2/X11
             export PKG_CONFIG_PATH="${
-              pkgs-stable.lib.makeSearchPath "lib/pkgconfig" (with pkgs-stable; [
-                SDL2
-                sdl3
-                xorg.libX11
-                xorg.libXext
-              ])
+              pkgs.lib.makeSearchPath "lib/pkgconfig" (
+                with pkgs;
+                [
+                  SDL2
+                  sdl3
+                ]
+              )
             }:$PKG_CONFIG_PATH"
 
             echo "Maiko emulator development environment"
@@ -132,19 +131,18 @@
             echo "SBCL: $(which sbcl || echo 'Not found')"
             echo ""
             echo "Display libraries:"
-            pkg-config --exists x11 && echo "  ✓ X11 found ($(pkg-config --modversion x11))" || echo "  ✗ X11 not found"
             pkg-config --exists sdl2 && echo "  ✓ SDL2 found ($(pkg-config --modversion sdl2))" || echo "  ✗ SDL2 not found"
             pkg-config --exists sdl3 && echo "  ✓ SDL3 found ($(pkg-config --modversion sdl3))" || echo "  ✗ SDL3 not found (may need to build from source)"
             echo ""
             echo "Runtime library paths:"
-            echo "  LD_LIBRARY_PATH includes SDL2, SDL3, X11 libraries"
+            echo "  LD_LIBRARY_PATH includes SDL2, SDL3 libraries"
             echo ""
             echo "Build systems:"
             command -v cmake >/dev/null && echo "  ✓ CMake found" || echo "  ✗ CMake not found"
             command -v make >/dev/null && echo "  ✓ Make found" || echo "  ✗ Make not found"
             echo ""
             echo "C library headers:"
-            [ -f "${pkgs-stable.glibc.dev}/include/ctype.h" ] && echo "  ✓ glibc headers found" || echo "  ✗ glibc headers not found"
+            [ -f "${pkgs.glibc.dev}/include/ctype.h" ] && echo "  ✓ glibc headers found" || echo "  ✗ glibc headers not found"
             echo ""
             echo "Ready to build emulators!"
             echo "  C emulator:   ./medley/scripts/build/build-emulator.sh --emulator c"

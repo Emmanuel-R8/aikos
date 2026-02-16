@@ -13,6 +13,7 @@ Complete the Zig emulator implementation to achieve functional parity with the C
 
 **Language/Version**: Zig 0.15.2+ (already verified available)
 **Primary Dependencies**:
+
 - SDL2 2.32.58+ (already verified and linked)
 - Zig standard library (allocators, file I/O, error handling)
 - C interop for SDL2 integration
@@ -22,17 +23,20 @@ Complete the Zig emulator implementation to achieve functional parity with the C
 **Target Platform**: Linux (primary), macOS (should work), Windows (optional)
 **Project Type**: VM emulator (single executable)
 **Performance Goals**:
+
 - Sysout loading completes in < 5 seconds for typical sysout files
 - Bytecode execution performance within 20% of C emulator execution time for equivalent workloads (optimization deferred to later phase)
 - Display rendering at interactive frame rates (30+ fps)
 
 **Constraints**:
+
 - Must maintain exact compatibility with C emulator behavior
 - Must load existing sysout files without modification
 - Must preserve all existing Zig implementation structure and patterns
 - Must document all new insights in `documentation/`
 
 **Scale/Scope**:
+
 - Complete IFPAGE structure (~100 fields matching C implementation)
 - Implement essential opcode set (~80-100 opcodes for Medley startup)
 - Complete GC hash table operations (ADDREF, DELREF, reclamation)
@@ -41,7 +45,7 @@ Complete the Zig emulator implementation to achieve functional parity with the C
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
 ### Pre-Research Check (Phase 0)
 
@@ -74,7 +78,7 @@ Complete the Zig emulator implementation to achieve functional parity with the C
 
 ### Post-Design Check (Phase 1)
 
-*To be completed after Phase 1 design artifacts are created*
+_To be completed after Phase 1 design artifacts are created_
 
 ## Project Structure
 
@@ -139,6 +143,7 @@ documentation/        # Knowledge base (needs updates with new insights)
 ```
 
 **Structure Decision**: This is a completion project modifying existing Zig implementation. Code organization improvements completed:
+
 - **opcodes.zig split** (2025-01-27): Split 2,820-line monolithic file into 13 modular files in `vm/opcodes/` directory, each under 500 lines for better maintainability
 - **dispatch.zig split** (2025-01-27): Split 1,150-line file into 3 modules in `vm/dispatch/` directory for better separation of concerns
 - All handlers remain accessible via re-export files maintaining backward compatibility
@@ -155,6 +160,7 @@ No violations - all constitution principles satisfied.
 **Status**: All research questions resolved
 
 **Key Findings**:
+
 - IFPAGE_KEYVAL is `0x15e3` (not `0x12345678`) - **CRITICAL CORRECTION**
 - IFPAGE structure has ~100 fields matching C implementation exactly
 - FPtoVP table loading algorithm with byte offset calculations documented
@@ -170,12 +176,14 @@ No violations - all constitution principles satisfied.
 **Status**: Design artifacts created
 
 **Artifacts**:
+
 - `data-model.md` - Complete data model with entities, relationships, state transitions
 - `contracts/sysout-loading-api.md` - API contract for sysout loading
 - `contracts/vm-execution-api.md` - API contract for VM execution
 - `quickstart.md` - Step-by-step completion guide
 
 **Knowledge Base Updates**:
+
 - Updated `documentation/rewrite-spec/data-structures/sysout-format.md` with IFPAGE_KEYVAL correction
 - Created `documentation/implementations/zig-implementation.md` with completion status
 - Updated `documentation/implementations/README.md` with Zig implementation entry
@@ -187,6 +195,7 @@ No violations - all constitution principles satisfied.
 **Spec Path**: `specs/005-zig-completion/spec.md`
 
 **Generated Artifacts**:
+
 - ✅ `specs/005-zig-completion/research.md` - Phase 0 research findings
 - ✅ `specs/005-zig-completion/data-model.md` - Phase 1 data model
 - ✅ `specs/005-zig-completion/contracts/sysout-loading-api.md` - Sysout loading API
@@ -194,11 +203,13 @@ No violations - all constitution principles satisfied.
 - ✅ `specs/005-zig-completion/quickstart.md` - Completion quickstart guide
 
 **Knowledge Base Updates**:
+
 - ✅ `documentation/rewrite-spec/data-structures/sysout-format.md` - IFPAGE_KEYVAL correction
 - ✅ `documentation/implementations/zig-implementation.md` - Zig implementation status
 - ✅ `documentation/implementations/README.md` - Updated with Zig entry
 
 **Code Organization**:
+
 - ✅ `opcodes.zig` split into 13 modular files (2025-01-27)
 - ✅ `dispatch.zig` split into 3 modular files (2025-01-27)
 

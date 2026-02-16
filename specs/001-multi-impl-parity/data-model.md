@@ -32,6 +32,9 @@
     parity runs.
   - `last_build_status` (enum or string): Last known build/run outcome (e.g.,
     `ok`, `failed`, `missing_executable`).
+  - `is_reference` (boolean): Whether this implementation is the ground truth.
+    The C emulator (`id` = `"c"`) is the reference; all parity judgments are
+    relative to C. Other implementations are compared against C.
 - **Relationships**:
   - Referenced by Parity Windows, Workflow State, and Divergence Reports.
 
@@ -42,8 +45,11 @@
 - **Key attributes**:
   - `last_verified_step` (integer): Highest step index for which all in-scope
     implementations are known to match the reference.
-  - `window_size` (integer): Canonical or configured window size in steps
-    (default 6).
+  - `window_size` (integer): Span parameter for window bounds, aligned with the
+    workflow implementation. A window covers steps `start_step` through
+    `start_step + window_size` (inclusive), yielding `window_size + 1` steps.
+    Stored value: default 5 → 6 steps (e.g., steps 0–5). Matches C reference
+    workflow behavior.
   - `sysout_path` (string): Absolute path to the sysout under test.
   - `windows` (list of Parity Window summaries): Optional compact representation
     of windows and their statuses (e.g., `[{"start": 0, "end": 5, "status": "verified"}]`).
@@ -83,7 +89,7 @@
   - `id` (string or integer): Identifier within analysis artifacts.
   - `window_start_step` (integer): Start step of the associated window.
   - `window_end_step` (integer): End step of the associated window.
-  - `reference_implementation_id` (string): Typically `c`.
+  - `reference_implementation_id` (string): The C emulator; always `"c"`.
   - `divergent_implementation_ids` (list of string): Implementations that
     diverge from the reference in this window.
   - `fields_differing` (list of string): E.g., `["stack_pointer", "TOS", "PC"]`.
@@ -96,7 +102,8 @@
 
 ## Validation Rules
 
-- `window_size` in Workflow State MUST be a positive integer; default is 6.
+- `window_size` in Workflow State MUST be a positive integer (span parameter);
+  default 5 yields a canonical 6-step window.
 - For each Parity Window, `start_step` MUST be less than or equal to
   `end_step`.
 - `last_verified_step` in Workflow State MUST be less than or equal to the

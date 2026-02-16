@@ -3,9 +3,11 @@
 Auto-generated from all feature plans. Last updated: 2025-12-04
 
 ## Active Technologies
+- Python 3.12 (for orchestration scripts); existing C, Zig, + Standard library only for orchestration (subprocess, (001-multi-impl-parity)
+- Files on disk in the repository (JSON state, JSONL logs, trace (001-multi-impl-parity)
 
-- Shell scripts (bash/sh), compatible with existing Medley build infrastructure (003-unified-build-system)
-- File system (build artifacts, configuration files) (003-unified-build-system)
+- Shell scripts (bash/sh), compatible with existing Medley build infrastructure
+- File system (build artifacts, configuration files)
 - Shell scripts (bash/sh), compatible with existing Medley script infrastructure
 - File system (lock files for concurrent run prevention, configuration via environment variables)
 - Bash 4.0+ (POSIX-compliant shell scripting)
@@ -31,10 +33,10 @@ tests/
 Markdown with Mermaid diagrams / Documentation format: Follow standard conventions
 
 ## Recent Changes
+- 001-multi-impl-parity: Added Python 3.12 (for orchestration scripts); existing C, Zig, + Standard library only for orchestration (subprocess,
 
 - Added Shell (bash + POSIX sh), C (Maiko), Zig 0.15.2+, Python 3
 - Added None (ephemeral log files + a per-user lock file)
-- Added Bash 4.0+ (POSIX-compliant shell scripting)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

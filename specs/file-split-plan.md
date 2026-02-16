@@ -6,10 +6,12 @@
 ## Overview
 
 ### Target Files
+
 1. `zaiko/src/vm/opcodes.zig` (2,820 lines) → 13 modules
 2. `zaiko/src/vm/dispatch.zig` (1,150 lines) → 3 modules
 
 ### Goal
+
 - Each file < 500 lines (user preference)
 - Logical grouping by functionality
 - Maintain compilation and functionality
@@ -62,6 +64,7 @@ pub const handleIDIFFERENCE = arithmetic.handleIDIFFERENCE;
 ### Line Range Mapping
 
 **arithmetic.zig** (lines 28-175, 176-253, 2292-2322):
+
 - handleIPLUS2 (28-58)
 - handleIDIFFERENCE (60-87)
 - handleITIMES2 (89-116)
@@ -75,6 +78,7 @@ pub const handleIDIFFERENCE = arithmetic.handleIDIFFERENCE;
 - handleIDIFFERENCE_N (2306-2322)
 
 **bitwise.zig** (lines 255-381):
+
 - handleLOGOR2 (259-272)
 - handleLOGAND2 (274-287)
 - handleLOGXOR2 (289-302)
@@ -85,6 +89,7 @@ pub const handleIDIFFERENCE = arithmetic.handleIDIFFERENCE;
 - handleLRSH8 (371-381)
 
 **stack_ops.zig** (lines 383-444):
+
 - handlePUSH (388-394)
 - handlePOP (396-401)
 - handlePOP_N (403-421)
@@ -92,6 +97,7 @@ pub const handleIDIFFERENCE = arithmetic.handleIDIFFERENCE;
 - handleNOP (438-444)
 
 **function_calls.zig** (lines 446-527):
+
 - handleFN0 (458-460)
 - handleFN1 (462-464)
 - handleFN2 (466-468)
@@ -101,11 +107,13 @@ pub const handleIDIFFERENCE = arithmetic.handleIDIFFERENCE;
 - handleRETURN (513-527)
 
 **binding.zig** (lines 529-593):
+
 - handleBIND (533-559)
 - handleUNBIND (561-576)
 - handleDUNBIND (578-593)
 
 **control_flow.zig** (lines 595-654):
+
 - handleJUMP (598-602)
 - handleFJUMP (608-616)
 - handleTJUMP (618-626)
@@ -117,6 +125,7 @@ pub const handleIDIFFERENCE = arithmetic.handleIDIFFERENCE;
 - handleNTJUMPX (2745-2754)
 
 **data_ops.zig** (lines 656-922):
+
 - handleCAR (660-715)
 - handleCDR (717-793)
 - handleCONS (795-841)
@@ -124,6 +133,7 @@ pub const handleIDIFFERENCE = arithmetic.handleIDIFFERENCE;
 - handleRPLACD (890-922)
 
 **array_ops.zig** (lines 924-1057):
+
 - handleGETAEL1 (928-959)
 - handleGETAEL2 (961-991)
 - handleSETAEL1 (993-1024)
@@ -132,6 +142,7 @@ pub const handleIDIFFERENCE = arithmetic.handleIDIFFERENCE;
 - handleASET2 (2778-2800)
 
 **comparison.zig** (lines 1059-1205, 1706-1794):
+
 - handleEQ (1063-1074)
 - handleEQL (1076-1096)
 - eqlDeep (1098-1160) - helper
@@ -143,6 +154,7 @@ pub const handleIDIFFERENCE = arithmetic.handleIDIFFERENCE;
 - handleEQUAL (1778-1794)
 
 **type_checking.zig** (lines 1207-1352):
+
 - handleNTYPX (1211-1223)
 - handleTYPEP (1225-1245)
 - handleDTEST (1247-1268)
@@ -153,6 +165,7 @@ pub const handleIDIFFERENCE = arithmetic.handleIDIFFERENCE;
 - handleLISTP (1343-1352)
 
 **variable_access.zig** (lines 1398-1605, 2421-2543):
+
 - handleIVAR (1402-1416)
 - handlePVAR (1418-1433)
 - handleFVAR (1435-1497)
@@ -161,13 +174,14 @@ pub const handleIDIFFERENCE = arithmetic.handleIDIFFERENCE;
 - handleSTKSCAN (1581-1605)
 - handlePVAR_SET (2421-2439)
 - handleARG0 (2441-2455)
-- handleIVARX_ (2457-2472)
-- handleFVARX_ (2474-2489)
+- handleIVARX\_ (2457-2472)
+- handleFVARX\_ (2474-2489)
 - handleCOPY (2491-2509)
 - handleMYARGCOUNT (2511-2526)
 - handleMYALINK (2528-2543)
 
 **floating_point.zig** (lines 1607-1685):
+
 - handleFPLUS2 (1607-1630)
 - handleFDIFFERENCE (1632-1643)
 - handleFTIMES2 (1645-1656)
@@ -175,6 +189,7 @@ pub const handleIDIFFERENCE = arithmetic.handleIDIFFERENCE;
 - handleFGREATERP (1674-1685)
 
 **misc.zig** (lines 13-26, 1354-1396, 1690-1704, 1796-1835, 1837-2820):
+
 - handleGCREF (13-26)
 - handleCHARCODE (1358-1376)
 - handleCHARN (1378-1396)
@@ -182,7 +197,7 @@ pub const handleIDIFFERENCE = arithmetic.handleIDIFFERENCE;
 - handleMAKENUMBER (1796-1835)
 - handleRPLPTR_N (1837-1859)
 - handleASSOC (1861-1885)
-- handleGVAR_ (1887-1907)
+- handleGVAR\_ (1887-1907)
 - handleCMLASSOC (1909-1915)
 - handleFMEMB (1917-1934)
 - handleCMLMEMBER (1936-1942)
@@ -256,6 +271,7 @@ zaiko/src/vm/dispatch/
 ### Line Range Mapping
 
 **instruction.zig** (lines 13-421):
+
 - Instruction struct (13-40)
 - fetchInstructionByte (327-339)
 - decodeInstructionFromMemory (341-384)
@@ -265,6 +281,7 @@ zaiko/src/vm/dispatch/
 - getInstructionLength (996-1099)
 
 **execution.zig** (lines 439-994):
+
 - dispatch (439-528)
 - executeInstruction (530-535)
 - handleFJUMPWithOffset (537-550)
@@ -273,6 +290,7 @@ zaiko/src/vm/dispatch/
 - initializeVMState (1101-1150)
 
 **dispatch.zig** (main file, ~50 lines):
+
 - Re-exports from instruction and execution
 - Opcode enum (if needed separately)
 
@@ -292,6 +310,7 @@ zaiko/src/vm/dispatch/
 ## Common Imports for All Modules
 
 Each opcode module needs:
+
 ```zig
 const errors = @import("../../utils/errors.zig");
 const stack = @import("../stack.zig");
@@ -303,6 +322,7 @@ const DLword = types.DLword;
 ```
 
 Some modules also need:
+
 - `cons = @import("../../data/cons.zig")` (data_ops, comparison)
 - `array = @import("../../data/array.zig")` (array_ops)
 - `virtual_memory_module = @import("../../memory/virtual.zig")` (data_ops, array_ops)

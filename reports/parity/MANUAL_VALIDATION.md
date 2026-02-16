@@ -44,20 +44,18 @@ EMULATOR_MAX_STEPS=5 ./maiko/build-cmake/ldesdl medley/internal/loadups/starter.
 ### Zig Emulator
 
 ```bash
-# Build from zaiko directory (set cache directory to avoid permission issues)
+# Build from zaiko directory (set cache directory)
 cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/zaiko/
-export ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache
-# Or use a local cache directory:
-# export ZIG_GLOBAL_CACHE_DIR=$(pwd)/.zig-cache
+export ZIG_GLOBAL_CACHE_DIR=/home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/zaiko/.zig-cache
 zig build
 
 # Test run (from zaiko directory, use absolute path for sysout)
 cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/zaiko/
-export ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache
+export ZIG_GLOBAL_CACHE_DIR=/home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/zaiko/.zig-cache
 zig build run -- --max-steps 5 /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/medley/internal/loadups/starter.sysout
 # Or use relative path from repo root:
 # cd /home/emmanuel/Sync/Development/Emulation/_gits/Interlisp
-# cd zaiko && export ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache && zig build run -- --max-steps 5 ../medley/internal/loadups/starter.sysout
+# cd zaiko && export ZIG_GLOBAL_CACHE_DIR=/home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/zaiko/.zig-cache && zig build run -- --max-steps 5 ../medley/internal/loadups/starter.sysout
 # Should produce zig_emulator_execution_log.txt in zaiko/ directory
 ```
 

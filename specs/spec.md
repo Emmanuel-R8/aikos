@@ -12,6 +12,7 @@ The Zig emulator implementation (`zaiko/`) has a complete framework in place but
 ## Current Status
 
 ### What Works
+
 - ✅ Build system (Zig 0.15.2, SDL2 linked)
 - ✅ Project structure and module organization
 - ✅ Core types and utilities
@@ -24,6 +25,7 @@ The Zig emulator implementation (`zaiko/`) has a complete framework in place but
 - ✅ Comprehensive test suite structure
 
 ### Critical Blockers
+
 - ❌ **Sysout loading fails**: Wrong IFPAGE_KEYVAL (uses 0x12345678, should be 0x15e3)
 - ❌ **Incomplete IFPAGE structure**: Missing many fields compared to C implementation
 - ❌ **No FPtoVP table loading**: Required for memory page mapping
