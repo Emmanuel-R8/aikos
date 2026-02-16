@@ -3,8 +3,8 @@
 *Navigation*: README | Index | Architecture
 
 *Feature*: 002-lisp-implementation
-*Date*: 2026-02-15 20:34
-*Status*: 🔧 IN DEVELOPMENT - Sysout Loading Complete, FX Reading In Progress
+*Date*: 2026-02-15 21:00
+*Status*: 🔧 IN DEVELOPMENT - First Instruction Executing!
 
 == Overview
 
@@ -15,7 +15,7 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL), following t
 - *Source Files*: 24+ Lisp files
 - *Test Files*: 11 test files
 - *Opcodes Implemented*: ~191 opcode handlers registered
-- *Actual Completeness*: ~20% (sysout loading complete, execution testing in progress)
+- *Actual Completeness*: ~25% (sysout loading complete, first instruction executing)
 - *Build System*: ASDF
 - *Target Platform*: Linux (SBCL), macOS, Windows (partial)
 
@@ -30,29 +30,39 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL), following t
 - ✅ ~191 opcode handlers registered
 - ✅ Trace infrastructure matching unified format
 - ✅ Parity testing framework
-- ✅ IFPAGE structure corrected (stackbase/faulthi/faultlo as DLwords)
 - ✅ **Full rewrite of sysout.lisp** (2026-02-15)
   - Correct IFPAGE field layout for BIGVM format
   - Proper big-endian file reading
   - 32-bit FPtoVP entries for 256MB address space
   - IFPAGE key validation working (0x15E3)
   - Page loading to correct virtual addresses (16,633 pages)
-- ✅ Frame Extension structure and reader
-- ✅ PC initialization from FX->fnheader + FX->pc
+- ✅ **Frame Extension structure and reader** (2026-02-15)
+  - STK_OFFSET correctly handled as DLword offset
+  - Stackspace byte offset = STK_OFFSET * 2 = 0x20000
+  - Frame at correct offset: 0x20000 + (currentfxp * 2)
+  - fnheader extracted as 24-bit value
+- ✅ **PC initialization from FX** (2026-02-15)
+  - PC = fnheader * 2 + fx->pc
+  - Matches C FastRetCALL behavior
+  - PC = 0x60F130 ✅ matches C/Zig
+- ✅ **XOR addressing for bytecode** (2026-02-15)
+  - GETBYTE(base) = *(base ^ 3) in BYTESWAP mode
+  - First opcode 0xBF (POP) executes correctly ✅
+- ✅ **32-bit word swapping** (2026-02-15)
+  - Pages swapped correctly: [0,1,2,3] → [3,2,1,0]
+  - Was incorrectly doing 16-bit pair swap
 
 === ⚠️ Known Issues
 
-- ⚠️ FX reading returns zeros - stack page mapping needs verification
-- ⚠️ Some compilation warnings (undefined function/types - non-blocking)
-- ⚠️ Execution trace generation needs verification
-- ⚠️ currentfxp = 0x2E72 points to byte offset 0x15CE4 (page 174)
-- ⚠️ Need to verify stack pages are loaded correctly
+- ⚠️ Stack operations use separate array instead of virtual memory
+- ⚠️ Stack pointer 0x25D10 exceeds 65K element array limit
+- ⚠️ Need to refactor stack to use vmem like C/Zig
 
 === 🔧 In Progress
 
-- Debugging FX (Frame Extension) reading from virtual memory
-- Verifying stack page mapping in FPtoVP table
-- PC initialization from FX structure
+- Refactoring stack operations to use virtual memory
+- Implementing POP opcode handler
+- Trace comparison with C/Zig for first 10 instructions
 
 == Architecture
 
