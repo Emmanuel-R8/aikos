@@ -7,9 +7,24 @@
 # build directories
 **/build/**
 **/build-cmake/**
+**/build-cmake-legacy/**
+**/bin-legacy/**
 *.make
 *.cmake
-
+maiko/CMakeCache.txt
+maiko/CMakeFiles
+maiko/Makefile
+maiko/compile_commands.json
+maiko/ldesdl
+maiko/mkvdate
+maiko/setsout
+maiko/tstsout
+maiko/vdate.c
+maiko/src/introspect/CMakeFiles
+maiko/src/introspect/Makefile
+maiko/src/introspect/libmaiko_introspect.a
+trace.db
+introspect.db
 
 cmake-build-*/**
 .idea/
