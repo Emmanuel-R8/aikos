@@ -258,6 +258,11 @@
 #include "hardrtndefs.h"
 #include "ifpage.h"
 #include "intcalldefs.h"
+
+#ifdef INTROSPECT_ENABLED
+#include "introspect/introspect.h"
+extern IntrospectDB *g_introspect;
+#endif
 #include "keyeventdefs.h"
 #include "llstkdefs.h"
 #include "lowlev2defs.h"
@@ -1125,6 +1130,14 @@ nextopcode:
     
     log_global_execution_trace(opcode, pc_byte_offset, TOPOFSTACK,
                            sp_offset, fp_offset, opcode_name);
+    
+#ifdef INTROSPECT_ENABLED
+    /* Introspection: log opcode execution */
+    if (g_introspect) {
+        introspect_opcode(g_introspect, pc_byte_offset, opcode, opcode_name,
+                          TOPOFSTACK, sp_offset, fp_offset);
+    }
+#endif
   }
 
   /* ---------------------------------------------------------------------

@@ -23,11 +23,11 @@ IntrospectDB *g_introspect = NULL;
 /* Forward declarations */
 int init_global_execution_trace(const char *log_path);
 int log_global_execution_trace(unsigned char opcode,
-                              unsigned long pc_byte_offset,
-                              LispPTR tos_value,
-                              unsigned long sp_offset,
-                              unsigned long fp_offset,
-                              const char *opcode_name);
+                               unsigned long pc_byte_offset,
+                               LispPTR tos_value,
+                               unsigned long sp_offset,
+                               unsigned long fp_offset,
+                               const char *opcode_name);
 int should_continue_global_logging(void);
 void cleanup_global_execution_trace(void);
 
@@ -46,7 +46,7 @@ void cleanup_global_execution_trace(void);
  *
  * CONFIDENCE LEVEL: HIGH (95%)
  *   - This is the standard C main() entry point
- *   - The initialization sequence (load sysout, initialize hardware, start 
+ *   - The initialization sequence (load sysout, initialize hardware, start
  *     dispatch loop) is well understood and matches the reference C implementation
  *   - Command-line argument parsing is straightforward and well-documented
  *
@@ -231,15 +231,15 @@ DLword *Lisp_world; /* lispworld - Base pointer to entire Lisp memory space */
  */
 
 /********** 68k address for Lisp Space **********/
-DLword *Stackspace;   /* STACKSPACE - Function activation frames, grows downward */
-DLword *Plistspace;   /* PLISTSPACE - Property list storage */
-DLword *DTDspace;     /* DTDSPACE - Data Type Definitions */
-DLword *MDStypetbl;   /* MDSTT - MDS type table */
-DLword *AtomHT;       /* AtomHashTable - Atom hash table for symbol lookup */
-DLword *Pnamespace;   /* PNSPACE - Package namespace */
-DLword *AtomSpace;    /* ATOMSPACE - Atom storage, symbol table */
-DLword *Defspace;     /* DEFSPACE - Function definition cells */
-DLword *Valspace;     /* VALSPACE - Value cells for global variables */
+DLword *Stackspace; /* STACKSPACE - Function activation frames, grows downward */
+DLword *Plistspace; /* PLISTSPACE - Property list storage */
+DLword *DTDspace;   /* DTDSPACE - Data Type Definitions */
+DLword *MDStypetbl; /* MDSTT - MDS type table */
+DLword *AtomHT;     /* AtomHashTable - Atom hash table for symbol lookup */
+DLword *Pnamespace; /* PNSPACE - Package namespace */
+DLword *AtomSpace;  /* ATOMSPACE - Atom storage, symbol table */
+DLword *Defspace;   /* DEFSPACE - Function definition cells */
+DLword *Valspace;   /* VALSPACE - Value cells for global variables */
 
 /* ============================================================================
  * GLOBAL VARIABLES - Virtual Memory Management
@@ -267,12 +267,12 @@ DLword *Valspace;     /* VALSPACE - Value cells for global variables */
 
 /********** For Virtual Memory Management **********/
 #ifdef BIGVM
-LispPTR *FPtoVP;      /* File Page to Virtual Page mapping table (BIGVM: 32-bit entries) */
+LispPTR *FPtoVP; /* File Page to Virtual Page mapping table (BIGVM: 32-bit entries) */
 #else
-DLword *FPtoVP;       /* File Page to Virtual Page mapping table (standard: 16-bit entries) */
-#endif /* BIGVM */
-DLword *PAGEMap;      /* Page allocation map */
-DLword *PageMapTBL;   /* Page map table */
+DLword *FPtoVP; /* File Page to Virtual Page mapping table (standard: 16-bit entries) */
+#endif                   /* BIGVM */
+DLword *PAGEMap;         /* Page allocation map */
+DLword *PageMapTBL;      /* Page map table */
 DLword *LockedPageTable; /* Table of locked (non-swappable) pages */
 
 /* ============================================================================
@@ -299,10 +299,10 @@ DLword *LockedPageTable; /* Table of locked (non-swappable) pages */
  */
 
 /********** For Interface to LispMicro/Device **********/
-DLword *IOCBPage;           /* I/O Control Block page */
-IOPAGE *IOPage;             /* I/O page - device state, keyboard, mouse */
-IFPAGE *InterfacePage;      /* Interface page - core system state (see ifpage.h) */
-MISCSTATS *MiscStats;       /* Miscellaneous statistics counters */
+DLword *IOCBPage;      /* I/O Control Block page */
+IOPAGE *IOPage;        /* I/O page - device state, keyboard, mouse */
+IFPAGE *InterfacePage; /* Interface page - core system state (see ifpage.h) */
+MISCSTATS *MiscStats;  /* Miscellaneous statistics counters */
 
 /* ============================================================================
  * GLOBAL VARIABLES - UFN Table
@@ -323,7 +323,7 @@ MISCSTATS *MiscStats;       /* Miscellaneous statistics counters */
  */
 
 /********** UFN Table **********/
-DLword *UFNTable;     /* UFN (Undefined Function Name) handler table */
+DLword *UFNTable; /* UFN (Undefined Function Name) handler table */
 
 /* ============================================================================
  * GLOBAL VARIABLES - Garbage Collection Tables
@@ -348,15 +348,15 @@ DLword *UFNTable;     /* UFN (Undefined Function Name) handler table */
 
 /********** Tables for GC **********/
 #ifdef BIGVM
-LispPTR *HTmain;      /* Main GC hash table (BIGVM: 32-bit entries) */
-LispPTR *HToverflow;  /* GC overflow hash table */
-LispPTR *HTbigcount;  /* Big object reference count table */
-LispPTR *HTcoll;      /* GC collision table */
+LispPTR *HTmain;     /* Main GC hash table (BIGVM: 32-bit entries) */
+LispPTR *HToverflow; /* GC overflow hash table */
+LispPTR *HTbigcount; /* Big object reference count table */
+LispPTR *HTcoll;     /* GC collision table */
 #else
-DLword *HTmain;       /* Main GC hash table (standard: 16-bit entries) */
-DLword *HToverflow;   /* GC overflow hash table */
-DLword *HTbigcount;   /* Big object reference count table */
-DLword *HTcoll;       /* GC collision table */
+DLword *HTmain;     /* Main GC hash table (standard: 16-bit entries) */
+DLword *HToverflow; /* GC overflow hash table */
+DLword *HTbigcount; /* Big object reference count table */
+DLword *HTcoll;     /* GC collision table */
 #endif /* BIGVM */
 
 /* ============================================================================
@@ -396,9 +396,9 @@ int DisplayInitialized = NIL; /* Display initialization flag */
  *   - MDS management is part of the storage subsystem
  *   - See storagedefs.h and storage.c for full implementation
  */
-DLword *MDS_space_bottom;     /* Start of MDS (pre -2) */
-DLword *PnCharspace;          /* Space for PN char codes (Thin only) */
-struct dtd *ListpDTD;         /* DTD for LISTP (changed 25-Mar-87 by Take) */
+DLword *MDS_space_bottom; /* Start of MDS (pre -2) */
+DLword *PnCharspace;      /* Space for PN char codes (Thin only) */
+struct dtd *ListpDTD;     /* DTD for LISTP (changed 25-Mar-87 by Take) */
 
 /* ============================================================================
  * GLOBAL VARIABLES - VM Execution State
@@ -428,7 +428,7 @@ struct dtd *ListpDTD;         /* DTD for LISTP (changed 25-Mar-87 by Take) */
  */
 
 /********** For Lisp Emulator **********/
-struct state MachineState;    /* Complete VM execution state */
+struct state MachineState; /* Complete VM execution state */
 
 /* ============================================================================
  * GLOBAL VARIABLES - Shared Values with Lisp Code (MDS/Array Management)
@@ -446,39 +446,39 @@ struct state MachineState;    /* Complete VM execution state */
 /**********************************/
 /*** Share val with LISP code ******/
 
-DLword *MDS_free_page;        /* Next free MDS page */
-DLword *Next_MDSpage;         /* Next available MDS page */
-DLword *Next_Array;           /* Next available array space */
+DLword *MDS_free_page; /* Next free MDS page */
+DLword *Next_MDSpage;  /* Next available MDS page */
+DLword *Next_Array;    /* Next available array space */
 /*******************************************/
 
 /** CACHE LISP SYSVAL ***/
-LispPTR *Next_MDSpage_word;   /* Cached word for Next_MDSpage */
-LispPTR *Next_Array_word;     /* Cached word for Next_Array */
-LispPTR *MDS_free_page_word;  /* Cached word for MDS_free_page */
+LispPTR *Next_MDSpage_word;  /* Cached word for Next_MDSpage */
+LispPTR *Next_Array_word;    /* Cached word for Next_Array */
+LispPTR *MDS_free_page_word; /* Cached word for MDS_free_page */
 
-LispPTR *Reclaim_cnt_word;    /* Reclamation counter word */
+LispPTR *Reclaim_cnt_word; /* Reclamation counter word */
 
 /*** Cache Values for reclaimer by Tomtom 30-Sep-1987 ***/
-LispPTR *GcDisabled_word;     /* GC disabled flag */
-LispPTR *CdrCoding_word;      /* CDR coding enabled flag */
-LispPTR *FreeBlockBuckets_word; /* Free block bucket list */
+LispPTR *GcDisabled_word;           /* GC disabled flag */
+LispPTR *CdrCoding_word;            /* CDR coding enabled flag */
+LispPTR *FreeBlockBuckets_word;     /* Free block bucket list */
 LispPTR *Array_Block_Checking_word; /* Array bounds checking flag */
-LispPTR *ArrayMerging_word;   /* Array merging flag */
-LispPTR *ArraySpace_word;     /* Array space pointer */
-LispPTR *ArraySpace2_word;    /* Secondary array space pointer */
-LispPTR *ArrayFrLst_word;     /* Array free list */
-LispPTR *ArrayFrLst2_word;    /* Secondary array free list */
-LispPTR *Hunk_word;           /* Hunk allocation word */
-LispPTR *System_Buffer_List_word; /* System buffer list */
+LispPTR *ArrayMerging_word;         /* Array merging flag */
+LispPTR *ArraySpace_word;           /* Array space pointer */
+LispPTR *ArraySpace2_word;          /* Secondary array space pointer */
+LispPTR *ArrayFrLst_word;           /* Array free list */
+LispPTR *ArrayFrLst2_word;          /* Secondary array free list */
+LispPTR *Hunk_word;                 /* Hunk allocation word */
+LispPTR *System_Buffer_List_word;   /* System buffer list */
 
 /*** The end of the addition of cache values on reclaimer ***/
 
 /*** cache values for the top level reclaimer's implementation ***/
-LispPTR *GcMess_word;         /* GC message word */
-LispPTR *ReclaimMin_word;     /* Minimum reclamation threshold */
-LispPTR *GcTime1_word;        /* GC time counter 1 */
-LispPTR *GcTime2_word;        /* GC time counter 2 */
-LispPTR *MaxTypeNumber_word;  /* Maximum type number */
+LispPTR *GcMess_word;        /* GC message word */
+LispPTR *ReclaimMin_word;    /* Minimum reclamation threshold */
+LispPTR *GcTime1_word;       /* GC time counter 1 */
+LispPTR *GcTime2_word;       /* GC time counter 2 */
+LispPTR *MaxTypeNumber_word; /* Maximum type number */
 
 /*** The end of the addition of cache values for top reclaimer by Tomtom
                                                 15-Oct-1987             ***/
@@ -497,13 +497,13 @@ LispPTR *MaxTypeNumber_word;  /* Maximum type number */
  */
 
 /*  Pointers for closure caching */
-LispPTR *Package_from_Index_word;     /* Package lookup by index */
-LispPTR *Package_from_Name_word;      /* Package lookup by name */
-LispPTR *Keyword_Package_word;        /* Keyword package pointer */
-LispPTR *Closure_Cache_Enabled_word;  /* Closure caching enabled flag */
-LispPTR *Closure_Cache_word;          /* Closure cache table */
+LispPTR *Package_from_Index_word;         /* Package lookup by index */
+LispPTR *Package_from_Name_word;          /* Package lookup by name */
+LispPTR *Keyword_Package_word;            /* Keyword package pointer */
+LispPTR *Closure_Cache_Enabled_word;      /* Closure caching enabled flag */
+LispPTR *Closure_Cache_word;              /* Closure cache table */
 LispPTR *Deleted_Implicit_Hash_Slot_word; /* Deleted hash slot marker */
-LispPTR First_index;                  /* First index for closure cache */
+LispPTR First_index;                      /* First index for closure cache */
 
 /*** The end of Pointers for closure caching ***/
 
@@ -520,22 +520,22 @@ LispPTR First_index;                  /* First index for closure cache */
  */
 
 /* CACHE values for 32Mb MDS/Array by Take */
-LispPTR *STORAGEFULLSTATE_word;       /* Storage full state word */
-LispPTR *STORAGEFULL_word;            /* Storage full flag */
-LispPTR *PENDINGINTERRUPT_word;       /* Pending interrupt word */
-LispPTR *LeastMDSPage_word;           /* Least MDS page */
-LispPTR *SecondMDSPage_word;          /* Second MDS page */
-LispPTR *SecondArrayPage_word;        /* Second array page */
-LispPTR *INTERRUPTSTATE_word;         /* Interrupt state word */
-LispPTR *SYSTEMCACHEVARS_word;        /* System cache variables */
-LispPTR *MACHINETYPE_word;            /* Machine type identifier */
+LispPTR *STORAGEFULLSTATE_word; /* Storage full state word */
+LispPTR *STORAGEFULL_word;      /* Storage full flag */
+LispPTR *PENDINGINTERRUPT_word; /* Pending interrupt word */
+LispPTR *LeastMDSPage_word;     /* Least MDS page */
+LispPTR *SecondMDSPage_word;    /* Second MDS page */
+LispPTR *SecondArrayPage_word;  /* Second array page */
+LispPTR *INTERRUPTSTATE_word;   /* Interrupt state word */
+LispPTR *SYSTEMCACHEVARS_word;  /* System cache variables */
+LispPTR *MACHINETYPE_word;      /* Machine type identifier */
 
-LispPTR STORAGEFULLSTATE_index;       /* Index for STORAGEFULLSTATE */
-LispPTR *LASTVMEMFILEPAGE_word;       /* Last virtual memory file page */
-LispPTR *VMEM_FULL_STATE_word;        /* VMEM full state word */
+LispPTR STORAGEFULLSTATE_index; /* Index for STORAGEFULLSTATE */
+LispPTR *LASTVMEMFILEPAGE_word; /* Last virtual memory file page */
+LispPTR *VMEM_FULL_STATE_word;  /* VMEM full state word */
 
 /** Array for N-tran **/
-int native_load_address;              /* Native load address for N-tran */
+int native_load_address;                 /* Native load address for N-tran */
 LispPTR native_closure_env = NOBIND_PTR; /* Native closure environment */
 
 /* ============================================================================
@@ -552,41 +552,41 @@ LispPTR native_closure_env = NOBIND_PTR; /* Native closure environment */
  */
 
 /** Pipes for Unix Interface **/
-int UnixPipeIn;               /* Input pipe from Unix subprocess */
-int UnixPipeOut;              /* Output pipe to Unix subprocess */
-int UnixPID;                  /* Unix subprocess process ID */
-int please_fork = 1;          /* Fork flag (0 = don't fork, for debugging) */
+int UnixPipeIn;      /* Input pipe from Unix subprocess */
+int UnixPipeOut;     /* Output pipe to Unix subprocess */
+int UnixPID;         /* Unix subprocess process ID */
+int please_fork = 1; /* Fork flag (0 = don't fork, for debugging) */
 
 /* disable X11 scroll bars if requested */
-int noscroll = 0;             /* X11 scroll bar disable flag */
+int noscroll = 0; /* X11 scroll bar disable flag */
 
 /*** STACK handle staff(Takeshi) **/
-LispPTR *STACKOVERFLOW_word;          /* Stack overflow flag word */
-LispPTR *GuardStackAddr_word;         /* Guard stack address */
-LispPTR *LastStackAddr_word;          /* Last stack address */
-LispPTR *NeedHardreturnCleanup_word;  /* Hard return cleanup needed flag */
+LispPTR *STACKOVERFLOW_word;         /* Stack overflow flag word */
+LispPTR *GuardStackAddr_word;        /* Guard stack address */
+LispPTR *LastStackAddr_word;         /* Last stack address */
+LispPTR *NeedHardreturnCleanup_word; /* Hard return cleanup needed flag */
 
 /*** Ethernet stuff (JRB) **/
 #ifdef MAIKO_ENABLE_ETHERNET
-extern int ether_fd;          /* Ethernet file descriptor */
-extern u_char ether_host[6];  /* Ethernet host address */
-#endif /* MAIKO_ENABLE_ETHERNET */
+extern int ether_fd;         /* Ethernet file descriptor */
+extern u_char ether_host[6]; /* Ethernet host address */
+#endif                       /* MAIKO_ENABLE_ETHERNET */
 
 extern struct sockaddr_nit snit; /* Socket address for NIT */
 
 #ifdef INIT
-int for_makeinit = 1;         /* Flag for init sysout (no packages) */
+int for_makeinit = 1; /* Flag for init sysout (no packages) */
 #else
-int for_makeinit = 0;         /* Normal sysout flag */
+int for_makeinit = 0; /* Normal sysout flag */
 #endif /* INIT */
 
-int kbd_for_makeinit = 0;     /* Keyboard flag for makeinit */
-int save_argc;                /* Saved argc for restart */
-char **save_argv;             /* Saved argv for restart */
+int kbd_for_makeinit = 0;         /* Keyboard flag for makeinit */
+int save_argc;                    /* Saved argc for restart */
+char **save_argv;                 /* Saved argv for restart */
 int display_max = 65536 * 16 * 2; /* Maximum display size */
 
 /* diagnostic flag for sysout dumping */
-extern unsigned maxpages;     /* Maximum pages for vmem write diagnostics */
+extern unsigned maxpages; /* Maximum pages for vmem write diagnostics */
 
 /* ============================================================================
  * GLOBAL VARIABLES - Sysout Name Resolution
@@ -621,11 +621,11 @@ unsigned sysout_size = 0; /* Sysout size in MB (0 = use file size) */
 
 int flushing = FALSE; /* If set, all debug/trace printing calls fflush(stdout) after each printf */
 
-#include "sdldefs.h" /* for init_SDL */
-extern const time_t MDate;           /* Build date */
-extern const char *MaikoGitVersion;  /* Git version string */
-extern int nokbdflag;                /* No keyboard flag */
-extern int nomouseflag;              /* No mouse flag */
+#include "sdldefs.h"                /* for init_SDL */
+extern const time_t MDate;          /* Build date */
+extern const char *MaikoGitVersion; /* Git version string */
+extern int nokbdflag;               /* No keyboard flag */
+extern int nomouseflag;             /* No mouse flag */
 
 /* ============================================================================
  * GLOBAL VARIABLES - Help Strings
@@ -670,17 +670,17 @@ extern int insnsCountdownForTimerAsyncEmulation; /* Instruction countdown for ti
  * These variables configure the display window appearance and geometry.
  */
 
-char foregroundColorName[64] = {0};   /* Foreground color name */
+char foregroundColorName[64] = {0}; /* Foreground color name */
 extern char foregroundColorName[64];
-char backgroundColorName[64] = {0};   /* Background color name */
+char backgroundColorName[64] = {0}; /* Background color name */
 extern char backgroundColorName[64];
-char windowTitle[255] = "Medley";     /* Window title */
+char windowTitle[255] = "Medley"; /* Window title */
 extern char windowTitle[255];
 unsigned LispDisplayRequestedWidth = 1024, LispDisplayRequestedHeight = 768; /* Display dimensions */
 extern unsigned LispDisplayRequestedWidth, LispDisplayRequestedHeight;
 int LispDisplayRequestedX = 0, LispDisplayRequestedY = 0; /* Display position */
 extern int LispDisplayRequestedX, LispDisplayRequestedY;
-int pixelScale = 1;                   /* Pixel scaling factor */
+int pixelScale = 1; /* Pixel scaling factor */
 extern int pixelScale;
 
 /************************************************************************/
@@ -1225,7 +1225,8 @@ int main(int argc, char *argv[])
 
   /* Introspection: before sysout load */
 #ifdef INTROSPECT_ENABLED
-  if (g_introspect) {
+  if (g_introspect)
+  {
     introspect_phase(g_introspect, "before_sysout_load");
     introspect_flush(g_introspect);
   }
@@ -1236,22 +1237,24 @@ int main(int argc, char *argv[])
 
   /* Introspection: after sysout load */
 #ifdef INTROSPECT_ENABLED
-  if (g_introspect) {
+  if (g_introspect)
+  {
     introspect_phase(g_introspect, "after_sysout_load");
     introspect_flush(g_introspect);
   }
 #endif
 
-  build_lisp_map();         /* build up map */
-  
+  build_lisp_map(); /* build up map */
+
   /* Introspection: after build_lisp_map */
 #ifdef INTROSPECT_ENABLED
-  if (g_introspect) {
+  if (g_introspect)
+  {
     introspect_phase(g_introspect, "after_build_lisp_map");
     introspect_flush(g_introspect);
   }
 #endif
-  
+
   init_ifpage(sysout_size); /* init interface page */
   init_iopage();
   init_miscstats();
@@ -1279,26 +1282,27 @@ int main(int argc, char *argv[])
   }
 
   /* now start up lisp */
-  
+
   /* Introspection: before dispatch */
 #ifdef INTROSPECT_ENABLED
-  if (g_introspect) {
+  if (g_introspect)
+  {
     introspect_phase(g_introspect, "before_dispatch");
     introspect_flush(g_introspect);
   }
 #endif
-  
+
   start_lisp();
   return (0);
 }
 
 /************************************************************************/
-/*									*/
-/*		  	   s t a r t _ l i s p				*/
-/*									*/
-/*	This is the function that actually starts up the lisp emulator.	*/
-/*									*/
-/*									*/
+/*                                                                      */
+/*                               s t a r t _ l i s p                    */
+/*                                                                      */
+/*	This is the function that actually starts up the lisp emulator.	    */
+/*                                                                      */
+/*                                                                      */
 /************************************************************************/
 
 /* ============================================================================
