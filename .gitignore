@@ -23,7 +23,7 @@ maiko/vdate.c
 maiko/src/introspect/CMakeFiles
 maiko/src/introspect/Makefile
 maiko/src/introspect/libmaiko_introspect.a
-trace.db
+trace.db*
 introspect.db
 
 cmake-build-*/**
