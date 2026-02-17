@@ -1178,6 +1178,8 @@ int main(int argc, char *argv[])
     {
       introspect_start_session(g_introspect, sysout_name, "introspection run");
       introspect_phase(g_introspect, "startup");
+      /* Flush immediately after each phase for crash safety */
+      introspect_flush(g_introspect);
     }
   }
 #endif
@@ -1222,7 +1224,10 @@ int main(int argc, char *argv[])
 
   /* Introspection: before sysout load */
 #ifdef INTROSPECT_ENABLED
-  if (g_introspect) introspect_phase(g_introspect, "before_sysout_load");
+  if (g_introspect) {
+    introspect_phase(g_introspect, "before_sysout_load");
+    introspect_flush(g_introspect);
+  }
 #endif
 
   /* Load sysout to VM space and returns real sysout_size(not 0) */
@@ -1230,14 +1235,20 @@ int main(int argc, char *argv[])
 
   /* Introspection: after sysout load */
 #ifdef INTROSPECT_ENABLED
-  if (g_introspect) introspect_phase(g_introspect, "after_sysout_load");
+  if (g_introspect) {
+    introspect_phase(g_introspect, "after_sysout_load");
+    introspect_flush(g_introspect);
+  }
 #endif
 
   build_lisp_map();         /* build up map */
   
   /* Introspection: after build_lisp_map */
 #ifdef INTROSPECT_ENABLED
-  if (g_introspect) introspect_phase(g_introspect, "after_build_lisp_map");
+  if (g_introspect) {
+    introspect_phase(g_introspect, "after_build_lisp_map");
+    introspect_flush(g_introspect);
+  }
 #endif
   
   init_ifpage(sysout_size); /* init interface page */
@@ -1270,7 +1281,10 @@ int main(int argc, char *argv[])
   
   /* Introspection: before dispatch */
 #ifdef INTROSPECT_ENABLED
-  if (g_introspect) introspect_phase(g_introspect, "before_dispatch");
+  if (g_introspect) {
+    introspect_phase(g_introspect, "before_dispatch");
+    introspect_flush(g_introspect);
+  }
 #endif
   
   start_lisp();
