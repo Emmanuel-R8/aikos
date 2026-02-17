@@ -66,6 +66,9 @@
               gnumake # Make build system (for C emulator)
 
               # SQLite for introspection module
+              sqlite
+              sqlitestudio
+              sqlite-interactive
               sqlite.dev # SQLite development headers
               sqlite.out # SQLite runtime library
 

@@ -17,10 +17,7 @@
  * SCHEMA
  * ============================================================================ */
 
-/* Schema is loaded from schema.sql, but we also have it inline for first-time init */
-static const char *schema_sql = 
-#include "schema.sql.inc"  /* Will be generated */
-;
+/* Schema is loaded from schema.sql at runtime */
 
 /* ============================================================================
  * DATABASE OPEN/CLOSE
