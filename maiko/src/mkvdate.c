@@ -32,8 +32,14 @@
 
 #include <stdio.h>
 #include <time.h>
+#include <string.h>
 
 #include <sys/time.h>
+
+#ifndef MAIKO_GIT_VERSION
+#define MAIKO_GIT_VERSION "unknown"
+#endif
+
 /* Version for every other Unix */
 int main(void)
 {
@@ -48,5 +54,7 @@ int main(void)
   printf("#include <time.h>\n");
   printf("extern const time_t MDate;\n");
   printf("const time_t MDate = %ld;\n", (long)time.tv_sec);
+  printf("extern const char *MaikoGitVersion;\n");
+  printf("const char *MaikoGitVersion = \"maiko git version: %s\";\n", MAIKO_GIT_VERSION);
   return (0);
 }

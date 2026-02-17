@@ -15,13 +15,15 @@ This module captures extensive execution data during emulator runs for later que
 
 ## Building
 
-The module uses CMake and requires SQLite3:
+The module uses CMake and requires SQLite3 (optional):
 
 ```bash
-cd maiko/build
-cmake ..
+cd maiko
+cmake .
 make
 ```
+
+If SQLite3 is not found, introspection is disabled and the build continues.
 
 ## Usage
 
@@ -29,10 +31,10 @@ make
 
 ```bash
 # Enable introspection
-INTROSPECT_DB=trace.db ./lde sysout
+INTROSPECT_DB=trace.db ./ldesdl sysout
 
 # Or use default path (introspect.db)
-./lde sysout
+./ldesdl sysout
 ```
 
 ### 2. Query the Database

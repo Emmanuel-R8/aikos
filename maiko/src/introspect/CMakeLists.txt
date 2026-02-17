@@ -1,55 +1,48 @@
 # CMakeLists.txt for Maiko Introspection Module
 #
 # This builds the introspection library that links into the main emulator.
+# SQLite3 is optional - if not found, introspection is disabled.
 
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.15)
 
-# Find SQLite3
-find_package(SQLite3 REQUIRED)
+# Find SQLite3 (optional)
+find_package(SQLite3 QUIET)
 
-# Create introspection library
-add_library(maiko_introspect STATIC
-    introspect.c
-    introspect_db.c
-)
+if(SQLite3_FOUND)
+    message(STATUS "SQLite3 found: Introspection module enabled")
 
-# Include directories
-target_include_directories(maiko_introspect
-    PUBLIC 
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        ${SQLite3_INCLUDE_DIRS}
-)
+    # Create introspection library
+    add_library(maiko_introspect STATIC
+        introspect.c
+        introspect_db.c
+    )
 
-# Link libraries
-target_link_libraries(maiko_introspect
-    PUBLIC
-        ${SQLite3_LIBRARIES}
-)
+    # Include directories
+    target_include_directories(maiko_introspect
+        PUBLIC 
+            ${CMAKE_CURRENT_SOURCE_DIR}
+    )
 
-# Compiler features
-target_compile_features(maiko_introspect PUBLIC c_std_11)
+    # Link libraries
+    target_link_libraries(maiko_introspect
+        PUBLIC
+            SQLite::SQLite3
+    )
 
-# Warnings
-if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
-    target_compile_options(maiko_introspect PRIVATE -Wall -Wextra -Wpedantic)
+    # Compiler features - match main project C standard
+    target_compile_features(maiko_introspect PUBLIC c_std_99)
+
+    # Warnings
+    if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(maiko_introspect PRIVATE -Wall -Wextra)
+    endif()
+
+    # Export target for parent project
+    set(MAIKO_INTROSPECT_FOUND TRUE PARENT_SCOPE)
+    set(MAIKO_INTROSPECT_ENABLED TRUE PARENT_SCOPE)
+
+else()
+    message(STATUS "SQLite3 not found: Introspection module disabled")
+    set(MAIKO_INTROSPECT_FOUND FALSE PARENT_SCOPE)
+    set(MAIKO_INTROSPECT_ENABLED FALSE PARENT_SCOPE)
 endif()
-
-# Export target for parent project
-set(MAIKO_INTROSPECT_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
-set(MAIKO_INTROSPECT_LIBRARIES maiko_introspect PARENT_SCOPE)
-
-# Install rules
-install(TARGETS maiko_introspect
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
-)
-
-install(FILES 
-    introspect.h
-    DESTINATION include/maiko/introspect
-)
-
-install(FILES 
-    schema.sql
-    DESTINATION share/maiko/introspect
-)

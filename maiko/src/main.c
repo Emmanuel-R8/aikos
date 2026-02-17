@@ -11,10 +11,14 @@
 #include "execution_trace.h"
 
 /* Introspection module - for extensive debugging */
+#ifdef INTROSPECT_ENABLED
 #include "introspect/introspect.h"
+#endif
 
 /* Global introspection handle */
+#ifdef INTROSPECT_ENABLED
 IntrospectDB *g_introspect = NULL;
+#endif
 
 /* Forward declarations */
 int init_global_execution_trace(const char *log_path);
@@ -1166,6 +1170,7 @@ int main(int argc, char *argv[])
   /* OK, sysout name is now in sysout_name */
 
   /* Initialize introspection if requested */
+#ifdef INTROSPECT_ENABLED
   if (getenv("INTROSPECT_DB"))
   {
     g_introspect = introspect_open(getenv("INTROSPECT_DB"));
@@ -1175,6 +1180,7 @@ int main(int argc, char *argv[])
       introspect_phase(g_introspect, "startup");
     }
   }
+#endif
 
   //
   //
@@ -1215,18 +1221,24 @@ int main(int argc, char *argv[])
   init_SDL(windowTitle, LispDisplayRequestedWidth, LispDisplayRequestedHeight, pixelScale);
 
   /* Introspection: before sysout load */
+#ifdef INTROSPECT_ENABLED
   if (g_introspect) introspect_phase(g_introspect, "before_sysout_load");
+#endif
 
   /* Load sysout to VM space and returns real sysout_size(not 0) */
   sysout_size = sysout_loader(sysout_name, sysout_size);
 
   /* Introspection: after sysout load */
+#ifdef INTROSPECT_ENABLED
   if (g_introspect) introspect_phase(g_introspect, "after_sysout_load");
+#endif
 
   build_lisp_map();         /* build up map */
   
   /* Introspection: after build_lisp_map */
+#ifdef INTROSPECT_ENABLED
   if (g_introspect) introspect_phase(g_introspect, "after_build_lisp_map");
+#endif
   
   init_ifpage(sysout_size); /* init interface page */
   init_iopage();
@@ -1257,7 +1269,9 @@ int main(int argc, char *argv[])
   /* now start up lisp */
   
   /* Introspection: before dispatch */
+#ifdef INTROSPECT_ENABLED
   if (g_introspect) introspect_phase(g_introspect, "before_dispatch");
+#endif
   
   start_lisp();
   return (0);
