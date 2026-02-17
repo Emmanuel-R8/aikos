@@ -65,6 +65,10 @@
               cmake # CMake build system (for C emulator)
               gnumake # Make build system (for C emulator)
 
+              # SQLite for introspection module
+              sqlite.dev # SQLite development headers
+              sqlite.out # SQLite runtime library
+
               # Display libraries - include all for maximum compatibility
               # SDL2: Required for C and Zig emulators
               SDL2 # SDL2 display backend (for C and Zig emulators)
@@ -89,7 +93,6 @@
               amp
               kilocode-cli
               opencode
-              openskills
               openspec
               spec-kit
             ]);

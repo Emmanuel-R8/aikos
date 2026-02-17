@@ -1,0 +1,261 @@
+#!/usr/bin/env python3
+"""
+Introspection Query Helper Tool
+
+A command-line tool for querying the introspection database.
+Designed to be agent-friendly with structured JSON output.
+
+Usage:
+    introspect-query <db> <command> [args...]
+
+Commands:
+    atom <atom_index>           Query all events for an atom
+    addr <address>              Query all events for an address
+    causality <event_id>        Query causality chain for an event
+    valspace-writes [--limit N] Query all writes to Valspace
+    opcode-trace [--limit N]    Query opcode execution trace
+    phase-timeline              Query initialization phases
+    summary                     Get summary statistics
+    last-atom-write <atom>      Find last write to atom value cell
+    sql <query>                 Execute raw SQL query
+
+Examples:
+    introspect-query trace.db atom 0x20A
+    introspect-query trace.db causality 42
+    introspect-query trace.db valspace-writes --limit 50
+    introspect-query trace.db sql "SELECT * FROM events WHERE id = 100"
+"""
+
+import sqlite3
+import sys
+import os
+import json
+import argparse
+from datetime import datetime
+from typing import Optional, List, Dict, Any
+
+# Valspace constants
+VALSPACE_BASE = 0x180000
+VALSPACE_SIZE = 0x40000  # 256KB
+
+def row_to_dict(row: sqlite3.Row) -> Dict:
+    """Convert sqlite3.Row to dictionary."""
+    return dict(row)
+
+def query_atom(conn: sqlite3.Connection, atom_index: int) -> List[Dict]:
+    """Query all events for a specific atom."""
+    # Calculate value cell address
+    addr = VALSPACE_BASE + (atom_index * 4)
+    
+    cursor = conn.execute("""
+        SELECT * FROM current_session 
+        WHERE (addr = ? AND category = 'memory')
+           OR (atom_index = ? AND category = 'atom')
+        ORDER BY ts
+    """, (addr, atom_index))
+    
+    return [row_to_dict(row) for row in cursor.fetchall()]
+
+def query_addr(conn: sqlite3.Connection, addr: int) -> List[Dict]:
+    """Query all events for a specific address."""
+    cursor = conn.execute("""
+        SELECT * FROM current_session 
+        WHERE addr = ?
+        ORDER BY ts
+    """, (addr,))
+    
+    return [row_to_dict(row) for row in cursor.fetchall()]
+
+def query_causality_backward(conn: sqlite3.Connection, event_id: int) -> List[Dict]:
+    """Query backward causality chain (what led to this event)."""
+    cursor = conn.execute("""
+        WITH RECURSIVE chain AS (
+            SELECT * FROM events WHERE id = ?
+            UNION ALL
+            SELECT e.* FROM events e
+            INNER JOIN chain c ON c.cause_id = e.id
+        )
+        SELECT * FROM chain ORDER BY ts
+    """, (event_id,))
+    
+    return [row_to_dict(row) for row in cursor.fetchall()]
+
+def query_causality_forward(conn: sqlite3.Connection, event_id: int) -> List[Dict]:
+    """Query forward causality chain (what did this event cause)."""
+    cursor = conn.execute("""
+        WITH RECURSIVE chain AS (
+            SELECT * FROM events WHERE id = ?
+            UNION ALL
+            SELECT e.* FROM events e
+            INNER JOIN chain c ON e.cause_id = c.id
+        )
+        SELECT * FROM chain ORDER BY ts
+    """, (event_id,))
+    
+    return [row_to_dict(row) for row in cursor.fetchall()]
+
+def query_valspace_writes(conn: sqlite3.Connection, limit: int = 100) -> List[Dict]:
+    """Query all writes to Valspace."""
+    cursor = conn.execute("""
+        SELECT * FROM current_session
+        WHERE category = 'memory' 
+          AND action = 'write'
+          AND addr >= ? AND addr < ?
+        ORDER BY ts
+        LIMIT ?
+    """, (VALSPACE_BASE, VALSPACE_BASE + VALSPACE_SIZE, limit))
+    
+    return [row_to_dict(row) for row in cursor.fetchall()]
+
+def query_opcode_trace(conn: sqlite3.Connection, limit: int = 100, 
+                       start_ts: float = 0, end_ts: float = 1e10) -> List[Dict]:
+    """Query opcode execution trace."""
+    cursor = conn.execute("""
+        SELECT id, ts, pc, opcode, name, value as tos, sp, fp
+        FROM current_session
+        WHERE category = 'opcode'
+          AND ts BETWEEN ? AND ?
+        ORDER BY ts
+        LIMIT ?
+    """, (start_ts, end_ts, limit))
+    
+    return [row_to_dict(row) for row in cursor.fetchall()]
+
+def query_phase_timeline(conn: sqlite3.Connection) -> List[Dict]:
+    """Query initialization phase timeline."""
+    cursor = conn.execute("""
+        SELECT id, ts, action, name
+        FROM current_session
+        WHERE category = 'phase'
+        ORDER BY ts
+    """)
+    
+    return [row_to_dict(row) for row in cursor.fetchall()]
+
+def query_summary(conn: sqlite3.Connection) -> Dict:
+    """Get summary statistics."""
+    cursor = conn.execute("SELECT COUNT(*) FROM current_session")
+    total_events = cursor.fetchone()[0]
+    
+    cursor = conn.execute("SELECT MIN(ts), MAX(ts) FROM current_session")
+    row = cursor.fetchone()
+    min_ts, max_ts = row[0] if row else (0, 0)
+    
+    cursor = conn.execute("""
+        SELECT category, COUNT(*) 
+        FROM current_session 
+        GROUP BY category
+    """)
+    by_category = {row[0]: row[1] for row in cursor.fetchall()}
+    
+    return {
+        'total_events': total_events,
+        'duration_seconds': (max_ts - min_ts) if (max_ts and min_ts) else 0,
+        'by_category': by_category
+    }
+
+def query_last_atom_write(conn: sqlite3.Connection, atom_index: int) -> Optional[Dict]:
+    """Find the last write to an atom's value cell."""
+    addr = VALSPACE_BASE + (atom_index * 4)
+    
+    cursor = conn.execute("""
+        SELECT * FROM current_session
+        WHERE addr = ? AND action = 'write'
+        ORDER BY ts DESC
+        LIMIT 1
+    """, (addr,))
+    
+    row = cursor.fetchone()
+    return row_to_dict(row) if row else None
+
+def query_sql(conn: sqlite3.Connection, sql: str) -> List[Dict]:
+    """Execute raw SQL query."""
+    cursor = conn.execute(sql)
+    return [row_to_dict(row) for row in cursor.fetchall()]
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Introspection Query Tool',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__
+    )
+    parser.add_argument('db', help='Path to introspection database')
+    parser.add_argument('command', help='Query command')
+    parser.add_argument('args', nargs='*', help='Command arguments')
+    parser.add_argument('--limit', type=int, default=100, help='Result limit')
+    parser.add_argument('--direction', choices=['forward', 'backward'], 
+                        default='backward', help='Causality direction')
+    parser.add_argument('--format', choices=['json', 'table'], 
+                        default='json', help='Output format')
+    
+    args = parser.parse_args()
+    
+    # Connect to database
+    if not os.path.exists(args.db):
+        print(f"Error: Database not found: {args.db}", file=sys.stderr)
+        sys.exit(1)
+    
+    conn = sqlite3.connect(args.db)
+    conn.row_factory = sqlite3.Row
+    
+    # Execute command
+    result = None
+    
+    try:
+        if args.command == 'atom':
+            atom_index = int(args.args[0], 0) if args.args else 0
+            result = query_atom(conn, atom_index)
+        
+        elif args.command == 'addr':
+            addr = int(args.args[0], 0) if args.args else 0
+            result = query_addr(conn, addr)
+        
+        elif args.command == 'causality':
+            event_id = int(args.args[0], 0) if args.args else 0
+            if args.direction == 'forward':
+                result = query_causality_forward(conn, event_id)
+            else:
+                result = query_causality_backward(conn, event_id)
+        
+        elif args.command == 'valspace-writes':
+            result = query_valspace_writes(conn, args.limit)
+        
+        elif args.command == 'opcode-trace':
+            result = query_opcode_trace(conn, args.limit)
+        
+        elif args.command == 'phase-timeline':
+            result = query_phase_timeline(conn)
+        
+        elif args.command == 'summary':
+            result = query_summary(conn)
+        
+        elif args.command == 'last-atom-write':
+            atom_index = int(args.args[0], 0) if args.args else 0
+            result = query_last_atom_write(conn, atom_index)
+        
+        elif args.command == 'sql':
+            sql = ' '.join(args.args)
+            result = query_sql(conn, sql)
+        
+        else:
+            print(f"Unknown command: {args.command}", file=sys.stderr)
+            parser.print_help()
+            sys.exit(1)
+    
+    except sqlite3.Error as e:
+        print(f"Database error: {e}", file=sys.stderr)
+        sys.exit(1)
+    
+    except ValueError as e:
+        print(f"Invalid argument: {e}", file=sys.stderr)
+        sys.exit(1)
+    
+    finally:
+        conn.close()
+    
+    # Output result
+    if result is not None:
+        print(json.dumps(result, indent=2, default=str))
+
+if __name__ == '__main__':
+    main()
