@@ -1,11 +1,20 @@
 (in-package :maiko-lisp.vm)
 
 ;; Integer arithmetic operations
-;; iplus2, idifference, itimes2, iquo, irem
+;; iplus2, idifference, itimes2, iquo, irem, iminus, idivide, imod
 
-(defun handle-iplus2 (vm)
-  "IPLUS2: Integer addition"
-  (declare (type vm vm))
+;;; ===========================================================================
+;; BASIC ARITHMETIC
+;;; ===========================================================================
+
+(defop iplus2 #xD8 1
+  "IPLUS2: Integer addition.
+Pops B and A, pushes A+B.
+Operands are 32-bit signed integers (two's complement)."
+  :operands nil
+  :stack-effect (:pop 2 :push 1)
+  :category :arithmetic
+  :side-effects nil
   (let ((b (pop-stack vm)) (a (pop-stack vm)))
     (let ((a-signed (if (>= a #x80000000) (- a #x100000000) a))
           (b-signed (if (>= b #x80000000) (- b #x100000000) b)))
@@ -15,9 +24,14 @@
                                    (logand result #xFFFFFFFF))))
           (push-stack vm result-unsigned))))))
 
-(defun handle-idifference (vm)
-  "IDIFFERENCE: Integer subtraction (a - b)"
-  (declare (type vm vm))
+(defop idifference #xD9 1
+  "IDIFFERENCE: Integer subtraction.
+Pops B and A, pushes A-B.
+Operands are 32-bit signed integers (two's complement)."
+  :operands nil
+  :stack-effect (:pop 2 :push 1)
+  :category :arithmetic
+  :side-effects nil
   (let ((b (pop-stack vm)) (a (pop-stack vm)))
     (let ((a-signed (if (>= a #x80000000) (- a #x100000000) a))
           (b-signed (if (>= b #x80000000) (- b #x100000000) b)))
@@ -27,9 +41,14 @@
                                    (logand result #xFFFFFFFF))))
           (push-stack vm result-unsigned))))))
 
-(defun handle-itimes2 (vm)
-  "ITIMES2: Integer multiplication"
-  (declare (type vm vm))
+(defop itimes2 #xDA 1
+  "ITIMES2: Integer multiplication.
+Pops B and A, pushes A*B.
+Operands are 32-bit signed integers (two's complement)."
+  :operands nil
+  :stack-effect (:pop 2 :push 1)
+  :category :arithmetic
+  :side-effects nil
   (let ((b (pop-stack vm)) (a (pop-stack vm)))
     (let ((a-signed (if (>= a #x80000000) (- a #x100000000) a))
           (b-signed (if (>= b #x80000000) (- b #x100000000) b)))
@@ -39,9 +58,14 @@
                                    (logand result #xFFFFFFFF))))
           (push-stack vm result-unsigned))))))
 
-(defun handle-iquo (vm)
-  "IQUO: Integer division (quotient)"
-  (declare (type vm vm))
+(defop iquo #xDB 1
+  "IQUO: Integer quotient (truncation toward zero).
+Pops B and A, pushes truncate(A/B).
+Signals error on division by zero."
+  :operands nil
+  :stack-effect (:pop 2 :push 1)
+  :category :arithmetic
+  :side-effects nil
   (let ((b (pop-stack vm)) (a (pop-stack vm)))
     (when (zerop b) (error 'maiko-lisp.utils:vm-arithmetic-error :message "Division by zero"))
     (let ((a-signed (if (>= a #x80000000) (- a #x100000000) a))
@@ -52,9 +76,14 @@
                                    (logand result #xFFFFFFFF))))
           (push-stack vm result-unsigned))))))
 
-(defun handle-irem (vm)
-  "IREM: Integer remainder"
-  (declare (type vm vm))
+(defop irem #xDC 1
+  "IREM: Integer remainder (sign follows dividend).
+Pops B and A, pushes rem(A,B) where sign matches A.
+Signals error on division by zero."
+  :operands nil
+  :stack-effect (:pop 2 :push 1)
+  :category :arithmetic
+  :side-effects nil
   (let ((b (pop-stack vm)) (a (pop-stack vm)))
     (when (zerop b) (error 'maiko-lisp.utils:vm-arithmetic-error :message "Division by zero"))
     (let ((a-signed (if (>= a #x80000000) (- a #x100000000) a))
@@ -65,9 +94,18 @@
                                    (logand result #xFFFFFFFF))))
           (push-stack vm result-unsigned))))))
 
-(defun handle-iminus (vm)
-  "IMINUS: Negate top of stack"
-  (declare (type vm vm))
+;;; ===========================================================================
+;; UNARY ARITHMETIC
+;;; ===========================================================================
+
+(defop iminus #x9A 1
+  "IMINUS: Integer negation.
+Pops A, pushes -A.
+Negates a 32-bit signed integer."
+  :operands nil
+  :stack-effect (:pop 1 :push 1)
+  :category :arithmetic
+  :side-effects nil
   (let ((a (pop-stack vm)))
     (let ((a-signed (if (>= a #x80000000) (- a #x100000000) a)))
       (let ((result (- a-signed)))
@@ -76,26 +114,41 @@
                                    (logand result #xFFFFFFFF))))
           (push-stack vm result-unsigned))))))
 
-(defun handle-idivide (vm)
-  "IDIVIDE: Integer division with remainder"
-  (declare (type vm vm))
+;;; ===========================================================================
+;; COMBINED ARITHMETIC
+;;; ===========================================================================
+
+(defop idivide #x9B 1
+  "IDIVIDE: Integer division with remainder.
+Pops B and A, pushes remainder then quotient.
+Returns both values like (values remainder quotient).
+Signals error on division by zero."
+  :operands nil
+  :stack-effect (:pop 2 :push 2)
+  :category :arithmetic
+  :side-effects nil
   (let ((b (pop-stack vm)) (a (pop-stack vm)))
     (when (zerop b) (error 'maiko-lisp.utils:vm-arithmetic-error :message "Division by zero"))
     (let ((a-signed (if (>= a #x80000000) (- a #x100000000) a))
           (b-signed (if (>= b #x80000000) (- b #x100000000) b)))
       (let ((quot (truncate a-signed b-signed))
-            (rem (rem a-signed b-signed)))
-        (push-stack vm (if (minusp rem)
-                          (logand (+ rem #x100000000) #xFFFFFFFF)
-                          (logand rem #xFFFFFFFF)))
+            (rem-val (rem a-signed b-signed)))
+        (push-stack vm (if (minusp rem-val)
+                          (logand (+ rem-val #x100000000) #xFFFFFFFF)
+                          (logand rem-val #xFFFFFFFF)))
         (let ((quot-unsigned (if (minusp quot)
                                  (logand (+ quot #x100000000) #xFFFFFFFF)
                                  (logand quot #xFFFFFFFF))))
           (push-stack vm quot-unsigned))))))
 
-(defun handle-imod (vm)
-  "IMOD: Integer modulus"
-  (declare (type vm vm))
+(defop imod #x9C 1
+  "IMOD: Integer modulus (sign follows divisor).
+Pops B and A, pushes mod(A,B) where sign matches B.
+Signals error on modulo by zero."
+  :operands nil
+  :stack-effect (:pop 2 :push 1)
+  :category :arithmetic
+  :side-effects nil
   (let ((b (pop-stack vm)) (a (pop-stack vm)))
     (when (zerop b) (error 'maiko-lisp.utils:vm-arithmetic-error :message "Modulo by zero"))
     (let ((a-signed (if (>= a #x80000000) (- a #x100000000) a))
