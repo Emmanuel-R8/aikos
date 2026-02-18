@@ -1,92 +1,130 @@
 (in-package :maiko-lisp.vm)
 
 ;; Comparison operations
-;; eq, eql, lessp, greaterp, leq, geq, equal, numequal
+;; eq, eql, lessp, greaterp, leq, geq, equal, numequal, igreaterp
 
-(defun handle-eq (vm)
-  "EQ: Test if two values are eq"
-  (declare (type vm vm))
+;;; ===========================================================================
+;; POINTER COMPARISON
+;;; ===========================================================================
+
+(defop eq #x3A 1
+  "EQ: Test if two values are EQ (pointer equality).
+Pops B and A, pushes T if same pointer, NIL otherwise."
+  :operands nil
+  :stack-effect (:pop 2 :push 1)
+  :category :comparison
+  :side-effects nil
   (let ((b (pop-stack vm))
         (a (pop-stack vm)))
     (push-stack vm (if (eql a b) 1 0))))
 
-(defun handle-eql (vm)
-  "EQL: Test if two values are eql (numeric equality)"
-  (declare (type vm vm))
+(defop eql #x3B 1
+  "EQL: Test if two values are EQL (numeric equality for numbers).
+Pops B and A, pushes T if equal, NIL otherwise."
+  :operands nil
+  :stack-effect (:pop 2 :push 1)
+  :category :comparison
+  :side-effects nil
   (let ((b (pop-stack vm))
         (a (pop-stack vm)))
     (push-stack vm (if (= a b) 1 0))))
 
-(defun handle-lessp (vm)
-  "LESSP: Test if a < b"
-  (declare (type vm vm))
+;;; ===========================================================================
+;; NUMERIC COMPARISON
+;;; ===========================================================================
+
+(defop lessp #x3C 1
+  "LESSP: Test if A < B (signed comparison).
+Pops B and A, pushes T if A < B."
+  :operands nil
+  :stack-effect (:pop 2 :push 1)
+  :category :comparison
+  :side-effects nil
   (let ((b (pop-stack vm))
         (a (pop-stack vm)))
     (let ((a-signed (if (>= a #x80000000) (- a #x100000000) a))
           (b-signed (if (>= b #x80000000) (- b #x100000000) b)))
       (push-stack vm (if (< a-signed b-signed) 1 0)))))
 
-(defun handle-greaterp (vm)
-  "GREATERP: Test if a > b"
-  (declare (type vm vm))
+(defop greaterp #x3D 1
+  "GREATERP: Test if A > B (signed comparison).
+Pops B and A, pushes T if A > B."
+  :operands nil
+  :stack-effect (:pop 2 :push 1)
+  :category :comparison
+  :side-effects nil
   (let ((b (pop-stack vm))
         (a (pop-stack vm)))
     (let ((a-signed (if (>= a #x80000000) (- a #x100000000) a))
           (b-signed (if (>= b #x80000000) (- b #x100000000) b)))
       (push-stack vm (if (> a-signed b-signed) 1 0)))))
 
-(defun handle-leq (vm)
-  "LEQ: Test if a <= b"
-  (declare (type vm vm))
+(defop leq #x3E 1
+  "LEQ: Test if A <= B (signed comparison).
+Pops B and A, pushes T if A <= B."
+  :operands nil
+  :stack-effect (:pop 2 :push 1)
+  :category :comparison
+  :side-effects nil
   (let ((b (pop-stack vm))
         (a (pop-stack vm)))
     (let ((a-signed (if (>= a #x80000000) (- a #x100000000) a))
           (b-signed (if (>= b #x80000000) (- b #x100000000) b)))
       (push-stack vm (if (<= a-signed b-signed) 1 0)))))
 
-(defun handle-geq (vm)
-  "GEQ: Test if a >= b"
-  (declare (type vm vm))
+(defop geq #x3F 1
+  "GEQ: Test if A >= B (signed comparison).
+Pops B and A, pushes T if A >= B."
+  :operands nil
+  :stack-effect (:pop 2 :push 1)
+  :category :comparison
+  :side-effects nil
   (let ((b (pop-stack vm))
         (a (pop-stack vm)))
     (let ((a-signed (if (>= a #x80000000) (- a #x100000000) a))
           (b-signed (if (>= b #x80000000) (- b #x100000000) b)))
       (push-stack vm (if (>= a-signed b-signed) 1 0)))))
 
-(defun handle-equal (vm)
-  "EQUAL: Deep equality test"
-  (declare (type vm vm))
+;;; ===========================================================================
+;; STRUCTURAL COMPARISON
+;;; ===========================================================================
+
+(defop equal #x3D 1
+  "EQUAL: Deep structural equality test.
+Pops B and A, pushes T if structurally equal."
+  :aliases (equal-alt)
+  :operands nil
+  :stack-effect (:pop 2 :push 1)
+  :category :comparison
+  :side-effects nil
   (let ((b (pop-stack vm))
         (a (pop-stack vm)))
     (push-stack vm (if (equal a b) 1 0))))
 
-(defun handle-numequal (vm)
-  "NUMEQUAL: Numeric equality"
-  (declare (type vm vm))
+(defop numequal #x3D 1
+  "NUMEQUAL: Numeric equality test.
+Pops B and A, pushes T if numerically equal."
+  :operands nil
+  :stack-effect (:pop 2 :push 1)
+  :category :comparison
+  :side-effects nil
   (let ((b (pop-stack vm))
         (a (pop-stack vm)))
     (push-stack vm (if (= a b) 1 0))))
 
-(defun handle-igreaterp (vm)
-  "IGREATERP: Integer greater than"
-  (declare (type vm vm))
+;;; ===========================================================================
+;; INTEGER COMPARISON
+;;; ===========================================================================
+
+(defop igreaterp #xF1 1
+  "IGREATERP: Integer greater-than comparison.
+Pops B and A, pushes T if A > B (signed)."
+  :operands nil
+  :stack-effect (:pop 2 :push 1)
+  :category :comparison
+  :side-effects nil
   (let ((b (pop-stack vm))
         (a (pop-stack vm)))
     (let ((a-signed (if (>= a #x80000000) (- a #x100000000) a))
           (b-signed (if (>= b #x80000000) (- b #x100000000) b)))
       (push-stack vm (if (> a-signed b-signed) 1 0)))))
-
-(defun handle-eq-alt (vm)
-  "EQ alternative"
-  (declare (type vm vm))
-  (handle-eq vm))
-
-(defun handle-greaterp-alt (vm)
-  "GREATERP alternative"
-  (declare (type vm vm))
-  (handle-greaterp vm))
-
-(defun handle-equal-alt (vm)
-  "EQUAL alternative"
-  (declare (type vm vm))
-  (handle-equal vm))
