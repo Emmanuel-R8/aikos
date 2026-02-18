@@ -1,44 +1,317 @@
 (in-package :maiko-lisp.vm)
 
 ;; Variable access operations
-;; ivar0-6, pvar0-6, fvar0-6, gvar
+;; ivar0-6, pvar0-6, fvar0-6, gvar, arg0, myargcount
+;; pvarsetpop0-6
+
+;;; ===========================================================================
+;; INSTANCE VARIABLE ACCESS (IVAR)
+;;; ===========================================================================
+
+(defop ivar0 #x40 1
+  "IVAR0: Push value of instance variable 0."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (push-stack vm (get-ivar vm 0)))
+
+(defop ivar1 #x41 1
+  "IVAR1: Push value of instance variable 1."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (push-stack vm (get-ivar vm 1)))
+
+(defop ivar2 #x42 1
+  "IVAR2: Push value of instance variable 2."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (push-stack vm (get-ivar vm 2)))
+
+(defop ivar3 #x43 1
+  "IVAR3: Push value of instance variable 3."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (push-stack vm (get-ivar vm 3)))
+
+(defop ivar4 #x44 1
+  "IVAR4: Push value of instance variable 4."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (push-stack vm (get-ivar vm 4)))
+
+(defop ivar5 #x45 1
+  "IVAR5: Push value of instance variable 5."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (push-stack vm (get-ivar vm 5)))
+
+(defop ivar6 #x46 1
+  "IVAR6: Push value of instance variable 6."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (push-stack vm (get-ivar vm 6)))
+
+;;; ===========================================================================
+;; PARAMETER VARIABLE ACCESS (PVAR)
+;;; ===========================================================================
+
+(defop pvar0 #x48 1
+  "PVAR0: Push value of parameter variable 0."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (push-stack vm (get-pvar vm 0)))
+
+(defop pvar1 #x49 1
+  "PVAR1: Push value of parameter variable 1."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (push-stack vm (get-pvar vm 1)))
+
+(defop pvar2 #x4A 1
+  "PVAR2: Push value of parameter variable 2."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (push-stack vm (get-pvar vm 2)))
+
+(defop pvar3 #x4B 1
+  "PVAR3: Push value of parameter variable 3."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (push-stack vm (get-pvar vm 3)))
+
+(defop pvar4 #x4C 1
+  "PVAR4: Push value of parameter variable 4."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (push-stack vm (get-pvar vm 4)))
+
+(defop pvar5 #x4D 1
+  "PVAR5: Push value of parameter variable 5."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (push-stack vm (get-pvar vm 5)))
+
+(defop pvar6 #x4E 1
+  "PVAR6: Push value of parameter variable 6."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (push-stack vm (get-pvar vm 6)))
+
+;;; ===========================================================================
+;; FREE VARIABLE ACCESS (FVAR)
+;;; ===========================================================================
+
+(defop fvar0 #x50 1
+  "FVAR0: Push value of free variable 0 from closure environment."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (push-stack vm (get-fvar vm 0)))
+
+(defop fvar1 #x51 1
+  "FVAR1: Push value of free variable 1 from closure environment."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (push-stack vm (get-fvar vm 1)))
+
+(defop fvar2 #x52 1
+  "FVAR2: Push value of free variable 2 from closure environment."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (push-stack vm (get-fvar vm 2)))
+
+(defop fvar3 #x53 1
+  "FVAR3: Push value of free variable 3 from closure environment."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (push-stack vm (get-fvar vm 3)))
+
+(defop fvar4 #x54 1
+  "FVAR4: Push value of free variable 4 from closure environment."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (push-stack vm (get-fvar vm 4)))
+
+(defop fvar5 #x55 1
+  "FVAR5: Push value of free variable 5 from closure environment."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (push-stack vm (get-fvar vm 5)))
+
+(defop fvar6 #x56 1
+  "FVAR6: Push value of free variable 6 from closure environment."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (push-stack vm (get-fvar vm 6)))
+
+;;; ===========================================================================
+;; GLOBAL VARIABLE ACCESS (GVAR)
+;;; ===========================================================================
+
+(defop gvar #x60 5
+  "GVAR: Push value of global variable (atom value cell).
+Reads 4-byte atom index from instruction stream.
+For BIGVM: atom_index = op0<<24 | op1<<16 | op2<<8 | op3.
+Accesses value cell at Valspace[atom_index & 0xFFFF]."
+  :operands ((atom-index :uint32-be "Atom index (4 bytes, big-endian)"))
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  ;; Note: This handler receives operands from dispatch
+  ;; The actual implementation needs to read from PC
+  (let ((atom-idx (read-pc-32-be vm)))
+    (let ((valspace-index (logand atom-idx #xFFFF)))
+      (let ((value (maiko-lisp.data:read-atom-value vm valspace-index)))
+        (vm-push vm value)))))
+
+;;; ===========================================================================
+;; ARGUMENT ACCESS
+;;; ===========================================================================
+
+(defop arg0 #x61 1
+  "ARG0: Push value of argument 0 (alias for PVAR0)."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (push-stack vm (get-pvar vm 0)))
+
+(defop myargcount #x65 1
+  "MYARGCOUNT: Push the argument count for the current function."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :variable-access
+  :side-effects nil
+  (let ((frame (vm-current-frame vm)))
+    (if frame
+        (let ((fn-header (sf-fn-header frame)))
+          (if fn-header
+              (push-stack vm (maiko-lisp.data:get-num-args fn-header))
+              (push-stack vm 0)))
+        (push-stack vm 0))))
+
+;;; ===========================================================================
+;; PARAMETER VARIABLE SET (PVARSETPOP)
+;;; ===========================================================================
+
+(defop pvarsetpop0 #xB8 1
+  "PVARSETPOP0: Pop stack and store in parameter variable 0."
+  :operands nil
+  :stack-effect (:pop 1)
+  :category :variable-access
+  :side-effects t  ; Modifies frame
+  (set-pvar vm 0))
+
+(defop pvarsetpop1 #xB9 1
+  "PVARSETPOP1: Pop stack and store in parameter variable 1."
+  :operands nil
+  :stack-effect (:pop 1)
+  :category :variable-access
+  :side-effects t
+  (set-pvar vm 1))
+
+(defop pvarsetpop2 #xBA 1
+  "PVARSETPOP2: Pop stack and store in parameter variable 2."
+  :operands nil
+  :stack-effect (:pop 1)
+  :category :variable-access
+  :side-effects t
+  (set-pvar vm 2))
+
+(defop pvarsetpop3 #xBB 1
+  "PVARSETPOP3: Pop stack and store in parameter variable 3."
+  :operands nil
+  :stack-effect (:pop 1)
+  :category :variable-access
+  :side-effects t
+  (set-pvar vm 3))
+
+(defop pvarsetpop4 #xBC 1
+  "PVARSETPOP4: Pop stack and store in parameter variable 4."
+  :operands nil
+  :stack-effect (:pop 1)
+  :category :variable-access
+  :side-effects t
+  (set-pvar vm 4))
+
+(defop pvarsetpop5 #xBD 1
+  "PVARSETPOP5: Pop stack and store in parameter variable 5."
+  :operands nil
+  :stack-effect (:pop 1)
+  :category :variable-access
+  :side-effects t
+  (set-pvar vm 5))
+
+(defop pvarsetpop6 #xBE 1
+  "PVARSETPOP6: Pop stack and store in parameter variable 6."
+  :operands nil
+  :stack-effect (:pop 1)
+  :category :variable-access
+  :side-effects t
+  (set-pvar vm 6))
+
+;;; ===========================================================================
+;; HELPER FUNCTIONS (not opcodes)
+;;; ===========================================================================
 
 (defun get-ivar (vm index)
-  "Get local variable at index from current frame"
+  "Get instance variable at index from current frame."
   (declare (type vm vm)
            (type (integer 0 6) index))
   (let ((frame (vm-current-frame vm)))
     (when frame
       (aref (vm-stack vm) (+ (vm-stack-ptr vm) index)))))
 
-(defun handle-ivar0 (vm) "IVAR0: Access local variable 0" (declare (type vm vm)) (push-stack vm (get-ivar vm 0)))
-(defun handle-ivar1 (vm) "IVAR1: Access local variable 1" (declare (type vm vm)) (push-stack vm (get-ivar vm 1)))
-(defun handle-ivar2 (vm) "IVAR2: Access local variable 2" (declare (type vm vm)) (push-stack vm (get-ivar vm 2)))
-(defun handle-ivar3 (vm) "IVAR3: Access local variable 3" (declare (type vm vm)) (push-stack vm (get-ivar vm 3)))
-(defun handle-ivar4 (vm) "IVAR4: Access local variable 4" (declare (type vm vm)) (push-stack vm (get-ivar vm 4)))
-(defun handle-ivar5 (vm) "IVAR5: Access local variable 5" (declare (type vm vm)) (push-stack vm (get-ivar vm 5)))
-(defun handle-ivar6 (vm) "IVAR6: Access local variable 6" (declare (type vm vm)) (push-stack vm (get-ivar vm 6)))
-
 (defun get-pvar (vm index)
-  "Get parameter variable at index from current frame"
+  "Get parameter variable at index from current frame."
   (declare (type vm vm)
            (type (integer 0 6) index))
   (let ((frame (vm-current-frame vm)))
     (when frame
       (aref (vm-stack vm) (- (vm-stack-ptr vm) 1 index)))))
 
-(defun handle-pvar0 (vm) "PVAR0: Access parameter 0" (declare (type vm vm)) (push-stack vm (get-pvar vm 0)))
-(defun handle-pvar1 (vm) "PVAR1: Access parameter 1" (declare (type vm vm)) (push-stack vm (get-pvar vm 1)))
-(defun handle-pvar2 (vm) "PVAR2: Access parameter 2" (declare (type vm vm)) (push-stack vm (get-pvar vm 2)))
-(defun handle-pvar3 (vm) "PVAR3: Access parameter 3" (declare (type vm vm)) (push-stack vm (get-pvar vm 3)))
-(defun handle-pvar4 (vm) "PVAR4: Access parameter 4" (declare (type vm vm)) (push-stack vm (get-pvar vm 4)))
-(defun handle-pvar5 (vm) "PVAR5: Access parameter 5" (declare (type vm vm)) (push-stack vm (get-pvar vm 5)))
-(defun handle-pvar6 (vm) "PVAR6: Access parameter 6" (declare (type vm vm)) (push-stack vm (get-pvar vm 6)))
-
 (defun get-fvar (vm index)
-  "Get free variable at index from closure.
-   FVAR accesses variables from enclosing lexical scopes.
-   The value is stored in the closure's environment."
+  "Get free variable at index from closure environment."
   (declare (type vm vm)
            (type (integer 0 6) index))
   (let ((current-frame (vm-current-frame vm)))
@@ -49,92 +322,15 @@
             (when closure-env
               (aref closure-env index))))))))
 
-(defun handle-fvar0 (vm)
-  "FVAR0: Access free variable 0 from closure"
-  (declare (type vm vm))
-  (push-stack vm (get-fvar vm 0)))
-
-(defun handle-fvar1 (vm)
-  "FVAR1: Access free variable 1 from closure"
-  (declare (type vm vm))
-  (push-stack vm (get-fvar vm 1)))
-
-(defun handle-fvar2 (vm)
-  "FVAR2: Access free variable 2 from closure"
-  (declare (type vm vm))
-  (push-stack vm (get-fvar vm 2)))
-
-(defun handle-fvar3 (vm)
-  "FVAR3: Access free variable 3 from closure"
-  (declare (type vm vm))
-  (push-stack vm (get-fvar vm 3)))
-
-(defun handle-fvar4 (vm)
-  "FVAR4: Access free variable 4 from closure"
-  (declare (type vm vm))
-  (push-stack vm (get-fvar vm 4)))
-
-(defun handle-fvar5 (vm)
-  "FVAR5: Access free variable 5 from closure"
-  (declare (type vm vm))
-  (push-stack vm (get-fvar vm 5)))
-
-(defun handle-fvar6 (vm)
-  "FVAR6: Access free variable 6 from closure"
-  (declare (type vm vm))
-  (push-stack vm (get-fvar vm 6)))
-
-(defun handle-gvar (vm operands)
-  "GVAR: Access global variable.
-   GVAR looks up a global variable by atom index and pushes its value.
-   Instruction: 5 bytes (opcode + 4-byte operand)
-   
-   Per Zig instruction_struct.zig:44-50:
-   For BIGVM: atom_index = [op0]<<24 | [op1]<<16 | [op2]<<8 | [op3]
-   Then mask with 0xFFFF for non-BIGATOMS Valspace access."
-  (declare (type vm vm)
-           (type list operands))
-  ;; Need 4 bytes of operands for BIGVM
-  (when (>= (length operands) 4)
-    ;; BIGVM byte order: [op0]<<24 | [op1]<<16 | [op2]<<8 | [op3]
-    (let ((atom-index (logior (ash (first operands) 24)
-                              (ash (second operands) 16)
-                              (ash (third operands) 8)
-                              (fourth operands))))
-      ;; For non-BIGATOMS: atom_index & 0xFFFF for Valspace access
-      (let ((valspace-index (logand atom-index #xFFFF)))
-        (format t "GVAR: atom-index=0x~X valspace-index=0x~X~%" atom-index valspace-index)
-        ;; Read value from value cell
-        (let ((value (maiko-lisp.data:read-atom-value vm valspace-index)))
-          (vm-push vm value)
-          (format t "  value=0x~X~%" value))))))
-
-(defun handle-arg0 (vm)
-  "ARG0: Access argument 0 (same as PVAR0)"
-  (declare (type vm vm))
-  (handle-pvar0 vm))
-
-(defun handle-myargcount (vm)
-  "MYARGCOUNT: Get argument count for current function"
-  (declare (type vm vm))
-  (let ((frame (vm-current-frame vm)))
-    (if frame
-        (let ((fn-header (sf-fn-header frame)))
-          (if fn-header
-              (push-stack vm (maiko-lisp.data:get-num-args fn-header))
-              (push-stack vm 0)))
-        (push-stack vm 0))))
-
 (defun set-pvar (vm index)
-  "Set parameter variable at index from stack"
+  "Set parameter variable at index from stack (pops TOS)."
   (declare (type vm vm)
            (type (integer 0 6) index))
   (pop-stack vm))
 
-(defun handle-pvarsetpop0 (vm) "PVARSETPOP0: Set parameter 0" (declare (type vm vm)) (set-pvar vm 0))
-(defun handle-pvarsetpop1 (vm) "PVARSETPOP1: Set parameter 1" (declare (type vm vm)) (set-pvar vm 1))
-(defun handle-pvarsetpop2 (vm) "PVARSETPOP2: Set parameter 2" (declare (type vm vm)) (set-pvar vm 2))
-(defun handle-pvarsetpop3 (vm) "PVARSETPOP3: Set parameter 3" (declare (type vm vm)) (set-pvar vm 3))
-(defun handle-pvarsetpop4 (vm) "PVARSETPOP4: Set parameter 4" (declare (type vm vm)) (set-pvar vm 4))
-(defun handle-pvarsetpop5 (vm) "PVARSETPOP5: Set parameter 5" (declare (type vm vm)) (set-pvar vm 5))
-(defun handle-pvarsetpop6 (vm) "PVARSETPOP6: Set parameter 6" (declare (type vm vm)) (set-pvar vm 6))
+(defun read-pc-32-be (vm)
+  "Read 32-bit big-endian value from PC and advance PC by 4."
+  (declare (type vm vm))
+  ;; This needs to be implemented based on VM structure
+  ;; Placeholder - actual implementation depends on VM PC handling
+  0)
