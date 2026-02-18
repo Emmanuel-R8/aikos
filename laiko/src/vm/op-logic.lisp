@@ -1,35 +1,70 @@
 (in-package :maiko-lisp.vm)
 
 ;; Bitwise and logical operations
-;; logand, logior, logxor, lognot, lsh
+;; logand, logior, logxor, lognot, lsh, llsh1, llsh8, lrsh1, lrsh8
+;; logor2, logand2, logxor2, hiloc, loloc
 
-(defun handle-logand (vm)
-  "LOGAND: Bitwise AND"
-  (declare (type vm vm))
+;;; ===========================================================================
+;; BITWISE OPERATIONS (Binary)
+;;; ===========================================================================
+
+(defop logand #xE0 1
+  "LOGAND: Bitwise AND.
+Pops B and A, pushes A AND B."
+  :operands nil
+  :stack-effect (:pop 2 :push 1)
+  :category :bit-operations
+  :side-effects nil
   (let ((b (pop-stack vm)) (a (pop-stack vm)))
     (push-stack vm (logand a b))))
 
-(defun handle-logior (vm)
-  "LOGIOR: Bitwise OR"
-  (declare (type vm vm))
+(defop logior #xE1 1
+  "LOGIOR: Bitwise inclusive OR.
+Pops B and A, pushes A OR B."
+  :operands nil
+  :stack-effect (:pop 2 :push 1)
+  :category :bit-operations
+  :side-effects nil
   (let ((b (pop-stack vm)) (a (pop-stack vm)))
     (push-stack vm (logior a b))))
 
-(defun handle-logxor (vm)
-  "LOGXOR: Bitwise XOR"
-  (declare (type vm vm))
+(defop logxor #xE2 1
+  "LOGXOR: Bitwise exclusive OR.
+Pops B and A, pushes A XOR B."
+  :operands nil
+  :stack-effect (:pop 2 :push 1)
+  :category :bit-operations
+  :side-effects nil
   (let ((b (pop-stack vm)) (a (pop-stack vm)))
     (push-stack vm (logxor a b))))
 
-(defun handle-lognot (vm)
-  "LOGNOT: Bitwise NOT"
-  (declare (type vm vm))
+;;; ===========================================================================
+;; BITWISE OPERATIONS (Unary)
+;;; ===========================================================================
+
+(defop lognot #xE3 1
+  "LOGNOT: Bitwise NOT (complement).
+Replaces TOS with its bitwise complement.
+Result is masked to 32 bits."
+  :operands nil
+  :stack-effect (:pop 1 :push 1)
+  :category :bit-operations
+  :side-effects nil
   (let ((value (get-top-of-stack vm)))
     (set-top-of-stack vm (logand (lognot value) #xFFFFFFFF))))
 
-(defun handle-lsh (vm)
-  "LSH: Logical shift"
-  (declare (type vm vm))
+;;; ===========================================================================
+;; SHIFT OPERATIONS
+;;; ===========================================================================
+
+(defop lsh #xEC 1
+  "LSH: Logical shift.
+Pops shift amount and value, shifts value left (positive) or right (negative).
+Shift amount is signed 32-bit."
+  :operands nil
+  :stack-effect (:pop 2 :push 1)
+  :category :bit-operations
+  :side-effects nil
   (let ((shift-amount (pop-stack vm))
         (value (pop-stack vm)))
     (let ((shift-signed (if (>= shift-amount #x80000000)
@@ -39,53 +74,100 @@
           (push-stack vm (ash value shift-signed))
           (push-stack vm (logand (ash value shift-signed) #xFFFFFFFF))))))
 
-(defun handle-llsh1 (vm)
-  "LLSH1: Logical left shift by 1"
-  (declare (type vm vm))
+(defop llsh1 #xE4 1
+  "LLSH1: Logical left shift by 1.
+Shifts TOS left by 1 bit, masks to 32 bits."
+  :operands nil
+  :stack-effect (:pop 1 :push 1)
+  :category :bit-operations
+  :side-effects nil
   (let ((value (get-top-of-stack vm)))
     (set-top-of-stack vm (logand (ash value 1) #xFFFFFFFF))))
 
-(defun handle-llsh8 (vm)
-  "LLSH8: Logical left shift by 8"
-  (declare (type vm vm))
+(defop llsh8 #xE5 1
+  "LLSH8: Logical left shift by 8.
+Shifts TOS left by 8 bits, masks to 32 bits."
+  :operands nil
+  :stack-effect (:pop 1 :push 1)
+  :category :bit-operations
+  :side-effects nil
   (let ((value (get-top-of-stack vm)))
     (set-top-of-stack vm (logand (ash value 8) #xFFFFFFFF))))
 
-(defun handle-lrsh1 (vm)
-  "LRSH1: Logical right shift by 1"
-  (declare (type vm vm))
+(defop lrsh1 #xE6 1
+  "LRSH1: Logical right shift by 1.
+Shifts TOS right by 1 bit."
+  :operands nil
+  :stack-effect (:pop 1 :push 1)
+  :category :bit-operations
+  :side-effects nil
   (let ((value (get-top-of-stack vm)))
     (set-top-of-stack vm (ash value -1))))
 
-(defun handle-lrsh8 (vm)
-  "LRSH8: Logical right shift by 8"
-  (declare (type vm vm))
+(defop lrsh8 #xE7 1
+  "LRSH8: Logical right shift by 8.
+Shifts TOS right by 8 bits."
+  :operands nil
+  :stack-effect (:pop 1 :push 1)
+  :category :bit-operations
+  :side-effects nil
   (let ((value (get-top-of-stack vm)))
     (set-top-of-stack vm (ash value -8))))
 
-(defun handle-logor2 (vm)
-  "LOGOR2: Bitwise OR (alternative name)"
-  (declare (type vm vm))
-  (handle-logior vm))
+;;; ===========================================================================
+;; ALTERNATE NAMES
+;;; ===========================================================================
 
-(defun handle-logand2 (vm)
-  "LOGAND2: Bitwise AND (alternative name)"
-  (declare (type vm vm))
-  (handle-logand vm))
+(defop logor2 #xE8 1
+  "LOGOR2: Bitwise OR (alternate for LOGIOR).
+Pops B and A, pushes A OR B."
+  :operands nil
+  :stack-effect (:pop 2 :push 1)
+  :category :bit-operations
+  :side-effects nil
+  (let ((b (pop-stack vm)) (a (pop-stack vm)))
+    (push-stack vm (logior a b))))
 
-(defun handle-logxor2 (vm)
-  "LOGXOR2: Bitwise XOR (alternative name)"
-  (declare (type vm vm))
-  (handle-logxor vm))
+(defop logand2 #xE9 1
+  "LOGAND2: Bitwise AND (alternate for LOGAND).
+Pops B and A, pushes A AND B."
+  :operands nil
+  :stack-effect (:pop 2 :push 1)
+  :category :bit-operations
+  :side-effects nil
+  (let ((b (pop-stack vm)) (a (pop-stack vm)))
+    (push-stack vm (logand a b))))
 
-(defun handle-hiloc (vm)
-  "HILOC: Get high 16 bits of address"
-  (declare (type vm vm))
+(defop logxor2 #xEA 1
+  "LOGXOR2: Bitwise XOR (alternate for LOGXOR).
+Pops B and A, pushes A XOR B."
+  :operands nil
+  :stack-effect (:pop 2 :push 1)
+  :category :bit-operations
+  :side-effects nil
+  (let ((b (pop-stack vm)) (a (pop-stack vm)))
+    (push-stack vm (logxor a b))))
+
+;;; ===========================================================================
+;; ADDRESS EXTRACTION
+;;; ===========================================================================
+
+(defop hiloc #xD2 1
+  "HILOC: Extract high 16 bits.
+Replaces TOS with upper 16 bits."
+  :operands nil
+  :stack-effect (:pop 1 :push 1)
+  :category :bit-operations
+  :side-effects nil
   (let ((value (get-top-of-stack vm)))
     (set-top-of-stack vm (ash value -16))))
 
-(defun handle-loloc (vm)
-  "LOLOC: Get low 16 bits of address"
-  (declare (type vm vm))
+(defop loloc #xD3 1
+  "LOLOC: Extract low 16 bits.
+Replaces TOS with lower 16 bits (masked)."
+  :operands nil
+  :stack-effect (:pop 1 :push 1)
+  :category :bit-operations
+  :side-effects nil
   (let ((value (get-top-of-stack vm)))
     (set-top-of-stack vm (logand value #xFFFF))))
