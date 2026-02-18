@@ -859,6 +859,18 @@ op_ufn:
   fn_num_args = entry68k->arg_num;
   fn_opcode_size = entry68k->byte_num + 1;
   fn_atom_index = entry68k->atom_name;
+  
+#ifdef INTROSPECT_ENABLED
+  /* Introspection: log UFN call */
+  if (g_introspect) {
+    char detail[64];
+    snprintf(detail, sizeof(detail), "opcode:0x%02X, args:%d, size:%d",
+             Get_BYTE_PCMAC0, fn_num_args, fn_opcode_size);
+    introspect_event(g_introspect, "ufn", "call", 0, fn_atom_index, fn_atom_index,
+                     "ufn_dispatch", detail);
+  }
+#endif
+  
   fn_defcell = (DefCell *)GetDEFCELL68k(fn_atom_index);
   fn_apply = 2 + entry68k->byte_num; /* code for UFN entry */
   goto op_fn_common;

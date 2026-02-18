@@ -21,6 +21,11 @@
 #include "lspglob.h"     // for AtomSpace
 #include "lsptypes.h"
 
+#ifdef INTROSPECT_ENABLED
+#include "introspect/introspect.h"
+extern IntrospectDB *g_introspect;
+#endif
+
 /************************************************************************/
 /*									*/
 /*			    N _ O P _ g v a r _				*/
@@ -52,6 +57,14 @@ LispPTR N_OP_gvar_(LispPTR tos, unsigned int atom_index) {
     pslot = (LispPTR *)Valspace + atom_index;
 #endif /* BIGVM */
   DEBUGGER(if (tos & 0xF0000000) error("Setting GVAR with high bits on"));
+  
+#ifdef INTROSPECT_ENABLED
+  /* Introspection: trace value cell write */
+  if (g_introspect) {
+    introspect_atom_cell(g_introspect, atom_index, "write", tos, 0);
+  }
+#endif
+  
   FRPLPTR(((struct xpointer *)pslot)->addr, tos);
   return (tos);
 }

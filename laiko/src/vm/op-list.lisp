@@ -105,9 +105,9 @@
       (progn
         (loop repeat n
               do (if (zerop list)
-                      (return 0)
-                      (let* ((cell (maiko-lisp.memory:get-cons-cell (vm-storage vm) list)))
-                        (setf list (maiko-lisp.data:get-cdr cell list)))))
+                     (return 0)
+                     (let* ((cell (maiko-lisp.memory:get-cons-cell (vm-storage vm) list)))
+                       (setf list (maiko-lisp.data:get-cdr cell list)))))
         list)))
 
 (defun handle-nth (vm)
@@ -121,124 +121,124 @@
           (let ((cell (maiko-lisp.memory:get-cons-cell (vm-storage vm) result)))
             (push-stack vm (maiko-lisp.data:get-car cell))))))
 
-(defun handle-nthcdr (vm)
-  "NTHCDR: Get nth cdr of list (0-based)"
-  (declare (type vm vm))
-  (let ((n (pop-stack vm))
-        (list (pop-stack vm)))
-    (push-stack vm (vm-nthcdr vm n list))))
+  (defun handle-nthcdr (vm)
+    "NTHCDR: Get nth cdr of list (0-based)"
+    (declare (type vm vm))
+    (let ((n (pop-stack vm))
+          (list (pop-stack vm)))
+      (push-stack vm (vm-nthcdr vm n list))))
 
-(defun handle-last (vm)
-  "LAST: Get last cons cell of list"
-  (declare (type vm vm))
-  (let ((list (pop-stack vm)))
+  (defun handle-last (vm)
+    "LAST: Get last cons cell of list"
+    (declare (type vm vm))
+    (let ((list (pop-stack vm)))
+      (if (zerop list)
+          (push-stack vm 0)
+          (let* ((curr list)
+                 (cell (maiko-lisp.memory:get-cons-cell (vm-storage vm) list))
+                 (cdr-val (maiko-lisp.data:get-cdr cell list)))
+            (loop while (not (zerop cdr-val))
+                  do (setf curr cdr-val)
+                     (setf cell (maiko-lisp.memory:get-cons-cell (vm-storage vm) cdr-val))
+                     (setf cdr-val (maiko-lisp.data:get-cdr cell cdr-val)))
+            (push-stack vm curr)))))
+
+  (defun list-length-helper (vm list)
+    "Helper to compute list length recursively"
+    (declare (type vm vm)
+             (type maiko-lisp.utils:lisp-ptr list))
     (if (zerop list)
-        (push-stack vm 0)
-        (let* ((curr list)
-               (cell (maiko-lisp.memory:get-cons-cell (vm-storage vm) list))
+        0
+        (let* ((cell (maiko-lisp.memory:get-cons-cell (vm-storage vm) list))
                (cdr-val (maiko-lisp.data:get-cdr cell list)))
-          (loop while (not (zerop cdr-val))
-                do (setf curr cdr-val)
-                   (setf cell (maiko-lisp.memory:get-cons-cell (vm-storage vm) cdr-val))
-                   (setf cdr-val (maiko-lisp.data:get-cdr cell cdr-val)))
-          (push-stack vm curr)))))
+          (1+ (list-length-helper vm cdr-val)))))
 
-(defun list-length-helper (vm list)
-  "Helper to compute list length recursively"
-  (declare (type vm vm)
-           (type maiko-lisp.utils:lisp-ptr list))
-  (if (zerop list)
-      0
-      (let* ((cell (maiko-lisp.memory:get-cons-cell (vm-storage vm) list))
-             (cdr-val (maiko-lisp.data:get-cdr cell list)))
-        (1+ (list-length-helper vm cdr-val)))))
+  (defun handle-list-length (vm)
+    "LISTLENGTH: Get length of list"
+    (declare (type vm vm))
+    (let ((list (pop-stack vm)))
+      (let ((len (if (zerop list) 0 (list-length-helper vm list))))
+        (push-stack vm (ash len 1)))))
 
-(defun handle-list-length (vm)
-  "LISTLENGTH: Get length of list"
-  (declare (type vm vm))
-  (let ((list (pop-stack vm)))
-    (let ((len (if (zerop list) 0 (list-length-helper vm list))))
-      (push-stack vm (ash len 1)))))
-
-(defun handle-append (vm)
-  "APPEND: Append two lists"
-  (declare (type vm vm))
-  (let ((list2 (pop-stack vm))
-        (list1 (pop-stack vm)))
-    (if (zerop list1)
-        (push-stack vm list2)
-        (let ((copy (vm-copy-list vm list1)))
-          (let ((last-cell (lastcdr vm copy)))
-            (maiko-lisp.data:set-cdr
-             (maiko-lisp.memory:get-cons-cell (vm-storage vm) last-cell)
-             last-cell
-             list2))
+  (defun handle-append (vm)
+    "APPEND: Append two lists"
+    (declare (type vm vm))
+    (let ((list2 (pop-stack vm))
+          (list1 (pop-stack vm)))
+      (if (zerop list1)
+          (push-stack vm list2)
+          (let ((copy (vm-copy-list vm list1)))
+            (let ((last-cell (lastcdr vm copy)))
+              (maiko-lisp.data:set-cdr
+               (maiko-lisp.memory:get-cons-cell (vm-storage vm) last-cell)
+               last-cell
+               list2))
             (push-stack vm copy))))
 
-(defun handle-reverse (vm)
-  "REVERSE: Reverse a list"
-  (declare (type vm vm))
-  (let ((list (pop-stack vm)))
-    (let ((result 0))
-      (loop while (not (zerop list))
-            do (let* ((cell (maiko-lisp.memory:get-cons-cell (vm-storage vm) list))
-                      (car-val (maiko-lisp.data:get-car cell)))
-                 (let ((new-cell (maiko-lisp.memory:allocate-cons-cell (vm-storage vm))))
-                   (maiko-lisp.data:set-car
-                    (maiko-lisp.memory:get-cons-cell (vm-storage vm) new-cell)
-                    car-val)
-                   (maiko-lisp.data:set-cdr
-                    (maiko-lisp.memory:get-cons-cell (vm-storage vm) new-cell)
-                    new-cell
-                    result)
-                   (setf result new-cell)
-                   (setf list (maiko-lisp.data:get-cdr cell list)))))
-      (push-stack vm result))))
+    (defun handle-reverse (vm)
+      "REVERSE: Reverse a list"
+      (declare (type vm vm))
+      (let ((list (pop-stack vm)))
+        (let ((result 0))
+          (loop while (not (zerop list))
+                do (let* ((cell (maiko-lisp.memory:get-cons-cell (vm-storage vm) list))
+                          (car-val (maiko-lisp.data:get-car cell)))
+                     (let ((new-cell (maiko-lisp.memory:allocate-cons-cell (vm-storage vm))))
+                       (maiko-lisp.data:set-car
+                        (maiko-lisp.memory:get-cons-cell (vm-storage vm) new-cell)
+                        car-val)
+                       (maiko-lisp.data:set-cdr
+                        (maiko-lisp.memory:get-cons-cell (vm-storage vm) new-cell)
+                        new-cell
+                        result)
+                       (setf result new-cell)
+                       (setf list (maiko-lisp.data:get-cdr cell list)))))
+          (push-stack vm result))))
 
-(defun vm-copy-list (vm list)
-  "Shallow copy of a list"
-  (declare (type vm vm)
-           (type maiko-lisp.utils:lisp-ptr list))
-  (if (zerop list)
-      0
-      (let ((result 0)
-            (last-new 0))
-        (loop with curr = list
-              while (not (zerop curr))
-              do (let* ((cell (maiko-lisp.memory:get-cons-cell (vm-storage vm) curr))
-                        (car-val (maiko-lisp.data:get-car cell)))
-                   (let ((new-cell (maiko-lisp.memory:allocate-cons-cell (vm-storage vm))))
-                     (maiko-lisp.data:set-car
-                      (maiko-lisp.memory:get-cons-cell (vm-storage vm) new-cell)
-                      car-val)
-                     (maiko-lisp.data:set-cdr
-                      (maiko-lisp.memory:get-cons-cell (vm-storage vm) new-cell)
-                      new-cell
-                      0)
-                     (if (zerop result)
-                         (setf result new-cell)
+    (defun vm-copy-list (vm list)
+      "Shallow copy of a list"
+      (declare (type vm vm)
+               (type maiko-lisp.utils:lisp-ptr list))
+      (if (zerop list)
+          0
+          (let ((result 0)
+                (last-new 0))
+            (loop with curr = list
+                  while (not (zerop curr))
+                  do (let* ((cell (maiko-lisp.memory:get-cons-cell (vm-storage vm) curr))
+                            (car-val (maiko-lisp.data:get-car cell)))
+                       (let ((new-cell (maiko-lisp.memory:allocate-cons-cell (vm-storage vm))))
+                         (maiko-lisp.data:set-car
+                          (maiko-lisp.memory:get-cons-cell (vm-storage vm) new-cell)
+                          car-val)
                          (maiko-lisp.data:set-cdr
-                          (maiko-lisp.memory:get-cons-cell (vm-storage vm) last-new)
-                          last-new
-                          new-cell))
-                     (setf last-new new-cell)))
-              (setf curr (maiko-lisp.data:get-cdr
-                          (maiko-lisp.memory:get-cons-cell (vm-storage vm) curr)
-                          curr)))
-        result)))
+                          (maiko-lisp.memory:get-cons-cell (vm-storage vm) new-cell)
+                          new-cell
+                          0)
+                         (if (zerop result)
+                             (setf result new-cell)
+                             (maiko-lisp.data:set-cdr
+                              (maiko-lisp.memory:get-cons-cell (vm-storage vm) last-new)
+                              last-new
+                              new-cell))
+                         (setf last-new new-cell)))
+                     (setf curr (maiko-lisp.data:get-cdr
+                                 (maiko-lisp.memory:get-cons-cell (vm-storage vm) curr)
+                                 curr)))
+            result)))
 
-(defun lastcdr (vm list)
-  "Get the last cdr of a list (the NIL at the end)"
-  (declare (type vm vm)
-           (type maiko-lisp.utils:lisp-ptr list))
-  (if (zerop list)
-      0
-      (let* ((curr list)
-             (cell (maiko-lisp.memory:get-cons-cell (vm-storage vm) list))
-             (cdr-val (maiko-lisp.data:get-cdr cell list)))
-        (loop while (not (zerop cdr-val))
-              do (setf curr cdr-val)
-                 (setf cell (maiko-lisp.memory:get-cons-cell (vm-storage vm) cdr-val))
-                 (setf cdr-val (maiko-lisp.data:get-cdr cell cdr-val)))
-        curr)))
-))
+    (defun lastcdr (vm list)
+      "Get the last cdr of a list (the NIL at the end)"
+      (declare (type vm vm)
+               (type maiko-lisp.utils:lisp-ptr list))
+      (if (zerop list)
+          0
+          (let* ((curr list)
+                 (cell (maiko-lisp.memory:get-cons-cell (vm-storage vm) list))
+                 (cdr-val (maiko-lisp.data:get-cdr cell list)))
+            (loop while (not (zerop cdr-val))
+                  do (setf curr cdr-val)
+                     (setf cell (maiko-lisp.memory:get-cons-cell (vm-storage vm) cdr-val))
+                     (setf cdr-val (maiko-lisp.data:get-cdr cell cdr-val)))
+            curr)))))
+

@@ -6,13 +6,13 @@
   :version "0.1.0"
   :author "Maiko Project"
   :license "Same as Maiko"
-  :depends-on (
-               ;; Optional dependencies (will use if available):
-               ;; :uiop
-               ;; :alexandria
-               ;; :cl-sdl3
-               ;; :cl-sdl3-image
-               )
+  :depends-on ()
+  ;; Optional dependencies (will use if available):
+  ;; :uiop
+  ;; :alexandria
+  ;; :cl-sdl3
+  ;; :cl-sdl3-image
+  
   :components ((:module "src"
                 :components
                 ((:file "package")
@@ -22,16 +22,16 @@
                   ((:file "types")
                    (:file "errors")
                    (:file "address")))
-                  (:module "data"
-                   :pathname "data"
-                   :components
-                   ((:file "cons")
-                    (:file "array")
-                    (:file "function-header")
-                    (:file "bytecode")
-                    (:file "frame-extension" :depends-on ("bytecode"))
-                    (:file "sysout-utils")
-                    (:file "sysout")))
+                 (:module "data"
+                  :pathname "data"
+                  :components
+                  ((:file "cons")
+                   (:file "array")
+                   (:file "function-header")
+                   (:file "bytecode")
+                   (:file "frame-extension" :depends-on ("bytecode"))
+                   (:file "sysout-utils")
+                   (:file "sysout")))
                  (:module "memory"
                   :pathname "memory"
                   :components
