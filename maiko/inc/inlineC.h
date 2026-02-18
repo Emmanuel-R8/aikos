@@ -1,24 +1,8 @@
 #ifndef INLINEC_H
 #define INLINEC_H 1
 
-/* $Id: inlineC.h,v 1.3 1999/01/03 02:06:02 sybalsky Exp $ (C) Copyright Venue, All Rights Reserved */
-
-/************************************************************************/
-/*                                                                      */
-/*      (C) Copyright 1989-92 Venue. All Rights Reserved.               */
-/*      Manufactured in the United States of America.                   */
-/*                                                                      */
-/************************************************************************/
-
-/*
-        These are the Macros Used to generate inline c code.
-        These are the goto ni definitions of the opcodes.
-*/
-
-/* Introspection tracing - include before other headers */
-#ifdef INTROSPECT_ENABLED
-#include "introspect_trace.h"
-#endif
+/* $Id: inlineC.h,v 1.3 1999/01/03 02:06:02 sybalsky Exp $ (C) Copyright Venue, All Rights Reserved
+ */
 
 /************************************************************************/
 /*                                                                      */
@@ -351,35 +335,29 @@
 #ifndef BIGATOMS
 #define GVAR(x)                               \
   do {                                        \
-    LispPTR _gvar_val = GetLongWord(Valspace + ((x) << 1)); \
-    INTROSPECT_ATOM_READ(x, _gvar_val); \
-    PUSH(_gvar_val); \
+    PUSH(GetLongWord(Valspace + ((x) << 1))); \
     nextop_atom;                              \
   } while (0)
 #elif defined(BIGVM)
 #define GVAR(x)                                                                  \
   do {                                                                           \
     LispPTR tx = x;                                                         \
-    LispPTR _gvar_val; \
     if (tx & SEGMASK) {                                                          \
-      _gvar_val = GetLongWord(NativeAligned4FromLAddr((tx) + NEWATOM_VALUE_OFFSET));        \
+      PUSH(GetLongWord(NativeAligned4FromLAddr((tx) + NEWATOM_VALUE_OFFSET)));        \
     } else                                                                       \
-      _gvar_val = GetLongWord((LispPTR *)AtomSpace + (tx * 5) + NEWATOM_VALUE_PTROFF); \
-    INTROSPECT_ATOM_READ(tx, _gvar_val); \
-    PUSH(_gvar_val);                                                                 \
+      PUSH(GetLongWord((LispPTR *)AtomSpace + (tx * 5) + NEWATOM_VALUE_PTROFF)); \
+                                                                                 \
     nextop_atom;                                                                 \
   } while (0)
 #else
 #define GVAR(x)                                                           \
   do {                                                                    \
     LispPTR tx = x;                                                  \
-    LispPTR _gvar_val; \
     if (tx & SEGMASK) {                                                   \
-      _gvar_val = GetLongWord(NativeAligned4FromLAddr((tx) + NEWATOM_VALUE_OFFSET)); \
+      PUSH(GetLongWord(NativeAligned4FromLAddr((tx) + NEWATOM_VALUE_OFFSET))); \
     } else                                                                \
-      _gvar_val = GetLongWord(Valspace + ((tx) << 1));                          \
-    INTROSPECT_ATOM_READ(tx, _gvar_val); \
-    PUSH(_gvar_val);                                                          \
+      PUSH(GetLongWord(Valspace + ((tx) << 1)));                          \
+                                                                          \
     nextop_atom;                                                          \
   } while (0)
 #endif /* BIGATOMS */
