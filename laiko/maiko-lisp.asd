@@ -39,26 +39,27 @@
                    (:file "gc")
                    (:file "virtual")
                    (:file "layout")))
-                 (:module "vm"
-                  :pathname "vm"
-                  :components
-                  ((:file "stack")
-                   (:file "interrupt")
-                   (:file "trace")
-                   (:file "dispatch")
-                   (:file "op-stack")
-                   (:file "op-arithmetic")
-                   (:file "op-list")
-                   (:file "op-comparison")
-                   (:file "op-variable")
-                   (:file "op-control")
-                   (:file "op-memory")
-                   (:file "op-logic")
-                   (:file "op-const")
-                   (:file "op-misc")
-                   (:file "op-graphics")
-                   (:file "opcodes-main")
-                   (:file "function")))
+                  (:module "vm"
+                   :pathname "vm"
+                   :components
+                   ((:file "stack")
+                    (:file "interrupt")
+                    (:file "trace")
+                    (:file "op-macros")
+                    (:file "dispatch" :depends-on ("op-macros"))
+                    (:file "op-stack" :depends-on ("op-macros" "dispatch"))
+                    (:file "op-arithmetic" :depends-on ("op-macros" "dispatch"))
+                    (:file "op-list" :depends-on ("op-macros" "dispatch"))
+                    (:file "op-comparison" :depends-on ("op-macros" "dispatch"))
+                    (:file "op-variable" :depends-on ("op-macros" "dispatch"))
+                    (:file "op-control" :depends-on ("op-macros" "dispatch"))
+                    (:file "op-memory" :depends-on ("op-macros" "dispatch"))
+                    (:file "op-logic" :depends-on ("op-macros" "dispatch"))
+                    (:file "op-const" :depends-on ("op-macros" "dispatch"))
+                    (:file "op-misc" :depends-on ("op-macros" "dispatch"))
+                    (:file "op-graphics" :depends-on ("op-macros" "dispatch"))
+                    (:file "opcodes-main" :depends-on ("op-macros" "dispatch"))
+                    (:file "function")))
                  (:module "io"
                   :pathname "io"
                   :components

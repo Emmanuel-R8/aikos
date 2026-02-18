@@ -67,8 +67,7 @@
 
               # SQLite for introspection module
               sqlite
-              sqlitestudio
-              sqlite-interactive
+              sqlit-tui
               sqlite.dev # SQLite development headers
               sqlite.out # SQLite runtime library
 
