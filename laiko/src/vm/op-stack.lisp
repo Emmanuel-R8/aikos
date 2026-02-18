@@ -7,41 +7,71 @@
 ;; Per C/Zig, the stack is within virtual_memory at Stackspace offset.
 ;; Use vm-push/vm-pop for virtual memory stack operations.
 
-(defun handle-nil (vm)
-  "NIL: Push NIL (0) onto stack"
-  (declare (type vm vm))
+;;; ===========================================================================
+;;; CONSTANTS
+;;; ===========================================================================
+
+(defop nil #x69 1
+  "NIL: Push NIL (0) onto the stack."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :constants
+  :side-effects nil
   (vm-push vm 0))
 
-(defun handle-t (vm)
-  "T: Push T (1) onto stack"
-  (declare (type vm vm))
+(defop t #x6A 1
+  "T: Push T (the symbol T, value 1) onto the stack."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :constants
+  :side-effects nil
   (vm-push vm 1))
 
-(defun handle-pop (vm)
-  "POP: Pop value from stack.
-   Per C: POP macro pops and discards top of stack."
-  (declare (type vm vm))
-  (format t "POP: executing~%")
+(defop const-0 #x6B 1
+  "CONST_0: Push the small positive integer 0 onto the stack."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :constants
+  :side-effects nil
+  (vm-push vm 0))
+
+(defop const-1 #x6C 1
+  "CONST_1: Push the small positive integer 1 onto the stack."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :constants
+  :side-effects nil
+  (vm-push vm 1))
+
+;;; ===========================================================================
+;;; STACK OPERATIONS
+;;; ===========================================================================
+
+(defop pop #xBF 1
+  "POP: Pop and discard the top of stack."
+  :operands nil
+  :stack-effect (:pop 1)
+  :category :stack-operations
+  :side-effects nil
   (vm-pop vm)
   nil)
 
-(defun handle-push (vm)
-  "PUSH: Push value onto stack"
-  (declare (type vm vm))
-  (vm-push vm 0))
+(defop copy #x64 1
+  "COPY: Duplicate the top of stack."
+  :operands nil
+  :stack-effect (:pop 1 :push 2)
+  :category :stack-operations
+  :side-effects nil
+  (let ((tos (vm-peek vm)))
+    (vm-push vm tos)))
 
-(defun handle-push-constant (vm value)
-  "PUSH with constant value"
-  (declare (type vm vm)
-           (type maiko-lisp.utils:lisp-ptr value))
-  (vm-push vm value))
+;;; ===========================================================================
+;;; UNDEFINED OPCODES IN THIS RANGE
+;;; ===========================================================================
 
-(defun handle-const-0 (vm)
-  "CONST_0: Push 0 onto stack"
-  (declare (type vm vm))
-  (vm-push vm 0))
+;; Opcodes 0x6D-0x6F are SIC, SNIC, SICX, GCONST - defined elsewhere
+;; Mark any truly unused opcodes in this range
 
-(defun handle-const-1 (vm)
-  "CONST_1: Push 1 onto stack"
-  (declare (type vm vm))
-  (vm-push vm 1))
+(defop-undefined unused-6B #x6B
+  :reason "Opcode 0x6B not used"
+  :category :constants)

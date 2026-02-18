@@ -1,3 +1,5 @@
 {
-  "cmake.sourceDirectory": "/home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/maiko"
+  "cmake.sourceDirectory": "/home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/maiko",
+  "kdb.connectionMap": {},
+  "kdb.targetMap": {}
 }
