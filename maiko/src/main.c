@@ -1178,6 +1178,23 @@ int main(int argc, char *argv[])
     if (g_introspect)
     {
       introspect_start_session(g_introspect, sysout_name, "introspection run");
+      
+      /* Record build configuration */
+      introspect_build_config(g_introspect,
+#ifdef BIGVM
+                              1,
+#else
+                              0,
+#endif
+#ifdef BIGATOMS
+                              1,
+#else
+                              0,
+#endif
+                              VALS_OFFSET, ATOMS_OFFSET, STK_OFFSET,
+                              0, /* total_vm_size - TODO */
+                              BYTESPER_PAGE);
+      
       introspect_phase(g_introspect, "startup");
       /* Flush immediately after each phase for crash safety */
       introspect_flush(g_introspect);
@@ -1240,6 +1257,26 @@ int main(int argc, char *argv[])
   if (g_introspect)
   {
     introspect_phase(g_introspect, "after_sysout_load");
+    
+    /* Record runtime configuration after sysout load */
+    introspect_runtime_config(g_introspect,
+                              (uint64_t)(uintptr_t)Valspace,
+                              (uint64_t)(uintptr_t)AtomSpace,
+                              (uint64_t)(uintptr_t)Stackspace,
+                              sysout_name,
+                              sysout_size,
+                              0,  /* total_pages_loaded - TODO */
+                              0); /* sparse_pages_count - TODO */
+    
+    /* Memory snapshots at key locations */
+    introspect_memory_snapshot(g_introspect, "after_sysout_load", 
+                               "vals_start", VALS_OFFSET, 
+                               *(uint32_t*)Valspace);
+    introspect_memory_snapshot(g_introspect, "after_sysout_load",
+                               "atom_522_value",
+                               VALS_OFFSET + 522 * 4,
+                               *(uint32_t*)(Valspace + 522 * 2)); /* 16-bit offset */
+    
     introspect_flush(g_introspect);
   }
 #endif
@@ -1251,6 +1288,16 @@ int main(int argc, char *argv[])
   if (g_introspect)
   {
     introspect_phase(g_introspect, "after_build_lisp_map");
+    
+    /* Memory snapshots after build_lisp_map */
+    introspect_memory_snapshot(g_introspect, "after_build_lisp_map",
+                               "vals_start", VALS_OFFSET,
+                               *(uint32_t*)Valspace);
+    introspect_memory_snapshot(g_introspect, "after_build_lisp_map",
+                               "atom_522_value",
+                               VALS_OFFSET + 522 * 4,
+                               *(uint32_t*)(Valspace + 522 * 2));
+    
     introspect_flush(g_introspect);
   }
 #endif
@@ -1288,6 +1335,22 @@ int main(int argc, char *argv[])
   if (g_introspect)
   {
     introspect_phase(g_introspect, "before_dispatch");
+    
+    /* Final memory snapshots before execution starts */
+    introspect_memory_snapshot(g_introspect, "before_dispatch",
+                               "vals_start", VALS_OFFSET,
+                               *(uint32_t*)Valspace);
+    introspect_memory_snapshot(g_introspect, "before_dispatch",
+                               "atom_522_value",
+                               VALS_OFFSET + 522 * 4,
+                               *(uint32_t*)(Valspace + 522 * 2));
+    introspect_memory_snapshot(g_introspect, "before_dispatch",
+                               "ifpage_key", 512 + 34,
+                               InterfacePage->key);
+    introspect_memory_snapshot(g_introspect, "before_dispatch",
+                               "current_fp", 0,
+                               (uint64_t)(uintptr_t)CurrentFXP);
+    
     introspect_flush(g_introspect);
   }
 #endif

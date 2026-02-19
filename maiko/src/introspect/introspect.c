@@ -8,6 +8,8 @@
 #include <string.h>
 #include <errno.h>
 
+#include <sqlite3.h>
+
 #include "introspect.h"
 #include "introspect_internal.h"
 
