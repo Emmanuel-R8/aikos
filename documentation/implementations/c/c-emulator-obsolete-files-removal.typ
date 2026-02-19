@@ -129,13 +129,89 @@ These X11 display files were removed as SDL is now the primary backend:
   [`ether_sunos.c`], [SunOS NIT ethernet (obsolete, replaced by Nethub)],
 )
 
+== Dead Code Removal (2026-02-19)
+
+In addition to removing obsolete files, dead code blocks guarded by undefined preprocessor macros
+were removed from the following source files. These blocks were never compiled because their guard
+macros were never defined in the build system.
+
+=== Removed Preprocessor Blocks
+
+#table(
+  columns: (auto, auto, 1fr),
+  [*File*], [*Guard Macro*], [*Description*],
+  [`main.c`], [`RS232`], [RS232 serial port initialization call],
+  [`main.c`], [`LPSOLVE`], [lp_solve info printing],
+  [`main.c`], [`BIGBIGVM`], [256MB virtual memory support info],
+  [`main.c`], [`NOVERSION`], [Version check bypass info],
+  [`main.c`], [`NOEUROKBD`], [European keyboard support info],
+  [`subr.c`], [`RS232`], [sb_RS232C_CMD, sb_RS232C_READ_INIT, sb_RS232C_WRITE],
+  [`subr.c`], [`TRUECOLOR`], [sb_TRUE_COLOR_OP case block],
+  [`subr.c`], [`VIDEO`], [sb_VIDEO_OP case block],
+  [`subr.c`], [`MNW`], [sb_FILL_IN, sb_QUERY_WINDOWS, sb_MNW_OP],
+  [`subr.c`], [`LPSOLVE`], [sb_LP_SETUP, sb_LP_RUN],
+  [`miscn.c`], [`RS232`], [miscn_RAW_RS232C_OPEN, miscn_RAW_RS232C_CLOSE, etc.],
+  [`miscn.c`], [`JLISP`], [miscn_EJLISP case block],
+  [`keyevent.c`], [`RS232`], [RS232 read interrupt handling],
+  [`initdsp.c`], [`TRUECOLOR`], [Truecolor exit cleanup],
+  [`uraid.c`], [`TRUECOLOR`], [Truecolor after raid cleanup],
+  [`unwind.c`], [`CATCH`], [Entire CATCH mechanism (~100 lines)],
+  [`bbtsub.c`], [`NEWBITBLT`], [9 alternative bitblt blocks],
+)
+
+=== Details by Feature Area
+
+==== RS232 Serial Communication
+The RS232 serial communication support was removed from `main.c`, `subr.c`, `miscn.c`, and
+`keyevent.c`. This includes:
+- Serial port initialization
+- Serial I/O subroutines
+- Raw RS232C operations
+- RS232 interrupt handling
+
+==== TRUECOLOR Display
+TrueColor display support was removed from `subr.c`, `initdsp.c`, and `uraid.c`. The SDL backend
+handles all color modes without needing separate truecolor code paths.
+
+==== VIDEO Operations
+Video operation support (`sb_VIDEO_OP`) was removed from `subr.c`. This was never fully implemented.
+
+==== MNW (Medley Native Windows)
+MNW method support was removed from `subr.c`. This X11-specific window management was superseded by
+SDL.
+
+==== LPSOLVE (Linear Programming)
+Linear programming solver support was removed from `main.c` and `subr.c`. The LP solver files were
+already removed in the earlier file cleanup.
+
+==== JLISP (Japanese Lisp)
+Japanese EUC Lisp interface was removed from `miscn.c`. The Japanese support files (`codeconv.c`,
+`codetbl.c`, `ejlisp.c`) were already removed in the earlier file cleanup.
+
+==== CATCH Mechanism
+The CATCH mechanism in `unwind.c` was an experimental error handling approach that was never
+completed. Approximately 100 lines of code were removed, including:
+- `find_the_blip()` function
+- `variable_name_in_frame()` function
+- `pvar_value_in_frame()` function
+
+==== NEWBITBLT Alternative Implementation
+Nine `#ifdef NEWBITBLT` blocks were removed from `bbtsub.c`. These guarded alternative BitBLT
+implementations that were never enabled. The working `#else` branches using `new_bitblt_code` and
+`new_char_bitblt_code` macros were preserved.
+
+==== Feature Flags
+The following feature flags were removed from `main.c`:
+- `BIGBIGVM`: Support for 256MB virtual memory (standard VM is sufficient)
+- `NOVERSION`: Bypass version checking (no longer needed)
+- `NOEUROKBD`: European keyboard support (handled by SDL)
+
 == Current Platform Support
 
 After this cleanup, the Maiko C emulator supports the following platforms:
 
 === Display Backends
 - *SDL2*: Primary display backend (recommended)
-- *X11*: Legacy X Window System support (still available)
 
 === Network Backends
 - *Nethub*: TCP-based network emulation (recommended)
@@ -148,7 +224,7 @@ After this cleanup, the Maiko C emulator supports the following platforms:
 == Build Verification
 
 All removed files were already excluded from the CMake build configuration (`maiko/CMakeLists.txt`).
-The build was verified after removal:
+The build was verified after each removal phase:
 
 ```text
 cmake -DMAIKO_INTROSPECT_ENABLED=ON --fresh .
@@ -159,9 +235,10 @@ Result: Build completed successfully (100% - ldesdl, setsout, tstsout built).
 
 == Impact Assessment
 
-- *No functional changes*: All removed files were already not being compiled
+- *No functional changes*: All removed files and code blocks were already not being compiled
 - *No API changes*: No public interfaces were affected
 - *Documentation updates*: Platform abstraction documentation updated to reflect current support
+- *Code reduction*: ~200 lines of dead code removed from 8 source files
 
 == Related Documentation
 
