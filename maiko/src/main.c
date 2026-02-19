@@ -1268,14 +1268,15 @@ int main(int argc, char *argv[])
                               0,  /* total_pages_loaded - TODO */
                               0); /* sparse_pages_count - TODO */
     
-    /* Memory snapshots at key locations */
+    /* Memory snapshots at key locations - disabled for now due to potential invalid memory access
     introspect_memory_snapshot(g_introspect, "after_sysout_load", 
                                "vals_start", VALS_OFFSET, 
                                *(uint32_t*)Valspace);
     introspect_memory_snapshot(g_introspect, "after_sysout_load",
                                "atom_522_value",
                                VALS_OFFSET + 522 * 4,
-                               *(uint32_t*)(Valspace + 522 * 2)); /* 16-bit offset */
+                               *(uint32_t*)(Valspace + 522 * 2));
+    */
     
     introspect_flush(g_introspect);
   }
@@ -1289,7 +1290,7 @@ int main(int argc, char *argv[])
   {
     introspect_phase(g_introspect, "after_build_lisp_map");
     
-    /* Memory snapshots after build_lisp_map */
+    /* Memory snapshots disabled for now 
     introspect_memory_snapshot(g_introspect, "after_build_lisp_map",
                                "vals_start", VALS_OFFSET,
                                *(uint32_t*)Valspace);
@@ -1297,6 +1298,7 @@ int main(int argc, char *argv[])
                                "atom_522_value",
                                VALS_OFFSET + 522 * 4,
                                *(uint32_t*)(Valspace + 522 * 2));
+    */
     
     introspect_flush(g_introspect);
   }
@@ -1336,7 +1338,7 @@ int main(int argc, char *argv[])
   {
     introspect_phase(g_introspect, "before_dispatch");
     
-    /* Final memory snapshots before execution starts */
+    /* Memory snapshots disabled for now
     introspect_memory_snapshot(g_introspect, "before_dispatch",
                                "vals_start", VALS_OFFSET,
                                *(uint32_t*)Valspace);
@@ -1350,6 +1352,7 @@ int main(int argc, char *argv[])
     introspect_memory_snapshot(g_introspect, "before_dispatch",
                                "current_fp", 0,
                                (uint64_t)(uintptr_t)CurrentFXP);
+    */
     
     introspect_flush(g_introspect);
   }
