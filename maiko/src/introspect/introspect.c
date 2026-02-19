@@ -435,3 +435,180 @@ void introspect_set_enabled(IntrospectDB *db, int enabled)
     db->enabled = enabled;
   }
 }
+
+/* ============================================================================
+ * MEMORY DEBUGGING TABLE IMPLEMENTATIONS
+ * ============================================================================ */
+
+void introspect_build_config(IntrospectDB *db, int bigvm, int bigatoms,
+                              uint64_t vals_offset, uint64_t atoms_offset,
+                              uint64_t stackspace_offset,
+                              uint64_t total_vm_size, uint64_t page_size)
+{
+  INTROSPECT_CHECK(db);
+  
+  char sql[512];
+  snprintf(sql, sizeof(sql),
+    "INSERT OR REPLACE INTO build_config "
+    "(id, bigvm, bigatoms, vals_offset, atoms_offset, stackspace_offset, "
+    "total_vm_size, page_size, created_at) VALUES (1, %d, %d, %lu, %lu, %lu, %lu, %lu, datetime('now'));",
+    bigvm, bigatoms, 
+    (unsigned long)vals_offset, (unsigned long)atoms_offset,
+    (unsigned long)stackspace_offset,
+    (unsigned long)total_vm_size, (unsigned long)page_size);
+  
+  char *err_msg = NULL;
+  int rc = sqlite3_exec(db->db, sql, NULL, NULL, &err_msg);
+  if (rc != SQLITE_OK)
+  {
+    fprintf(stderr, "introspect_build_config error: %s\n", err_msg);
+    sqlite3_free(err_msg);
+  }
+}
+
+void introspect_runtime_config(IntrospectDB *db, uint64_t valspace_ptr,
+                                uint64_t atomspace_ptr, uint64_t stackspace_ptr,
+                                const char *sysout_file, uint64_t sysout_size,
+                                uint64_t total_pages_loaded,
+                                uint64_t sparse_pages_count)
+{
+  INTROSPECT_CHECK(db);
+  
+  char sql[1024];
+  snprintf(sql, sizeof(sql),
+    "INSERT INTO runtime_config "
+    "(session_id, valspace_ptr, atomspace_ptr, stackspace_ptr, sysout_file, "
+    "sysout_size, total_pages_loaded, sparse_pages_count) VALUES "
+    "(%lu, %lu, %lu, %lu, '%s', %lu, %lu, %lu);",
+    (unsigned long)db->current_session_id,
+    (unsigned long)valspace_ptr, (unsigned long)atomspace_ptr,
+    (unsigned long)stackspace_ptr,
+    sysout_file ? sysout_file : "",
+    (unsigned long)sysout_size,
+    (unsigned long)total_pages_loaded,
+    (unsigned long)sparse_pages_count);
+  
+  char *err_msg = NULL;
+  int rc = sqlite3_exec(db->db, sql, NULL, NULL, &err_msg);
+  if (rc != SQLITE_OK)
+  {
+    fprintf(stderr, "introspect_runtime_config error: %s\n", err_msg);
+    sqlite3_free(err_msg);
+  }
+}
+
+void introspect_memory_snapshot(IntrospectDB *db, const char *phase,
+                                  const char *location_name, uint64_t address,
+                                  uint64_t value)
+{
+  INTROSPECT_CHECK(db);
+  
+  double ts = introspect_get_timestamp(db);
+  
+  char sql[512];
+  snprintf(sql, sizeof(sql),
+    "INSERT INTO memory_snapshots "
+    "(ts, session_id, phase, location_name, address, value) VALUES "
+    "(%.9f, %lu, '%s', '%s', %lu, %lu);",
+    ts, (unsigned long)db->current_session_id,
+    phase, location_name,
+    (unsigned long)address, (unsigned long)value);
+  
+  char *err_msg = NULL;
+  int rc = sqlite3_exec(db->db, sql, NULL, NULL, &err_msg);
+  if (rc != SQLITE_OK)
+  {
+    fprintf(stderr, "introspect_memory_snapshot error: %s\n", err_msg);
+    sqlite3_free(err_msg);
+  }
+}
+
+void introspect_memory_write(IntrospectDB *db, uint64_t address,
+                              uint64_t old_value, uint64_t new_value,
+                              uint64_t pc, uint8_t size, uint8_t opcode)
+{
+  INTROSPECT_CHECK(db);
+  
+  double ts = introspect_get_timestamp(db);
+  uint32_t vp = address / 4096;  /* Assuming 4KB pages for now */
+  
+  char sql[512];
+  snprintf(sql, sizeof(sql),
+    "INSERT INTO memory_writes "
+    "(ts, session_id, pc, address, old_value, new_value, vp, size, opcode) VALUES "
+    "(%.9f, %lu, %lu, %lu, %lu, %lu, %u, %u, %u);",
+    ts, (unsigned long)db->current_session_id,
+    (unsigned long)pc, (unsigned long)address,
+    (unsigned long)old_value, (unsigned long)new_value,
+    vp, size, opcode);
+  
+  char *err_msg = NULL;
+  int rc = sqlite3_exec(db->db, sql, NULL, NULL, &err_msg);
+  if (rc != SQLITE_OK)
+  {
+    fprintf(stderr, "introspect_memory_write error: %s\n", err_msg);
+    sqlite3_free(err_msg);
+  }
+}
+
+void introspect_vals_page(IntrospectDB *db, uint32_t vp, uint64_t address_start,
+                           uint64_t address_end, int is_sparse, uint32_t fp)
+{
+  INTROSPECT_CHECK(db);
+  
+  char sql[512];
+  if (is_sparse)
+  {
+    snprintf(sql, sizeof(sql),
+      "INSERT INTO vals_pages "
+      "(session_id, vp, address_start, address_end, is_sparse, fp) VALUES "
+      "(%lu, %u, %lu, %lu, 1, NULL);",
+      (unsigned long)db->current_session_id, vp,
+      (unsigned long)address_start, (unsigned long)address_end);
+  }
+  else
+  {
+    snprintf(sql, sizeof(sql),
+      "INSERT INTO vals_pages "
+      "(session_id, vp, address_start, address_end, is_sparse, fp) VALUES "
+      "(%lu, %u, %lu, %lu, 0, %u);",
+      (unsigned long)db->current_session_id, vp,
+      (unsigned long)address_start, (unsigned long)address_end, fp);
+  }
+  
+  char *err_msg = NULL;
+  int rc = sqlite3_exec(db->db, sql, NULL, NULL, &err_msg);
+  if (rc != SQLITE_OK)
+  {
+    fprintf(stderr, "introspect_vals_page error: %s\n", err_msg);
+    sqlite3_free(err_msg);
+  }
+}
+
+void introspect_gvar_execution(IntrospectDB *db, uint64_t pc, uint32_t atom_index,
+                                uint64_t valspace_ptr, uint64_t calculated_addr,
+                                uint64_t value_read, uint32_t vp, int is_sparse)
+{
+  INTROSPECT_CHECK(db);
+  
+  double ts = introspect_get_timestamp(db);
+  
+  char sql[512];
+  snprintf(sql, sizeof(sql),
+    "INSERT INTO gvar_executions "
+    "(ts, session_id, pc, atom_index, valspace_ptr, calculated_addr, "
+    "value_read, vp, is_sparse) VALUES "
+    "(%.9f, %lu, %lu, %u, %lu, %lu, %lu, %u, %d);",
+    ts, (unsigned long)db->current_session_id,
+    (unsigned long)pc, atom_index,
+    (unsigned long)valspace_ptr, (unsigned long)calculated_addr,
+    (unsigned long)value_read, vp, is_sparse);
+  
+  char *err_msg = NULL;
+  int rc = sqlite3_exec(db->db, sql, NULL, NULL, &err_msg);
+  if (rc != SQLITE_OK)
+  {
+    fprintf(stderr, "introspect_gvar_execution error: %s\n", err_msg);
+    sqlite3_free(err_msg);
+  }
+}

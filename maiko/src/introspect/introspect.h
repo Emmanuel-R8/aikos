@@ -307,4 +307,104 @@ int introspect_is_enabled(IntrospectDB *db);
  */
 void introspect_set_enabled(IntrospectDB *db, int enabled);
 
+/* ============================================================================
+ * MEMORY DEBUGGING TABLES
+ * ============================================================================ */
+
+/**
+ * Record build configuration.
+ * 
+ * Call once at startup after build config is known.
+ * 
+ * @param db Database handle
+ * @param bigvm 1 if BIGVM defined, 0 otherwise
+ * @param bigatoms 1 if BIGATOMS defined, 0 otherwise
+ * @param vals_offset VALS_OFFSET macro value
+ * @param atoms_offset ATOMS_OFFSET macro value
+ * @param stackspace_offset STACKS_OFFSET macro value
+ * @param total_vm_size Total virtual memory size in bytes
+ * @param page_size BYTESPER_PAGE value
+ */
+void introspect_build_config(IntrospectDB *db, int bigvm, int bigatoms,
+                              uint64_t vals_offset, uint64_t atoms_offset,
+                              uint64_t stackspace_offset, 
+                              uint64_t total_vm_size, uint64_t page_size);
+
+/**
+ * Record runtime configuration.
+ * 
+ * Call once after sysout is loaded.
+ * 
+ * @param db Database handle
+ * @param valspace_ptr Actual Valspace pointer
+ * @param atomspace_ptr Actual AtomSpace pointer
+ * @param stackspace_ptr Actual Stackspace pointer
+ * @param sysout_file Path to sysout file
+ * @param sysout_size Size of sysout file in bytes
+ * @param total_pages_loaded Number of pages loaded from sysout
+ * @param sparse_pages_count Number of sparse (not loaded) pages
+ */
+void introspect_runtime_config(IntrospectDB *db, uint64_t valspace_ptr,
+                                uint64_t atomspace_ptr, uint64_t stackspace_ptr,
+                                const char *sysout_file, uint64_t sysout_size,
+                                uint64_t total_pages_loaded, 
+                                uint64_t sparse_pages_count);
+
+/**
+ * Record a memory snapshot at a phase.
+ * 
+ * @param db Database handle
+ * @param phase Phase name ("after_sysout_load", etc.)
+ * @param location_name Location identifier ("vals_start", "atom_522_value", etc.)
+ * @param address Memory address
+ * @param value Value at address
+ */
+void introspect_memory_snapshot(IntrospectDB *db, const char *phase,
+                                  const char *location_name, uint64_t address,
+                                  uint64_t value);
+
+/**
+ * Record a memory write.
+ * 
+ * @param db Database handle
+ * @param address Memory address written
+ * @param old_value Value before write
+ * @param new_value Value after write
+ * @param pc Program counter
+ * @param size Bytes written (1, 2, or 4)
+ * @param opcode Opcode causing write (may be 0)
+ */
+void introspect_memory_write(IntrospectDB *db, uint64_t address,
+                              uint64_t old_value, uint64_t new_value,
+                              uint64_t pc, uint8_t size, uint8_t opcode);
+
+/**
+ * Record a Valspace page status.
+ * 
+ * @param db Database handle
+ * @param vp Virtual page number
+ * @param address_start Start address of page
+ * @param address_end End address of page
+ * @param is_sparse 1 if page not in sysout (zero-initialized), 0 if loaded
+ * @param fp File page number (only valid if not sparse)
+ */
+void introspect_vals_page(IntrospectDB *db, uint32_t vp, uint64_t address_start,
+                           uint64_t address_end, int is_sparse, uint32_t fp);
+
+/**
+ * Record a GVAR execution with page info.
+ * 
+ * @param db Database handle
+ * @param pc Program counter
+ * @param atom_index Atom index being accessed
+ * @param valspace_ptr Valspace pointer value
+ * @param calculated_addr Calculated address
+ * @param value_read Value read from address
+ * @param vp Virtual page of address
+ * @param is_sparse 1 if page is sparse
+ */
+void introspect_gvar_execution(IntrospectDB *db, uint64_t pc, uint32_t atom_index,
+                                uint64_t valspace_ptr, uint64_t calculated_addr,
+                                uint64_t value_read, uint32_t vp, int is_sparse);
+
 #endif /* MAIKO_INTROSPECT_H */
