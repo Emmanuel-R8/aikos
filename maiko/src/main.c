@@ -1282,11 +1282,11 @@ int main(int argc, char *argv[])
     /* Memory snapshots after build_lisp_map - Valspace is now valid */
     introspect_memory_snapshot(g_introspect, "after_build_lisp_map",
                                "vals_start", (uint64_t)(uintptr_t)Valspace,
-                               0);  /* TODO: read safely */
+                               (uint64_t)(*(DLword *)Valspace));  /* Read first word */
     introspect_memory_snapshot(g_introspect, "after_build_lisp_map",
                                "atom_522_value",
                                (uint64_t)(uintptr_t)(Valspace + 522 * 2),
-                               0);  /* TODO: read safely */
+                               (uint64_t)(*(DLword *)(Valspace + 522 * 2)));  /* Read atom 522 value */
     
     introspect_flush(g_introspect);
   }
@@ -1329,11 +1329,11 @@ int main(int argc, char *argv[])
     /* Final memory snapshots before execution */
     introspect_memory_snapshot(g_introspect, "before_dispatch",
                                "vals_start", (uint64_t)(uintptr_t)Valspace,
-                               0);  /* TODO: read safely */
+                               (uint64_t)(*(DLword *)Valspace));
     introspect_memory_snapshot(g_introspect, "before_dispatch",
                                "atom_522_value",
                                (uint64_t)(uintptr_t)(Valspace + 522 * 2),
-                               0);  /* TODO: read safely */
+                               (uint64_t)(*(DLword *)(Valspace + 522 * 2)));
     introspect_memory_snapshot(g_introspect, "before_dispatch",
                                "ifpage_key", 512 + 34,
                                (uint64_t)InterfacePage->key);
