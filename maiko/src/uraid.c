@@ -978,10 +978,6 @@ int device_after_raid(void)
   set_cursor();
   init_keyboard(1);
 
-#ifdef TRUECOLOR
-  truecolor_after_raid();
-#endif /* TRUECOLOR */
-
 #ifdef MAIKO_ENABLE_ETHERNET
   init_ether();
 #endif /* MAIKO_ENABLE_ETHERNET */

@@ -158,10 +158,6 @@ void init_display2(DLword *display_addr, unsigned display_max)
 /************************************************************************/
 void display_before_exit(void)
 {
-
-#ifdef TRUECOLOR
-  truecolor_before_exit();
-#endif /* TRUECOLOR */
   clear_display();
 }
 

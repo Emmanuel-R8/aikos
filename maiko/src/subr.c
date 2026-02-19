@@ -333,21 +333,6 @@ void OP_subrcall(int subr_no, int argnum)
     TopOfStack = bitshade_bitmap(args);
     break;
 
-/**************/
-/* For RS232C */
-/**************/
-#ifdef RS232
-  case sb_RS232C_CMD:
-    RS232C_cmd();
-    break;
-  case sb_RS232C_READ_INIT:
-    RS232C_readinit();
-    break;
-  case sb_RS232C_WRITE:
-    RS232C_write();
-    break;
-#endif /* RS232 */
-
   /***********/
   /* for K/B */
   /***********/
@@ -610,26 +595,6 @@ void OP_subrcall(int subr_no, int argnum)
     TopOfStack = subr_TCP_ops(args[0], args[1], args[2], args[3], args[4], args[5]);
     break;
 
-#ifdef TRUECOLOR
-  case sb_PICTURE_OP:
-    POP_SUBR_ARGS;
-    TopOfStack = Picture_Op(args);
-    break;
-
-  case sb_TRUE_COLOR_OP:
-    POP_SUBR_ARGS;
-    TopOfStack = TrueColor_Op(args);
-    break;
-
-#ifdef VIDEO
-  case sb_VIDEO_OP:
-    POP_SUBR_ARGS;
-    TopOfStack = Video_Op(args);
-    break;
-#endif /* VIDEO */
-
-#endif /* TRUECOLOR */
-
   case sb_PUPLEVEL1STATE:
     POP_SUBR_ARGS; /* Do nothing with PUP on sun */
     break;
@@ -732,41 +697,6 @@ void OP_subrcall(int subr_no, int argnum)
   }
 #endif /* MAIKO_ENABLE_FOREIGN_FUNCTION_INTERFACE */
 
-#ifdef MNW
-  case sb_FILL_IN:
-  {
-    POP_SUBR_ARGS;
-    TopOfStack = init_mnw_instance(args);
-    break;
-  }
-  case sb_QUERY_WINDOWS:
-  {
-    break;
-  }
-  case sb_MNW_OP:
-  {
-    POP_SUBR_ARGS;
-    TopOfStack = dispatch_mnw_method(args);
-    break;
-  }
-#endif /* MNW */
-
-#ifdef LPSOLVE
-  /* Linear-programming solver interface from Lisp */
-  case sb_LP_SETUP:
-  {
-    POP_SUBR_ARGS;
-    TopOfStack = lpsetup(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7],
-                         args[8], args[9], args[10]);
-    break;
-  }
-  case sb_LP_RUN:
-  {
-    POP_SUBR_ARGS;
-    TopOfStack = lpmain(args[0]);
-    break;
-  }
-#endif /* LPSOLVE */
   case sb_YIELD:
   {
     struct timespec rqts = {0, 833333};

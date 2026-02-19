@@ -1,19 +1,7 @@
 /* $Id: bbtsub.c,v 1.3 2001/12/24 01:08:59 sybalsky Exp $ (C) Copyright Venue, All Rights Reserved
  */
-
-/************************************************************************/
-/*                                                                      */
-/*                      File:   bbtsub.c                                */
-/*                                                                      */
 /*      Subroutines to support BITBLT, \BLTCHAR, and \TEDIT.BLTCHAR     */
 /*      lisp functions, providing performance improvement.              */
-/*                                                                      */
-/*                                                                      */
-/*                                                                      */
-/*                                                                      */
-/*                                                                      */
-/*                                                                      */
-/************************************************************************/
 
 /************************************************************************/
 /*									*/
@@ -465,12 +453,7 @@ void bitbltsub(LispPTR *argv)
 do_it_now:
   ScreenLocked = T;
 
-#ifdef NEWBITBLT
-  bitblt(srcbase, dstbase, sx, dx, w, h, srcbpl, dstbpl, backwardflg, src_comp, op, gray, num_gray,
-         curr_gray_line);
-#else
   new_bitblt_code;
-#endif
 
   if (MonoOrColor == MONO_SCREEN)
     /* Copy the changed section of display bank to the frame buffer */
@@ -754,10 +737,6 @@ LispPTR bitblt_bitmap(LispPTR *args)
 do_it_now:
   LOCKSCREEN;
 
-#ifdef NEWBITBLT
-  bitblt(srcbase, dstbase, slx, dlx, width, height, srcbpl, dstbpl, backwardflg, src_comp, op, 0, 0,
-         0);
-#else
 #define gray 0
 #define dx dlx
 #define sx slx
@@ -773,7 +752,6 @@ do_it_now:
 #undef h
 #undef curr_gray_line
 #undef num_gray
-#endif
 
   if (MonoOrColor == MONO_SCREEN)
     /* Copy the changed section of display bank to the frame buffer */
@@ -1003,10 +981,6 @@ LispPTR bitshade_bitmap(LispPTR *args)
 do_it_now:
   LOCKSCREEN;
 
-#ifdef NEWBITBLT
-  bitblt(srcbase, dstbase, slx, left, width, height, 0, dstbpl, 0, src_comp, op, 1, num_gray,
-         curr_gray_line);
-#else
 #define gray 1
 #define backwardflg 0
 #define srcbpl 0
@@ -1022,7 +996,6 @@ do_it_now:
 #undef h
 #undef dx
 #undef sx
-#endif
 
   if (MonoOrColor == MONO_SCREEN)
     /* Copy the changed section of display bank to the frame buffer */
@@ -1091,9 +1064,6 @@ void bltchar(LispPTR *args)
   int backwardflg = 0, sx, dx, srcbpl, dstbpl, src_comp, op;
   DLword *srcbase, *dstbase;
   int gray = 0;
-#ifdef NEWBITBLT
-  int num_gray = 0, curr_gray_line = 0;
-#endif
 
   pbt = (PILOTBBT *)NativeAligned4FromLAddr(((BLTC *)args)->pilotbbt);
   dspdata = (DISPLAYDATA *)NativeAligned4FromLAddr(((BLTC *)args)->displaydata);
@@ -1117,12 +1087,7 @@ void bltchar(LispPTR *args)
 
   LOCKSCREEN;
 
-#ifdef NEWBITBLT
-  bitblt(srcbase, dstbase, sx, dx, w, h, srcbpl, dstbpl, backwardflg, src_comp, op, gray, num_gray,
-         curr_gray_line);
-#else
   new_char_bitblt_code;
-#endif
 
   if (MonoOrColor == MONO_SCREEN)
     if (in_display_segment(dstbase))
@@ -1243,9 +1208,6 @@ void newbltchar(LispPTR *args)
   int backwardflg = 0, sx, dx, srcbpl, dstbpl, src_comp, op;
   DLword *srcbase, *dstbase;
   int gray = 0;
-#ifdef NEWBITBLT
-  int num_gray = 0, curr_gray_line = 0;
-#endif
 
   displaydata68k = (DISPLAYDATA *)NativeAligned4FromLAddr(((BLTARG *)args)->displaydata);
 
@@ -1320,12 +1282,7 @@ void newbltchar(LispPTR *args)
 
   LOCKSCREEN;
 
-#ifdef NEWBITBLT
-  bitblt(srcbase, dstbase, sx, dx, w, h, srcbpl, dstbpl, backwardflg, src_comp, op, gray, num_gray,
-         curr_gray_line);
-#else
   new_char_bitblt_code;
-#endif
 
   if (MonoOrColor == MONO_SCREEN)
     if (in_display_segment(dstbase))
@@ -1580,9 +1537,6 @@ void tedit_bltchar(LispPTR *args)
   int sx, dx, srcbpl, dstbpl, src_comp, op;
   DLword *srcbase, *dstbase;
   int gray = 0;
-#ifdef NEWBITBLT
-  int num_gray = 0, curr_gray_line = 0;
-#endif
 
   displaydata68k = (DISPLAYDATA *)NativeAligned4FromLAddr(((TBLTARG *)args)->displaydata);
   if (displaydata68k->ddcharset != ((TBLTARG *)args)->charset)
@@ -1613,13 +1567,8 @@ void tedit_bltchar(LispPTR *args)
     /*dx=left;  I'll optimize  later*/
     sx = GETBASE(NativeAligned2FromLAddr(displaydata68k->ddoffsetscache), ((TBLTARG *)args)->char8code);
     w = IMIN(imagewidth, (right - dx));
-#ifdef NEWBITBLT
-    bitblt(srcbase, dstbase, sx, dx, w, h, srcbpl, dstbpl, backwardflg, src_comp, op, gray,
-           num_gray, curr_gray_line);
-#else
 
     new_char_bitblt_code;
-#endif
   }
 #undef backwardflg
 

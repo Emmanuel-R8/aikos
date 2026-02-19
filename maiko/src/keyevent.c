@@ -190,11 +190,6 @@ void process_io_events(void)
     check_ether();
 #endif /* MAIKO_ENABLE_NETHUB */
 
-#ifdef RS232
-    if (RS232C_Fd >= 0 && (FD_ISSET(RS232C_Fd, &rfds) || (RS232C_remain_data && rs232c_lisp_is_ready())))
-      rs232c_read();
-#endif /* RS232 */
-
 #if defined(MAIKO_HANDLE_CONSOLE_MESSAGES) && defined(LOGINT)
     if (LogFileFd >= 0 && FD_ISSET(LogFileFd, &rfds))
     {              /* There's info in the log file.  Tell Lisp to print it. */

@@ -1178,7 +1178,7 @@ int main(int argc, char *argv[])
     if (g_introspect)
     {
       introspect_start_session(g_introspect, sysout_name, "introspection run");
-      
+
       /* Record build configuration */
       introspect_build_config(g_introspect,
 #ifdef BIGVM
@@ -1194,7 +1194,7 @@ int main(int argc, char *argv[])
                               VALS_OFFSET, ATOMS_OFFSET, STK_OFFSET,
                               0, /* total_vm_size - TODO */
                               BYTESPER_PAGE);
-      
+
       introspect_phase(g_introspect, "startup");
       /* Flush immediately after each phase for crash safety */
       introspect_flush(g_introspect);
@@ -1268,7 +1268,7 @@ int main(int argc, char *argv[])
   if (g_introspect)
   {
     introspect_phase(g_introspect, "after_build_lisp_map");
-    
+
     /* NOW capture runtime config - Valspace is set by build_lisp_map() */
     introspect_runtime_config(g_introspect,
                               (uint64_t)(uintptr_t)Valspace,
@@ -1278,16 +1278,16 @@ int main(int argc, char *argv[])
                               sysout_size,
                               0,  /* total_pages_loaded - TODO */
                               0); /* sparse_pages_count - TODO */
-    
+
     /* Memory snapshots after build_lisp_map - Valspace is now valid */
     introspect_memory_snapshot(g_introspect, "after_build_lisp_map",
                                "vals_start", (uint64_t)(uintptr_t)Valspace,
-                               (uint64_t)(*(DLword *)Valspace));  /* Read first word */
+                               (uint64_t)(*(DLword *)Valspace)); /* Read first word */
     introspect_memory_snapshot(g_introspect, "after_build_lisp_map",
                                "atom_522_value",
                                (uint64_t)(uintptr_t)(Valspace + 522 * 2),
-                               (uint64_t)(*(DLword *)(Valspace + 522 * 2)));  /* Read atom 522 value */
-    
+                               (uint64_t)(*(DLword *)(Valspace + 522 * 2))); /* Read atom 522 value */
+
     introspect_flush(g_introspect);
   }
 #endif
@@ -1325,7 +1325,7 @@ int main(int argc, char *argv[])
   if (g_introspect)
   {
     introspect_phase(g_introspect, "before_dispatch");
-    
+
     /* Final memory snapshots before execution */
     introspect_memory_snapshot(g_introspect, "before_dispatch",
                                "vals_start", (uint64_t)(uintptr_t)Valspace,
@@ -1340,7 +1340,7 @@ int main(int argc, char *argv[])
     introspect_memory_snapshot(g_introspect, "before_dispatch",
                                "current_fp", 0,
                                (uint64_t)(uintptr_t)CurrentFXP);
-    
+
     introspect_flush(g_introspect);
   }
 #endif
@@ -1520,27 +1520,15 @@ void print_info_lines(void)
   printf("Compiled for %s (%s) (%d bit).\n", MAIKO_OS_NAME, MAIKO_ARCH_NAME, MAIKO_ARCH_WORD_BITS);
   printf("Creation date: %s", ctime(&MDate));
   printf("%s\n", MaikoGitVersion);
-#ifdef LPSOLVE
-  printf("Contains lp_solve LP solver.\n");
-#endif /* LPSOLVE */
-#ifdef BIGBIGVM
-  printf("Supports 256Mb virtual memory.\n");
-#elif BIGVM
+#ifdef BIGVM
   printf("Supports 64Mb virtual memory.\n");
 #else
   printf("Supports 32Mb virtual memory.\n");
 #endif /* BIGVM */
-#ifdef NOVERSION
-  printf("Does not enforce SYSOUT version matching.\n");
-#endif /* NOVERSION */
 #ifdef MAIKO_ENABLE_FOREIGN_FUNCTION_INTERFACE
   printf("Has foreign-function-call interface.\n");
 #else
   printf("Has no foreign-function-call interface.\n");
 #endif /* MAIKO_ENABLE_FOREIGN_FUNCTION_INTERFACE */
-#ifdef NOEUROKBD
-  printf("No support for European keyboards.\n");
-#else
   printf("Supports Sun European Type-4/5 keyboards.\n");
-#endif /* NOEUROKBD */
 }
