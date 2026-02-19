@@ -2,11 +2,13 @@
 
 *Navigation*: README | Required Behaviors
 
-Complete specification of implementation choices that MAY differ across platforms while maintaining compatibility.
+Complete specification of implementation choices that MAY differ across platforms while maintaining
+compatibility.
 
 == Overview
 
-Implementation choices are aspects where different implementations may use different approaches, as long as the required behaviors match. These allow platform-specific optimizations and adaptations.
+Implementation choices are aspects where different implementations may use different approaches, as
+long as the required behaviors match. These allow platform-specific optimizations and adaptations.
 
 == VM Core Implementation Choices
 
@@ -47,12 +49,16 @@ Implementation choices are aspects where different implementations may use diffe
 
 *MAY DIFFER*:
 
-- *X11*: X Window System
-- *SDL*: Simple DirectMedia Layer
+- *SDL*: Simple DirectMedia Layer (current recommended)
+- *X11*: X Window System (legacy, still available)
 - *DirectX*: Windows DirectX
 - *Metal*: macOS Metal
 - *Vulkan*: Vulkan API
 - *Other*: Any graphics library
+
+*Deprecated/Removed*:
+- *VESA*: VESA VBE graphics (removed 2026-02-19 - obsolete DOS-era display)
+- *VGA*: VGA graphics (removed 2026-02-19 - obsolete DOS-era display)
 
 *Constraint*: Must provide required display operations and match graphics semantics.
 
@@ -112,11 +118,13 @@ Implementation choices are aspects where different implementations may use diffe
 
 *MAY DIFFER*:
 
+- *Nethub*: TCP-based emulation (current recommended)
 - *DLPI*: Data Link Provider Interface (Solaris)
-- *NIT*: Network Interface Tap (older Unix)
-- *Nethub*: TCP-based emulation
 - *Raw Sockets*: Raw socket access
 - *Other*: Platform-specific network APIs
+
+*Deprecated/Removed*:
+- *NIT*: Network Interface Tap (obsolete, removed from active support)
 
 *Constraint*: Network packet format and protocol semantics must match.
 
