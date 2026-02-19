@@ -1257,27 +1257,6 @@ int main(int argc, char *argv[])
   if (g_introspect)
   {
     introspect_phase(g_introspect, "after_sysout_load");
-    
-    /* Record runtime configuration after sysout load */
-    introspect_runtime_config(g_introspect,
-                              (uint64_t)(uintptr_t)Valspace,
-                              (uint64_t)(uintptr_t)AtomSpace,
-                              (uint64_t)(uintptr_t)Stackspace,
-                              sysout_name,
-                              sysout_size,
-                              0,  /* total_pages_loaded - TODO */
-                              0); /* sparse_pages_count - TODO */
-    
-    /* Memory snapshots at key locations - disabled for now due to potential invalid memory access
-    introspect_memory_snapshot(g_introspect, "after_sysout_load", 
-                               "vals_start", VALS_OFFSET, 
-                               *(uint32_t*)Valspace);
-    introspect_memory_snapshot(g_introspect, "after_sysout_load",
-                               "atom_522_value",
-                               VALS_OFFSET + 522 * 4,
-                               *(uint32_t*)(Valspace + 522 * 2));
-    */
-    
     introspect_flush(g_introspect);
   }
 #endif
@@ -1290,15 +1269,24 @@ int main(int argc, char *argv[])
   {
     introspect_phase(g_introspect, "after_build_lisp_map");
     
-    /* Memory snapshots disabled for now 
+    /* NOW capture runtime config - Valspace is set by build_lisp_map() */
+    introspect_runtime_config(g_introspect,
+                              (uint64_t)(uintptr_t)Valspace,
+                              (uint64_t)(uintptr_t)AtomSpace,
+                              (uint64_t)(uintptr_t)Stackspace,
+                              sysout_name,
+                              sysout_size,
+                              0,  /* total_pages_loaded - TODO */
+                              0); /* sparse_pages_count - TODO */
+    
+    /* Memory snapshots after build_lisp_map - Valspace is now valid */
     introspect_memory_snapshot(g_introspect, "after_build_lisp_map",
-                               "vals_start", VALS_OFFSET,
-                               *(uint32_t*)Valspace);
+                               "vals_start", (uint64_t)(uintptr_t)Valspace,
+                               0);  /* TODO: read safely */
     introspect_memory_snapshot(g_introspect, "after_build_lisp_map",
                                "atom_522_value",
-                               VALS_OFFSET + 522 * 4,
-                               *(uint32_t*)(Valspace + 522 * 2));
-    */
+                               (uint64_t)(uintptr_t)(Valspace + 522 * 2),
+                               0);  /* TODO: read safely */
     
     introspect_flush(g_introspect);
   }
@@ -1338,21 +1326,20 @@ int main(int argc, char *argv[])
   {
     introspect_phase(g_introspect, "before_dispatch");
     
-    /* Memory snapshots disabled for now
+    /* Final memory snapshots before execution */
     introspect_memory_snapshot(g_introspect, "before_dispatch",
-                               "vals_start", VALS_OFFSET,
-                               *(uint32_t*)Valspace);
+                               "vals_start", (uint64_t)(uintptr_t)Valspace,
+                               0);  /* TODO: read safely */
     introspect_memory_snapshot(g_introspect, "before_dispatch",
                                "atom_522_value",
-                               VALS_OFFSET + 522 * 4,
-                               *(uint32_t*)(Valspace + 522 * 2));
+                               (uint64_t)(uintptr_t)(Valspace + 522 * 2),
+                               0);  /* TODO: read safely */
     introspect_memory_snapshot(g_introspect, "before_dispatch",
                                "ifpage_key", 512 + 34,
-                               InterfacePage->key);
+                               (uint64_t)InterfacePage->key);
     introspect_memory_snapshot(g_introspect, "before_dispatch",
                                "current_fp", 0,
                                (uint64_t)(uintptr_t)CurrentFXP);
-    */
     
     introspect_flush(g_introspect);
   }
