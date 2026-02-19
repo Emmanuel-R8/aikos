@@ -96,7 +96,6 @@ CREATE INDEX IF NOT EXISTS idx_events_atom ON events(session_id, atom_index);
 CREATE INDEX IF NOT EXISTS idx_events_atom_ts ON events(session_id, atom_index, ts);
 
 -- CAUSALITY INDEXES (critical for reverse debugging)
--- These enable efficient recursive CTE queries
 CREATE INDEX IF NOT EXISTS idx_events_cause ON events(session_id, cause_id);
 CREATE INDEX IF NOT EXISTS idx_events_cause_rev ON events(session_id, id, cause_id);
 
@@ -107,6 +106,126 @@ CREATE INDEX IF NOT EXISTS idx_events_value ON events(session_id, value);
 CREATE INDEX IF NOT EXISTS idx_events_cat_act ON events(session_id, category, action);
 CREATE INDEX IF NOT EXISTS idx_events_cat_addr ON events(session_id, category, addr);
 CREATE INDEX IF NOT EXISTS idx_events_cat_pc ON events(session_id, category, pc);
+
+-- ============================================================================
+-- BUILD CONFIGURATION TABLE
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS build_config (
+    id INTEGER PRIMARY KEY CHECK (id = 1),  -- Singleton row
+    bigvm INTEGER,                          -- 1 if BIGVM defined
+    bigatoms INTEGER,                       -- 1 if BIGATOMS defined
+    vals_offset INTEGER,                    -- VALS_OFFSET macro value
+    atoms_offset INTEGER,                   -- ATOMS_OFFSET macro value
+    stackspace_offset INTEGER,              -- STACKS_OFFSET macro value
+    total_vm_size INTEGER,                  -- Total virtual memory size (bytes)
+    page_size INTEGER,                      -- BYTESPER_PAGE value
+    created_at TEXT                         -- When this config was captured
+);
+
+-- ============================================================================
+-- RUNTIME CONFIGURATION TABLE
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS runtime_config (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id INTEGER NOT NULL,
+    valspace_ptr INTEGER,                   -- Actual Valspace pointer at runtime
+    atomspace_ptr INTEGER,                  -- Actual AtomSpace pointer
+    stackspace_ptr INTEGER,                 -- Actual Stackspace pointer
+    sysout_file TEXT,                       -- Path to sysout file
+    sysout_size INTEGER,                    -- Size of sysout file
+    total_pages_loaded INTEGER,             -- Number of pages loaded from sysout
+    sparse_pages_count INTEGER,             -- Number of sparse (not loaded) pages
+    FOREIGN KEY (session_id) REFERENCES sessions(id)
+);
+
+-- ============================================================================
+-- MEMORY SNAPSHOTS TABLE
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS memory_snapshots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts REAL,
+    session_id INTEGER NOT NULL,
+    phase TEXT NOT NULL,                    -- 'after_sysout_load', 'after_build_lisp_map', etc.
+    location_name TEXT NOT NULL,            -- 'vals_start', 'atom_522_value', etc.
+    address INTEGER NOT NULL,
+    value INTEGER,
+    FOREIGN KEY (session_id) REFERENCES sessions(id)
+);
+
+-- Index for phase-based queries
+CREATE INDEX IF NOT EXISTS idx_memory_snapshots_phase ON memory_snapshots(session_id, phase);
+CREATE INDEX IF NOT EXISTS idx_memory_snapshots_location ON memory_snapshots(session_id, location_name);
+
+-- ============================================================================
+-- MEMORY WRITES TABLE
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS memory_writes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts REAL,
+    session_id INTEGER NOT NULL,
+    pc INTEGER,                             -- PC where write occurred
+    address INTEGER NOT NULL,
+    old_value INTEGER,
+    new_value INTEGER NOT NULL,
+    vp INTEGER,                             -- Virtual page of address
+    size INTEGER DEFAULT 4,                 -- Bytes written (1, 2, or 4)
+    opcode INTEGER,                         -- Opcode that caused write
+    event_id INTEGER,                       -- Link to events table
+    FOREIGN KEY (session_id) REFERENCES sessions(id),
+    FOREIGN KEY (event_id) REFERENCES events(id)
+);
+
+-- Indexes for write queries
+CREATE INDEX IF NOT EXISTS idx_memory_writes_addr ON memory_writes(session_id, address);
+CREATE INDEX IF NOT EXISTS idx_memory_writes_ts ON memory_writes(session_id, ts);
+CREATE INDEX IF NOT EXISTS idx_memory_writes_vp ON memory_writes(session_id, vp);
+
+-- ============================================================================
+-- VALSPACE PAGES TABLE
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS vals_pages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id INTEGER NOT NULL,
+    vp INTEGER NOT NULL,                    -- Virtual page number
+    address_start INTEGER NOT NULL,         -- Start address of this page
+    address_end INTEGER NOT NULL,           -- End address of this page
+    is_sparse INTEGER NOT NULL,             -- 1 if not in sysout (zero-initialized)
+    fp INTEGER,                             -- File page number (NULL if sparse)
+    FOREIGN KEY (session_id) REFERENCES sessions(id)
+);
+
+-- Index for sparse page lookup
+CREATE INDEX IF NOT EXISTS idx_vals_pages_sparse ON vals_pages(session_id, is_sparse);
+CREATE INDEX IF NOT EXISTS idx_vals_pages_vp ON vals_pages(session_id, vp);
+
+-- ============================================================================
+-- GVAR EXECUTIONS TABLE
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS gvar_executions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts REAL,
+    session_id INTEGER NOT NULL,
+    pc INTEGER,
+    atom_index INTEGER NOT NULL,
+    valspace_ptr INTEGER,                   -- Runtime Valspace pointer
+    calculated_addr INTEGER,                -- Address calculated from atom_index
+    value_read INTEGER,
+    vp INTEGER,                             -- Virtual page of calculated_addr
+    is_sparse INTEGER,                      -- 1 if page is sparse
+    event_id INTEGER,                       -- Link to events table
+    FOREIGN KEY (session_id) REFERENCES sessions(id),
+    FOREIGN KEY (event_id) REFERENCES events(id)
+);
+
+-- Index for GVAR queries
+CREATE INDEX IF NOT EXISTS idx_gvar_atom ON gvar_executions(session_id, atom_index);
+CREATE INDEX IF NOT EXISTS idx_gvar_sparse ON gvar_executions(session_id, is_sparse);
 
 -- ============================================================================
 -- CONVENIENCE VIEWS
@@ -143,7 +262,7 @@ ORDER BY ts;
 -- Valspace operations (value cells)
 CREATE VIEW IF NOT EXISTS valspace_ops AS
 SELECT * FROM memory_ops
-WHERE addr >= 0x180000 AND addr < 0x1C0000;
+WHERE addr >= 0xC0000 AND addr < 0x100000;  -- Updated for actual VALS_OFFSET
 
 -- Atom operations
 CREATE VIEW IF NOT EXISTS atom_ops AS
@@ -160,17 +279,32 @@ WHERE category = 'stack'
 ORDER BY ts;
 
 -- ============================================================================
--- CAUSALITY HELPER VIEWS
+-- DEBUGGING VIEWS
 -- ============================================================================
 
--- Event with its immediate cause
-CREATE VIEW IF NOT EXISTS event_with_cause AS
-SELECT 
-    e.id, e.ts, e.category, e.action, e.name, e.pc, e.addr, e.value,
-    c.id as cause_id, c.ts as cause_ts, c.category as cause_category, 
-    c.action as cause_action, c.name as cause_name
-FROM current_session e
-LEFT JOIN current_session c ON e.cause_id = c.id;
+-- Atom 522 value through phases
+CREATE VIEW IF NOT EXISTS atom_522_history AS
+SELECT ts, phase, printf('0x%08X', value) as value_hex
+FROM memory_snapshots
+WHERE location_name = 'atom_522_value'
+ORDER BY ts;
+
+-- Sparse Valspace pages
+CREATE VIEW IF NOT EXISTS sparse_vals_pages AS
+SELECT vp, printf('0x%X', address_start) as start_addr
+FROM vals_pages
+WHERE is_sparse = 1
+ORDER BY vp;
+
+-- All writes to sparse pages
+CREATE VIEW IF NOT EXISTS writes_to_sparse AS
+SELECT mw.ts, printf('0x%X', mw.address) as addr, 
+       printf('0x%08X', mw.old_value) as old_val,
+       printf('0x%08X', mw.new_value) as new_val
+FROM memory_writes mw
+JOIN vals_pages vp ON mw.vp = vp.vp AND mw.session_id = vp.session_id
+WHERE vp.is_sparse = 1
+ORDER BY mw.ts;
 
 -- ============================================================================
 -- UTILITY FUNCTIONS (as table-valued functions via recursive CTEs)
@@ -201,13 +335,12 @@ LEFT JOIN current_session c ON e.cause_id = c.id;
 -- ORDER BY ts;
 
 -- Template: All writes to address
--- SELECT * FROM events
--- WHERE session_id = :session_id AND addr = :addr AND action = 'write'
+-- SELECT * FROM memory_writes
+-- WHERE session_id = :session_id AND address = :addr
 -- ORDER BY ts;
 
 -- Template: Atom value cell history
--- SELECT * FROM events
+-- SELECT * FROM memory_writes
 -- WHERE session_id = :session_id 
---   AND category = 'memory'
---   AND addr = (0x180000 + :atom_index * 4)
+--   AND address = (SELECT valspace_ptr FROM runtime_config WHERE session_id = :session_id) + :atom_index * 4
 -- ORDER BY ts;

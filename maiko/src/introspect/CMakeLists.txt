@@ -1,14 +1,18 @@
 # CMakeLists.txt for Maiko Introspection Module
 #
 # This builds the introspection library that links into the main emulator.
-# SQLite3 is optional - if not found, introspection is disabled.
+# Disabled by default - enable with -DMAIKO_INTROSPECT_ENABLED=ON
 
 cmake_minimum_required(VERSION 3.15)
 
-# Find SQLite3 (optional)
-find_package(SQLite3 QUIET)
+# Option to enable introspection (disabled by default)
+option(MAIKO_INTROSPECT_ENABLED "Enable introspection module" OFF)
 
-if(SQLite3_FOUND)
+if(MAIKO_INTROSPECT_ENABLED)
+    # Find SQLite3 (required for introspection)
+    find_package(SQLite3 QUIET)
+
+    if(SQLite3_FOUND)
     message(STATUS "SQLite3 found: Introspection module enabled")
 
     # Create introspection library
@@ -43,6 +47,12 @@ if(SQLite3_FOUND)
 
 else()
     message(STATUS "SQLite3 not found: Introspection module disabled")
+    set(MAIKO_INTROSPECT_FOUND FALSE PARENT_SCOPE)
+    set(MAIKO_INTROSPECT_ENABLED FALSE PARENT_SCOPE)
+endif()
+
+else()
+    message(STATUS "Introspection module disabled (set -DMAIKO_INTROSPECT_ENABLED=ON to enable)")
     set(MAIKO_INTROSPECT_FOUND FALSE PARENT_SCOPE)
     set(MAIKO_INTROSPECT_ENABLED FALSE PARENT_SCOPE)
 endif()

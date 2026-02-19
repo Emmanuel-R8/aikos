@@ -1,5 +1,6 @@
-/* $Id: initsout.c,v 1.3 1999/05/31 23:35:34 sybalsky Exp $ (C) Copyright Venue, All Rights Reserved
- */
+/*
+$Id: initsout.c,v 1.3 1999/05/31 23:35:34 sybalsky Exp $ (C) Copyright Venue, All Rights Reserved
+*/
 
 /************************************************************************/
 /*									*/
@@ -7,13 +8,8 @@
 /*	Manufactured in the United States of America.			*/
 /*									*/
 /************************************************************************/
-/************************************************************************/
-/*									*/
-/*		Make connections between lisp and C emulator		*/
-/*									*/
-/*									*/
-/*									*/
-/************************************************************************/
+
+//		Make connections between lisp and C emulator
 
 /* FILE: initsout.c - System Initialization and Lisp-C Emulator Connections
  *
@@ -136,17 +132,9 @@ LispPTR *fixp_value(LispPTR *ptr)
 #define fixp_value
 #endif /* BIGVM */
 
-/************************************************************************/
-/*									*/
-/*			   i n i t _ i f p a g e			*/
-/*									*/
-/*	Set up the interface page:  Fill in the machine-type, the	*/
-/*	ethernet-ID, the virtual-memory limit (32Mb or less, depending	*/
-/*	on what the -m specified), make space for display type.		*/
-/*									*/
-/*									*/
-/************************************************************************/
-
+//	Set up the interface page:  Fill in the machine-type, the
+//	ethernet-ID, the virtual-memory limit (32Mb or less, depending
+//	on what the -m specified), make space for display type.
 #define PAGES_IN_MBYTE 2048
 
 void init_ifpage(unsigned sysout_size)
@@ -225,37 +213,18 @@ void init_ifpage(unsigned sysout_size)
   InterfacePage->devconfig |= DisplayType;
 }
 
-/************************************************************************/
-/*									*/
-/*			    i n i t _ i o p a g e			*/
-/*									*/
-/*	Clean up the IO page:  Set the keyboard map to "all keys up."	*/
-/*									*/
-/************************************************************************/
-
+//	Clean up the IO page:  Set the keyboard map to "all keys up."
 void init_iopage(void)
 {
-  /*
-   * Initialize IOPAGE
-   */
-  IOPage->dlkbdad0 = 65535; /* ALL UP */
-  IOPage->dlkbdad1 = 65535; /* ALL UP */
-  IOPage->dlkbdad2 = 65535; /* ALL UP */
-  IOPage->dlkbdad3 = 65535; /* ALL UP */
-  IOPage->dlkbdad4 = 65535; /* ALL UP */
-  IOPage->dlkbdad5 = 65535; /* ALL UP */
-  IOPage->dlutilin = 65535; /* ALL UP */
+  IOPage->dlkbdad0 = 0xFFFF; // All up
+  IOPage->dlkbdad1 = 0xFFFF; // All up
+  IOPage->dlkbdad2 = 0xFFFF; // All up
+  IOPage->dlkbdad3 = 0xFFFF; // All up
+  IOPage->dlkbdad4 = 0xFFFF; // All up
+  IOPage->dlkbdad5 = 0xFFFF; // All up
+  IOPage->dlutilin = 0xFFFF; // All up
 }
-
-/************************************************************************/
-/*									*/
-/*			b u i l d _ l i s p _ m a p			*/
-/*									*/
-/*	Create the atom-pointers used by C to deal with the lisp	*/
-/*	SYSOUT.								*/
-/*									*/
-/************************************************************************/
-
+//	Create the atom-pointers used by C to deal with the lisp SYSOUT.
 extern int for_makeinit;
 
 void build_lisp_map(void)
@@ -298,11 +267,9 @@ void build_lisp_map(void)
   Reclaim_cnt_word = MakeAtom68k("\\RECLAIM.COUNTDOWN");
 
   /*** cache values for gcreclaimer : added by T. Teruuchi 30-Sep-1987 ***/
-
   GcDisabled_word = MakeAtom68k("\\GCDISABLED");
 
   /*** following cache values are the solution for array reclaimer ***/
-
   FreeBlockBuckets_word = MakeAtom68k("\\FREEBLOCKBUCKETS");
   Array_Block_Checking_word = MakeAtom68k("ARRAYBLOCKCHECKING");
   ArrayMerging_word = MakeAtom68k("\\ARRAYMERGING");
@@ -314,12 +281,10 @@ void build_lisp_map(void)
   System_Buffer_List_word = MakeAtom68k("SYSTEMBUFFERLIST");
 
   /*** The following cache values are for the top level reclaimer ***/
-
   GcMess_word = MakeAtom68k("GCMESS");
   ReclaimMin_word = MakeAtom68k("\\RECLAIMMIN");
 
   /*** The following caches are for Symbol lookup April-28,1988 Tomtom ***/
-
   Package_from_Index_word = MakeAtom68k("*PACKAGE-FROM-INDEX*");
   Package_from_Name_word = MakeAtom68k("*PACKAGE-FROM-NAME*");
   Keyword_Package_word = MakeAtom68k("*KEYWORD-PACKAGE*");
@@ -327,11 +292,9 @@ void build_lisp_map(void)
   DBPRINT(("Package_from_Name_word  = %p\n", (void *)Package_from_Name_word));
 
   /*** The following atom-index cache is for CL:VALUES opcode JDS 4/5/89 ***/
-
   MVLIST_index = MAKEATOM("\\MVLIST");
 
   /* * * Atoms for closure-cache interface * * */
-
   if (for_makeinit)
   {
     Closure_Cache_Enabled_word = (LispPTR *)malloc(4);
@@ -400,14 +363,6 @@ void build_lisp_map(void)
   init_for_bitblt();    /* BITBLT-to-display speed-up */
 }
 
-/************************************************************************/
-/*									*/
-/*		    i n i t _ f o r _ k e y h a n d l e			*/
-/*									*/
-/*									*/
-/*									*/
-/************************************************************************/
-
 void init_for_keyhandle(void)
 {
   DLword index;
@@ -473,14 +428,6 @@ void init_for_keyhandle(void)
 #endif
 }
 
-/************************************************************************/
-/*									*/
-/*									*/
-/*									*/
-/*									*/
-/*									*/
-/************************************************************************/
-
 void init_for_bltchar(void)
 {
   char *IL;
@@ -495,14 +442,6 @@ void init_for_bltchar(void)
   }
   TOPWDS68k = MakeAtom68k("\\TOPWDS");
 }
-
-/************************************************************************/
-/*									*/
-/*			i n i t _ f o r _ b i t b l t			*/
-/*									*/
-/*									*/
-/*									*/
-/************************************************************************/
 
 void init_for_bitblt(void)
 {

@@ -9,8 +9,9 @@ This repository contains the **Interlisp** project, which includes:
 
 - **Maiko - C Implementation in @/maiko_untouched**: Historical baseline with sparse comments. Reference for original implementation details only.
 - **Maiko - C Implementation in @/maiko**: Production-ready C implementation with comprehensive documentation. Primary reference for development.
-- **Zig Implementation**: Alternative implementation of Maiko in Zig (incomplete)
-- **Common Lisp Implementation**: Alternative implementation of Maiko in Common Lisp (targetting Sbcl) (in progress - will be developed after Zig)
+- **Zaiko - Zig Implementation (@/zaiko)**: Alternative implementation of Maiko in Zig (incomplete, ~60-70% coverage)
+- **Laiko - Common Lisp Implementation (@/laiko)**: Alternative implementation of Maiko in Common Lisp targeting SBCL (in progress)
+- **Taiko - TypeScript Implementation (@/taiko)**: Browser-based implementation using WebGL (in progress, targeting full parity with C)
 
 ## Critical Documentation
 
@@ -21,7 +22,6 @@ This repository contains the **Interlisp** project, which includes:
 1. When **compressing or summarizing context**, follow **§7**: Phase 1 (aggressive compression of tool/command/trace/linter outputs only) is mandatory and first; Phase 2 (re-read AGENTS.md, then compress the remainder) only if further compression is needed.
 
 1. **`documentation/core/critical-memory.typ`** - **CRITICAL**: Rules for documentation updates
-
    - All documentation improvements MUST be emulator-independent in `documentation/specifications/`
    - Language-specific details go in `documentation/implementations/`
    - **ALWAYS** write documentation using the Typst document format
@@ -48,6 +48,13 @@ Interlisp/
 ├── zaiko/                     # Zig Implementation (INCOMPLETE)
 │   ├── src/                   # 60-70% complete, many placeholders
 │   └── tests/                 # Basic test structure
+├── laiko/                     # Common Lisp Implementation (IN PROGRESS)
+│   ├── src/                   # VM core, memory, I/O in development
+│   └── tests/                 # Test structure
+├── taiko/                     # TypeScript Browser Implementation (IN PROGRESS)
+│   ├── src/                   # WebGL-based emulator
+│   ├── web/                   # Browser UI
+│   └── tests/                 # Test structure
 ├── reports/                   # Reports and in markdown format
 │   ├── CURRENT_STATUS.md      # Current status of the project
 │   ├── WORK_STATE.md          # Work state of the project
@@ -74,6 +81,22 @@ Interlisp/
 - **Critical Issues**: 245 TODO/FIXME markers (8x more than C)
 - **Missing Features**: Floating point (completely stubbed), advanced graphics, I/O subsystems
 - **Quality**: Development-grade with numerous placeholder implementations
+
+### Common Lisp Implementation State: IN PROGRESS
+
+- **Status**: Active development
+- **Location**: `laiko/`
+- **Completeness**: Early stage with project structure and ASDF build system in place
+- **Current Focus**: VM core implementation, memory management
+- **Backend**: SDL3 for display
+
+### TypeScript Implementation State: IN PROGRESS
+
+- **Status**: Active development
+- **Location**: `taiko/`
+- **Target**: Browser-based emulator with WebGL rendering
+- **Goal**: Full parity with C implementation (94.5% opcode coverage)
+- **Features**: Drag-and-drop sysout loading, execution trace export for parity testing
 
 ### Documentation Accuracy Gap
 
@@ -154,7 +177,7 @@ Avoid committing machine/local outputs that create noisy diffs:
 
 ### 1.3 Markdown Document Storage (CRITICAL)
 
-**REQUIREMENT**: All new Markdown documents (`.md` files) containing intermediary reports or temporary finformationMUST be stored in the `reports/` directory or its subdirectories.
+**REQUIREMENT**: All new Markdown documents (`.md` files) containing intermediary reports or temporary information MUST be stored in the `reports/` directory or its subdirectories.
 
 - **Location**: `reports/` or `reports/[subdirectory]/` (e.g., `reports/parity/`)
 - **Examples**:
@@ -253,24 +276,18 @@ Language-Specific Documentation Updates:
 - **Trace Analysis**: Use comparison tools for divergence identification
 - **Performance Profiling**: Monitor execution speed during testing
 
-### 4.4 Systematic Debugging Workflow
+### 4.1 Parity Workflow (C vs Zig) – Canonical
 
-**CRITICAL**: For any implementation divergence or bug, follow this systematic process:
+For repeatable execution-trace parity work:
 
-1. **Cross-reference C traces** - Establish baseline with verified C emulator output
-2. **Instrument execution** - Add targeted debug prints following technique hierarchy
-3. **Validate incrementally** - Test after each code change, not at the end
-4. **Document findings** - Update both specifications and implementation docs
-5. **Regression test** - Ensure no existing functionality breaks
-
-**Key Principle**: Never implement blindly - always validate against C reference first.
-
-**Performance Considerations**:
-
-- VM emulators require careful optimization - profile memory access patterns
-- Stack operations are performance-critical - minimize redundant calculations
-- Memory translation overhead should be amortized across operations
-- Consider instruction caching for frequently executed opcodes
+- **Canonical script**: `scripts/compare_emulator_execution.sh`
+  - Supports the shared runtime cap knob **`EMULATOR_MAX_STEPS`** (unset/0 → run to completion).
+- **Unified trace format**: Single-line column-formatted traces for rapid comparison
+  - **C trace**: `c_emulator_unified_trace.txt`
+  - **Zig trace**: `zig_emulator_unified_trace.txt`
+  - **Comparison scripts**: `scripts/compare_unified_traces.awk`, `scripts/compare_unified_traces.py`
+- **Divergence analysis**: `scripts/analyze_execution_divergence.py` (supports LCP skip + `--start-line` resume).
+- **Path robustness**: Prefer **absolute sysout paths** (scripts should not depend on cwd).
 
 ### 4.2 Unified Trace Format
 
@@ -309,18 +326,24 @@ LINE#|PC|INSTRUCTION|OPCODE|OPERANDS|REGISTERS|FLAGS|SP_FP|STACK_SUMMARY|MEMORY_
 
 **Integration**: Both C and Zig emulators use centralized functions for consistency
 
-### 4.1 Parity Workflow (C vs Zig) – Canonical
+### 4.4 Systematic Debugging Workflow
 
-For repeatable execution-trace parity work:
+**CRITICAL**: For any implementation divergence or bug, follow this systematic process:
 
-- **Canonical script**: `scripts/compare_emulator_execution.sh`
-  - Supports the shared runtime cap knob **`EMULATOR_MAX_STEPS`** (unset/0 → run to completion).
-- **Unified trace format**: Single-line column-formatted traces for rapid comparison
-  - **C trace**: `c_emulator_unified_trace.txt`
-  - **Zig trace**: `zig_emulator_unified_trace.txt`
-  - **Comparison scripts**: `scripts/compare_unified_traces.awk`, `scripts/compare_unified_traces.py`
-- **Divergence analysis**: `scripts/analyze_execution_divergence.py` (supports LCP skip + `--start-line` resume).
-- **Path robustness**: Prefer **absolute sysout paths** (scripts should not depend on cwd).
+1. **Cross-reference C traces** - Establish baseline with verified C emulator output
+2. **Instrument execution** - Add targeted debug prints following technique hierarchy
+3. **Validate incrementally** - Test after each code change, not at the end
+4. **Document findings** - Update both specifications and implementation docs
+5. **Regression test** - Ensure no existing functionality breaks
+
+**Key Principle**: Never implement blindly - always validate against C reference first.
+
+**Performance Considerations**:
+
+- VM emulators require careful optimization - profile memory access patterns
+- Stack operations are performance-critical - minimize redundant calculations
+- Memory translation overhead should be amortized across operations
+- Consider instruction caching for frequently executed opcodes
 
 ### 5. Build System
 
@@ -661,5 +684,5 @@ medley/scripts/build/build-c-emulator.sh
 
 ---
 
-**Last Updated**: 2026-01-29
-**Status**: C implementation production-ready with comprehensive documentation; Zig implementation incomplete (60-70% actual coverage) with significant quality gaps
+**Last Updated**: 2026-02-19
+**Status**: C implementation production-ready with comprehensive documentation; Zig implementation incomplete (60-70% actual coverage); Common Lisp and TypeScript implementations in progress
