@@ -9,21 +9,24 @@
 
 #include "version.h"
 
-#include "adr68k.h"      // for NativeAligned4FromLAddr
-#include "cell.h"        // for xpointer
-#include "commondefs.h"  // for error
-#include "dbprint.h"     // for DEBUGGER
+#include "adr68k.h"     // for NativeAligned4FromLAddr
+#include "cell.h"       // for xpointer
+#include "commondefs.h" // for error
+#include "dbprint.h"    // for DEBUGGER
 #include "emlglob.h"
-#include "gcdata.h"      // for FRPLPTR
-#include "gchtfinddefs.h"  // for htfind, rec_htfind
-#include "gvar2defs.h"   // for N_OP_gvar_, N_OP_rplptr
-#include "lispemul.h"    // for LispPTR, DLword, NEWATOM_VALUE_OFFSET, NEWAT...
-#include "lspglob.h"     // for AtomSpace
+#include "gcdata.h"       // for FRPLPTR
+#include "gchtfinddefs.h" // for htfind, rec_htfind
+#include "gvar2defs.h"    // for N_OP_gvar_, N_OP_rplptr
+#include "lispemul.h"     // for LispPTR, DLword, NEWATOM_VALUE_OFFSET, NEWAT...
+#include "lspglob.h"      // for AtomSpace
 #include "lsptypes.h"
 
 #ifdef INTROSPECT_ENABLED
 #include "introspect/introspect.h"
 extern IntrospectDB *g_introspect;
+
+/* Global current PC byte offset - updated in xc.c dispatch loop */
+extern uint64_t g_current_pc_byte_offset;
 #endif
 
 /************************************************************************/
@@ -42,7 +45,8 @@ extern IntrospectDB *g_introspect;
 /*									*/
 /************************************************************************/
 
-LispPTR N_OP_gvar_(LispPTR tos, unsigned int atom_index) {
+LispPTR N_OP_gvar_(LispPTR tos, unsigned int atom_index)
+{
   LispPTR *pslot; /* Native pointer to GVAR slot of atom */
 
 #ifdef BIGATOMS
@@ -54,17 +58,23 @@ LispPTR N_OP_gvar_(LispPTR tos, unsigned int atom_index) {
 #ifdef BIGVM
     pslot = ((LispPTR *)AtomSpace) + (5 * atom_index) + NEWATOM_VALUE_PTROFF;
 #else
-    pslot = (LispPTR *)Valspace + atom_index;
+  pslot = (LispPTR *)Valspace + atom_index;
 #endif /* BIGVM */
   DEBUGGER(if (tos & 0xF0000000) error("Setting GVAR with high bits on"));
-  
+
 #ifdef INTROSPECT_ENABLED
   /* Introspection: trace value cell write */
-  if (g_introspect) {
+  if (g_introspect)
+  {
+    LispPTR old_value = *pslot;
+    uint64_t addr = (uint64_t)(uintptr_t)pslot;
     introspect_atom_cell(g_introspect, atom_index, "write", tos, 0);
+    /* Also log to memory_writes table for comprehensive tracking */
+    introspect_memory_write(g_introspect, addr, old_value, tos,
+                            g_current_pc_byte_offset, 4, 027);
   }
 #endif
-  
+
   FRPLPTR(((struct xpointer *)pslot)->addr, tos);
   return (tos);
 }
@@ -83,10 +93,23 @@ LispPTR N_OP_gvar_(LispPTR tos, unsigned int atom_index) {
 /*									*/
 /************************************************************************/
 
-LispPTR N_OP_rplptr(LispPTR tos_m_1, LispPTR tos, unsigned int alpha) {
+LispPTR N_OP_rplptr(LispPTR tos_m_1, LispPTR tos, unsigned int alpha)
+{
   struct xpointer *pslot;
 
   pslot = (struct xpointer *)NativeAligned4FromLAddr(tos_m_1 + alpha);
+
+#ifdef INTROSPECT_ENABLED
+  /* Introspection: trace pointer field write */
+  if (g_introspect)
+  {
+    LispPTR old_value = pslot->addr;
+    uint64_t addr = (uint64_t)(uintptr_t)pslot;
+    introspect_memory_write(g_introspect, addr, old_value, tos,
+                            g_current_pc_byte_offset, 4, 024);
+  }
+#endif
+
   FRPLPTR(pslot->addr, tos);
   return (tos_m_1);
 }

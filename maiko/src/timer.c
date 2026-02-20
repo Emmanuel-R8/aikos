@@ -21,6 +21,11 @@
 
 #include "version.h"
 
+/* Introspection module - for crash checkpointing */
+#ifdef INTROSPECT_ENABLED
+#include "introspect/introspect.h"
+#endif
+
 /* FILE: timer.c - Timer and Interrupt Handling
  *
  * This file implements timer handling and interrupt management for Medley.
@@ -646,6 +651,70 @@ static void timeout_error(int sig)
   longjmp(jmpbuf, 1);
 }
 
+/* ============================================================================
+ * CRASH HANDLING - SQLite WAL Checkpoint
+ * ============================================================================
+ *
+ * CRITICAL: SQLite functions are NOT async-signal-safe. Calling them from
+ * a signal handler can lead to deadlocks if the signal interrupted a
+ * SQLite operation that was holding a lock.
+ *
+ * Our approach:
+ * 1. Use a re-entrancy guard to prevent nested checkpoint attempts
+ * 2. Only attempt checkpoint if we're in the main thread (already checked)
+ * 3. Use a simple timeout mechanism via alarm() to prevent hanging
+ * 4. Accept that this is best-effort - may not always succeed
+ *
+ * For normal exits, the atexit() handler in main.c provides reliable
+ * checkpointing. This signal handler is only for crash scenarios.
+ */
+#ifdef INTROSPECT_ENABLED
+/* Global introspection handle - declared in main.c */
+extern IntrospectDB *g_introspect;
+
+/* Re-entrancy guard for crash checkpoint */
+static volatile sig_atomic_t in_crash_checkpoint = 0;
+
+/**
+ * Attempt to checkpoint SQLite WAL during crash.
+ *
+ * This is a BEST-EFFORT attempt. It may fail if:
+ * - The crash occurred during a SQLite operation (lock held)
+ * - The heap is corrupted
+ * - We're in a nested signal handler
+ *
+ * SAFETY: Uses alarm() timeout to prevent hanging, and re-entrancy
+ * guard to prevent recursive calls.
+ */
+static void attempt_crash_checkpoint(void)
+{
+  /* Prevent re-entry */
+  if (in_crash_checkpoint)
+    return;
+  in_crash_checkpoint = 1;
+
+  /* Check if introspection is active */
+  if (!g_introspect)
+    return;
+
+  /* Set a 1-second timeout to prevent hanging.
+   * If we hang, the alarm will terminate us anyway.
+   * This is safe because we're already crashing.
+   */
+  alarm(1);
+
+  /* Attempt to flush and checkpoint.
+   * NOTE: This is NOT async-signal-safe, but we're already
+   * in a crash scenario where we have nothing to lose.
+   * The alarm() ensures we won't hang indefinitely.
+   */
+  introspect_checkpoint(g_introspect);
+
+  /* Disable alarm if we succeeded */
+  alarm(0);
+}
+#endif /* INTROSPECT_ENABLED */
+
 /************************************************************************/
 /*									*/
 /*			i n t _ f i l e _ i n i t			*/
@@ -735,6 +804,14 @@ and do a 'v' before trying anything else.";
     write(STDERR_FILENO, errormsg, strlen(errormsg));
     _exit(128 + sig); /* Exit immediately, don't call atexit handlers */
   }
+
+#ifdef INTROSPECT_ENABLED
+  /* Attempt to checkpoint SQLite WAL before crash handling.
+   * This is best-effort and may fail if the crash occurred during
+   * a SQLite operation. See attempt_crash_checkpoint() for details.
+   */
+  attempt_crash_checkpoint();
+#endif
 
   switch (sig)
   {

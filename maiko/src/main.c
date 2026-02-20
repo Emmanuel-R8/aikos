@@ -20,6 +20,11 @@
 IntrospectDB *g_introspect = NULL;
 #endif
 
+/* Forward declaration for atexit handler */
+#ifdef INTROSPECT_ENABLED
+static void introspect_atexit_handler(void);
+#endif
+
 /* Forward declarations */
 int init_global_execution_trace(const char *log_path);
 int log_global_execution_trace(unsigned char opcode,
@@ -136,6 +141,7 @@ void cleanup_global_execution_trace(void);
 #include <stdlib.h>
 #include <string.h>
 #include <sys/select.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
 #include <sys/param.h>
@@ -1177,6 +1183,9 @@ int main(int argc, char *argv[])
     g_introspect = introspect_open(getenv("INTROSPECT_DB"));
     if (g_introspect)
     {
+      /* Register atexit handler for normal exit cleanup */
+      atexit(introspect_atexit_handler);
+
       introspect_start_session(g_introspect, sysout_name, "introspection run");
 
       /* Record build configuration */
@@ -1249,6 +1258,16 @@ int main(int argc, char *argv[])
   }
 #endif
 
+  /* Get actual sysout file size for introspection (before loading) */
+  unsigned sysout_file_size = 0;
+  {
+    struct stat st;
+    if (stat(sysout_name, &st) == 0)
+    {
+      sysout_file_size = (unsigned)st.st_size;
+    }
+  }
+
   /* Load sysout to VM space and returns real sysout_size(not 0) */
   sysout_size = sysout_loader(sysout_name, sysout_size);
 
@@ -1269,15 +1288,70 @@ int main(int argc, char *argv[])
   {
     introspect_phase(g_introspect, "after_build_lisp_map");
 
-    /* NOW capture runtime config - Valspace is set by build_lisp_map() */
-    introspect_runtime_config(g_introspect,
-                              (uint64_t)(uintptr_t)Valspace,
-                              (uint64_t)(uintptr_t)AtomSpace,
-                              (uint64_t)(uintptr_t)Stackspace,
-                              sysout_name,
-                              sysout_size,
-                              0,  /* total_pages_loaded - TODO */
-                              0); /* sparse_pages_count - TODO */
+    /* Enumerate Valspace pages and record which are sparse vs loaded.
+     *
+     * A page is considered "sparse" (not loaded from sysout) if:
+     * 1. It's in the Valspace range
+     * 2. It contains all zeros (was mmap'd but never loaded)
+     *
+     * Note: The FPtoVP table in Lisp memory at FPTOVP_OFFSET is used for VMEM
+     * operations and has a different format than the temporary table used during
+     * sysout loading (which is freed after loading). So we use a heuristic:
+     * check if the page content is non-zero.
+     */
+    {
+      uint32_t vals_start_vp = VALS_OFFSET * 2 / BYTESPER_PAGE;             /* Valspace start in virtual pages */
+      uint32_t vals_end_vp = (VALS_OFFSET + VALS_SIZE) * 2 / BYTESPER_PAGE; /* Valspace end in virtual pages */
+      uint64_t pages_loaded = 0;
+      uint64_t sparse_count = 0;
+
+      for (uint32_t vp = vals_start_vp; vp < vals_end_vp; vp++)
+      {
+        uint64_t page_addr = (uint64_t)(uintptr_t)(Lisp_world + vp * BYTESPER_PAGE);
+        uint64_t page_end = page_addr + BYTESPER_PAGE;
+        int is_sparse = 1;
+        uint32_t file_page = 0;
+
+        /* Check if page has any non-zero content.
+         * Sparse pages are zero-initialized by mmap.
+         */
+        DLword *page_ptr = (DLword *)(uintptr_t)page_addr;
+        int non_zero = 0;
+        for (int w = 0; w < (int)(BYTESPER_PAGE / sizeof(DLword)); w++)
+        {
+          if (page_ptr[w] != 0)
+          {
+            non_zero = 1;
+            break;
+          }
+        }
+
+        if (non_zero)
+        {
+          is_sparse = 0;
+          /* We don't have the file page number after loading, use 0 as placeholder */
+          file_page = 0;
+          pages_loaded++;
+        }
+        else
+        {
+          is_sparse = 1;
+          sparse_count++;
+        }
+
+        introspect_vals_page(g_introspect, vp, page_addr, page_end, is_sparse, file_page);
+      }
+
+      /* NOW capture runtime config - Valspace is set by build_lisp_map() */
+      introspect_runtime_config(g_introspect,
+                                (uint64_t)(uintptr_t)Valspace,
+                                (uint64_t)(uintptr_t)AtomSpace,
+                                (uint64_t)(uintptr_t)Stackspace,
+                                sysout_name,
+                                sysout_file_size,
+                                pages_loaded,
+                                sparse_count);
+    }
 
     /* Memory snapshots after build_lisp_map - Valspace is now valid */
     introspect_memory_snapshot(g_introspect, "after_build_lisp_map",
@@ -1532,3 +1606,35 @@ void print_info_lines(void)
 #endif /* MAIKO_ENABLE_FOREIGN_FUNCTION_INTERFACE */
   printf("Supports Sun European Type-4/5 keyboards.\n");
 }
+
+/* ============================================================================
+ * ATEXIT HANDLER - SQLite WAL Checkpoint
+ * ============================================================================
+ *
+ * This handler is called on normal process exit (via exit() or returning
+ * from main()). It checkpoints the SQLite WAL file to ensure all data
+ * is written to the main database file.
+ *
+ * NOTE: This handler is NOT called on:
+ *   - Signal-induced termination (SIGSEGV, SIGABRT, etc.)
+ *   - _exit() calls
+ *   - Crash scenarios
+ *
+ * For crash handling, see panicuraid() in timer.c which attempts a
+ * best-effort checkpoint before termination.
+ */
+#ifdef INTROSPECT_ENABLED
+static void introspect_atexit_handler(void)
+{
+  if (g_introspect)
+  {
+    /* End session if still active - introspect_close handles this internally */
+    /* Checkpoint WAL to main database */
+    introspect_checkpoint(g_introspect);
+
+    /* Close the database (also ends session if active) */
+    introspect_close(g_introspect);
+    g_introspect = NULL;
+  }
+}
+#endif /* INTROSPECT_ENABLED */

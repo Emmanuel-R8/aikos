@@ -262,6 +262,9 @@
 #ifdef INTROSPECT_ENABLED
 #include "introspect/introspect.h"
 extern IntrospectDB *g_introspect;
+
+/* Global current PC byte offset for introspection - accessible from other files */
+uint64_t g_current_pc_byte_offset = 0;
 #endif
 #include "keyeventdefs.h"
 #include "llstkdefs.h"
@@ -1016,6 +1019,9 @@ nextopcode:
                                sp_offset, fp_offset, opcode_name);
 
 #ifdef INTROSPECT_ENABLED
+    /* Update global PC for introspection from other files (e.g., gvar2.c) */
+    g_current_pc_byte_offset = (uint64_t)pc_byte_offset;
+
     /* Introspection: log opcode execution */
     if (g_introspect)
     {
