@@ -1,6 +1,6 @@
 # AI Agent Guidelines for Interlisp Project
 
-**Date**: 2026-01-29
+**Date**: 2026-02-20
 **Purpose**: Guidelines and best practices for AI agents working on this project
 
 ## Project Overview
@@ -66,7 +66,7 @@ Interlisp/
 └── medley/                    # Medley Interlisp system
 ```
 
-## Current Status (2026-01-29)
+## Current Status (2026-02-20)
 
 ### C Implementation State: PRODUCTION READY
 
@@ -74,6 +74,7 @@ Interlisp/
 - **Comments**: Enhanced with comprehensive documentation (superior to maiko_untouched/)
 - **Completeness**: 94.5% opcode coverage (242/256 opcodes implemented)
 - **Quality**: Production-grade with extensive testing framework
+- **Introspection**: Fully functional introspection module (see Introspection Module section)
 
 ### Zig Implementation State: INCOMPLETE
 
@@ -89,6 +90,10 @@ Interlisp/
 - **Completeness**: Early stage with project structure and ASDF build system in place
 - **Current Focus**: VM core implementation, memory management
 - **Backend**: SDL3 for display
+- **Known Issues** (from `reports/laiko-gvar-parity-analysis.md`):
+  - `read-pc-32-be` is a placeholder returning 0 (GVAR always reads atom 0)
+  - `*bigatoms*` set to nil but C uses BIGVM/BIGATOMS
+  - Atom index incorrectly masked to 16 bits in GVAR handler
 
 ### TypeScript Implementation State: IN PROGRESS
 
@@ -103,6 +108,32 @@ Interlisp/
 - **Task Tracking**: Overstates Zig completion by 20-30%
 - **Specifications**: Assume higher Zig implementation than actually exists
 - **Issue**: Completion percentages do not reflect implementation quality
+
+## Introspection Module
+
+### C Implementation: Fully Functional
+
+- **Location**: `maiko/src/introspect/`
+- **Status**: Fully functional and production-ready
+- **Database**: `maiko/maiko_introspect.db` (SQLite)
+
+**Populated Tables**:
+
+- `sessions` - Emulator run sessions
+- `events` - Instruction execution events with PC, opcode, TOS
+- `build_config` - Build configuration (BIGVM, BIGATOMS, etc.)
+- `runtime_config` - Runtime parameters
+- `memory_snapshots` - Memory state snapshots
+- `memory_writes` - Memory write operations
+- `vals_pages` - VALS page tracking
+- `gvar_executions` - GVAR opcode execution details (atom_index, value_read)
+- `atom_cell_writes` - Atom cell write operations
+
+**Key Documentation**: `documentation/specifications/gvar-introspection-timing.typ`
+
+**Critical Timing Convention**: TOS values in the events table are recorded **AFTER the PREVIOUS instruction**, **BEFORE the current instruction** executes. This means event N shows the TOS value that resulted from instruction N-1, not from instruction N.
+
+**Solved Mystery**: The "0x0E atom 522" issue was a misinterpretation of this timing convention. GVAR for atom 522 correctly pushed 0x140000; the 0x0E was a stale TOS from a previous POP operation.
 
 ## Implementation Reality Assessment
 
@@ -541,6 +572,11 @@ When a file exceeds 500 lines:
   - This is because operations like GVAR push values (changing TOPOFSTACK), and UNBIND walks CSTKPTRL into the binding stack
   - Without syncing TOPOFSTACK from memory, operations after UNBIND see stale cached values
   - **Fix**: Call `readTopOfStackFromMemory()` after `initCSTKPTRLFromCurrentStackPTR()` in the dispatch loop
+- **Introspection TOS timing (CRITICAL)**:
+  - TOS values in the introspection `events` table are recorded **AFTER the PREVIOUS instruction**, **BEFORE the current instruction** executes
+  - Event N shows the TOS value that resulted from instruction N-1, not from instruction N
+  - This means a GVAR event shows the TOS _before_ GVAR pushed its value, not after
+  - To see the value GVAR pushed, look at the TOS in the _next_ event
 
 ### SDL2 Integration
 
@@ -578,6 +614,8 @@ When a file exceeds 500 lines:
 - Zig source: `zaiko/src/`
 - Zig tests: `zaiko/tests/`
 - C reference: `maiko/src/`
+- C introspection: `maiko/src/introspect/`
+- Introspection database: `maiko/maiko_introspect.db`
 - Documentation: `documentation/`
 - Specs: `specs/`
 
@@ -684,5 +722,5 @@ medley/scripts/build/build-c-emulator.sh
 
 ---
 
-**Last Updated**: 2026-02-19
-**Status**: C implementation production-ready with comprehensive documentation; Zig implementation incomplete (60-70% actual coverage); Common Lisp and TypeScript implementations in progress
+**Last Updated**: 2026-02-20
+**Status**: C implementation production-ready with comprehensive documentation and fully functional introspection module; Zig implementation incomplete (60-70% actual coverage); Common Lisp and TypeScript implementations in progress
