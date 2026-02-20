@@ -16,6 +16,9 @@
 /*									*/
 /************************************************************************/
 
+/* _GNU_SOURCE is needed for gettid() on Linux */
+#define _GNU_SOURCE
+
 #include "version.h"
 
 /* FILE: timer.c - Timer and Interrupt Handling
@@ -690,6 +693,12 @@ static void int_file_init(void)
 /*      post-mortem analysis, but you MIGHT be able to get a clue       */
 /*      about what killed you.                                          */
 /*                                                                      */
+/*   THREAD SAFETY: Signal handlers can be called in any thread.        */
+/*      The error() function uses global buffers and stdin/stdout,      */
+/*      which are not thread-safe. We check if we're in the main        */
+/*      thread before calling error(). If not, we print to stderr       */
+/*      and exit immediately.                                           */
+/*                                                                      */
 /************************************************************************/
 static void panicuraid(int sig, siginfo_t *info, void *context)
 {
@@ -697,6 +706,35 @@ static void panicuraid(int sig, siginfo_t *info, void *context)
   static char *stdmsg =
       "Please record the signal and code information\n\
 and do a 'v' before trying anything else.";
+
+  /* Thread safety check: error() uses global buffers and stdin/stdout.
+   * If we're not in the main thread, print to stderr and exit immediately.
+   * This prevents crashes when signals are delivered to driver threads
+   * (e.g., Vulkan/Mesa threads).
+   */
+  pid_t main_tid = getpid();    /* Process ID is same for all threads */
+  pid_t current_tid = gettid(); /* Thread-specific ID */
+
+  if (current_tid != main_tid)
+  {
+    /* We're in a non-main thread - can't safely call error() */
+    const char *thread_msg = "\n*** Signal in non-main thread ***\n";
+    write(STDERR_FILENO, thread_msg, strlen(thread_msg));
+    switch (sig)
+    {
+    case SIGBUS:
+    case SIGILL:
+    case SIGSEGV:
+      snprintf(errormsg, sizeof(errormsg), "Signal %s at address %p.\n",
+               strsignal(sig), info->si_addr);
+      break;
+    default:
+      snprintf(errormsg, sizeof(errormsg), "Signal %s (%d).\n",
+               strsignal(sig), sig);
+    }
+    write(STDERR_FILENO, errormsg, strlen(errormsg));
+    _exit(128 + sig); /* Exit immediately, don't call atexit handlers */
+  }
 
   switch (sig)
   {

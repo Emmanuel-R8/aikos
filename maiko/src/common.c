@@ -40,12 +40,12 @@
 #include <string.h>     // for memset - memory operations
 #include <sys/select.h> // for fd_set - file descriptor sets
 
-#include "commondefs.h" // for error, stab, warn - common utility prototypes
-#include "dbprint.h"    // for DBPRINT - debug printing
-#include "emlglob.h"    // for global variables
-#include "kprintdefs.h" // for print - kernel print function
-#include "lispemul.h"   // for NIL, DLword, LispPTR - core VM types
-#include "lspglob.h"    // for Lisp system integration and global variables
+#include "commondefs.h"   // for error, stab, warn - common utility prototypes
+#include "dbprint.h"      // for DBPRINT - debug printing
+#include "emlglob.h"      // for global variables
+#include "kprintdefs.h"   // for print - kernel print function
+#include "lispemul.h"     // for NIL, DLword, LispPTR - core VM types
+#include "lspglob.h"      // for Lisp system integration and global variables
 #include "uraiddefs.h"    // for device_after_raid, device_before_raid - URAID integration
 #include "uraidextdefs.h" // for URMAXFXNUM, URaid_inputstring, URaid_FXarray - URAID data structures
 
@@ -65,15 +65,15 @@ void stab(void) { DBPRINT(("Now in stab\n")); }
  * They provide access to system resources for keyboard handling, display,
  * and low-level debugging.
  * ========================================================================= */
-extern fd_set LispReadFds;                /* File descriptors for Lisp read operations */
-extern int LispKbdFd;                     /* File descriptor for Lisp keyboard */
-extern struct screen LispScreen;          /* Screen information structure */
-extern int displaywidth, displayheight;   /* Display dimensions */
-extern DLword *DisplayRegion68k;          /* Display buffer pointer */
-extern int FrameBufferFd;                 /* Frame buffer file descriptor */
-extern jmp_buf BT_jumpbuf;                /* Jump buffer for break handling */
-extern jmp_buf SD_jumpbuf;                /* Jump buffer for stack debugging */
-extern int BT_temp;                       /* Holds the continue-character the user typed */
+extern fd_set LispReadFds;              /* File descriptors for Lisp read operations */
+extern int LispKbdFd;                   /* File descriptor for Lisp keyboard */
+extern struct screen LispScreen;        /* Screen information structure */
+extern int displaywidth, displayheight; /* Display dimensions */
+extern DLword *DisplayRegion68k;        /* Display buffer pointer */
+extern int FrameBufferFd;               /* Frame buffer file descriptor */
+extern jmp_buf BT_jumpbuf;              /* Jump buffer for break handling */
+extern jmp_buf SD_jumpbuf;              /* Jump buffer for stack debugging */
+extern int BT_temp;                     /* Holds the continue-character the user typed */
 
 /* Currently don't care about Ether re-initialization */
 /* This is Medley-only functionality */
@@ -106,68 +106,77 @@ LispPTR Uraid_mess = NIL;
 int error(const char *cp)
 {
   char *ptr;
-  
+
   /* Attempt to prepare for URAID debugger */
   if (device_before_raid() < 0)
   {
     (void)fprintf(stderr, "Can't Enter URAID.\n");
-    exit(-1);  /* Fatal error */
+    exit(-1); /* Fatal error */
   }
-  
+
   /* Set error message for URAID */
   URaid_errmess = cp;
-  
+
   /* Print error message to standard error */
   (void)fprintf(stderr, "\n*Error* %s\n", cp);
   fflush(stdin);
   (void)fprintf(stderr, "Enter the URaid\n");
-  
+
   /* Print URAID message if available */
   print(Uraid_mess);
   putchar('\n');
-  
+
   /* Ensure all output is flushed */
   fflush(stdout);
   fflush(stderr);
-  
+
   /* Initialize URAID state */
   URaid_currentFX = URMAXFXNUM + 1;
   memset(URaid_FXarray, 0, URMAXFXNUM * 4);
-  
+
 uraidloop:
   /* Set up jump buffers for exception handling */
   if (setjmp(BT_jumpbuf) == 1)
     goto uraidloop;
   if (setjmp(SD_jumpbuf) == 1)
     goto uraidloop;
-  
+
   /* URAID command loop */
   for (;;)
   {
     uraid_commclear();
     BT_temp = 0; /* So we get the "more" option on screen-full */
-    
-    /* Read command from user */
+
+    /* Read command from user with bounds checking */
     printf("\n< ");
-    for (ptr = URaid_inputstring; (*ptr = getchar()) != '\n'; ptr++)
+    for (ptr = URaid_inputstring; ptr < URaid_inputstring + URMAXCOMM - 1; ptr++)
     {
+      int c = getchar();
+      if (c == '\n' || c == EOF)
+      {
+        *ptr = '\0';
+        break;
+      }
+      *ptr = (char)c;
     }
-    
+    /* Ensure null termination even if buffer is full */
+    URaid_inputstring[URMAXCOMM - 1] = '\0';
+
     /* Parse command */
     URaid_argnum = sscanf(URaid_inputstring, "%1s%s%s", URaid_comm, URaid_arg1, URaid_arg2);
-    
+
     /* Execute URAID command */
     if (uraid_commands() == NIL)
       break;
-    
+
     /* Ensure output is flushed */
     fflush(stdout);
     fflush(stderr);
   }
-  
+
   /* Prepare to return to Lisp */
   /**TopOfStack = NIL; if error is called from subr TOS will be set NIL**/
-  
+
   /* Attempt to return to Lisp */
   if (device_after_raid() < 0)
   {
@@ -180,9 +189,9 @@ uraidloop:
         exit(-1);
     }
     fflush(stdin);
-    goto uraidloop;  /* Return to URAID loop */
+    goto uraidloop; /* Return to URAID loop */
   }
-  
+
   return (0);
 }
 
