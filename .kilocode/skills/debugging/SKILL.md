@@ -20,6 +20,33 @@ When debugging issues related to:
 2. The value divided by 2 (decimal and hexadecimal)
 3. The value multiplied by 2 (decimal and hexadecimal)
 
+## Question the Premise
+
+*Date*: 2026-02-20
+*Status*: CRITICAL - Always verify the question itself before debugging
+
+When debugging "why does X happen?", **first verify X actually happens**. Many debugging sessions
+are blocked by incorrect assumptions about what the data shows.
+
+### Common Premise Errors
+
+1. **Misinterpreted trace data** - Values in traces may represent different things than assumed
+2. **Wrong timing assumptions** - Data may be recorded before/after operations differently than expected
+3. **Incorrect causation** - Assuming A caused B when they're unrelated
+
+### The 0x0E Mystery Example
+
+**The blocking question**: "Who writes 0x0E to atom 522?"
+
+**The answer**: 0x0E was never written to atom 522. The introspection data was misinterpreted.
+
+**Why it took so long**:
+- Assumed the question was correct instead of questioning the premise
+- Missing timing documentation for introspection data
+- Looked for memory writes instead of understanding data flow
+
+**Lesson**: Before searching for causes, verify what the data actually represents.
+
 ## Why This Works
 
 - *Byte vs DLword*: If a value is in bytes but should be in DLwords, dividing by 2 reveals the DLword value
@@ -62,3 +89,40 @@ When encountering a debugging issue involving values in the Interlisp emulator:
 5. Document findings and update relevant code or documentation as needed.
 
 This technique helps quickly identify common conversion errors between byte and DLword representations.
+
+## Introspection Timing Convention
+
+*Date*: 2026-02-20
+*Status*: CRITICAL - Understand when trace values are recorded
+
+When analyzing introspection data from the C emulator:
+
+- **TOS values** are recorded AFTER the PREVIOUS instruction, BEFORE the current instruction
+- This means the TOS shown for instruction N is the result of instruction N-1, not instruction N
+- **Always verify** what a trace value represents before drawing conclusions
+
+### Example
+
+If you see:
+
+| PC | Opcode | TOS |
+|----|--------|-----|
+| A | POP | 0x0 |
+| B | GVAR | 0xE |
+| C | UNBIND | 0x140000 |
+
+The value 0xE is **NOT** the result of GVAR - it's the TOS after POP, before GVAR executed.
+
+### Why This Matters
+
+1. **Incorrect causation** - You might think GVAR produced 0xE when it didn't
+2. **Wild goose chases** - You might search for "who wrote 0xE" when the question itself is wrong
+3. **Wasted time** - The 0x0E mystery blocked development for a long time due to this misunderstanding
+
+### Document Conventions
+
+When discovering timing conventions in trace/introspection data:
+
+1. **Document immediately** - Don't assume you'll remember later
+2. **Update the skill** - Add findings to this section
+3. **Cross-reference** - Link to relevant documentation files
