@@ -28,6 +28,7 @@ trace.db*
 
 cmake-build-*/**
 .idea/
+.kilocode/
 *.m68k-x/**
 *.m68k/**
 *.386-sdl/**
