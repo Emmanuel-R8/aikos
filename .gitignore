@@ -24,7 +24,7 @@ maiko/src/introspect/CMakeFiles
 maiko/src/introspect/Makefile
 maiko/src/introspect/libmaiko_introspect.a
 trace.db*
-introspect.db
+*.db
 
 cmake-build-*/**
 .idea/
