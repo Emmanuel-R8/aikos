@@ -25,7 +25,7 @@
 | 2.1 Create trace module | ✅ Done | `src/vm/trace.lisp` |
 | 2.2 Implement trace logging | ✅ Done | Unified format columns |
 | 2.3 EMULATOR_MAX_STEPS support | ✅ Done | Environment variable |
-| 2.4 Add Laiko to comparison script | ⏳ Pending | Script update |
+| 2.4 Add Laiko to comparison script | ✅ Done | `scripts/compare_emulator_execution.sh --with-laiko` |
 
 ### File Organization Improvements
 
@@ -36,8 +36,6 @@
 | `src/data/bytecode.lisp` | 92 | ✅ New |
 | `src/vm/trace.lisp` | 48 | ✅ New |
 | `src/vm/opcodes.lisp` | 1354 | ⚠️ Needs splitting |
-
-### Phase 2: Unified Trace Format - NOT STARTED
 
 ### Phase 3: Complete Opcode Implementation - NOT STARTED
 

@@ -27,14 +27,10 @@
 
       Format: LINE#|PC|INSTRUCTION|OPCODE|OPERANDS|REGISTERS|FLAGS|SP_FP|STACK_SUMMARY|MEMORY_CONTEXT|FP_VP_FO_VA|BS_MEM|NOTES
       Matches C/Zig unified trace format for parity comparison."
-  (unless *vm-trace-output*
-    (return-from trace-log))
-  ;; Check step limit
-  (when (and (plusp *max-trace-steps*) (>= *trace-step* *max-trace-steps*))
+  (unless (trace-enabled-p)
     (return-from trace-log))
   (incf *trace-step*)
-  (format t "DEBUG trace-log: step=~D, max=~D, pc=0x~X, opcode=0x~X~%" *trace-step* *max-trace-steps* pc opcode)
-    (let* ((sp (vm-stack-ptr vm))
+  (let* ((sp (vm-stack-ptr vm))
            (tos (if (> sp 0) (aref (vm-stack vm) (1- sp)) 0))
            (n1 (if (> sp 1) (aref (vm-stack vm) (- sp 2)) 0))
            (n2 (if (> sp 2) (aref (vm-stack vm) (- sp 3)) 0))

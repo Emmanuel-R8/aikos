@@ -189,9 +189,9 @@
             ((> env-max-steps 0)
              ;; Auto-enable tracing to standard location for parity testing
              ;; Write to current working directory (should be repo root when run from script)
-             (let ((trace-file "lisp_emulator_execution_log.txt"))
-               (format t "Auto-enabling trace to: ~A~%" trace-file)
-               (maiko-lisp.vm:open-trace-file trace-file)))))
+             (setf trace-file "lisp_emulator_execution_log.txt")
+             (format t "Auto-enabling trace to: ~A~%" trace-file)
+             (maiko-lisp.vm:open-trace-file trace-file)))))
 
         ;; Initialize opcode handlers (must be done after all files are loaded)
         (format t "Initializing opcode handlers...~%")

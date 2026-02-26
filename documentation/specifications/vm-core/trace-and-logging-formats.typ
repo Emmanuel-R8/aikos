@@ -12,7 +12,7 @@ Execution traces enable comparison between emulator implementations and systemat
 2. *Verbose debugging format* — for deep investigation (hex/octal and *2,/2 values)
 3. *Legacy column-based format* — see `execution-trace.typ` for column layout and CRITICAL stack/frame notes
 
-*Implementation*: C: `maiko/src/xc.c`; Zig: `zaiko/src/vm/execution_trace.zig`.
+*Implementation*: C: `maiko/src/xc.c`; Zig: `zaiko/src/vm/execution_trace.zig`; Laiko: `laiko/src/vm/trace.lisp`.
 
 == Canonical: Unified Pipe-Delimited Format
 
@@ -22,6 +22,9 @@ Single-line, pipe-delimited format for rapid comparison. *Preferred for parity w
 
 - *C Emulator*: `c_emulator_unified_trace.txt`
 - *Zig Emulator*: `zig_emulator_unified_trace.txt`
+- *Laiko (Common Lisp) Emulator*: `lisp_emulator_execution_log.txt` (written to current working directory when tracing is enabled)
+
+*Invocation (all emulators)*: Set `EMULATOR_MAX_STEPS=N` in the environment to limit execution to N instructions and enable trace output. Laiko also supports `-trace <file>` and `-max-steps <N>` on the command line; `-max-steps` overrides the environment when both are set.
 
 === Line Format
 
@@ -72,6 +75,7 @@ Used for deep investigation. Each line includes hex, octal, and *2 and /2 varian
 
 - *C*: `c_emulator_execution_log.txt`
 - *Zig*: `zig_emulator_execution_log.txt`
+- *Laiko*: `lisp_emulator_execution_log.txt`
 
 === Purpose of *2 and /2
 

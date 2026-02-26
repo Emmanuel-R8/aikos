@@ -16,8 +16,8 @@
 (defparameter *c-trace-file* "c_emulator_unified_trace.txt"
   "Temporary file for C emulator trace output")
 
-(defparameter *lisp-trace-file* "lisp_emulator_unified_trace.txt"
-  "Temporary file for Lisp emulator trace output")
+(defparameter *lisp-trace-file* "lisp_emulator_execution_log.txt"
+  "Trace file for Lisp emulator (matches compare_emulator_execution.sh and IMPLEMENTATION.md)")
 
 (defparameter *max-test-steps* 1000
   "Maximum number of steps to compare during testing")
@@ -44,13 +44,13 @@
     (format t "C emulator trace complete~%")))
 
 (defun run-lisp-emulator-trace (&optional (max-steps *max-test-steps*))
-  "Run Lisp emulator and save trace output"
-  (format t "Running Lisp emulator...~%")
+  "Run Lisp emulator and save trace output. Uses *max-trace-steps* and -trace for parity script alignment."
+  (format t "Running Lisp emulator (max-steps=~D)...~%" max-steps)
   #+sbcl
   (let ((sbcl-code
          `(progn
             (require :asdf)
-            (load "/home/emmanuel/Sync/Development/Emulation/_gits/Interlisp/laiko/maiko-lisp.asd")
+            (load ,(namestring (merge-pathnames "../maiko-lisp.asd" (make-pathname :name nil :type nil :defaults (or *load-pathname* #P"."))))))
             (asdf:load-system :maiko-lisp)
             (setf maiko-lisp.vm:*max-trace-steps* ,max-steps)
             (maiko-lisp:run-emulator
@@ -59,12 +59,24 @@
     (sb-ext:run-program
      "sbcl"
      (list "--non-interactive" "--eval" (format nil "~S" sbcl-code))
+     :directory (namestring (merge-pathnames "../" (make-pathname :name nil :type nil :defaults (or *load-pathname* #P"."))))
      :input nil
      :output :interactive
      :error :output))
   #-sbcl
   (format t "Lisp emulator run not supported on this Lisp~%")
   (format t "Lisp emulator trace complete~%"))
+
+(defun phase2-trace-sanity-test (&optional (min-steps 5))
+  "Sanity check that Phase 2 trace wiring works: run Laiko with small step limit, assert trace file exists and has at least MIN-STEPS lines. Run from repo root with laiko/ as current directory for run.sh, or from laiko/tests with trace file in laiko/."
+  (run-lisp-emulator-trace min-steps)
+  (let ((trace-path (merge-pathnames *lisp-trace-file* (merge-pathnames "../" (make-pathname :name nil :type nil :defaults (or *load-pathname* #P"."))))))
+    (if (probe-file trace-path)
+        (let ((lines (read-file-lines trace-path)))
+          (if (>= (length lines) min-steps)
+              (format t "PASS: Phase 2 trace sanity: ~D lines in ~A~%" (length lines) trace-path)
+              (format t "FAIL: Phase 2 trace sanity: expected >= ~D lines, got ~D in ~A~%" min-steps (length lines) trace-path)))
+        (format t "FAIL: Phase 2 trace sanity: trace file not found ~A~%" trace-path))))
 
 (defun read-file-lines (path)
   "Read all lines from a file into a vector"
@@ -131,4 +143,4 @@
   (run-parity-test 100))
 
 ;; Run tests when loaded
-(format t "Parity test module loaded. Use (run-parity-test) or (quick-parity-test)~%")
+(format t "Parity test module loaded. Use (run-parity-test), (quick-parity-test), or (phase2-trace-sanity-test)~%")

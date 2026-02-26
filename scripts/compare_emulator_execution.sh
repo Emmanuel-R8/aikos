@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Script to run both C and Zig emulators for 1000 steps and compare execution logs
-# Usage: ./scripts/compare_emulator_execution.sh [sysout_file]
+# Script to run C and Zig emulators (and optionally Laiko) for N steps and compare execution logs
+# Usage: ./scripts/compare_emulator_execution.sh [--with-laiko] [sysout_file]
 
 set -euo pipefail
 
@@ -8,7 +8,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
-SYSOUT_FILE="${1:-medley/internal/loadups/starter.sysout}"
+WITH_LAIKO=false
+SYSOUT_FILE=""
+for arg in "$@"; do
+	case "$arg" in
+		--with-laiko) WITH_LAIKO=true ;;
+		-*)           ;; # ignore other options
+		*)            SYSOUT_FILE="$arg" ;;
+	esac
+done
+SYSOUT_FILE="${SYSOUT_FILE:-medley/internal/loadups/starter.sysout}"
 MAX_STEPS=1000
 SYSOUT_PATH="$SYSOUT_FILE"
 
@@ -26,6 +35,8 @@ echo ""
 rm -f "$REPO_ROOT/c_emulator_execution_log.txt" "$REPO_ROOT/zig_emulator_execution_log.txt"
 rm -f "$REPO_ROOT/zaiko/zig_emulator_execution_log.txt"
 rm -f "$REPO_ROOT/zaiko/zaiko/zig_emulator_execution_log.txt"
+rm -f "$REPO_ROOT/lisp_emulator_execution_log.txt"
+rm -f "$REPO_ROOT/laiko/lisp_emulator_execution_log.txt"
 
 # Find C emulator
 C_EMULATOR=""
@@ -118,6 +129,41 @@ else
 	exit 1
 fi
 
+# Optionally run Laiko emulator
+LAIKO_LINES=0
+if [ "$WITH_LAIKO" = true ]; then
+	echo ""
+	echo "=== Running Laiko (Common Lisp) Emulator ==="
+	LAIKO_RUN="$REPO_ROOT/laiko/run.sh"
+	if [ ! -x "$LAIKO_RUN" ]; then
+		echo "WARNING: Laiko run script not found or not executable: $LAIKO_RUN"
+	else
+		echo "Command: $LAIKO_RUN $SYSOUT_PATH"
+		cd "$REPO_ROOT"
+		timeout 90 "$LAIKO_RUN" "$SYSOUT_PATH" >/dev/null 2>&1 || true
+		if [ -f "$REPO_ROOT/lisp_emulator_execution_log.txt" ]; then
+			LISP_LOG="$REPO_ROOT/lisp_emulator_execution_log.txt"
+		elif [ -f "$REPO_ROOT/laiko/lisp_emulator_execution_log.txt" ]; then
+			cp "$REPO_ROOT/laiko/lisp_emulator_execution_log.txt" "$REPO_ROOT/lisp_emulator_execution_log.txt"
+			LISP_LOG="$REPO_ROOT/lisp_emulator_execution_log.txt"
+		else
+			LISP_LOG=""
+		fi
+		if [ -n "${LISP_LOG:-}" ] && [ -f "$LISP_LOG" ]; then
+			LAIKO_LINES=$(wc -l <"$LISP_LOG")
+			echo "✓ Laiko emulator log created: $LAIKO_LINES lines"
+			if [ "$LAIKO_LINES" -gt "$MAX_STEPS" ]; then
+				echo "  WARNING: Log has more than ${MAX_STEPS} lines, truncating..."
+				head -n "$MAX_STEPS" "$LISP_LOG" >"$REPO_ROOT/lisp_emulator_execution_log_truncated.txt"
+				mv "$REPO_ROOT/lisp_emulator_execution_log_truncated.txt" "$LISP_LOG"
+				LAIKO_LINES=$MAX_STEPS
+			fi
+		else
+			echo "✗ Laiko emulator log not created"
+		fi
+	fi
+fi
+
 # Compare logs
 echo ""
 echo "=== Comparing Execution Logs ==="
@@ -156,10 +202,29 @@ else
 	echo "Total differences: $DIFF_COUNT lines"
 fi
 
+# If Laiko was run, compare Laiko vs C
+if [ "$WITH_LAIKO" = true ] && [ -f "$REPO_ROOT/lisp_emulator_execution_log.txt" ] && [ "$LAIKO_LINES" -gt 0 ]; then
+	echo ""
+	echo "=== Laiko vs C Emulator ==="
+	if diff -q "$REPO_ROOT/lisp_emulator_execution_log.txt" "$REPO_ROOT/c_emulator_execution_log.txt" >/dev/null 2>&1; then
+		echo "✅ Laiko and C logs are IDENTICAL!"
+	else
+		echo "❌ Laiko and C logs differ"
+		diff -u "$REPO_ROOT/c_emulator_execution_log.txt" "$REPO_ROOT/lisp_emulator_execution_log.txt" >"$REPO_ROOT/lisp_vs_c_execution_diff.txt" || true
+		echo "Diff saved to: $REPO_ROOT/lisp_vs_c_execution_diff.txt"
+	fi
+fi
+
 echo ""
 echo "=== Summary ==="
 echo "C emulator log:   $REPO_ROOT/c_emulator_execution_log.txt ($C_LINES lines)"
 echo "Zig emulator log: $REPO_ROOT/zig_emulator_execution_log.txt ($ZIG_LINES lines)"
+if [ "$WITH_LAIKO" = true ] && [ "$LAIKO_LINES" -gt 0 ]; then
+	echo "Laiko emulator log: $REPO_ROOT/lisp_emulator_execution_log.txt ($LAIKO_LINES lines)"
+fi
 if [ -f "$REPO_ROOT/emulator_execution_diff.txt" ]; then
-	echo "Diff file:         $REPO_ROOT/emulator_execution_diff.txt"
+	echo "Diff file (C vs Zig): $REPO_ROOT/emulator_execution_diff.txt"
+fi
+if [ -f "$REPO_ROOT/lisp_vs_c_execution_diff.txt" ]; then
+	echo "Diff file (Laiko vs C): $REPO_ROOT/lisp_vs_c_execution_diff.txt"
 fi

@@ -2,10 +2,22 @@
 
 ;; dispatch loop
 ;; Per rewrite documentation vm-core/execution-model.md
-;; 
+;;
 ;; This file provides the main dispatch loop that fetches, decodes, and
 ;; executes bytecode instructions. It uses the arrays populated by DEFOP
 ;; in op-macros.lisp for O(1) instruction length and handler lookup.
+
+;;;============================================================================
+;;; Special Variables for Instruction Stream Access
+;;;============================================================================
+
+(defvar *current-code* nil
+  "Bound to the current bytecode array during dispatch.
+   Allows handlers to read operands from the instruction stream.")
+
+(defvar *current-base-pc* 0
+  "Bound to the base PC offset during dispatch.
+   Used for trace reporting.")
 
 (defun fetch-instruction-byte (pc code)
   "Fetch instruction byte at PC.
@@ -58,64 +70,62 @@ Returns symbol or NIL if undefined."
 
 (defun dispatch (vm code &optional (base-pc 0))
   "Main dispatch loop.
-  
+
   VM: The virtual machine instance.
   CODE: Extracted bytecode array (starts at index 0).
   BASE-PC: Original PC address for trace reporting (default 0).
-  
+
   The dispatch loop:
   1. Fetches opcode byte at current PC
   2. Looks up instruction length (O(1) array lookup)
   3. Looks up handler function (O(1) array lookup)
   4. Executes handler
   5. Advances PC by instruction length (unless handler modified PC)
-  
+
   Handlers that need operands read them directly from the instruction
   stream using read-pc-* helpers, not via the operands list.
 "
   (declare (type vm vm)
            (type (simple-array maiko-lisp.utils:bytecode (*)) code)
            (type maiko-lisp.utils:lisp-ptr base-pc))
-  
+
   ;; Ensure undefined opcode handlers are initialized
   (initialize-undefined-opcode-handlers)
-  
+
   ;; Initialize tracing
   (trace-begin)
-  
+
   ;; Reset PC to 0 for array indexing (code array starts at index 0)
   (setf (vm-pc vm) 0)
-  
-  (format t "DEBUG: Dispatch starting, base-PC=0x~X, code-length=~D, max-steps=~D~%"
-          base-pc (length code) *max-trace-steps*)
-  
-  (let ((pc 0)
+
+  ;; Bind special variables for handler access to instruction stream
+  (let ((*current-code* code)
+        (*current-base-pc* base-pc)
+        (pc 0)
         (step-count 0))
+    (declare (special *current-code* *current-base-pc*))
     (loop while (and (< pc (length code))
                      (or (zerop *max-trace-steps*)
                          (< step-count *max-trace-steps*)))
           do
           (incf step-count)
-          
+
           ;; Check interrupts before execution
           (when (check-interrupts vm)
             (handle-pending-interrupts vm))
-          
+
           ;; Fetch instruction
           (let* ((opcode-byte (fetch-instruction-byte pc code))
                  (instruction-len (get-instruction-length opcode-byte))
                  (handler-fn (get-opcode-handler-function opcode-byte))
                  (opcode-name (get-opcode-name opcode-byte)))
-            
-            (format t "DEBUG: step=~D PC=0x~X opcode=0x~2,'0X len=~D name=~A~%"
-                    step-count pc opcode-byte instruction-len opcode-name)
-            
+
             ;; Log trace before execution
-            (when *vm-trace-output*
+            (when (trace-enabled-p)
               (let ((operands (fetch-operands pc code instruction-len)))
-                (trace-log vm (+ base-pc pc) opcode-byte operands 
+                (trace-log vm (+ base-pc pc) opcode-byte operands
                            :instruction-name opcode-name)))
-            
+
             ;; Execute handler
             (handler-case
                 (if handler-fn
@@ -127,7 +137,7 @@ Returns symbol or NIL if undefined."
               (error (err)
                 (error 'maiko-lisp.utils:vm-error
                        :message (format nil "Error in opcode 0x~2,'0X: ~A" opcode-byte err))))
-            
+
             ;; Update PC (unless handler modified it)
             (let ((current-pc (vm-pc vm)))
               (if (= current-pc pc)
@@ -137,7 +147,7 @@ Returns symbol or NIL if undefined."
                     (setf (vm-pc vm) pc))
                   ;; PC was modified by opcode (e.g., JUMP, RETURN)
                   (setf pc current-pc))))
-          
+
           ;; Check interrupts after execution
           (when (check-interrupts vm)
             (handle-pending-interrupts vm)))))

@@ -73,6 +73,15 @@ Virtual memory is organized as an array of 512-byte pages:
 | `read-fptovp-table` | Load FPtoVP mapping                  |
 | `load-sysout`       | Complete sysout loading              |
 
+## Trace & Parity
+
+Laiko emits the same unified pipe-delimited trace format as the C and Zig emulators for parity testing.
+
+- *Environment*: `EMULATOR_MAX_STEPS=N` limits execution to N instructions and auto-enables tracing when no explicit trace file is given.
+- *CLI*: `-max-steps <N>` and `-trace <file>`; `-max-steps` overrides `EMULATOR_MAX_STEPS` when both are set.
+- *Default trace file*: When tracing is auto-enabled (e.g. `EMULATOR_MAX_STEPS` set), output is written to `lisp_emulator_execution_log.txt` in the current working directory (run from repo root when using the comparison script).
+- *Comparison script*: From repo root, run `EMULATOR_MAX_STEPS=N ./scripts/compare_emulator_execution.sh [sysout]`; use `--with-laiko` to include Laiko in the run and comparison (see script for C/Zig/Laiko options).
+
 ## Known Issues
 
 1. **Bytecode extraction**: Still uses placeholder array in `main.lisp`
@@ -82,6 +91,6 @@ Virtual memory is organized as an array of 512-byte pages:
 ## Next Steps
 
 1. Complete bytecode extraction from sysout virtual memory
-2. Implement unified trace format (Phase 2)
+2. ~~Implement unified trace format (Phase 2)~~ — Done; see Trace & Parity above
 3. Complete remaining opcode handlers (Phase 3)
 4. Integrate SDL3 display backend (Phase 4)
