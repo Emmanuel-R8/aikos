@@ -54,11 +54,11 @@
   "Initialize VM with given stack size and PVAR size"
   (declare (type (integer 1 *) stack-size pvar-size))
   (let ((stack-mem (make-array stack-size
-                                :element-type 'maiko-lisp.utils:lisp-ptr
-                                :initial-element 0))
-        (pvar-mem (make-array pvar-size
                                :element-type 'maiko-lisp.utils:lisp-ptr
                                :initial-element 0))
+        (pvar-mem (make-array pvar-size
+                              :element-type 'maiko-lisp.utils:lisp-ptr
+                              :initial-element 0))
         (regs (make-array 4
                           :element-type 'maiko-lisp.utils:lisp-ptr
                           :initial-element 0)))
@@ -83,12 +83,12 @@
       (maiko-lisp.vm:set-interrupt-flag vm :stack-overflow)
       (error 'maiko-lisp.utils:stack-overflow
              :message (format nil "Stack frame allocation would overflow: need ~A, have ~A"
-                             size (- stack-size stack-ptr))))
+                              size (- stack-size stack-ptr))))
     (let ((new-frame (make-stack-frame
                       :next-block 0
                       :link (if (vm-current-frame vm)
-                               stack-ptr
-                               0)
+                                stack-ptr
+                                0)
                       :fn-header 0
                       :pc-offset 0)))
       (setf (vm-stack-ptr vm) (+ stack-ptr size))
@@ -171,8 +171,8 @@
       (return-from vm-read-lispptr 0))
     ;; Apply XOR addressing for word access
     (let* ((xor-offset (if (maiko-lisp.utils:little-endian-p)
-                          (logxor byte-offset 2)
-                          byte-offset))
+                           (logxor byte-offset 2)
+                           byte-offset))
            (page-num (ash xor-offset -9))
            (page-offset (logand xor-offset #x1FF)))
       (when (>= page-num (length vmem))
@@ -195,8 +195,8 @@
     (unless vmem
       (return-from vm-write-lispptr nil))
     (let* ((xor-offset (if (maiko-lisp.utils:little-endian-p)
-                          (logxor byte-offset 2)
-                          byte-offset))
+                           (logxor byte-offset 2)
+                           byte-offset))
            (page-num (ash xor-offset -9))
            (page-offset (logand xor-offset #x1FF)))
       (when (>= page-num (length vmem))

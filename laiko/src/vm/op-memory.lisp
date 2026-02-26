@@ -11,7 +11,7 @@
 ;; ARRAY ACCESS (1D)
 ;;; ===========================================================================
 
-(defop aref1 #xEE 2
+(defop aref1 :hexcode #xEE :instruction-length 2
   "AREF1: 1-dimensional array access.
 Reads 1-byte operand, pops array-ptr, pushes element at index."
   :operands ((index :uint8 "Array index (0-255)"))
@@ -23,7 +23,7 @@ Reads 1-byte operand, pops array-ptr, pushes element at index."
     (let ((value (get-array-element array-ptr index)))
       (push-stack vm value))))
 
-(defop aset1 #xEF 2
+(defop aset1 :hexcode #xEF :instruction-length 2
   "ASET1: 1-dimensional array set.
 Reads 1-byte operand, pops value and array-ptr, stores value at index."
   :operands ((index :uint8 "Array index (0-255)"))
@@ -40,7 +40,7 @@ Reads 1-byte operand, pops value and array-ptr, stores value at index."
 ;; ARRAY ACCESS (2D)
 ;;; ===========================================================================
 
-(defop aref2 #xF8 1
+(defop aref2 :hexcode #xF8 :instruction-length 1
   "AREF2: 2-dimensional array access.
 Pops index1, index0, array-ptr, pushes element at [index0, index1]."
   :operands nil
@@ -54,7 +54,7 @@ Pops index1, index0, array-ptr, pushes element at [index0, index1]."
       (let ((value (get-array-element array-ptr linear-index)))
         (push-stack vm value)))))
 
-(defop aset2 #xF9 1
+(defop aset2 :hexcode #xF9 :instruction-length 1
   "ASET2: 2-dimensional array set.
 Pops value, index1, index0, array-ptr, stores value."
   :operands nil
@@ -73,7 +73,7 @@ Pops value, index1, index0, array-ptr, stores value."
 ;; EXTENDED ARRAY ACCESS (with bytecode index)
 ;;; ===========================================================================
 
-(defop getael1 #xF6 2
+(defop getael1 :hexcode #xF6 :instruction-length 2
   "GETAEL1: Get array element with 1-byte index.
 Reads index from bytecode, pops array-ptr, pushes element."
   :operands ((index :uint8 "Array index"))
@@ -87,7 +87,7 @@ Reads index from bytecode, pops array-ptr, pushes element."
     (let ((value (get-array-element array-ptr index)))
       (push-stack vm value))))
 
-(defop getael2 #xF7 3
+(defop getael2 :hexcode #xF7 :instruction-length 3
   "GETAEL2: Get array element with 2-byte index.
 Reads 16-bit index from bytecode, pops array-ptr, pushes element."
   :operands ((index :uint16-be "Array index (16-bit)"))
@@ -101,7 +101,7 @@ Reads 16-bit index from bytecode, pops array-ptr, pushes element."
     (let ((value (get-array-element array-ptr index)))
       (push-stack vm value))))
 
-(defop setael1 #xFA 2
+(defop setael1 :hexcode #xFA :instruction-length 2
   "SETAEL1: Set array element with 1-byte index.
 Reads index, pops value and array-ptr, stores value."
   :operands ((index :uint8 "Array index"))
@@ -116,7 +116,7 @@ Reads index, pops value and array-ptr, stores value."
     (let ((new-ptr (set-array-element array-ptr index value)))
       (push-stack vm new-ptr))))
 
-(defop setael2 #xFB 3
+(defop setael2 :hexcode #xFB :instruction-length 3
   "SETAEL2: Set array element with 2-byte index.
 Reads 16-bit index, pops value and array-ptr, stores value."
   :operands ((index :uint16-be "Array index (16-bit)"))
@@ -135,7 +135,7 @@ Reads 16-bit index, pops value and array-ptr, stores value."
 ;; BYTE ACCESS
 ;;; ===========================================================================
 
-(defop getbasebyte #xC2 1
+(defop getbasebyte :hexcode #xC2 :instruction-length 1
   "GETBASEBYTE: Get byte from base address.
 Pops offset and base-addr, pushes byte at (base + offset)."
   :operands nil
@@ -148,7 +148,7 @@ Pops offset and base-addr, pushes byte at (base + offset)."
       (let ((byte (logand byte-addr #xFF)))
         (push-stack vm byte)))))
 
-(defop putbasebyte #xC7 1
+(defop putbasebyte :hexcode #xC7 :instruction-length 1
   "PUTBASEBYTE: Put byte to base address.
 Pops value, offset, base-addr, stores byte at (base + offset)."
   :operands nil
@@ -166,7 +166,7 @@ Pops value, offset, base-addr, stores byte at (base + offset)."
 ;; BASE ADDRESS OPERATIONS
 ;;; ===========================================================================
 
-(defop getbase-n #xC8 2
+(defop getbase-n :hexcode #xC8 :instruction-length 2
   "GETBASE_N: Get value from base with index N.
 Reads 1-byte index, pops base-addr, pushes value at (base + index*4)."
   :operands ((index :uint8 "Index multiplier"))
@@ -178,7 +178,7 @@ Reads 1-byte index, pops base-addr, pushes value at (base + index*4)."
     (let ((value-addr (+ base-addr (* index 4))))
       (push-stack vm value-addr))))
 
-(defop getbaseptr-n #xC9 2
+(defop getbaseptr-n :hexcode #xC9 :instruction-length 2
   "GETBASEPTR_N: Get pointer from base with index N.
 Reads index, pops base-addr, pushes pointer at (base + index*4)."
   :operands ((index :uint8 "Index multiplier"))
@@ -190,7 +190,7 @@ Reads index, pops base-addr, pushes pointer at (base + index*4)."
     (let ((ptr-addr (+ base-addr (* index 4))))
       (push-stack vm ptr-addr))))
 
-(defop putbase-n #xCD 2
+(defop putbase-n :hexcode #xCD :instruction-length 2
   "PUTBASE_N: Put value to base with index N.
 Reads index, pops value and base-addr, stores at (base + index*4)."
   :operands ((index :uint8 "Index multiplier"))
@@ -204,7 +204,7 @@ Reads index, pops value and base-addr, stores at (base + index*4)."
     (let ((value-addr (+ base-addr (* index 4))))
       (push-stack vm base-addr))))
 
-(defop putbaseptr-n #xCE 2
+(defop putbaseptr-n :hexcode #xCE :instruction-length 2
   "PUTBASEPTR_N: Put pointer to base with index N.
 Reads index, pops pointer and base-addr, stores at (base + index*4)."
   :operands ((index :uint8 "Index multiplier"))
@@ -217,7 +217,7 @@ Reads index, pops pointer and base-addr, stores at (base + index*4)."
     (let ((ptr-addr (+ base-addr (* index 4))))
       (push-stack vm base-addr))))
 
-(defop addbase #xD0 1
+(defop addbase :hexcode #xD0 :instruction-length 1
   "ADDBASE: Add offset to base address.
 Pops offset and base, pushes (base + offset).
 Used for calculating addresses relative to a base pointer."

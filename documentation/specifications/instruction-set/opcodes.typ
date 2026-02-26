@@ -59,6 +59,24 @@ This document provides a high-level overview. For detailed opcode specifications
 === Miscellaneous
 - COPY, SWAP, NOP, MAKENUMBER, MYALINK, MYARGCOUNT, STKSCAN
 
+=== Implementation guidance: opcode metadata tables
+
+All emulator implementations SHOULD maintain a centralized opcode metadata table that, for each bytecode, records at least:
+
+- The **opcode byte value** (0x00–0xFF), which MUST match `maiko/inc/opcodes.h`.
+- The **instruction length** in bytes (including operands).
+- The **operand specification** (types and encoding in the instruction stream).
+- The **stack effect** (values popped/pushed).
+- A **human-readable name and category** (constants, control flow, arithmetic, etc.).
+
+In practice this usually takes the form of:
+
+- A byte-indexed **length table** for advancing the PC.
+- A byte-indexed **handler table** for dispatch (byte → function or closure).
+- A **metadata map** (name → record) used by documentation, parity tooling, and introspection.
+
+Implementations are free to express this as macros, structs, or data tables, but they SHOULD derive all dispatch and documentation from this single source of truth to avoid divergence across code paths.
+
 For detailed specifications, see:
 - Control Flow & Memory Operations
 - Data Operations

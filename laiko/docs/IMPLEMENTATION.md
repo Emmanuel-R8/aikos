@@ -73,14 +73,39 @@ Virtual memory is organized as an array of 512-byte pages:
 | `read-fptovp-table` | Load FPtoVP mapping                  |
 | `load-sysout`       | Complete sysout loading              |
 
-## Trace & Parity
+## Entry Point, Trace & Parity
 
-Laiko emits the same unified pipe-delimited trace format as the C and Zig emulators for parity testing.
+Laiko emits the same unified pipe-delimited trace format as the C and Zig emulators for parity testing, and the `main.lisp` entry point now mirrors the C/Zig runners more closely.
 
-- *Environment*: `EMULATOR_MAX_STEPS=N` limits execution to N instructions and auto-enables tracing when no explicit trace file is given.
-- *CLI*: `-max-steps <N>` and `-trace <file>`; `-max-steps` overrides `EMULATOR_MAX_STEPS` when both are set.
-- *Default trace file*: When tracing is auto-enabled (e.g. `EMULATOR_MAX_STEPS` set), output is written to `lisp_emulator_execution_log.txt` in the current working directory (run from repo root when using the comparison script).
-- *Comparison script*: From repo root, run `EMULATOR_MAX_STEPS=N ./scripts/compare_emulator_execution.sh [sysout]`; use `--with-laiko` to include Laiko in the run and comparison (see script for C/Zig/Laiko options).
+### CLI and entry point
+
+- `main` inspects `argv` and dispatches:
+  - `-info` / `-INFO` → print implementation status and opcode count.
+  - `-help` / `--help` → print usage and exit.
+  - otherwise: first argument is treated as the sysout path and `run-emulator` is called with the remaining arguments.
+- `run-emulator` orchestrates:
+  1. **Argument parsing** (`parse-run-args`): extracts `-trace <file>` and `-max-steps <N>` from the CLI.
+  2. **Sysout loading** (`load-sysout`): returns `ifpage`, `fptovp`, and `virtual-memory`, logging process size and stack base.
+  3. **VM creation** (`create-and-initialize-vm`):
+     - Creates a VM with stack/PVAR sizes.
+     - Attaches `virtual-memory`, `fptovp`, interrupt state, storage, and GC.
+     - Ensures Valspace pages are allocated in virtual memory (VP 3072–3583) when not present in the sysout.
+     - Reads the initial FX from virtual memory and derives:
+       - Initial PC: `FuncObj = fnheader * 2`, `PC = FuncObj + FX->pc`.
+       - Stack pointer (`CurrentStackPTR`) and cached top-of-stack.
+  4. **Step limit configuration** (`configure-step-limit`): combines CLI `-max-steps` and `EMULATOR_MAX_STEPS` (the larger wins) and writes the result into `*max-trace-steps*`.
+  5. **Tracing** (`configure-tracing`): opens a trace file either from `-trace` or, when only `EMULATOR_MAX_STEPS` is set, auto-enables tracing to `lisp_emulator_execution_log.txt`.
+  6. **Dispatch** (`run-dispatch-loop`): initializes opcode maps/handlers, extracts bytecode from virtual memory at the initial PC, logs basic diagnostics, and calls `dispatch`.
+  7. **Cleanup**: closes the trace file (if any) and exits with status 0.
+
+This layout keeps the execution pipeline close to the C/Zig implementations, which is critical for cross-emulator parity debugging.
+
+### Trace configuration and comparison
+
+- *Environment*: `EMULATOR_MAX_STEPS=N` limits execution to N instructions and, when no explicit `-trace` file is given, triggers auto-tracing for parity runs.
+- *CLI*: `-max-steps <N>` and `-trace <file>`; `-max-steps` is combined with `EMULATOR_MAX_STEPS` so that the effective limit is `max(N, EMULATOR_MAX_STEPS)`.
+- *Default trace file*: When tracing is auto-enabled (e.g., `EMULATOR_MAX_STEPS` set but no `-trace` flag), output is written to `lisp_emulator_execution_log.txt` in the current working directory (typically the repo root when using the comparison script).
+- *Comparison script*: From repo root, run `EMULATOR_MAX_STEPS=N ./scripts/compare_emulator_execution.sh [sysout]`; use `--with-laiko` to include Laiko in the run and comparison (the script will invoke C, Zig, and Laiko with consistent limits and trace formats).
 
 ## Known Issues
 

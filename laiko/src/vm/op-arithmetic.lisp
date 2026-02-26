@@ -7,7 +7,7 @@
 ;; BASIC ARITHMETIC
 ;;; ===========================================================================
 
-(defop iplus2 #xD8 1
+(defop iplus2 :hexcode #xD8 :instruction-length 1
   "IPLUS2: Integer addition.
 Pops B and A, pushes A+B.
 Operands are 32-bit signed integers (two's complement)."
@@ -24,7 +24,7 @@ Operands are 32-bit signed integers (two's complement)."
                                    (logand result #xFFFFFFFF))))
           (push-stack vm result-unsigned))))))
 
-(defop idifference #xD9 1
+(defop idifference :hexcode #xD9 :instruction-length 1
   "IDIFFERENCE: Integer subtraction.
 Pops B and A, pushes A-B.
 Operands are 32-bit signed integers (two's complement)."
@@ -41,7 +41,7 @@ Operands are 32-bit signed integers (two's complement)."
                                    (logand result #xFFFFFFFF))))
           (push-stack vm result-unsigned))))))
 
-(defop itimes2 #xDA 1
+(defop itimes2 :hexcode #xDA :instruction-length 1
   "ITIMES2: Integer multiplication.
 Pops B and A, pushes A*B.
 Operands are 32-bit signed integers (two's complement)."
@@ -58,7 +58,7 @@ Operands are 32-bit signed integers (two's complement)."
                                    (logand result #xFFFFFFFF))))
           (push-stack vm result-unsigned))))))
 
-(defop iquo #xDB 1
+(defop iquo :hexcode #xDB :instruction-length 1
   "IQUO: Integer quotient (truncation toward zero).
 Pops B and A, pushes truncate(A/B).
 Signals error on division by zero."
@@ -76,7 +76,7 @@ Signals error on division by zero."
                                    (logand result #xFFFFFFFF))))
           (push-stack vm result-unsigned))))))
 
-(defop irem #xDC 1
+(defop irem :hexcode #xDC :instruction-length 1
   "IREM: Integer remainder (sign follows dividend).
 Pops B and A, pushes rem(A,B) where sign matches A.
 Signals error on division by zero."
@@ -98,7 +98,7 @@ Signals error on division by zero."
 ;; UNARY ARITHMETIC
 ;;; ===========================================================================
 
-(defop iminus #x9A 1
+(defop iminus :hexcode #x9A :instruction-length 1
   "IMINUS: Integer negation.
 Pops A, pushes -A.
 Negates a 32-bit signed integer."
@@ -118,7 +118,7 @@ Negates a 32-bit signed integer."
 ;; COMBINED ARITHMETIC
 ;;; ===========================================================================
 
-(defop idivide #x9B 1
+(defop idivide :hexcode #x9B :instruction-length 1
   "IDIVIDE: Integer division with remainder.
 Pops B and A, pushes remainder then quotient.
 Returns both values like (values remainder quotient).
@@ -141,7 +141,7 @@ Signals error on division by zero."
                                  (logand quot #xFFFFFFFF))))
           (push-stack vm quot-unsigned))))))
 
-(defop imod #x9C 1
+(defop imod :hexcode #x9C :instruction-length 1
   "IMOD: Integer modulus (sign follows divisor).
 Pops B and A, pushes mod(A,B) where sign matches B.
 Signals error on modulo by zero."

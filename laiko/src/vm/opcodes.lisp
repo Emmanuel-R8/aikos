@@ -19,8 +19,8 @@
       (let ((result (+ a-signed b-signed)))
         ;; Convert back to unsigned 32-bit representation
         (let ((result-unsigned (if (minusp result)
-                                    (logand (+ result #x100000000) #xFFFFFFFF)
-                                    (logand result #xFFFFFFFF))))
+                                   (logand (+ result #x100000000) #xFFFFFFFF)
+                                   (logand result #xFFFFFFFF))))
           (push-stack vm result-unsigned))))))
 
 (defun handle-idifference (vm)
@@ -39,8 +39,8 @@
       (let ((result (- a-signed b-signed)))
         ;; Convert back to unsigned 32-bit representation
         (let ((result-unsigned (if (minusp result)
-                                    (logand (+ result #x100000000) #xFFFFFFFF)
-                                    (logand result #xFFFFFFFF))))
+                                   (logand (+ result #x100000000) #xFFFFFFFF)
+                                   (logand result #xFFFFFFFF))))
           (push-stack vm result-unsigned))))))
 
 (defun handle-push (vm)
@@ -92,8 +92,8 @@
       (let ((result (* a-signed b-signed)))
         ;; Convert back to unsigned 32-bit representation
         (let ((result-unsigned (if (minusp result)
-                                  (logand (+ result #x100000000) #xFFFFFFFF)
-                                  (logand result #xFFFFFFFF))))
+                                   (logand (+ result #x100000000) #xFFFFFFFF)
+                                   (logand result #xFFFFFFFF))))
           (push-stack vm result-unsigned))))))
 
 (defun handle-iquo (vm)
@@ -114,8 +114,8 @@
       (let ((result (truncate a-signed b-signed)))
         ;; Convert back to unsigned 32-bit representation
         (let ((result-unsigned (if (minusp result)
-                                  (logand (+ result #x100000000) #xFFFFFFFF)
-                                  (logand result #xFFFFFFFF))))
+                                   (logand (+ result #x100000000) #xFFFFFFFF)
+                                   (logand result #xFFFFFFFF))))
           (push-stack vm result-unsigned))))))
 
 (defun handle-irem (vm)
@@ -136,8 +136,8 @@
       (let ((result (rem a-signed b-signed)))
         ;; Convert back to unsigned 32-bit representation
         (let ((result-unsigned (if (minusp result)
-                                  (logand (+ result #x100000000) #xFFFFFFFF)
-                                  (logand result #xFFFFFFFF))))
+                                   (logand (+ result #x100000000) #xFFFFFFFF)
+                                   (logand result #xFFFFFFFF))))
           (push-stack vm result-unsigned))))))
 
 ;; List manipulation opcodes
@@ -184,22 +184,22 @@
     (unless storage
       (error 'maiko-lisp.utils:vm-error
              :message "CONS: No storage available"))
-      ;; Allocate cons cell from storage
-      (let ((cons-offset (maiko-lisp.memory:allocate-cons-cell storage)))
-        ;; Create cons cell structure
-        (let ((cons-cell (maiko-lisp.data:make-cons-cell
-                          :car-field car-value
-                          :cdr-code (if (zerop cdr-value)
-                                        maiko-lisp.data:+cdr-nil+
-                                        maiko-lisp.data:+cdr-indirect+))))
-          ;; TODO: Write cons cell to memory at offset
-          ;; For now, use offset as pointer (will need proper address translation)
-          (let ((cons-ptr (+ maiko-lisp.memory:+mds-offset+ cons-offset)))
-            ;; Update GC reference counts
-            (when (vm-storage vm)
-              ;; TODO: Call ADDREF for car-value and cdr-value if they're pointers
-              )
-            (push-stack vm cons-ptr))))))
+    ;; Allocate cons cell from storage
+    (let ((cons-offset (maiko-lisp.memory:allocate-cons-cell storage)))
+      ;; Create cons cell structure
+      (let ((cons-cell (maiko-lisp.data:make-cons-cell
+                        :car-field car-value
+                        :cdr-code (if (zerop cdr-value)
+                                      maiko-lisp.data:+cdr-nil+
+                                      maiko-lisp.data:+cdr-indirect+))))
+        ;; TODO: Write cons cell to memory at offset
+        ;; For now, use offset as pointer (will need proper address translation)
+        (let ((cons-ptr (+ maiko-lisp.memory:+mds-offset+ cons-offset)))
+          ;; Update GC reference counts
+          (when (vm-storage vm)
+            ;; TODO: Call ADDREF for car-value and cdr-value if they're pointers
+            )
+          (push-stack vm cons-ptr))))))
 
 (defun handle-rplaca (vm)
   "Handle RPLACA opcode: Replace CAR of cons cell"
@@ -622,12 +622,12 @@
   (declare (type vm vm))
   (let ((value (get-top-of-stack vm)))
     (let ((value-signed (if (>= value #x80000000)
-                           (- value #x100000000)
-                           value)))
+                            (- value #x100000000)
+                            value)))
       (let ((result (+ value-signed 1)))
         (let ((result-unsigned (if (minusp result)
-                                  (logand (+ result #x100000000) #xFFFFFFFF)
-                                  (logand result #xFFFFFFFF))))
+                                   (logand (+ result #x100000000) #xFFFFFFFF)
+                                   (logand result #xFFFFFFFF))))
           (set-top-of-stack vm result-unsigned))))))
 
 (defun handle-idifference1 (vm)
@@ -635,12 +635,12 @@
   (declare (type vm vm))
   (let ((value (get-top-of-stack vm)))
     (let ((value-signed (if (>= value #x80000000)
-                              (- value #x100000000)
-                              value)))
+                            (- value #x100000000)
+                            value)))
       (let ((result (- value-signed 1)))
         (let ((result-unsigned (if (minusp result)
-                                  (logand (+ result #x100000000) #xFFFFFFFF)
-                                  (logand result #xFFFFFFFF))))
+                                   (logand (+ result #x100000000) #xFFFFFFFF)
+                                   (logand result #xFFFFFFFF))))
           (set-top-of-stack vm result-unsigned))))))
 
 ;; Additional comparison opcodes
@@ -810,12 +810,12 @@
   (declare (type vm vm))
   (let ((value (get-top-of-stack vm)))
     (let ((value-signed (if (>= value #x80000000)
-                           (- value #x100000000)
-                           value)))
+                            (- value #x100000000)
+                            value)))
       (let ((result (- value-signed)))
         (let ((result-unsigned (if (minusp result)
-                                  (logand (+ result #x100000000) #xFFFFFFFF)
-                                  (logand result #xFFFFFFFF))))
+                                   (logand (+ result #x100000000) #xFFFFFFFF)
+                                   (logand result #xFFFFFFFF))))
           (set-top-of-stack vm result-unsigned))))))
 
 (defun handle-idivide (vm)
@@ -839,7 +839,7 @@
     (let ((found nil))
       (loop for i from (1- stack-ptr) downto 0
             when (= (aref stack i) target)
-            do (setf found t) (return))
+              do (setf found t) (return))
       (push-stack vm (if found 1 0)))))
 
 ;; Argument count operations
@@ -1008,14 +1008,14 @@
   (declare (type vm vm)
            (type list operands))
   (let ((offset (if (>= (length operands) 2)
-                     (let ((low (first operands))
-                           (high (second operands)))
-                       (let ((unsigned (logior low (ash high 8))))
-                         ;; Sign extend 16-bit to 32-bit
-                         (if (>= unsigned #x8000)
-                             (- unsigned #x10000)
-                             unsigned)))
-                     0)))
+                    (let ((low (first operands))
+                          (high (second operands)))
+                      (let ((unsigned (logior low (ash high 8))))
+                        ;; Sign extend 16-bit to 32-bit
+                        (if (>= unsigned #x8000)
+                            (- unsigned #x10000)
+                            unsigned)))
+                    0)))
     (incf (vm-pc vm) offset)))
 
 (defun handle-fjumpx (vm operands)

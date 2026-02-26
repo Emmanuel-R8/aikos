@@ -12,7 +12,7 @@
 ;;;;   - Preserve thematic file organization
 ;;;;
 ;;;; USAGE:
-;;;;   (defop gvar #x60 5
+;;;;   (defop gvar :hexcode #x60 :instruction-length 5
 ;;;;     "GVAR: Push the value of a global variable."
 ;;;;     :operands ((atom-index :atom-index "Atom whose value to push"))
 ;;;;     :stack-effect (:push 1)
@@ -309,37 +309,44 @@
 
 (defun parse-defop-args (args)
   "Parse DEFOP arguments, separating docstring, keywords, and body.
-Returns (values docstring plist body-forms)."
+Returns (values docstring plist body-forms).
+Docstring may appear at the start or anywhere before the body (when we see
+a string while scanning keywords, we take it as the docstring)."
   (let ((docstring nil)
         (plist '())
         (body '())
         (remaining args))
-    ;; Extract docstring if present
-    (when (and remaining (stringp (car remaining)))
-      (setf docstring (car remaining))
-      (setf remaining (cdr remaining)))
-    ;; Extract keyword arguments until we hit a non-keyword/non-value pair
-    (loop while (and remaining (keywordp (car remaining)))
-          for key = (pop remaining)
-          for val = (pop remaining)
-          do (setf plist (list* val key plist)))
-    ;; The rest is the body
+    ;; Scan: optional docstring (first string seen), then keyword/value pairs
+    (loop while remaining
+          for head = (car remaining)
+          do (cond ((stringp head)
+                    (setf docstring head)
+                    (pop remaining))
+                   ((keywordp head)
+                    (let ((key (pop remaining)))
+                      (when (null remaining)
+                        (error "DEFOP: keyword ~S has no value" key))
+                      (setf plist (list* (pop remaining) key plist))))
+                   (t
+                    (return))))
     (setf body remaining)
     (values docstring (nreverse plist) body)))
 
-(defmacro defop (name hexcode instruction-length &rest args)
+(defmacro defop (name &rest args)
   "Define an opcode handler with complete metadata.
 
 NAME is a symbol naming this opcode (e.g., 'cons, 'gvar).
 
-HEXCODE is the byte value (0-255) for this opcode.
-
-INSTRUCTION-LENGTH is total bytes including opcode and operands.
-
 ARGS consists of an optional docstring, followed by keyword arguments,
 followed by the handler body.
 
-Keyword arguments:
+Required keyword arguments:
+
+  HEXCODE is the byte value (0-255) for this opcode.
+
+  INSTRUCTION-LENGTH is total bytes including opcode and operands.
+
+Other keyword arguments:
 
   ALIASES is a list of alternate names for this opcode.
     Example: (eq?-op pointer-equal)
@@ -383,7 +390,7 @@ Validation (compile-time):
   - Validates operand types
 
 Example:
-  (defop gvar #x60 5
+  (defop gvar :hexcode #x60 :instruction-length 5
     \"GVAR: Push the value of a global variable.
   The atom index is read from the next 2 bytes (big-endian).\"
     :operands ((atom-index :atom-index \"Atom whose value to push\"))
@@ -396,13 +403,19 @@ Example:
  "
   (multiple-value-bind (doc-string plist body)
       (parse-defop-args args)
-    (let ((fn-name (intern (format nil "HANDLE-~A" name)
+    (let ((hexcode (getf plist :hexcode))
+          (instruction-length (getf plist :instruction-length))
+          (fn-name (intern (format nil "HANDLE-~A" name)
                            (find-package :maiko-lisp.vm)))
           (aliases (getf plist :aliases))
           (operands (getf plist :operands))
           (stack-effect (getf plist :stack-effect))
           (category (getf plist :category))
           (side-effects (getf plist :side-effects)))
+      (unless hexcode
+        (error "DEFOP: ~S requires :hexcode" name))
+      (unless instruction-length
+        (error "DEFOP: ~S requires :instruction-length" name))
       ;; Compile-time validation (expanded into load-time checks)
       `(progn
          ;; === VALIDATION ===

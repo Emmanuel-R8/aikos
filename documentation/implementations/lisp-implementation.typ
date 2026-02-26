@@ -187,8 +187,22 @@ alternatives/lisp/
 - Cell creation (MAKECELL, FREECELL)
 - Base address operations (GETBASE, SETBASE)
 - Address manipulation (ADDBASE, SUBBASE)
-
 *Remaining*: 67 opcodes (mostly specialized operations, can be added incrementally)
+
+=== Centralized opcode metadata (2026-02-26)
+
+Laiko now uses a single declarative macro (`DEFOP` in `laiko/src/vm/op-macros.lisp`) to define each opcode and populate all dispatch/metadata tables:
+
+- **Primary fields** per opcode are provided as keywords: `:hexcode` (byte value 0–255) and `:instruction-length` (total bytes including operands).
+- **Additional metadata** is captured via keywords: `:operands`, `:stack-effect`, `:category`, `:side-effects`, and optional `:aliases`.
+- The macro fills:
+  - `*instruction-lengths*` (byte → instruction length),
+  - `*opcode-names*` (byte → symbolic name),
+  - `*opcode-handlers-array*` (byte → handler function),
+  - `*opcode-handlers*` (name → handler),
+  - `*opcode-metadata*` (name → plist of all fields, including documentation).
+
+This keeps the opcode table as the **single source of truth** for both the dispatcher and tooling (documentation generation, parity debugging, future introspection) and mirrors the centralized tables used in the C and Zig implementations.
 
 === Memory Management
 

@@ -27,7 +27,7 @@ with various raster operations (AND, OR, XOR, etc.)."
 ;; GRAPHICS OPCODES
 ;;; ===========================================================================
 
-(defop pilotbitblt #x76 1
+(defop pilotbitblt :hexcode #x76 :instruction-length 1
   "PILOTBITBLT: Bit Block Transfer operation.
 Pops dest-ptr, source-ptr, operation, height, width, dest-pitch, source-pitch.
 Pushes 0 on success."
@@ -53,7 +53,7 @@ Pushes 0 on success."
       (execute-bitblt state)
       (push-stack vm 0))))
 
-(defop drawline #x3B 1
+(defop drawline :hexcode #x3B :instruction-length 1
   "DRAWLINE: Draw a line on the display.
 Pops y2, x2, y1, x1, color.
 Draws a line from (x1, y1) to (x2, y2) with Bresenham's algorithm."
@@ -93,7 +93,7 @@ Draws a line from (x1, y1) to (x2, y2) with Bresenham's algorithm."
 ;; SUBROUTINE CALL OPCODE
 ;;; ===========================================================================
 
-(defop subrcall #x7D 1
+(defop subrcall :hexcode #x7D :instruction-length 1
   "SUBRCALL: Call a C subroutine.
 Pops subr-no and arg-count from stack.
 Dispatches to appropriate subroutine handler."
@@ -123,7 +123,7 @@ Dispatches to appropriate subroutine handler."
 ;; CONTEXT SWITCH OPCODE
 ;;; ===========================================================================
 
-(defop contextswitch #x7E 1
+(defop contextswitch :hexcode #x7E :instruction-length 1
   "CONTEXTSWITCH: Switch execution context.
 Used for multiprocessing or coroutine switching.
 Pops new-context pointer, saves current context, switches to new."

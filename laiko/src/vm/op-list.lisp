@@ -8,7 +8,7 @@
 ;; CORE LIST OPERATIONS
 ;;; ===========================================================================
 
-(defop car #x01 1
+(defop car :hexcode #x01 :instruction-length 1
   "CAR: Get first element of cons cell.
 Replaces TOS with the CAR of the cons cell pointed to by TOS.
 CAR of NIL is NIL; CAR of T is T.
@@ -38,7 +38,7 @@ Per maiko/src/car-cdr.c:N_OP_car()."
              ;; Normal case: return car_field directly
              (set-top-of-stack vm car-field)))))))
 
-(defop cdr #x02 1
+(defop cdr :hexcode #x02 :instruction-length 1
   "CDR: Get rest of cons cell.
 Replaces TOS with the CDR of the cons cell pointed to by TOS.
 CDR of NIL is NIL.
@@ -58,7 +58,7 @@ Per maiko/src/car-cdr.c:N_OP_cdr()."
               (cdr-value (maiko-lisp.data:decode-cdr cell-obj tos)))
          (set-top-of-stack vm cdr-value))))))
 
-(defop cons #x1A 1
+(defop cons :hexcode #x1A :instruction-length 1
   "CONS: Create new cons cell from top two stack items.
 Pops CAR and CDR, pushes new cons cell.
 Allocates memory in cons area."
@@ -74,7 +74,7 @@ Allocates memory in cons area."
     (maiko-lisp.data:set-cdr new-cell cell cdr)
     (push-stack vm cell)))
 
-(defop rplaca #x18 1
+(defop rplaca :hexcode #x18 :instruction-length 1
   "RPLACA: Replace CAR of cons cell.
 Pops NEW-CAR and CELL, pushes CELL.
 Destructively modifies the cons cell."
@@ -89,7 +89,7 @@ Destructively modifies the cons cell."
       (maiko-lisp.memory:put-cons-cell (vm-storage vm) cell cell-obj))
     (push-stack vm cell)))
 
-(defop rplacd #x19 1
+(defop rplacd :hexcode #x19 :instruction-length 1
   "RPLACD: Replace CDR of cons cell.
 Pops NEW-CDR and CELL, pushes CELL.
 Destructively modifies the cons cell."
@@ -104,7 +104,7 @@ Destructively modifies the cons cell."
       (maiko-lisp.memory:put-cons-cell (vm-storage vm) cell cell-obj))
     (push-stack vm cell)))
 
-(defop createcell #x1F 1
+(defop createcell :hexcode #x1F :instruction-length 1
   "CREATECELL: Allocate an empty cons cell.
 Allocates memory and pushes the new cell pointer."
   :operands nil
@@ -114,7 +114,7 @@ Allocates memory and pushes the new cell pointer."
   (let ((cell (maiko-lisp.memory:allocate-cons-cell (vm-storage vm))))
     (push-stack vm cell)))
 
-(defop rplcons #x26 1
+(defop rplcons :hexcode #x26 :instruction-length 1
   "RPLCONS: Create cons and push all components.
 Like CONS but also pushes CDR and CAR back onto stack.
 Used for list construction patterns."
@@ -136,7 +136,7 @@ Used for list construction patterns."
 ;; EXTENDED LIST OPERATIONS
 ;;; ===========================================================================
 
-(defop nth #x27 1
+(defop nth :hexcode #x27 :instruction-length 1
   "NTH: Get Nth element of list (0-based).
 Pops N and LIST, pushes the Nth element."
   :operands nil
@@ -151,7 +151,7 @@ Pops N and LIST, pushes the Nth element."
           (let ((cell (maiko-lisp.memory:get-cons-cell (vm-storage vm) result)))
             (push-stack vm (maiko-lisp.data:get-car cell)))))))
 
-(defop nthcdr #x28 1
+(defop nthcdr :hexcode #x28 :instruction-length 1
   "NTHCDR: Get Nth CDR of list (0-based).
 Pops N and LIST, pushes the Nth CDR."
   :operands nil
@@ -162,7 +162,7 @@ Pops N and LIST, pushes the Nth CDR."
         (list (pop-stack vm)))
     (push-stack vm (vm-nthcdr vm n list))))
 
-(defop last #x29 1
+(defop last :hexcode #x29 :instruction-length 1
   "LAST: Get last cons cell of list.
 Pops LIST, pushes the last cons cell (not the last element)."
   :operands nil
@@ -181,7 +181,7 @@ Pops LIST, pushes the last cons cell (not the last element)."
                    (setf cdr-val (maiko-lisp.data:get-cdr cell cdr-val)))
           (push-stack vm curr)))))
 
-(defop listlength #x2A 1
+(defop listlength :hexcode #x2A :instruction-length 1
   "LISTLENGTH: Get length of list.
 Pops LIST, pushes the length as a small positive integer."
   :operands nil
@@ -192,7 +192,7 @@ Pops LIST, pushes the length as a small positive integer."
     (let ((len (if (zerop list) 0 (list-length-helper vm list))))
       (push-stack vm (ash len 1))))) ; Convert to SMALLPOSP format
 
-(defop append #x2B 1
+(defop append :hexcode #x2B :instruction-length 1
   "APPEND: Append two lists.
 Pops LIST2 and LIST1, pushes new list with LIST1's elements followed by LIST2.
 Allocates new cons cells for LIST1's structure."
@@ -212,7 +212,7 @@ Allocates new cons cells for LIST1's structure."
              list2))
           (push-stack vm copy)))))
 
-(defop reverse #x2C 1
+(defop reverse :hexcode #x2C :instruction-length 1
   "REVERSE: Reverse a list.
 Pops LIST, pushes a new list with elements in reverse order.
 Allocates new cons cells."
