@@ -21,6 +21,10 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL), following t
 
 == Current Status (2026-02-16)
 
+=== Opcode alignment with Maiko (2026-02-26)
+
+Laiko stack-constant opcodes were corrected to match `maiko/inc/opcodes.h`: NIL = 0x68, T = 0x69, CONST_0 (opc_0) = 0x6A, CONST_1 (opc_1) = 0x6B. See `reports/laiko-opcode-audit-vs-maiko.md` for the audit and remaining discrepancies (comparison 0x3B-0x3F, logic 0xE0-0xE7).
+
 === ✅ Completed
 
 - ✅ Complete module structure with proper package organization

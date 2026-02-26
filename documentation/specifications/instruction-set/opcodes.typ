@@ -4,6 +4,10 @@
 
 Complete specification of all 256 bytecode opcodes (0x00-0xFF). Format: `Name (0xXX) [Len] [Ops] Stack: [effect] Exec: [brief]`
 
+== Canonical source
+
+*All opcode byte values must match the C reference*: `maiko/inc/opcodes.h` (enum opcodes). Decimal enum values correspond to byte values (e.g. opc_NIL = 104 implies NIL = 0x68). In C source, constants may be written in octal (e.g. case 0150 for NIL); 0150 octal = 104 decimal = 0x68 hex.
+
 == Opcode Categories
 
 - Control Flow & Memory Operations - Control flow, function calls, jumps, variable access
@@ -41,7 +45,7 @@ This document provides a high-level overview. For detailed opcode specifications
 - Shift: LLSH1, LLSH8, LRSH1, LRSH8
 
 === Constants (0x67-0x6F)
-- ACONST (0x67), NIL (0xA8), T (0x69), CONST_0 (0x6A), CONST_1 (0x6B), SIC (0x6C), SNIC (0x6D), SICX (0x6E), GCONST (0x6F)
+- ACONST (0x67), NIL (0x68), T (0x69), CONST_0 (0x6A), CONST_1 (0x6B), SIC (0x6C), SNIC (0x6D), SICX (0x6E), GCONST (0x6F). Per maiko/inc/opcodes.h.
 
 === Base Address Operations (0xC2-0xCE)
 - GETBASEBYTE, PUTBASEBYTE, GETBASE_N, GETBASEPTR_N, PUTBASE_N, PUTBASEPTR_N, GETBITS_N_FD, PUTBITS_N_FD
