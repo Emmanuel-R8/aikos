@@ -1,5 +1,5 @@
 ;;;; op-macros.lisp - Comprehensive Opcode Definition System for Laiko
-;;;; 
+;;;;
 ;;;; This file defines the DEFOP macro that consolidates all aspects of
 ;;;; opcode definition into a single, well-documented declaration.
 ;;;;
@@ -29,13 +29,15 @@
 
 (deftype operand-type ()
   "Standard operand types for opcode operands.
-  
+
   Each type specifies how the operand is encoded in the instruction stream:
-  
+
   :UINT8        - Unsigned 8-bit immediate byte
   :INT8         - Signed 8-bit immediate byte
   :UINT16-BE    - Unsigned 16-bit big-endian (high byte first)
+  :INT16-BE     - Signed 16-bit big-endian (high byte first)
   :UINT16-LE    - Unsigned 16-bit little-endian (low byte first)
+  :INT16-LE     - Signed 16-bit little-endian (low byte first)
   :UINT32-BE    - Unsigned 32-bit big-endian
   :INT32-BE     - Signed 32-bit big-endian
   :LISP-PTR     - Lisp pointer (32-bit, architecture-dependent)
@@ -45,7 +47,7 @@
   :VARIABLE     - Variable-length operand (count in previous byte)
   :NONE         - No operand (for documentation completeness)
 "
-  '(member :uint8 :int8 :uint16-be :uint16-le :uint32-be :int32-be
+  '(member :uint8 :int8 :uint16-be :int16-be :uint16-le :int16-le :uint32-be :int32-be
            :lisp-ptr :atom-index :pc-offset :byte-count :variable :none))
 
 ;;; ===========================================================================
@@ -55,7 +57,7 @@
 ;; Primary lookup arrays (byte -> X) - O(1) access during dispatch
 ;; These are the performance-critical data structures.
 
-(defvar *instruction-lengths* 
+(defvar *instruction-lengths*
   (make-array 256 :element-type '(unsigned-byte 8) :initial-element 0)
   "Array mapping opcode byte (0-255) to instruction length in bytes.
   Includes opcode byte itself plus all operand bytes.
@@ -130,29 +132,29 @@
 (defun validate-hexcode (hexcode name)
   "Validate that HEXCODE is in valid range 0-255.
   Warns if HEXCODE was already defined by another opcode.
-  
+
   Arguments:
     HEXCODE - Integer opcode value
     NAME - Symbol naming this opcode (for error messages)
-  
+
   Signals ERROR if out of range.
   Signals WARNING if duplicate.
 "
   (unless (and (integerp hexcode) (<= 0 hexcode 255))
-    (error "DEFOP: Invalid hexcode ~S for opcode ~S: must be integer 0-255" 
+    (error "DEFOP: Invalid hexcode ~S for opcode ~S: must be integer 0-255"
            hexcode name))
   (let ((existing (gethash hexcode *defined-hexcodes*)))
     (when (and existing (not (eq existing name)))
-      (warn "DEFOP: Redefining hexcode 0x~2,'0X: ~S -> ~S" 
+      (warn "DEFOP: Redefining hexcode 0x~2,'0X: ~S -> ~S"
             hexcode existing name))))
 
 (defun validate-instruction-length (length name)
   "Validate that INSTRUCTION-LENGTH is reasonable (1-15 bytes).
-  
+
   Arguments:
     LENGTH - Integer instruction length
     NAME - Symbol naming this opcode (for error messages)
-  
+
   Signals ERROR if invalid.
 "
   (unless (and (integerp length) (< 0 length 16))
@@ -161,17 +163,17 @@
 
 (defun validate-stack-effect (effect name)
   "Validate stack effect specification syntax.
-  
+
   Valid forms:
     (:pop N :push M)           - Pop N, push M
     (:pop-n VAR :push M)       - Pop count from VAR operand
     (:push M)                  - Only push
     (:pop N)                   - Only pop
-  
+
   Arguments:
     EFFECT - Stack effect plist or NIL
     NAME - Symbol naming this opcode (for error messages)
-  
+
   Signals ERROR if syntax is invalid.
 "
   (when effect
@@ -185,13 +187,13 @@
 
 (defun validate-operands (operands name)
   "Validate operand specification syntax.
-  
+
   Each operand is (NAME TYPE [DOCSTRING]).
-  
+
   Arguments:
     OPERANDS - List of operand specifications
     NAME - Symbol naming this opcode (for error messages)
-  
+
   Signals ERROR if syntax is invalid or types are unknown.
 "
   (when operands
@@ -213,14 +215,14 @@
 
 (defun generate-opcode-documentation ()
   "Generate and return comprehensive documentation string for all defined opcodes.
-  
+
   Documentation is organized by category and includes:
     - Opcode name and hexcode
     - Description (from docstring)
     - Operands with types
     - Stack effect
     - Side effects
-  
+
   Result is cached in *OPCODE-DOCUMENTATION*.
 "
   (setf *opcode-documentation*
@@ -228,14 +230,14 @@
           (format s "~&~A~%" (make-string 70 :initial-element #\=))
           (format s "LAIKO OPCODE REFERENCE~%")
           (format s "~A~2%" (make-string 70 :initial-element #\=))
-          
+
           ;; Document by category
-          (dolist (category '(:constants 
-                              :stack-operations 
+          (dolist (category '(:constants
+                              :stack-operations
                               :variable-access
-                              :list-operations 
-                              :arithmetic 
-                              :comparison 
+                              :list-operations
+                              :arithmetic
+                              :comparison
                               :control-flow
                               :function-call
                               :type-operations
@@ -243,18 +245,18 @@
                               :miscellaneous
                               :undefined))
             (let ((ops-in-cat nil))
-              (maphash 
+              (maphash
                (lambda (name meta)
                  (when (eq (getf meta :category) category)
                    (push (cons name meta) ops-in-cat)))
                *opcode-metadata*)
-              
+
               (when ops-in-cat
                 (format s "~%~A~%" (make-string 60 :initial-element #\-))
-                (format s "~A~2%" (string-capitalize 
-                                   (format nil "~A (~D opcodes)" 
+                (format s "~A~2%" (string-capitalize
+                                   (format nil "~A (~D opcodes)"
                                            category (length ops-in-cat))))
-                
+
                 (dolist (op (sort ops-in-cat #'< :key (lambda (x) (getf (cdr x) :hexcode))))
                   (destructuring-bind (name . meta) op
                     (let ((hex (getf meta :hexcode))
@@ -264,20 +266,20 @@
                           (se (getf meta :stack-effect))
                           (seffects (getf meta :side-effects))
                           (aliases (getf meta :aliases)))
-                      
+
                       ;; Name and hexcode
                       (format s "~%~A (0x~2,'0X)~%" name hex)
-                      
+
                       ;; Description
                       (format s "  ~A~%" (or doc "No description"))
-                      
+
                       ;; Instruction length
                       (format s "  Length: ~D byte~:P~%" len)
-                      
+
                       ;; Aliases
                       (when aliases
                         (format s "  Aliases: ~{~A~^, ~}~%" aliases))
-                      
+
                       ;; Operands
                       (when ops
                         (format s "  Operands:~%")
@@ -287,17 +289,17 @@
                             (when op-doc
                               (format s " - ~A" op-doc))
                             (format s "~%"))))
-                      
+
                       ;; Stack effect
                       (when se
-                        (format s "  Stack: ~{~A ~D~^, ~}~%" 
-                                (loop for (k v) on se by #'cddr 
+                        (format s "  Stack: ~{~A ~D~^, ~}~%"
+                                (loop for (k v) on se by #'cddr
                                       append (list k v))))
-                      
+
                       ;; Side effects
                       (when seffects
                         (format s "  Side effects: YES~%"))
-                      
+
                       (terpri s)))))))))
   *opcode-documentation*)
 
@@ -305,13 +307,27 @@
 ;;; MAIN MACRO: DEFOP
 ;;; ===========================================================================
 
-(defmacro defop (name hexcode instruction-length &body body
-                 &key 
-                   (aliases nil aliases-p)
-                   (operands nil operands-p)
-                   (stack-effect nil stack-effect-p)
-                   (category nil category-p)
-                   (side-effects nil side-effects-p))
+(defun parse-defop-args (args)
+  "Parse DEFOP arguments, separating docstring, keywords, and body.
+Returns (values docstring plist body-forms)."
+  (let ((docstring nil)
+        (plist '())
+        (body '())
+        (remaining args))
+    ;; Extract docstring if present
+    (when (and remaining (stringp (car remaining)))
+      (setf docstring (car remaining))
+      (setf remaining (cdr remaining)))
+    ;; Extract keyword arguments until we hit a non-keyword/non-value pair
+    (loop while (and remaining (keywordp (car remaining)))
+          for key = (pop remaining)
+          for val = (pop remaining)
+          do (setf plist (list* val key plist)))
+    ;; The rest is the body
+    (setf body remaining)
+    (values docstring (nreverse plist) body)))
+
+(defmacro defop (name hexcode instruction-length &rest args)
   "Define an opcode handler with complete metadata.
 
 NAME is a symbol naming this opcode (e.g., 'cons, 'gvar).
@@ -320,8 +336,8 @@ HEXCODE is the byte value (0-255) for this opcode.
 
 INSTRUCTION-LENGTH is total bytes including opcode and operands.
 
-BODY is the handler function body. An optional docstring comes first,
-followed by the implementation code.
+ARGS consists of an optional docstring, followed by keyword arguments,
+followed by the handler body.
 
 Keyword arguments:
 
@@ -342,7 +358,7 @@ Keyword arguments:
 
   CATEGORY is a keyword for grouping opcodes:
     :constants, :stack-operations, :variable-access, :list-operations,
-    :arithmetic, :comparison, :control-flow, :function-call, 
+    :arithmetic, :comparison, :control-flow, :function-call,
     :type-operations, :bit-operations, :miscellaneous
 
   SIDE-EFFECTS is T if the opcode:
@@ -369,7 +385,7 @@ Validation (compile-time):
 Example:
   (defop gvar #x60 5
     \"GVAR: Push the value of a global variable.
-  The atom index is read from the next 2 bytes (big-endian).\" 
+  The atom index is read from the next 2 bytes (big-endian).\"
     :operands ((atom-index :atom-index \"Atom whose value to push\"))
     :stack-effect (:push 1)
     :category :variable-access
@@ -377,72 +393,76 @@ Example:
     (let ((idx (read-pc-16-be vm)))
       (push-stack vm (get-atom-value vm idx))))
 
-"
-  (let ((fn-name (intern (format nil "HANDLE-~A" name)
-                         (symbol-package name)))
-        (doc-string (when (stringp (car body)) (car body)))
-        (fn-body (if (stringp (car body)) (cdr body) body)))
-    
-    ;; Compile-time validation (expanded into load-time checks)
-    `(progn
-       ;; === VALIDATION ===
-       (validate-hexcode ,hexcode ',name)
-       (validate-instruction-length ,instruction-length ',name)
-       ,@(when operands-p
-           `((validate-operands ',operands ',name)))
-       ,@(when stack-effect-p
-           `((validate-stack-effect ',stack-effect ',name)))
-       
-       ;; === TRACK THIS DEFINITION ===
-       (setf (gethash ,hexcode *defined-hexcodes*) ',name)
-       
-       ;; === PRIMARY ARRAYS (byte -> X) ===
-       
-       ;; 1. Instruction length for PC advancement
-       (setf (aref *instruction-lengths* ,hexcode) ,instruction-length)
-       
-       ;; 2. Opcode name for debugging/display
-       (setf (aref *opcode-names* ,hexcode) ',name)
-       
-       ;; === HANDLER FUNCTION ===
-       
-       ;; 3. Define the handler function
-       (defun ,fn-name (vm)
-         ,@(when doc-string (list doc-string))
-         (declare (type vm vm))
-         ,@fn-body)
-       
-       ;; 4. Handler in array (byte -> fn) - PRIMARY DISPATCH
-       (setf (aref *opcode-handlers-array* ,hexcode) #',fn-name)
-       
-       ;; === SECONDARY HASHES (name -> X) ===
-       
-       ;; 5. Handler in hash (name -> fn)
-       (setf (gethash ',name *opcode-handlers*) #',fn-name)
-       
-       ;; 6. Register aliases in handler map
-       ,@(when aliases
-           (loop for alias in aliases
-                 collect `(setf (gethash ',alias *opcode-handlers*) #',fn-name)))
-       
-       ;; === METADATA ===
-       
-       ;; 7. Comprehensive metadata for introspection
-       (setf (gethash ',name *opcode-metadata*)
-             (list :name ',name
-                   :hexcode ,hexcode
-                   :instruction-length ,instruction-length
-                   :aliases ',aliases
-                   :operands ',operands
-                   :stack-effect ',stack-effect
-                   :category ',category
-                   :side-effects ,side-effects
-                   :status :defined
-                   :handler-function #',fn-name
-                   :documentation ,doc-string))
-       
-       ;; === RETURN VALUE ===
-       ',fn-name)))
+ "
+  (multiple-value-bind (doc-string plist body)
+      (parse-defop-args args)
+    (let ((fn-name (intern (format nil "HANDLE-~A" name)
+                           (find-package :maiko-lisp.vm)))
+          (aliases (getf plist :aliases))
+          (operands (getf plist :operands))
+          (stack-effect (getf plist :stack-effect))
+          (category (getf plist :category))
+          (side-effects (getf plist :side-effects)))
+      ;; Compile-time validation (expanded into load-time checks)
+      `(progn
+         ;; === VALIDATION ===
+         (validate-hexcode ,hexcode ',name)
+         (validate-instruction-length ,instruction-length ',name)
+         ,@(when operands
+             `((validate-operands ',operands ',name)))
+         ,@(when stack-effect
+             `((validate-stack-effect ',stack-effect ',name)))
+
+         ;; === TRACK THIS DEFINITION ===
+         (setf (gethash ,hexcode *defined-hexcodes*) ',name)
+
+         ;; === PRIMARY ARRAYS (byte -> X) ===
+
+         ;; 1. Instruction length for PC advancement
+         (setf (aref *instruction-lengths* ,hexcode) ,instruction-length)
+
+         ;; 2. Opcode name for debugging/display
+         (setf (aref *opcode-names* ,hexcode) ',name)
+
+         ;; === HANDLER FUNCTION ===
+
+         ;; 3. Define the handler function
+         (defun ,fn-name (vm)
+           ,@(when doc-string (list doc-string))
+           (declare (type vm vm))
+           ,@body)
+
+         ;; 4. Handler in array (byte -> fn) - PRIMARY DISPATCH
+         (setf (aref *opcode-handlers-array* ,hexcode) #',fn-name)
+
+         ;; === SECONDARY HASHES (name -> X) ===
+
+         ;; 5. Handler in hash (name -> fn)
+         (setf (gethash ',name *opcode-handlers*) #',fn-name)
+
+         ;; 6. Register aliases in handler map
+         ,@(when aliases
+             (loop for alias in aliases
+                   collect `(setf (gethash ',alias *opcode-handlers*) #',fn-name)))
+
+         ;; === METADATA ===
+
+         ;; 7. Comprehensive metadata for introspection
+         (setf (gethash ',name *opcode-metadata*)
+               (list :name ',name
+                     :hexcode ,hexcode
+                     :instruction-length ,instruction-length
+                     :aliases ',aliases
+                     :operands ',operands
+                     :stack-effect ',stack-effect
+                     :category ',category
+                     :side-effects ,side-effects
+                     :status :defined
+                     :handler-function #',fn-name
+                     :documentation ,doc-string))
+
+         ;; === RETURN VALUE ===
+         ',fn-name))))
 
 ;;; ===========================================================================
 ;;; UNDEFINED OPCODE MACROS
@@ -470,7 +490,7 @@ Example:
   `(progn
      (validate-hexcode ,hexcode ',name)
      (setf (gethash ,hexcode *defined-hexcodes*) ',name)
-     
+
      ;; Arrays
      (setf (aref *instruction-lengths* ,hexcode) 1)
      (setf (aref *opcode-names* ,hexcode) ',name)
@@ -480,7 +500,7 @@ Example:
                     :opcode ,hexcode
                     :pc (vm-pc vm)
                     :reason ,reason)))
-     
+
      ;; Metadata
      (setf (gethash ',name *opcode-metadata*)
            (list :name ',name
@@ -505,7 +525,7 @@ Example:
 "
   `(progn
      (setf (gethash ,hexcode *defined-hexcodes*) 'reserved)
-     
+
      ;; Arrays
      (setf (aref *instruction-lengths* ,hexcode) 1)
      (setf (aref *opcode-names* ,hexcode) 'reserved)
@@ -515,7 +535,7 @@ Example:
                     :opcode ,hexcode
                     :pc (vm-pc vm)
                     :originally ,originally-used-in)))
-     
+
      ;; Metadata
      (setf (gethash 'reserved *opcode-metadata*)
            (list :hexcode ,hexcode
@@ -553,14 +573,14 @@ Useful for tracking implementation progress during development.
 
 Arguments:
   STREAM - Output stream (default *STANDARD-OUTPUT*)
-  
+
 Returns:
   (values defined-count undefined-count coverage-percentage)
 "
-  (let ((defined 0) 
+  (let ((defined 0)
         (undefined 0)
         (by-category (make-hash-table :test 'eq)))
-    
+
     ;; Count by status
     (maphash (lambda (name meta)
                (declare (ignore name))
@@ -572,25 +592,25 @@ Returns:
                      (incf defined)
                      (incf undefined))))
              *opcode-metadata*)
-    
+
     ;; Also count slots with no metadata (truly unknown)
     (loop for hexcode from 0 to 255
           when (null (aref *opcode-handlers-array* hexcode))
           do (incf undefined))
-    
+
     (let ((coverage (* 100.0 (/ defined 256))))
-      
+
       ;; Print report
       (format stream "~&~A~%" (make-string 50 :initial-element #\=))
       (format stream "OPCODE COVERAGE REPORT~%")
       (format stream "~A~2%" (make-string 50 :initial-element #\=))
-      
+
       (format stream "~&Total opcodes (0x00-0xFF): 256~%")
       (format stream "  Defined:   ~3D (~,1F%)~%" defined coverage)
       (format stream "  Undefined: ~3D (~,1F%)~%" undefined (- 100.0 coverage))
-      
+
       (format stream "~&By Category:~%")
-      (dolist (cat '(:constants :stack-operations :variable-access 
+      (dolist (cat '(:constants :stack-operations :variable-access
                      :list-operations :arithmetic :comparison :control-flow
                      :function-call :type-operations :bit-operations
                      :miscellaneous :undefined nil))
@@ -600,14 +620,14 @@ Returns:
                   (undef (count :undefined counts)))
               (format stream "  ~:[(no category)~;~:*~A~]~25T~3D defined~35T~3D undefined~%"
                       cat def undef)))))
-      
+
       (format stream "~&~A~%" (make-string 50 :initial-element #\=))
-      
+
       (values defined undefined coverage))))
 
 (defun list-undefined-opcodes ()
   "Return list of hexcodes that have no handler defined.
-  
+
 Returns:
   List of integers (0-255) for undefined opcodes.
 "
@@ -622,15 +642,15 @@ Returns:
 
 (defun get-opcode-info (byte-or-name)
   "Get metadata for an opcode by byte value or name.
-  
+
 Arguments:
   BYTE-OR-NAME - Integer (0-255) or symbol
-  
+
 Returns:
   Property list of metadata, or NIL if not found.
 "
   (etypecase byte-or-name
-    (integer 
+    (integer
      (let ((name (aref *opcode-names* byte-or-name)))
        (when name
          (gethash name *opcode-metadata*))))
@@ -639,10 +659,10 @@ Returns:
 
 (defun opcode-name (byte)
   "Get symbolic name for an opcode byte.
-  
+
 Arguments:
   BYTE - Integer 0-255
-  
+
 Returns:
   Symbol naming the opcode, or NIL if undefined.
 "
@@ -650,10 +670,10 @@ Returns:
 
 (defun opcode-length (byte)
   "Get instruction length for an opcode byte.
-  
+
 Arguments:
   BYTE - Integer 0-255
-  
+
 Returns:
   Integer length in bytes (at least 1).
 "
@@ -661,10 +681,10 @@ Returns:
 
 (defun opcode-handler (byte-or-name)
   "Get handler function for an opcode.
-  
+
 Arguments:
   BYTE-OR-NAME - Integer (0-255) or symbol
-  
+
 Returns:
   Function, or NIL if undefined.
 "

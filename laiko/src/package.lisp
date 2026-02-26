@@ -36,13 +36,7 @@
     #:vm-arithmetic-error
     #:vm-arithmetic-error-message
     #:sysout-load-failed
-    #:sysout-load-failed-message
-    ;; Function header
-    #:function-header
-    #:make-function-header
-    #:function-header-startpc
-    #:function-header-nv
-    #:function-header-na))
+    #:sysout-load-failed-message))
 
 (defpackage :maiko-lisp.vm
   (:use :cl)
@@ -101,6 +95,10 @@
     #:*max-trace-steps*
     #:*trace-step*
     #:get-emulator-max-steps
+    ;; Instruction stream access
+    #:*current-code*
+    #:*current-base-pc*
+    #:read-pc-32-be
     ;; Binding operations
     #:+bind-marker-msb+
     #:+unbound-marker+
@@ -188,7 +186,17 @@
     #:+cdr-onpage-max+
     #:get-list-length
     #:array-header
+    ;; Function header
     #:function-header
+    #:make-function-header
+    #:fn-stkmin
+    #:fn-na
+    #:fn-nv
+    #:fn-startpc
+    #:fn-framename
+    #:fn-ntsize
+    #:fn-nlocals
+    #:fn-fvaroffset
     #:get-start-pc
     #:get-num-args
     #:get-num-locals
@@ -232,12 +240,6 @@
     #:fx-blink
     #:fx-clink
     #:read-fx-from-vm
-    ;; Function header
-    #:function-header
-    #:make-function-header
-    #:function-header-startpc
-    #:function-header-nv
-    #:function-header-na
     ;; Atom table
     #:get-valcell
     #:get-defcell
@@ -256,10 +258,8 @@
     ;; Memory access (unified)
     #:vm-read-byte
     #:vm-read-word
-    #:vm-read-lispptr
     #:vm-write-byte
     #:vm-write-word
-    #:vm-write-lispptr
     #:vm-stack-push
     #:vm-stack-pop
     #:vm-stack-tos

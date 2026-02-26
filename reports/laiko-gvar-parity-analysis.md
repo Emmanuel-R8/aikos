@@ -32,49 +32,78 @@ SELECT atom_index, printf('0x%X', value_read) FROM gvar_executions WHERE atom_in
 
 ---
 
-## Laiko GVAR Implementation Issues
+## Laiko GVAR Implementation Issues - FIXED
 
-### Issue 1: `read-pc-32-be` is a Placeholder
+### Issue 1: `read-pc-32-be` is a Placeholder - **FIXED**
 
-**Location**: `laiko/src/vm/op-variable.lisp` lines 331-336
+**Location**: `laiko/src/vm/op-variable.lisp`
+
+**Problem**: Always returned 0, so GVAR always read atom 0's value.
+
+**Fix**: Implemented proper PC-relative read from instruction stream using `*current-code*` special variable bound by dispatch.
 
 ```lisp
 (defun read-pc-32-be (vm)
-  "Read 32-bit big-endian value from PC and advance PC by 4."
-  (declare (type vm vm))
-  ;; This needs to be implemented based on VM structure
-  ;; Placeholder - actual implementation depends on VM PC handling
-  0)
+  "Read 32-bit big-endian value from instruction stream at PC+1."
+  (declare (type vm vm)
+           (special *current-code*))
+  (let* ((pc (vm-pc vm))
+         (code *current-code*))
+    (if (and code (< (+ pc 4) (length code)))
+        (let ((b0 (aref code (+ pc 1)))
+              (b1 (aref code (+ pc 2)))
+              (b2 (aref code (+ pc 3)))
+              (b3 (aref code (+ pc 4))))
+          (logior (ash b0 24) (ash b1 16) (ash b2 8) b3))
+        0)))
 ```
 
-**Problem**: Always returns 0, so GVAR always reads atom 0's value.
+### Issue 2: Build Configuration Mismatch - **FIXED**
 
-**Required Fix**: Implement proper PC-relative read from instruction stream.
+**Location**: `laiko/src/data/atom.lisp`
 
-### Issue 2: Build Configuration Mismatch
+**Problem**: `*bigatoms*` was set to `nil`, but C emulator uses BIGVM=1, BIGATOMS=1.
 
-**Location**: `laiko/src/data/atom.lisp` line 49
+**Fix**: Set `*bigatoms*` to `t`:
 
 ```lisp
-(defparameter *bigatoms* nil
+(defparameter *bigatoms* t
   "Whether using BIGATOMS mode (32-bit atom indices)")
 ```
 
-**Problem**: C emulator uses BIGVM=1, BIGATOMS=1 (from introspection build_config table).
+### Issue 3: Atom Index Masking - **FIXED**
 
-**Required Fix**: Set `*bigatoms*` to `t` or detect from sysout.
+**Location**: `laiko/src/vm/op-variable.lisp`
 
-### Issue 3: Atom Index Masking
+**Problem**: Atom index was masked to 16 bits with `(logand atom-idx #xFFFF)`.
 
-**Location**: `laiko/src/vm/op-variable.lisp` line 203
+**Fix**: Pass full 32-bit atom index to `read-atom-value`:
 
 ```lisp
-(let ((valspace-index (logand atom-idx #xFFFF)))
+(defop gvar #x60 5
+  "GVAR: Push value of global variable (atom value cell)."
+  (let ((atom-idx (read-pc-32-be vm)))
+    (let ((value (maiko-lisp.data:read-atom-value vm atom-idx)))
+      (vm-push vm value))))
 ```
 
-**Problem**: For BIGVM, the full 32-bit atom index should be used, not masked to 16 bits.
+---
 
-**Required Fix**: Pass the full atom index to `read-atom-value`.
+## Additional Changes
+
+### Dispatch Loop Updates
+
+Added special variables for instruction stream access in `laiko/src/vm/dispatch.lisp`:
+
+```lisp
+(defvar *current-code* nil
+  "Bound to the current bytecode array during dispatch.")
+
+(defvar *current-base-pc* 0
+  "Bound to the base PC offset during dispatch.")
+```
+
+These are bound in the `dispatch` function to allow handlers to read operands from the instruction stream.
 
 ---
 
@@ -114,32 +143,13 @@ From `maiko/inc/inlineC.h` lines 438-458 (BIGVM variant):
 
 ---
 
-## Required Fixes for Laiko
+## Build Status
 
-### Fix 1: Implement `read-pc-32-be`
+The GVAR fixes compile successfully. There is a pre-existing build error in `laiko/src/vm/op-stack.lisp` (unrelated to GVAR fixes) that needs to be addressed separately:
 
-The function needs access to the current bytecode array. Options:
-
-1. Store bytecode array in VM structure
-2. Use special variable during dispatch
-3. Read from virtual memory at PC offset
-
-### Fix 2: Set Build Configuration
-
-Either:
-
-- Set `*bigatoms*` to `t` in `laiko/src/data/atom.lisp`
-- Or detect from sysout IFPAGE
-
-### Fix 3: Update GVAR Handler
-
-```lisp
-(defop gvar #x60 5
-  "GVAR: Push value of global variable (atom value cell)."
-  (let ((atom-idx (read-pc-32-be vm)))
-    ;; Don't mask atom index for BIGVM
-    (let ((value (maiko-lisp.data:read-atom-value vm atom-idx)))
-      (vm-push vm value))))
+```
+Error while parsing arguments to DEFOP DEFMACRO:
+  unknown keyword: "COPY: Duplicate the top of stack."
 ```
 
 ---
@@ -154,10 +164,9 @@ Either:
 
 ## Next Steps
 
-1. Implement `read-pc-32-be` properly
-2. Set `*bigatoms*` to `t` for BIGVM compatibility
-3. Test GVAR with atom 522 to verify it reads 0x140000
-4. Run parity comparison with C emulator
+1. Fix pre-existing error in `op-stack.lisp`
+2. Test GVAR with atom 522 to verify it reads 0x140000
+3. Run parity comparison with C emulator
 
 ---
 

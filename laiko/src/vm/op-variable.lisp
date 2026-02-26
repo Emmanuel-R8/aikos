@@ -190,19 +190,20 @@
 
 (defop gvar #x60 5
   "GVAR: Push value of global variable (atom value cell).
-Reads 4-byte atom index from instruction stream.
-For BIGVM: atom_index = op0<<24 | op1<<16 | op2<<8 | op3.
-Accesses value cell at Valspace[atom_index & 0xFFFF]."
+ Reads 4-byte atom index from instruction stream.
+ For BIGVM: atom_index = op0<<24 | op1<<16 | op2<<8 | op3.
+ For BIGVM, uses full 32-bit atom index (no masking).
+ For non-BIGATOMS, uses Valspace[atom_index]."
   :operands ((atom-index :uint32-be "Atom index (4 bytes, big-endian)"))
   :stack-effect (:push 1)
   :category :variable-access
   :side-effects nil
-  ;; Note: This handler receives operands from dispatch
-  ;; The actual implementation needs to read from PC
+  ;; Read full 32-bit atom index and pass to read-atom-value
+  ;; For BIGVM, the full index is used (no 16-bit masking)
+  ;; The read-atom-value function handles LITATOM vs NEWATOM dispatch
   (let ((atom-idx (read-pc-32-be vm)))
-    (let ((valspace-index (logand atom-idx #xFFFF)))
-      (let ((value (maiko-lisp.data:read-atom-value vm valspace-index)))
-        (vm-push vm value)))))
+    (let ((value (maiko-lisp.data:read-atom-value vm atom-idx)))
+      (vm-push vm value))))
 
 ;;; ===========================================================================
 ;; ARGUMENT ACCESS
@@ -329,8 +330,28 @@ Accesses value cell at Valspace[atom_index & 0xFFFF]."
   (pop-stack vm))
 
 (defun read-pc-32-be (vm)
-  "Read 32-bit big-endian value from PC and advance PC by 4."
-  (declare (type vm vm))
-  ;; This needs to be implemented based on VM structure
-  ;; Placeholder - actual implementation depends on VM PC handling
-  0)
+  "Read 32-bit big-endian value from instruction stream at PC+1.
+
+   Per C: For GVAR, the atom index is read as 4 bytes after the opcode.
+   The bytes are in big-endian order: op0<<24 | op1<<16 | op2<<8 | op3.
+
+   This function reads from *current-code* special variable bound by dispatch.
+   Returns the 32-bit atom index."
+  (declare (type vm vm)
+           (special *current-code*))
+  (let* ((pc (vm-pc vm))
+         (code *current-code*))
+    (if (and code
+             (< (+ pc 4) (length code)))
+        ;; Read 4 bytes after opcode (PC+1 to PC+4)
+        (let ((b0 (aref code (+ pc 1)))
+              (b1 (aref code (+ pc 2)))
+              (b2 (aref code (+ pc 3)))
+              (b3 (aref code (+ pc 4))))
+          ;; Big-endian: first byte is MSB
+          (logior (ash b0 24)
+                  (ash b1 16)
+                  (ash b2 8)
+                  b3))
+        ;; Fallback: return 0 if code not available
+        0)))

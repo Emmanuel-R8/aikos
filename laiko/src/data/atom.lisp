@@ -45,8 +45,9 @@
   "Valspace offset in DLwords")
 
 ;; Build configuration
-;; For Medley starter.sysout, uses 16-bit atom indices (non-BIGATOMS)
-(defparameter *bigatoms* nil
+;; For Medley with BIGVM, uses 32-bit atom indices (BIGATOMS)
+;; Per C introspection: bigvm=1, bigatoms=1
+(defparameter *bigatoms* t
   "Whether using BIGATOMS mode (32-bit atom indices)")
 
 ;;;============================================================================
@@ -55,9 +56,9 @@
 
 (defun get-valcell (vm atom-index)
   "Get value cell byte offset for an atom.
-   
+
    Per C: GetVALCELL68k(atom_index)
-   
+
    For non-BIGATOMS: GetLongWord(Valspace + ((x) << 1))
    Returns byte offset in virtual memory."
   (declare (type (unsigned-byte 32) atom-index))
@@ -66,43 +67,43 @@
       ;; Byte offset = (VALS_OFFSET + (atom_index << 1)) * 2
       (let ((laddr-dlwords (+ +vals-offset-dlwords+ (ash atom-index 1))))
         (* laddr-dlwords 2))
-      
+
       ;; BIGATOMS: Check NEWATOM vs LITATOM
       (if (/= (logand atom-index +segmask+) 0)
           ;; NEWATOM
           (let ((value-offset-bytes (* +newatom-value-offset+ 2)))
             (+ atom-index value-offset-bytes))
-          
+
           ;; LITATOM (BIGVM)
-          (let ((cells (+ (* atom-index 5) +newatom-value-ptroff+))
-                (laddr-dlwords (+ +atoms-offset+ (* cells 2))))
+          (let* ((cells (+ (* atom-index 5) +newatom-value-ptroff+))
+                 (laddr-dlwords (+ +atoms-offset+ (* cells 2))))
             (* laddr-dlwords 2)))))
 
 (defun get-defcell (vm atom-index)
   "Get definition cell byte offset for an atom.
-   
+
    Per C: GetDEFCELL68k(atom_index)
-   
+
    Returns byte offset in virtual memory."
   (declare (type (unsigned-byte 32) atom-index))
   (let ((vmem (maiko-lisp.vm:vm-virtual-memory vm)))
     (unless vmem
       (return-from get-defcell 0))
-    
+
     (if (not *bigatoms*)
         ;; Non-BIGATOMS: Defspace indexing
         ;; Byte offset = (DEFS_OFFSET + (atom_index << 1)) * 2
         (let* ((laddr-dlwords (+ +defs-offset-dlwords+ (ash atom-index 1)))
                (byte-off (* laddr-dlwords 2)))
           (if (>= (+ byte-off 4) (length vmem)) 0 byte-off))
-        
+
         ;; BIGATOMS
         (if (/= (logand atom-index +segmask+) 0)
             ;; NEWATOM
             (let ((defn-offset-bytes (* +newatom-defn-offset+ 2))
                   (defn-addr (+ atom-index (* +newatom-defn-offset+ 2))))
               (if (>= (+ defn-addr 4) (length vmem)) 0 defn-addr))
-            
+
             ;; LITATOM (BIGVM)
             (let* ((cells (+ (* atom-index 5) +newatom-defn-ptroff+))
                    (laddr-dlwords (+ +atoms-offset+ (* cells 2)))
@@ -111,7 +112,7 @@
 
 (defun read-atom-value (vm atom-index)
   "Read value from atom's value cell.
-   
+
    Per C: GVAR macro - reads value from value cell."
   (declare (type (unsigned-byte 32) atom-index))
   (let ((vmem (maiko-lisp.vm:vm-virtual-memory vm)))
@@ -142,7 +143,7 @@
 
 (defun write-atom-value (vm atom-index value)
   "Write value to atom's value cell.
-   
+
    Per C: GVAR_ opcode - writes value to value cell."
   (declare (type (unsigned-byte 32) atom-index value))
   (let ((vmem (maiko-lisp.vm:vm-virtual-memory vm)))

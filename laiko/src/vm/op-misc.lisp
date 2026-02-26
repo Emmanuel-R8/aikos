@@ -70,19 +70,12 @@ Types: 0=NIL, 1=Fixnum, 2=Float, 3=List, 4=Symbol, 5=Array."
              (t 0))))
       (set-top-of-stack vm result))))
 
-(defop fixp #x?? 1
-  "FIXP: Check if value is a fixnum.
-Replaces TOS with T if fixnum, NIL otherwise."
-  :operands nil
-  :stack-effect (:pop 1 :push 1)
-  :category :type-operations
-  :side-effects nil
-  (let ((value (get-top-of-stack vm)))
-    (set-top-of-stack vm (if (logtest value #x2) 1 0))))
+;; FIXP and SMALLP are implemented as subroutines, not bytecodes
+;; They are accessed via the function call mechanism
 
-(defop smallp #x?? 1
+(defop smallp #x06 1
   "SMALLP: Check if value is small positive integer.
-Replaces TOS with T if small positive, NIL otherwise."
+ Replaces TOS with T if small positive, NIL otherwise."
   :operands nil
   :stack-effect (:pop 1 :push 1)
   :category :type-operations
@@ -97,31 +90,8 @@ Replaces TOS with T if small positive, NIL otherwise."
 ;; CHARACTER OPERATIONS
 ;;; ===========================================================================
 
-(defop charcode #x?? 1
-  "CHARCODE: Get character code from pointer.
-Replaces TOS with low 8 bits."
-  :operands nil
-  :stack-effect (:pop 1 :push 1)
-  :category :miscellaneous
-  :side-effects nil
-  (let ((char-ptr (get-top-of-stack vm)))
-    (let ((char-code (if (zerop char-ptr) 0 (logand char-ptr #xFF))))
-      (set-top-of-stack vm char-code))))
-
-(defop charn #x?? 1
-  "CHARN: Get Nth character from string.
-Pops n and string-ptr, pushes nth character code."
-  :operands nil
-  :stack-effect (:pop 2 :push 1)
-  :category :miscellaneous
-  :side-effects nil
-  (let ((n (pop-stack vm))
-        (string-ptr (pop-stack vm)))
-    (if (or (zerop string-ptr) (>= n 256))
-        (push-stack vm 0)
-        (let ((cell (maiko-lisp.memory:get-cons-cell (vm-storage vm) string-ptr)))
-          (let ((char-code (maiko-lisp.data:get-car cell)))
-            (push-stack vm (logand char-code #xFF)))))))
+;; CHARCODE and CHARN are implemented as subroutines, not bytecodes
+;; They are accessed via the function call mechanism
 
 ;;; ===========================================================================
 ;; LIST OPERATIONS
