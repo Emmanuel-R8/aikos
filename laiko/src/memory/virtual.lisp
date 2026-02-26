@@ -17,11 +17,11 @@
   "Create virtual memory with given size"
   (declare (type (integer 1 *) size))
   (make-virtual-memory :fptovp (make-array size
-                                            :element-type 'maiko-lisp.utils:lisp-ptr
-                                            :initial-element 0)
+                                           :element-type 'maiko-lisp.utils:lisp-ptr
+                                           :initial-element 0)
                        :page-map (make-array size
-                                              :element-type '(unsigned-byte 8)
-                                              :initial-element 0)
+                                             :element-type '(unsigned-byte 8)
+                                             :initial-element 0)
                        :size size))
 
 (defun translate-address (vmem ptr size)

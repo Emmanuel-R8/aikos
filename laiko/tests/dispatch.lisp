@@ -6,8 +6,8 @@
 (defun test-fetch-instruction-byte ()
   "Test fetching instruction byte from code array"
   (let ((code (make-array 10
-                         :element-type 'maiko-lisp.utils:bytecode
-                         :initial-contents '(#xD8 #xD9 #xBF #x68 #x69 0 0 0 0 0))))
+                          :element-type 'maiko-lisp.utils:bytecode
+                          :initial-contents '(#xD8 #xD9 #xBF #x68 #x69 0 0 0 0 0))))
     (assert (= (maiko-lisp.vm::fetch-instruction-byte 0 code) #xD8) nil "Expected 0xD8")
     (assert (= (maiko-lisp.vm::fetch-instruction-byte 1 code) #xD9) nil "Expected 0xD9")
     (assert (= (maiko-lisp.vm::fetch-instruction-byte 2 code) #xBF) nil "Expected 0xBF")))
@@ -27,12 +27,12 @@
   "Test dispatch loop with simple opcode sequence"
   (let ((vm (maiko-lisp.vm:create-vm 1024))
         (code (make-array 5
-                         :element-type 'maiko-lisp.utils:bytecode
-                         :initial-contents '(#x68  ; NIL
-                                            #x69  ; T
-                                            #xD8  ; IPLUS2 (will fail without operands, but tests dispatch)
-                                            0
-                                            0))))
+                          :element-type 'maiko-lisp.utils:bytecode
+                          :initial-contents '(#x68  ; NIL
+                                              #x69  ; T
+                                              #xD8  ; IPLUS2 (will fail without operands, but tests dispatch)
+                                              0
+                                              0))))
     ;; This test verifies dispatch loop can execute without errors
     ;; Note: Full execution requires proper opcode handlers and operands
     (handler-case

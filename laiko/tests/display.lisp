@@ -16,8 +16,8 @@
   "Test rendering a region to display"
   (let ((display (maiko-lisp.display:init-display 100 100))
         (buffer (make-array (* 10 10 4) ; 10x10 RGBA
-                           :element-type '(unsigned-byte 8)
-                           :initial-element 255))) ; White
+                            :element-type '(unsigned-byte 8)
+                            :initial-element 255))) ; White
     ;; Render region at (10, 10) with size 10x10
     (maiko-lisp.display:render-region display 10 10 10 10 buffer)
     ;; Verify buffer was copied (check a pixel)

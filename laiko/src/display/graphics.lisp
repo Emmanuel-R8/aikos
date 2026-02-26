@@ -19,7 +19,7 @@
               (> (+ y height) display-height))
       (error 'maiko-lisp.utils:display-error
              :message (format nil "Render region out of bounds: (~A,~A) ~Ax~A in ~Ax~A"
-                             x y width height display-width display-height)))
+                              x y width height display-width display-height)))
     ;; Copy buffer to display buffer
     ;; For now, simple copy (will be optimized with SDL3)
     (let ((buffer-size (* width height 4))) ; RGBA
@@ -30,9 +30,9 @@
             for src-offset = (* row width 4)
             for dst-offset = (+ (* (+ y row) display-width 4) (* x 4))
             do (replace display-buffer buffer
-                       :start1 dst-offset
-                       :start2 src-offset
-                       :end2 (+ src-offset (* width 4))))))
+                        :start1 dst-offset
+                        :start2 src-offset
+                        :end2 (+ src-offset (* width 4))))))
   nil)
 
 (defun bitblt (display src-x src-y width height dst-x dst-y operation)
@@ -63,17 +63,17 @@
              for src-offset = (+ (* (+ src-y row) display-width 4) (* src-x 4))
              for dst-offset = (+ (* (+ dst-y row) display-width 4) (* dst-x 4))
              do (replace buffer buffer
-                        :start1 dst-offset
-                        :start2 src-offset
-                        :end2 (+ src-offset (* width 4)))))
+                         :start1 dst-offset
+                         :start2 src-offset
+                         :end2 (+ src-offset (* width 4)))))
       (1 ; XOR
        (loop for row from 0 below height
              for src-offset = (+ (* (+ src-y row) display-width 4) (* src-x 4))
              for dst-offset = (+ (* (+ dst-y row) display-width 4) (* dst-x 4))
              do (loop for i from 0 below (* width 4)
                       do (setf (aref buffer (+ dst-offset i))
-                              (logxor (aref buffer (+ dst-offset i))
-                                     (aref buffer (+ src-offset i)))))))
+                               (logxor (aref buffer (+ dst-offset i))
+                                       (aref buffer (+ src-offset i)))))))
       (t
        (error 'maiko-lisp.utils:display-error
               :message (format nil "Unsupported BitBLT operation: ~A" operation)))))

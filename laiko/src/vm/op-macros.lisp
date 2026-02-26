@@ -48,7 +48,7 @@
   :NONE         - No operand (for documentation completeness)
 "
   '(member :uint8 :int8 :uint16-be :int16-be :uint16-le :int16-le :uint32-be :int32-be
-           :lisp-ptr :atom-index :pc-offset :byte-count :variable :none))
+    :lisp-ptr :atom-index :pc-offset :byte-count :variable :none))
 
 ;;; ===========================================================================
 ;;; GLOBAL STATE
@@ -181,9 +181,9 @@
       (error "DEFOP: Stack effect for ~S must be a list, got ~S" name effect))
     (loop for (key val) on effect by #'cddr
           unless (member key '(:pop :push :pop-n))
-          do (error "DEFOP: Unknown stack effect key ~S for ~S" key name)
+            do (error "DEFOP: Unknown stack effect key ~S for ~S" key name)
           unless val
-          do (error "DEFOP: Stack effect key ~S needs a value for ~S" key name))))
+            do (error "DEFOP: Stack effect key ~S needs a value for ~S" key name))))
 
 (defun validate-operands (operands name)
   "Validate operand specification syntax.
@@ -569,15 +569,15 @@ This function is idempotent and safe to call multiple times.
 "
   (loop for hexcode from 0 to 255
         when (null (aref *opcode-handlers-array* hexcode))
-        do
-        (setf (aref *instruction-lengths* hexcode) 1)
-        (setf (aref *opcode-names* hexcode) 'undefined)
-        (setf (aref *opcode-handlers-array* hexcode)
-              (lambda (vm)
-                (error 'undefined-opcode-error
-                       :opcode hexcode
-                       :pc (vm-pc vm)
-                       :reason "Opcode not defined in this Laiko build")))))
+          do
+             (setf (aref *instruction-lengths* hexcode) 1)
+             (setf (aref *opcode-names* hexcode) 'undefined)
+             (setf (aref *opcode-handlers-array* hexcode)
+                   (lambda (vm)
+                     (error 'undefined-opcode-error
+                            :opcode hexcode
+                            :pc (vm-pc vm)
+                            :reason "Opcode not defined in this Laiko build")))))
 
 (defun report-opcode-coverage (&optional (stream *standard-output*))
   "Report how many opcodes are defined vs undefined.
@@ -609,7 +609,7 @@ Returns:
     ;; Also count slots with no metadata (truly unknown)
     (loop for hexcode from 0 to 255
           when (null (aref *opcode-handlers-array* hexcode))
-          do (incf undefined))
+            do (incf undefined))
 
     (let ((coverage (* 100.0 (/ defined 256))))
 
@@ -647,7 +647,7 @@ Returns:
   (loop for hexcode from 0 to 255
         when (or (null (aref *opcode-handlers-array* hexcode))
                  (eq (aref *opcode-names* hexcode) 'undefined))
-        collect hexcode))
+          collect hexcode))
 
 ;;; ===========================================================================
 ;;; CONVENIENCE ACCESSORS

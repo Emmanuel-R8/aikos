@@ -33,8 +33,8 @@ Allocates PVAR slots and pushes binding marker."
       (let* ((count-encoded (logand (logxor total #x7FFF) #x7FFF))
              (offset-encoded (logand (ash pvar-offset 1) #x7FFF))
              (marker (logior #x80000000
-                            (ash count-encoded 16)
-                            offset-encoded)))
+                             (ash count-encoded 16)
+                             offset-encoded)))
         (vm-push vm marker)))))
 
 (defop unbind :hexcode #x12 :instruction-length 1
@@ -62,12 +62,12 @@ Types: 0=NIL, 1=Fixnum, 2=Float, 3=List, 4=Symbol, 5=Array."
   (let ((type-code (read-pc-8 vm))
         (value (get-top-of-stack vm)))
     (let ((result
-           (case type-code
-             (0 (if (zerop value) 1 0))
-             (1 (if (logtest value #x2) 1 0))
-             (2 (if (and (logtest value #x2) (not (logtest value #x1))) 1 0))
-             (3 (if (not (zerop value)) 1 0))
-             (t 0))))
+            (case type-code
+              (0 (if (zerop value) 1 0))
+              (1 (if (logtest value #x2) 1 0))
+              (2 (if (and (logtest value #x2) (not (logtest value #x1))) 1 0))
+              (3 (if (not (zerop value)) 1 0))
+              (t 0))))
       (set-top-of-stack vm result))))
 
 ;; FIXP and SMALLP are implemented as subroutines, not bytecodes
@@ -147,7 +147,7 @@ Pops target, pushes T if found in stack, NIL otherwise."
     (let ((found nil))
       (loop for i from (1- stack-ptr) downto 0
             when (= (aref stack i) target)
-            do (setf found t) (return))
+              do (setf found t) (return))
       (push-stack vm (if found 1 0)))))
 
 (defop pop-n :hexcode #xC0 :instruction-length 2

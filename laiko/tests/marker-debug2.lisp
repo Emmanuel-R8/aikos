@@ -8,8 +8,8 @@
        (count-encoded (logand (logxor total #x7FFF) #x7FFF))
        (offset-encoded (logand pvar-offset #x7FFF))
        (marker (logior #x80000000
-                      (ash count-encoded 16)
-                      offset-encoded)))
+                       (ash count-encoded 16)
+                       offset-encoded)))
   (format t "Encoding:~%")
   (format t "  total=~A, pvar-offset=~A~%" total pvar-offset)
   (format t "  count-encoded (logxor ~A #x7FFF = #x~X)~%" total count-encoded)
@@ -18,14 +18,14 @@
   (format t "  marker = #x~X~%" marker)
   (format t "  marker in binary (low 32 bits): ~B~%" (logand marker #xFFFFFFFF))
   
-    ;; Test decoding immediately (using ldb for logical extraction)
-    (let* ((decoded-count (logxor (ldb (byte 15 16) marker) #x7FFF))
-           (decoded-offset (ldb (byte 15 0) marker)))
-      (format t "~%Decoding (using ldb):~%")
-      (format t "  decoded-count = logxor(ldb(byte 15 16, marker)=#x~X, #x7FFF) = ~A~%" 
-              (ldb (byte 15 16) marker) decoded-count)
-      (format t "  decoded-offset = ldb(byte 15 0, marker) = #x~X = ~A~%" 
-              (ldb (byte 15 0) marker) decoded-offset)
+  ;; Test decoding immediately (using ldb for logical extraction)
+  (let* ((decoded-count (logxor (ldb (byte 15 16) marker) #x7FFF))
+         (decoded-offset (ldb (byte 15 0) marker)))
+    (format t "~%Decoding (using ldb):~%")
+    (format t "  decoded-count = logxor(ldb(byte 15 16, marker)=#x~X, #x7FFF) = ~A~%" 
+            (ldb (byte 15 16) marker) decoded-count)
+    (format t "  decoded-offset = ldb(byte 15 0, marker) = #x~X = ~A~%" 
+            (ldb (byte 15 0) marker) decoded-offset)
     (format t "  Expected: count=2, offset=10~%")
     (format t "  Got: count=~A, offset=~A~%" decoded-count decoded-offset)))
 

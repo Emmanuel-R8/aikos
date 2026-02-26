@@ -357,7 +357,7 @@
    - word_swap_page swaps 32-bit words: [0,1,2,3] -> [3,2,1,0]
    - This is DIFFERENT from swapping 16-bit pairs!"
   (let ((page (make-array +bytesper-page+ :element-type '(unsigned-byte 8)
-                                         :initial-element 0)))
+                                          :initial-element 0)))
     (read-sequence page stream)
     ;; CRITICAL: 32-bit word swap on little-endian (NOT 16-bit pair swap!)
     ;; C: word_swap_page((DLword *)(lispworld_scratch + lispworld_offset), 128)

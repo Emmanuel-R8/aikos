@@ -17,7 +17,7 @@
 (defmethod print-object ((obj function-header) stream)
   "Print function header for debugging"
   (format stream "#<FN-HEADER startpc=~D na=~D nv=~D nlocals=~D>"
-           (fn-startpc obj) (fn-na obj) (fn-nv obj) (fn-nlocals obj)))
+          (fn-startpc obj) (fn-na obj) (fn-nv obj) (fn-nlocals obj)))
 
 (defun get-start-pc (header)
   "Get function start PC"

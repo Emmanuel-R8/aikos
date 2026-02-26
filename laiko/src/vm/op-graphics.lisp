@@ -78,16 +78,16 @@ Draws a line from (x1, y1) to (x2, y2) with Bresenham's algorithm."
       (declare (ignore dx dy err e2))
       (loop while (and (>= x 0) (< x *display-width*)
                        (>= y 0) (< y *display-height*)) do
-        (set-pixel vm x y 1)
-        (setf e2 (* 2 err))
-        (cond
-          ((> e2 dy)
-           (setf err (+ err dy))
-           (incf x sx)))
-        (cond
-          ((< e2 dx)
-           (setf err (+ err dx))
-           (incf y sy)))))))
+                         (set-pixel vm x y 1)
+                         (setf e2 (* 2 err))
+                         (cond
+                           ((> e2 dy)
+                            (setf err (+ err dy))
+                            (incf x sx)))
+                         (cond
+                           ((< e2 dx)
+                            (setf err (+ err dx))
+                            (incf y sy)))))))
 
 ;;; ===========================================================================
 ;; SUBROUTINE CALL OPCODE

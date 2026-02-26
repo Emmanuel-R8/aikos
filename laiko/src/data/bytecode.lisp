@@ -74,7 +74,7 @@
                          (return bytecode))
                        (setf (aref bytecode offset)
                              (aref page page-offset)))))
-           (incf offset)))
+               (incf offset)))
     bytecode))
 
 (defun get-vm-byte (virtual-memory address)

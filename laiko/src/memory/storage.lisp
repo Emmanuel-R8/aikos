@@ -26,10 +26,10 @@
       (loop for i from 0 below heap-size by alignment
             when (and (<= (+ i size) heap-size)
                       (every #'zerop (subseq heap i (min (+ i size) heap-size))))
-            do (return-from allocate i))
+              do (return-from allocate i))
       (error 'maiko-lisp.utils:memory-error
              :message (format nil "Storage full: requested ~A bytes, available ~A bytes"
-                             size heap-size)))))
+                              size heap-size)))))
 
 (defun allocate-cons-cell (storage)
   "Allocate a cons cell from storage. Returns LispPTR address."
@@ -50,9 +50,9 @@
       (error 'maiko-lisp.utils:invalid-address
              :message (format nil "Cons cell address out of bounds: ~A" ptr)))
     (let ((car-field (logior (aref heap offset)
-                              (ash (aref heap (+ offset 1)) 8)
-                              (ash (aref heap (+ offset 2)) 16)
-                              (ash (aref heap (+ offset 3)) 24)))
+                             (ash (aref heap (+ offset 1)) 8)
+                             (ash (aref heap (+ offset 2)) 16)
+                             (ash (aref heap (+ offset 3)) 24)))
           (cdr-code (aref heap (+ offset 6))))
       (maiko-lisp.data:make-cons-cell :car-field car-field :cdr-code cdr-code))))
 
@@ -95,8 +95,8 @@
          (cons-size 8))
     (loop for i from 0 below heap-size by 4
           when (and (<= (+ i cons-size) heap-size)
-                   (every #'zerop (subseq heap i (min (+ i cons-size) heap-size))))
-          do (return-from check-storage-full nil))
+                    (every #'zerop (subseq heap i (min (+ i cons-size) heap-size))))
+            do (return-from check-storage-full nil))
     t))
 
 ;; Low-level memory access functions for BitBLT and other operations

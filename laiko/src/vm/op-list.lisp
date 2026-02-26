@@ -293,9 +293,9 @@ Allocates new cons cells."
                           last-new
                           new-cell))
                      (setf last-new new-cell)))
-              (setf curr (maiko-lisp.data:get-cdr
-                          (maiko-lisp.memory:get-cons-cell (vm-storage vm) curr)
-                          curr)))
+                 (setf curr (maiko-lisp.data:get-cdr
+                             (maiko-lisp.memory:get-cons-cell (vm-storage vm) curr)
+                             curr)))
         result)))
 
 (defun lastcdr (vm list)
