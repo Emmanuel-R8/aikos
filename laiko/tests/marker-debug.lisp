@@ -9,8 +9,9 @@
     (format t "total=~A pvar-offset=~A~%" total pvar-offset)
     (format t "count-encoded=~X~%" count-encoded)
     (format t "marker=~X~%" marker)
-    (let ((decoded-count (logxor (logand (ash marker -1) #x7FFF) #x7FFF))
-          (let ((decoded-offset (logand marker #xFFFF)))
-            (format t "decoded-count=~A decoded-offset=~A~%" decoded-count decoded-offset)))))
+    (let* ((decoded-count (logxor (logand (ash marker -1) #x7FFF) #x7FFF))
+           (decoded-offset (logand marker #xFFFF)))
+      (format t "decoded-count=~A decoded-offset=~A~%"
+              decoded-count decoded-offset))))
 
-  (test-marker-encoding)
+(test-marker-encoding)
