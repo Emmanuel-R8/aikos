@@ -30,10 +30,12 @@
   (unless (trace-enabled-p)
     (return-from trace-log))
   (incf *trace-step*)
-  (let* ((sp (vm-stack-ptr vm))
-         (tos (if (> sp 0) (aref (vm-stack vm) (1- sp)) 0))
-         (n1 (if (> sp 1) (aref (vm-stack vm) (- sp 2)) 0))
-         (n2 (if (> sp 2) (aref (vm-stack vm) (- sp 3)) 0))
+  ;; Use the virtual-memory stack for parity with C/Zig traces.
+  ;; SP here is the byte offset of CurrentStackPTR into virtual memory.
+  (let* ((sp-bytes (vm-stack-ptr-offset vm))
+         (tos (maiko-lisp.vm:vm-tos vm))
+         (n1 (maiko-lisp.vm:vm-read-lispptr vm (+ sp-bytes 4)))
+         (n2 (maiko-lisp.vm:vm-read-lispptr vm (+ sp-bytes 8)))
          (page-num (ash pc -9))
          (page-off (logand pc #x1FF))
          (instr-name (or instruction-name (symbol-name opcode)))
@@ -61,8 +63,9 @@
           (n (if (logbitp 31 tos) 1 0))) ; Check sign bit
       (format *vm-trace-output* "Z:~D,N:~D,C:0|" z n))
     ;; SP_FP (comma-separated: SP:0x%06x,FP:0x%06x)
-    (let ((fp (if (vm-current-frame vm) (sf-link (vm-current-frame vm)) 0)))
-      (format *vm-trace-output* "SP:0x~6,'0X,FP:0x~6,'0X|" sp fp))
+    ;; Use byte offset stack pointer to match C trace SP semantics; FP is 0 for now.
+    (let ((fp 0))
+      (format *vm-trace-output* "SP:0x~6,'0X,FP:0x~6,'0X|" sp-bytes fp))
     ;; STACK_SUMMARY (comma-separated: TOS:0x%08x,N1:0x%08x,N2:0x%08x)
     (format *vm-trace-output* "TOS:0x~8,'0X,N1:0x~8,'0X,N2:0x~8,'0X|" tos n1 n2)
     ;; MEMORY_CONTEXT (comma-separated: @mem:?,vpage:%u,off:0x%03x)

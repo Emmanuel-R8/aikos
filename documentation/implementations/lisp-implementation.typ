@@ -204,6 +204,16 @@ Laiko now uses a single declarative macro (`DEFOP` in `laiko/src/vm/op-macros.li
 
 This keeps the opcode table as the **single source of truth** for both the dispatcher and tooling (documentation generation, parity debugging, future introspection) and mirrors the centralized tables used in the C and Zig implementations.
 
+=== Opcode prioritization for parity work (2026-02-26)
+
+For Laiko, opcode implementation order is now driven by **trace-based divergence** rather than raw opcode number:
+
+- Tier 1: early-executed core instructions (stack operations, constants, variable access, control flow, base/memory ops that appear in the first few instructions of starter.sysout).
+- Tier 2: data and memory structure operations (lists, arrays, general arithmetic/comparisons, bitwise and shifts).
+- Tier 3: floating point, graphics, and advanced I/O (BitBLT, SDL display, subroutine I/O).
+
+When running `scripts/compare_emulator_execution.sh --with-laiko` with a small `EMULATOR_MAX_STEPS`, the **first divergence (PC + opcode)** determines which tier to work on next. See `reports/laiko-opcode-priority.md` for the current tier breakdown and concrete examples.
+
 === Memory Management
 
 *Storage*:

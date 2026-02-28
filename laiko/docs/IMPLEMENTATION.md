@@ -100,6 +100,17 @@ Laiko emits the same unified pipe-delimited trace format as the C and Zig emulat
 
 This layout keeps the execution pipeline close to the C/Zig implementations, which is critical for cross-emulator parity debugging.
 
+**Invocation notes**:
+
+- `run.sh` lives under `laiko/` and runs SBCL with `maiko-lisp:main` as the entry point. When calling it from the repository root you should pass sysout paths relative to `laiko/`, e.g.:
+
+  ```bash
+  cd /path/to/Interlisp
+  EMULATOR_MAX_STEPS=32 ./laiko/run.sh ../medley/internal/loadups/starter.sysout
+  ```
+
+- The parity script `scripts/compare_emulator_execution.sh --with-laiko` sets `EMULATOR_MAX_STEPS` and calls this same entry point, so keeping these conventions consistent is important for reliable instruction-by-instruction comparison.
+
 ### Trace configuration and comparison
 
 - *Environment*: `EMULATOR_MAX_STEPS=N` limits execution to N instructions and, when no explicit `-trace` file is given, triggers auto-tracing for parity runs.
