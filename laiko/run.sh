@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run script for Maiko Lisp implementation
+# Run script for Laiko Lisp implementation
 
 set -e
 
@@ -53,5 +53,5 @@ sbcl --noinform \
 	--eval "(load \"src/vm/opcodes-main.lisp\")" \
 	--eval "(load \"src/vm/function.lisp\")" \
 	--eval "(load \"src/main.lisp\")" \
-	--eval "(maiko-lisp:main)" \
+	--eval "(laiko:main)" \
 	"$@"

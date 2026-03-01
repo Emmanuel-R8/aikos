@@ -12,7 +12,7 @@
 ;;;;   - Preserve thematic file organization
 ;;;;
 ;;;; USAGE:
-;;;;   (defop gvar #x60 5
+;;;;   (defop gvar :hexcode #x60 :instruction-length 5
 ;;;;     "GVAR: Push the value of a global variable."
 ;;;;     :operands ((atom-index :atom-index "Atom whose value to push"))
 ;;;;     :stack-effect (:push 1)
@@ -21,7 +21,7 @@
 ;;;;     (let ((idx (read-pc-16-be vm)))
 ;;;;       (push-stack vm (get-atom-value vm idx))))
 
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 
 ;;; ===========================================================================
 ;;; STANDARD OPERAND TYPES
@@ -48,7 +48,7 @@
   :NONE         - No operand (for documentation completeness)
 "
   '(member :uint8 :int8 :uint16-be :int16-be :uint16-le :int16-le :uint32-be :int32-be
-           :lisp-ptr :atom-index :pc-offset :byte-count :variable :none))
+    :lisp-ptr :atom-index :pc-offset :byte-count :variable :none))
 
 ;;; ===========================================================================
 ;;; GLOBAL STATE
@@ -58,19 +58,19 @@
 ;; These are the performance-critical data structures.
 
 (defvar *instruction-lengths*
-  (make-array 256 :element-type '(unsigned-byte 8) :initial-element 0)
-  "Array mapping opcode byte (0-255) to instruction length in bytes.
+  (make-array #x100 :element-type '(unsigned-byte 8) :initial-element 0)
+  "Array mapping opcode byte (0-#xFF) to instruction length in bytes.
   Includes opcode byte itself plus all operand bytes.
   Initialized to 0; undefined opcodes get length 1 during init.")
 
 (defvar *opcode-names*
-  (make-array 256 :initial-element nil)
-  "Array mapping opcode byte (0-255) to symbolic name.
+  (make-array #x100 :initial-element nil)
+  "Array mapping opcode byte (0-#xFF) to symbolic name.
   NIL for undefined/reserved opcodes.")
 
 (defvar *opcode-handlers-array*
-  (make-array 256 :initial-element nil)
-  "Array mapping opcode byte (0-255) to handler function.
+  (make-array #x100 :initial-element nil)
+  "Array mapping opcode byte (0-#xFF) to handler function.
   NIL slots are filled with default undefined handler during init.")
 
 ;; Secondary lookup tables (name -> X) for reverse lookup and introspection
@@ -100,7 +100,7 @@
 
 (define-condition opcode-error (error)
   ((opcode :initarg :opcode :reader opcode-error-opcode
-           :documentation "The undefined opcode byte value (0-255)")
+           :documentation "The undefined opcode byte value (0-#xFF)")
    (pc :initarg :pc :reader opcode-error-pc
        :documentation "The PC value where the error occurred"))
   (:documentation "Base condition for opcode-related errors."))
@@ -130,7 +130,7 @@
 ;;; ===========================================================================
 
 (defun validate-hexcode (hexcode name)
-  "Validate that HEXCODE is in valid range 0-255.
+  "Validate that HEXCODE is in valid range 0-#xFF.
   Warns if HEXCODE was already defined by another opcode.
 
   Arguments:
@@ -140,8 +140,8 @@
   Signals ERROR if out of range.
   Signals WARNING if duplicate.
 "
-  (unless (and (integerp hexcode) (<= 0 hexcode 255))
-    (error "DEFOP: Invalid hexcode ~S for opcode ~S: must be integer 0-255"
+  (unless (and (integerp hexcode) (<= 0 hexcode #xFF))
+    (error "DEFOP: Invalid hexcode ~S for opcode ~S: must be integer 0-#xFF"
            hexcode name))
   (let ((existing (gethash hexcode *defined-hexcodes*)))
     (when (and existing (not (eq existing name)))
@@ -181,9 +181,9 @@
       (error "DEFOP: Stack effect for ~S must be a list, got ~S" name effect))
     (loop for (key val) on effect by #'cddr
           unless (member key '(:pop :push :pop-n))
-          do (error "DEFOP: Unknown stack effect key ~S for ~S" key name)
+            do (error "DEFOP: Unknown stack effect key ~S for ~S" key name)
           unless val
-          do (error "DEFOP: Stack effect key ~S needs a value for ~S" key name))))
+            do (error "DEFOP: Stack effect key ~S needs a value for ~S" key name))))
 
 (defun validate-operands (operands name)
   "Validate operand specification syntax.
@@ -309,37 +309,44 @@
 
 (defun parse-defop-args (args)
   "Parse DEFOP arguments, separating docstring, keywords, and body.
-Returns (values docstring plist body-forms)."
+Returns (values docstring plist body-forms).
+Docstring may appear at the start or anywhere before the body (when we see
+a string while scanning keywords, we take it as the docstring)."
   (let ((docstring nil)
         (plist '())
         (body '())
         (remaining args))
-    ;; Extract docstring if present
-    (when (and remaining (stringp (car remaining)))
-      (setf docstring (car remaining))
-      (setf remaining (cdr remaining)))
-    ;; Extract keyword arguments until we hit a non-keyword/non-value pair
-    (loop while (and remaining (keywordp (car remaining)))
-          for key = (pop remaining)
-          for val = (pop remaining)
-          do (setf plist (list* val key plist)))
-    ;; The rest is the body
+    ;; Scan: optional docstring (first string seen), then keyword/value pairs
+    (loop while remaining
+          for head = (car remaining)
+          do (cond ((stringp head)
+                    (setf docstring head)
+                    (pop remaining))
+                   ((keywordp head)
+                    (let ((key (pop remaining)))
+                      (when (null remaining)
+                        (error "DEFOP: keyword ~S has no value" key))
+                      (setf plist (list* (pop remaining) key plist))))
+                   (t
+                    (return))))
     (setf body remaining)
     (values docstring (nreverse plist) body)))
 
-(defmacro defop (name hexcode instruction-length &rest args)
+(defmacro defop (name &rest args)
   "Define an opcode handler with complete metadata.
 
 NAME is a symbol naming this opcode (e.g., 'cons, 'gvar).
 
-HEXCODE is the byte value (0-255) for this opcode.
-
-INSTRUCTION-LENGTH is total bytes including opcode and operands.
-
 ARGS consists of an optional docstring, followed by keyword arguments,
 followed by the handler body.
 
-Keyword arguments:
+Required keyword arguments:
+
+  HEXCODE is the byte value (0-#xFF) for this opcode.
+
+  INSTRUCTION-LENGTH is total bytes including opcode and operands.
+
+Other keyword arguments:
 
   ALIASES is a list of alternate names for this opcode.
     Example: (eq?-op pointer-equal)
@@ -376,14 +383,14 @@ Generated artifacts:
   - Hash entry in *OPCODE-METADATA* under NAME
 
 Validation (compile-time):
-  - HEXCODE must be 0-255
+  - HEXCODE must be 0-#xFF
   - INSTRUCTION-LENGTH must be 1-15
   - Warns on duplicate hexcode definitions
   - Validates stack effect syntax
   - Validates operand types
 
 Example:
-  (defop gvar #x60 5
+  (defop gvar :hexcode #x60 :instruction-length 5
     \"GVAR: Push the value of a global variable.
   The atom index is read from the next 2 bytes (big-endian).\"
     :operands ((atom-index :atom-index \"Atom whose value to push\"))
@@ -396,13 +403,19 @@ Example:
  "
   (multiple-value-bind (doc-string plist body)
       (parse-defop-args args)
-    (let ((fn-name (intern (format nil "HANDLE-~A" name)
-                           (find-package :maiko-lisp.vm)))
+    (let ((hexcode (getf plist :hexcode))
+          (instruction-length (getf plist :instruction-length))
+          (fn-name (intern (format nil "HANDLE-~A" name)
+                           (find-package :laiko.vm)))
           (aliases (getf plist :aliases))
           (operands (getf plist :operands))
           (stack-effect (getf plist :stack-effect))
           (category (getf plist :category))
           (side-effects (getf plist :side-effects)))
+      (unless hexcode
+        (error "DEFOP: ~S requires :hexcode" name))
+      (unless instruction-length
+        (error "DEFOP: ~S requires :instruction-length" name))
       ;; Compile-time validation (expanded into load-time checks)
       `(progn
          ;; === VALIDATION ===
@@ -475,7 +488,7 @@ Creates a stub handler that signals UNDEFINED-OPCODE-ERROR when executed.
 Useful for tracking what needs implementation vs truly unknown opcodes.
 
 NAME is a symbol for documentation (e.g., 'unused-42, 'todo-fancy-op).
-HEXCODE is the byte value (0-255).
+HEXCODE is the byte value (0-#xFF).
 REASON is a string explaining why undefined (e.g., \"not needed for Medley\").
 CATEGORY groups related undefined opcodes for documentation.
 
@@ -516,7 +529,7 @@ Example:
 Creates a handler that signals RESERVED-OPCODE-ERROR with context.
 Use for opcodes that exist in other Lisp variants but not Medley.
 
-HEXCODE is the byte value (0-255).
+HEXCODE is the byte value (0-#xFF).
 ORIGINALLY-USED-IN describes historical use (e.g., \"Interlisp only\").
 
 Example:
@@ -554,17 +567,17 @@ Ensures the emulator won't crash on unknown bytes - it will error cleanly.
 
 This function is idempotent and safe to call multiple times.
 "
-  (loop for hexcode from 0 to 255
+  (loop for hexcode from 0 to #xFF
         when (null (aref *opcode-handlers-array* hexcode))
-        do
-        (setf (aref *instruction-lengths* hexcode) 1)
-        (setf (aref *opcode-names* hexcode) 'undefined)
-        (setf (aref *opcode-handlers-array* hexcode)
-              (lambda (vm)
-                (error 'undefined-opcode-error
-                       :opcode hexcode
-                       :pc (vm-pc vm)
-                       :reason "Opcode not defined in this Laiko build")))))
+          do
+             (setf (aref *instruction-lengths* hexcode) 1)
+             (setf (aref *opcode-names* hexcode) 'undefined)
+             (setf (aref *opcode-handlers-array* hexcode)
+                   (lambda (vm)
+                     (error 'undefined-opcode-error
+                            :opcode hexcode
+                            :pc (vm-pc vm)
+                            :reason "Opcode not defined in this Laiko build")))))
 
 (defun report-opcode-coverage (&optional (stream *standard-output*))
   "Report how many opcodes are defined vs undefined.
@@ -594,11 +607,11 @@ Returns:
              *opcode-metadata*)
 
     ;; Also count slots with no metadata (truly unknown)
-    (loop for hexcode from 0 to 255
+    (loop for hexcode from 0 to #xFF
           when (null (aref *opcode-handlers-array* hexcode))
-          do (incf undefined))
+            do (incf undefined))
 
-    (let ((coverage (* 100.0 (/ defined 256))))
+    (let ((coverage (* 100.0 (/ defined #x100))))
 
       ;; Print report
       (format stream "~&~A~%" (make-string 50 :initial-element #\=))
@@ -629,12 +642,12 @@ Returns:
   "Return list of hexcodes that have no handler defined.
 
 Returns:
-  List of integers (0-255) for undefined opcodes.
+  List of integers (0-#xFF) for undefined opcodes.
 "
-  (loop for hexcode from 0 to 255
+  (loop for hexcode from 0 to #xFF
         when (or (null (aref *opcode-handlers-array* hexcode))
                  (eq (aref *opcode-names* hexcode) 'undefined))
-        collect hexcode))
+          collect hexcode))
 
 ;;; ===========================================================================
 ;;; CONVENIENCE ACCESSORS
@@ -644,7 +657,7 @@ Returns:
   "Get metadata for an opcode by byte value or name.
 
 Arguments:
-  BYTE-OR-NAME - Integer (0-255) or symbol
+  BYTE-OR-NAME - Integer (0-#xFF) or symbol
 
 Returns:
   Property list of metadata, or NIL if not found.
@@ -661,7 +674,7 @@ Returns:
   "Get symbolic name for an opcode byte.
 
 Arguments:
-  BYTE - Integer 0-255
+  BYTE - Integer 0-#xFF
 
 Returns:
   Symbol naming the opcode, or NIL if undefined.
@@ -672,7 +685,7 @@ Returns:
   "Get instruction length for an opcode byte.
 
 Arguments:
-  BYTE - Integer 0-255
+  BYTE - Integer 0-#xFF
 
 Returns:
   Integer length in bytes (at least 1).
@@ -683,7 +696,7 @@ Returns:
   "Get handler function for an opcode.
 
 Arguments:
-  BYTE-OR-NAME - Integer (0-255) or symbol
+  BYTE-OR-NAME - Integer (0-#xFF) or symbol
 
 Returns:
   Function, or NIL if undefined.

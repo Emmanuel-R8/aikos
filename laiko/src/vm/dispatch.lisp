@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 
 ;; dispatch loop
 ;; Per rewrite documentation vm-core/execution-model.md
@@ -21,9 +21,9 @@
 
 (defun fetch-instruction-byte (pc code)
   "Fetch instruction byte at PC.
-Returns the opcode byte (0-255) or 0 if past end of code."
-  (declare (type maiko-lisp.utils:lisp-ptr pc)
-           (type (simple-array maiko-lisp.utils:bytecode (*)) code))
+Returns the opcode byte (0-#xFF) or 0 if past end of code."
+  (declare (type laiko.utils:lisp-ptr pc)
+           (type (simple-array laiko.utils:bytecode (*)) code))
   (if (< pc (length code))
       (aref code pc)
       0))
@@ -32,8 +32,8 @@ Returns the opcode byte (0-255) or 0 if past end of code."
   "Fetch operands for instruction starting at PC.
 Returns list of operand bytes (excluding opcode byte).
 LENGTH is total instruction length including opcode."
-  (declare (type maiko-lisp.utils:lisp-ptr pc)
-           (type (simple-array maiko-lisp.utils:bytecode (*)) code)
+  (declare (type laiko.utils:lisp-ptr pc)
+           (type (simple-array laiko.utils:bytecode (*)) code)
            (type (integer 1 *) length))
   (let ((operand-count (1- length)))
     (if (<= (+ pc length) (length code))
@@ -43,7 +43,7 @@ LENGTH is total instruction length including opcode."
 
 (defun decode-opcode (byte)
   "Decode opcode from byte. Returns opcode value (identity for now)."
-  (declare (type maiko-lisp.utils:bytecode byte))
+  (declare (type laiko.utils:bytecode byte))
   byte)
 
 (defun get-instruction-length (opcode)
@@ -86,8 +86,8 @@ Returns symbol or NIL if undefined."
   stream using read-pc-* helpers, not via the operands list.
 "
   (declare (type vm vm)
-           (type (simple-array maiko-lisp.utils:bytecode (*)) code)
-           (type maiko-lisp.utils:lisp-ptr base-pc))
+           (type (simple-array laiko.utils:bytecode (*)) code)
+           (type laiko.utils:lisp-ptr base-pc))
 
   ;; Ensure undefined opcode handlers are initialized
   (initialize-undefined-opcode-handlers)
@@ -108,49 +108,49 @@ Returns symbol or NIL if undefined."
                      (or (zerop *max-trace-steps*)
                          (< step-count *max-trace-steps*)))
           do
-          (incf step-count)
+             (incf step-count)
 
-          ;; Check interrupts before execution
-          (when (check-interrupts vm)
-            (handle-pending-interrupts vm))
+             ;; Check interrupts before execution
+             (when (check-interrupts vm)
+               (handle-pending-interrupts vm))
 
-          ;; Fetch instruction
-          (let* ((opcode-byte (fetch-instruction-byte pc code))
-                 (instruction-len (get-instruction-length opcode-byte))
-                 (handler-fn (get-opcode-handler-function opcode-byte))
-                 (opcode-name (get-opcode-name opcode-byte)))
+             ;; Fetch instruction
+             (let* ((opcode-byte (fetch-instruction-byte pc code))
+                    (instruction-len (get-instruction-length opcode-byte))
+                    (handler-fn (get-opcode-handler-function opcode-byte))
+                    (opcode-name (get-opcode-name opcode-byte)))
 
-            ;; Log trace before execution
-            (when (trace-enabled-p)
-              (let ((operands (fetch-operands pc code instruction-len)))
-                (trace-log vm (+ base-pc pc) opcode-byte operands
-                           :instruction-name opcode-name)))
+               ;; Log trace before execution
+               (when (trace-enabled-p)
+                 (let ((operands (fetch-operands pc code instruction-len)))
+                   (trace-log vm (+ base-pc pc) opcode-byte operands
+                              :instruction-name opcode-name)))
 
-            ;; Execute handler
-            (handler-case
-                (if handler-fn
-                    (funcall handler-fn vm)
-                    (error 'maiko-lisp.utils:vm-error
-                           :message (format nil "No handler for opcode 0x~2,'0X" opcode-byte)))
-              (maiko-lisp.utils:vm-error (err)
-                (error err))
-              (error (err)
-                (error 'maiko-lisp.utils:vm-error
-                       :message (format nil "Error in opcode 0x~2,'0X: ~A" opcode-byte err))))
+               ;; Execute handler
+               (handler-case
+                   (if handler-fn
+                       (funcall handler-fn vm)
+                       (error 'laiko.utils:vm-error
+                              :message (format nil "No handler for opcode 0x~2,'0X" opcode-byte)))
+                 (laiko.utils:vm-error (err)
+                   (error err))
+                 (error (err)
+                   (error 'laiko.utils:vm-error
+                          :message (format nil "Error in opcode 0x~2,'0X: ~A" opcode-byte err))))
 
-            ;; Update PC (unless handler modified it)
-            (let ((current-pc (vm-pc vm)))
-              (if (= current-pc pc)
-                  ;; PC wasn't modified, advance normally
-                  (progn
-                    (setf pc (+ pc instruction-len))
-                    (setf (vm-pc vm) pc))
-                  ;; PC was modified by opcode (e.g., JUMP, RETURN)
-                  (setf pc current-pc))))
+               ;; Update PC (unless handler modified it)
+               (let ((current-pc (vm-pc vm)))
+                 (if (= current-pc pc)
+                     ;; PC wasn't modified, advance normally
+                     (progn
+                       (setf pc (+ pc instruction-len))
+                       (setf (vm-pc vm) pc))
+                     ;; PC was modified by opcode (e.g., JUMP, RETURN)
+                     (setf pc current-pc))))
 
-          ;; Check interrupts after execution
-          (when (check-interrupts vm)
-            (handle-pending-interrupts vm)))))
+             ;; Check interrupts after execution
+             (when (check-interrupts vm)
+               (handle-pending-interrupts vm)))))
 
 (defun handle-pending-interrupts (vm)
   "Handle any pending interrupts."

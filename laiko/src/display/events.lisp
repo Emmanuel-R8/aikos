@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.display)
+(in-package :laiko.display)
 
 ;; Display event handling
 ;; Per rewrite documentation display/event-protocols.md

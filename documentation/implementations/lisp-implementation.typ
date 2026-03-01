@@ -3,8 +3,8 @@
 *Navigation*: README | Index | Architecture
 
 *Feature*: 002-lisp-implementation
-*Date*: 2026-02-16
-*Status*: 🔧 IN DEVELOPMENT - Valspace Allocation Implemented
+*Date*: 2026-03-01
+*Status*: 🔧 IN DEVELOPMENT - Stack System Consolidation Complete
 
 == Overview
 
@@ -15,15 +15,17 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL), following t
 - *Source Files*: 26+ Lisp files
 - *Test Files*: 11 test files
 - *Opcodes Implemented*: ~191 opcode handlers registered
-- *Actual Completeness*: ~30% (sysout loading, Valspace allocation, 4+ instructions executing)
+- *Actual Completeness*: ~30% (sysout loading, Valspace allocation, stack consolidation, 4+ instructions executing)
 - *Build System*: ASDF
 - *Target Platform*: Linux (SBCL), macOS, Windows (partial)
 
 == Current Status (2026-02-16)
 
-=== Opcode alignment with Maiko (2026-02-26)
+=== Opcode alignment with Maiko (2026-03-01)
 
 Laiko stack-constant opcodes were corrected to match `maiko/inc/opcodes.h`: NIL = 0x68, T = 0x69, CONST_0 (opc_0) = 0x6A, CONST_1 (opc_1) = 0x6B. See `reports/laiko-opcode-audit-vs-maiko.md` for the audit and remaining discrepancies (comparison 0x3B-0x3F, logic 0xE0-0xE7).
+
+**2026-03-01 Update**: GVAR (0x60) was fixed to correctly read from Valspace. The stack system consolidation was completed - see details below.
 
 === ✅ Completed
 
@@ -38,6 +40,7 @@ Laiko stack-constant opcodes were corrected to match `maiko/inc/opcodes.h`: NIL 
 - ✅ **Virtual memory stack operations**
 - ✅ **Atom/Defcell infrastructure**
 - ✅ **Valspace page allocation** (runtime memory, not from sysout)
+- ✅ **Stack system consolidation** (unified VM-based stack operations)
 - ✅ **4+ instructions executing**:
   1. POP (0xBF) at PC 0x60F130
   2. GVAR (0x60) at PC 0x60F131
@@ -46,14 +49,61 @@ Laiko stack-constant opcodes were corrected to match `maiko/inc/opcodes.h`: NIL 
 
 === ⚠️ Known Issues
 
-- ⚠️ GVAR reads value=0 instead of expected 0x0E
 - ⚠️ Value cells need initialization from Lisp startup code
-- ⚠ Stack underflow at instruction 4 (GETBASEPTR-N)
+- ⚠️ Trace FP display shows 0x000000 (trace formatting issue, not actual FP corruption)
 
 === 🔧 In Progress
 
-- Investigating value cell initialization
-- Checking C/Zig for Valspace value population
+- Verifying stack consolidation fix with parity testing
+- Continuing Tier 2 opcode implementation
+
+== Critical Fix: Stack System Consolidation (2026-03-01)
+
+=== Problem
+
+Laiko had **two incompatible stack systems** being used inconsistently:
+
+1. **Old System** (`vm-stack-ptr` - array index):
+   - `push-stack()`, `pop-stack()`, `get-top-of-stack()`, `set-top-of-stack()`
+   - Used by: POP, GETBASEPTR-N, and other opcodes
+
+2. **New System** (`vm-stack-ptr-offset` - byte offset in VM):
+   - `vm-push()`, `vm-pop()`, `vm-tos()`, `vm-set-tos()`
+   - Used by: GVAR (opcode 0x60)
+
+When GVAR pushed a value using the new system and POP tried to pop using the old system, this caused a **stack underflow** at GETBASEPTR-N.
+
+=== Solution
+
+The old stack functions in `laiko/src/vm/stack.lisp` were redirected to use the new VM-based operations:
+
+#codeblock(lang: "lisp", [
+;; DEPRECATED: Old array-based stack functions
+;; These now redirect to VM-based stack operations for consistency
+
+(defun push-stack (vm value)
+  "Push value onto stack. DEPRECATED - use vm-push instead."
+  (vm-push vm (if (typep value 'fixnum) value (logand value #xFFFFFFFF))))
+
+(defun pop-stack (vm)
+  "Pop value from stack. DEPRECATED - use vm-pop instead."
+  (vm-pop vm))
+
+(defun get-top-of-stack (vm)
+  "Get top of stack without popping. DEPRECATED - use vm-tos instead."
+  (vm-tos vm))
+
+(defun set-top-of-stack (vm value)
+  "Set top of stack. DEPRECATED - use vm-set-tos instead."
+  (vm-set-tos vm (if (typep value 'fixnum) value (logand value #xFFFFFFFF))))
+])
+
+This ensures all opcodes use the same virtual memory-based stack system, matching the C/Zig implementations.
+
+=== Additional Fixes
+
+- **UNBIND (0x12)**: Implemented proper stack pop per declared `:stack-effect (:pop 1)`
+- **GVAR (0x60)**: Fixed to read correctly from Valspace using proper address translation
 
 == Critical Discovery: Valspace Architecture
 
@@ -187,8 +237,32 @@ alternatives/lisp/
 - Cell creation (MAKECELL, FREECELL)
 - Base address operations (GETBASE, SETBASE)
 - Address manipulation (ADDBASE, SUBBASE)
-
 *Remaining*: 67 opcodes (mostly specialized operations, can be added incrementally)
+
+=== Centralized opcode metadata (2026-02-26)
+
+Laiko now uses a single declarative macro (`DEFOP` in `laiko/src/vm/op-macros.lisp`) to define each opcode and populate all dispatch/metadata tables:
+
+- **Primary fields** per opcode are provided as keywords: `:hexcode` (byte value 0–255) and `:instruction-length` (total bytes including operands).
+- **Additional metadata** is captured via keywords: `:operands`, `:stack-effect`, `:category`, `:side-effects`, and optional `:aliases`.
+- The macro fills:
+  - `*instruction-lengths*` (byte → instruction length),
+  - `*opcode-names*` (byte → symbolic name),
+  - `*opcode-handlers-array*` (byte → handler function),
+  - `*opcode-handlers*` (name → handler),
+  - `*opcode-metadata*` (name → plist of all fields, including documentation).
+
+This keeps the opcode table as the **single source of truth** for both the dispatcher and tooling (documentation generation, parity debugging, future introspection) and mirrors the centralized tables used in the C and Zig implementations.
+
+=== Opcode prioritization for parity work (2026-02-26)
+
+For Laiko, opcode implementation order is now driven by **trace-based divergence** rather than raw opcode number:
+
+- Tier 1: early-executed core instructions (stack operations, constants, variable access, control flow, base/memory ops that appear in the first few instructions of starter.sysout).
+- Tier 2: data and memory structure operations (lists, arrays, general arithmetic/comparisons, bitwise and shifts).
+- Tier 3: floating point, graphics, and advanced I/O (BitBLT, SDL display, subroutine I/O).
+
+When running `scripts/compare_emulator_execution.sh --with-laiko` with a small `EMULATOR_MAX_STEPS`, the **first divergence (PC + opcode)** determines which tier to work on next. See `reports/laiko-opcode-priority.md` for the current tier breakdown and concrete examples.
 
 === Memory Management
 

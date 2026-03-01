@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 
 ;; BitBLT and graphics operations
 ;; PILOTBITBLT: Bit Block Transfer for moving/combining rectangular regions of bits
@@ -13,10 +13,10 @@
   "BitBLT operation state structure.
 Implements the classic BitBLT algorithm for transferring rectangular bit regions
 with various raster operations (AND, OR, XOR, etc.)."
-  (source-ptr 0 :type maiko-lisp.utils:lisp-ptr)
-  (dest-ptr 0 :type maiko-lisp.utils:lisp-ptr)
-  (width 0 :type (integer 0 1024))
-  (height 0 :type (integer 0 1024))
+  (source-ptr 0 :type laiko.utils:lisp-ptr)
+  (dest-ptr 0 :type laiko.utils:lisp-ptr)
+  (width 0 :type (integer 0 #x400))
+  (height 0 :type (integer 0 #x400))
   (source-pitch 0 :type (integer 0 2048))
   (dest-pitch 0 :type (integer 0 2048))
   (operation 0 :type (integer 0 15))
@@ -27,7 +27,7 @@ with various raster operations (AND, OR, XOR, etc.)."
 ;; GRAPHICS OPCODES
 ;;; ===========================================================================
 
-(defop pilotbitblt #x76 1
+(defop pilotbitblt :hexcode #x76 :instruction-length 1
   "PILOTBITBLT: Bit Block Transfer operation.
 Pops dest-ptr, source-ptr, operation, height, width, dest-pitch, source-pitch.
 Pushes 0 on success."
@@ -53,7 +53,7 @@ Pushes 0 on success."
       (execute-bitblt state)
       (push-stack vm 0))))
 
-(defop drawline #x3B 1
+(defop drawline :hexcode #x3B :instruction-length 1
   "DRAWLINE: Draw a line on the display.
 Pops y2, x2, y1, x1, color.
 Draws a line from (x1, y1) to (x2, y2) with Bresenham's algorithm."
@@ -78,22 +78,22 @@ Draws a line from (x1, y1) to (x2, y2) with Bresenham's algorithm."
       (declare (ignore dx dy err e2))
       (loop while (and (>= x 0) (< x *display-width*)
                        (>= y 0) (< y *display-height*)) do
-        (set-pixel vm x y 1)
-        (setf e2 (* 2 err))
-        (cond
-          ((> e2 dy)
-           (setf err (+ err dy))
-           (incf x sx)))
-        (cond
-          ((< e2 dx)
-           (setf err (+ err dx))
-           (incf y sy)))))))
+                         (set-pixel vm x y 1)
+                         (setf e2 (* 2 err))
+                         (cond
+                           ((> e2 dy)
+                            (setf err (+ err dy))
+                            (incf x sx)))
+                         (cond
+                           ((< e2 dx)
+                            (setf err (+ err dx))
+                            (incf y sy)))))))
 
 ;;; ===========================================================================
 ;; SUBROUTINE CALL OPCODE
 ;;; ===========================================================================
 
-(defop subrcall #x7D 1
+(defop subrcall :hexcode #x7D :instruction-length 1
   "SUBRCALL: Call a C subroutine.
 Pops subr-no and arg-count from stack.
 Dispatches to appropriate subroutine handler."
@@ -123,7 +123,7 @@ Dispatches to appropriate subroutine handler."
 ;; CONTEXT SWITCH OPCODE
 ;;; ===========================================================================
 
-(defop contextswitch #x7E 1
+(defop contextswitch :hexcode #x7E :instruction-length 1
   "CONTEXTSWITCH: Switch execution context.
 Used for multiprocessing or coroutine switching.
 Pops new-context pointer, saves current context, switches to new."
@@ -197,7 +197,7 @@ Handles all raster operations including:
 (defun set-pixel (vm x y color)
   "Set a single pixel on the display."
   (declare (type vm vm)
-           (type (integer 0 1024) x y)
+           (type (integer 0 #x400) x y)
            (type (unsigned-byte 32) color))
   (declare (ignore vm color))
   (when (and (>= x 0) (< x *display-width*)

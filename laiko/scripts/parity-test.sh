@@ -42,13 +42,13 @@ cd "${SCRIPT_DIR}"
 if [ -f "tests/run-parity.lisp" ]; then
 	sbcl --non-interactive \
 		--eval "(require :asdf)" \
-		--eval "(load \"maiko-lisp.asd\")" \
-		--eval "(asdf:load-system :maiko-lisp)" \
-		--eval "(setf maiko-lisp.vm:*max-execution-steps* ${MAX_STEPS})" \
-		--eval "(setf maiko-lisp.vm:*trace-enabled* t)" \
-		--eval "(setf maiko-lisp.vm:*trace-file* \"${TRACE_LAIKO}\")" \
+		--eval "(load \"laiko.asd\")" \
+		--eval "(asdf:load-system :laiko)" \
+		--eval "(setf laiko.vm:*max-execution-steps* ${MAX_STEPS})" \
+		--eval "(setf laiko.vm:*trace-enabled* t)" \
+		--eval "(setf laiko.vm:*trace-file* \"${TRACE_LAIKO}\")" \
 		--eval "(load \"tests/run-parity.lisp\")" \
-		--eval "(maiko-lisp-tests::run-parity-test)" \
+		--eval "(laiko-tests::run-parity-test)" \
 		--eval "(exit)" 2>&1 || true
 
 	if [ -f "${TRACE_LAIKO}" ]; then

@@ -1,11 +1,11 @@
-(in-package :maiko-lisp.data)
+(in-package :laiko.data)
 
 ;; Cons cell structure (matches C ConsCell)
 ;; Per data-model.md
 
 (defstruct (cons-cell (:conc-name cons-))
   "Cons cell structure"
-  (car-field 0 :type maiko-lisp.utils:lisp-ptr)
+  (car-field 0 :type laiko.utils:lisp-ptr)
   (cdr-code 0 :type (unsigned-byte 8)))
 
 ;; CDR coding constants
@@ -17,11 +17,11 @@
 (defun decode-cdr (cons-cell cell-address)
   "Decode CDR from cons cell"
   (declare (type cons-cell cons-cell)
-           (type maiko-lisp.utils:lisp-ptr cell-address))
+           (type laiko.utils:lisp-ptr cell-address))
   (let ((cdr-code (cons-cdr-code cons-cell)))
     (cond
       ((= cdr-code +cdr-nil+)
-       maiko-lisp.utils:+nil-ptr+)
+       laiko.utils:+nil-ptr+)
       ((= cdr-code +cdr-indirect+)
        ;; Indirect encoding: CAR points to indirect cell
        ;; TODO: Implement indirect decoding
@@ -42,7 +42,7 @@
 (defun get-cdr (cons-cell cell-address)
   "Get decoded CDR value"
   (declare (type cons-cell cons-cell)
-           (type maiko-lisp.utils:lisp-ptr cell-address))
+           (type laiko.utils:lisp-ptr cell-address))
   (decode-cdr cons-cell cell-address))
 
 (defun set-car (cons-cell value)
@@ -52,7 +52,7 @@
 (defun set-cdr (cons-cell cell-address cdr-value)
   "Set CDR value with CDR coding"
   (declare (type cons-cell cons-cell)
-           (type maiko-lisp.utils:lisp-ptr cell-address cdr-value))
+           (type laiko.utils:lisp-ptr cell-address cdr-value))
   (cond
     ((zerop cdr-value)
      (setf (cons-cdr-code cons-cell) +cdr-nil+))
@@ -68,12 +68,12 @@
 
 (defun get-list-length (storage list-ptr)
   "Count elements in a cons cell list"
-  (declare (type maiko-lisp.memory:storage storage)
-           (type maiko-lisp.utils:lisp-ptr list-ptr))
+  (declare (type laiko.memory:storage storage)
+           (type laiko.utils:lisp-ptr list-ptr))
   (let ((count 0)
         (current list-ptr))
     (loop while (not (zerop current)) do
       (incf count)
-      (let ((cell (maiko-lisp.memory:get-cons-cell storage current)))
+      (let ((cell (laiko.memory:get-cons-cell storage current)))
         (setf current (get-cdr cell current))))
     count))

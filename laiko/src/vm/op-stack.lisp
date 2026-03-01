@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 
 ;; Stack and constant operations
 ;; nil, t, push, pop, constants
@@ -14,7 +14,7 @@
 
 ;;; Per maiko/inc/opcodes.h: opc_NIL=104(0x68), opc_T=105(0x69), opc_0=106(0x6A), opc_1=107(0x6B)
 
-(defop nil #x68 1
+(defop nil :hexcode #x68 :instruction-length 1
   "NIL: Push NIL (0) onto the stack."
   :operands nil
   :stack-effect (:push 1)
@@ -22,7 +22,7 @@
   :side-effects nil
   (vm-push vm 0))
 
-(defop t #x69 1
+(defop t :hexcode #x69 :instruction-length 1
   "T: Push T (the symbol T, value 1) onto the stack."
   :operands nil
   :stack-effect (:push 1)
@@ -30,7 +30,7 @@
   :side-effects nil
   (vm-push vm 1))
 
-(defop const-0 #x6A 1
+(defop const-0 :hexcode #x6A :instruction-length 1
   "CONST_0 (opc_0): Push the small positive integer 0 onto the stack."
   :operands nil
   :stack-effect (:push 1)
@@ -38,7 +38,7 @@
   :side-effects nil
   (vm-push vm 0))
 
-(defop const-1 #x6B 1
+(defop const-1 :hexcode #x6B :instruction-length 1
   "CONST_1 (opc_1): Push the small positive integer 1 onto the stack."
   :operands nil
   :stack-effect (:push 1)
@@ -50,7 +50,7 @@
 ;;; STACK OPERATIONS
 ;;; ===========================================================================
 
-(defop pop #xBF 1
+(defop pop :hexcode #xBF :instruction-length 1
   "POP: Pop and discard the top of stack."
   :operands nil
   :stack-effect (:pop 1)
@@ -59,7 +59,7 @@
   (vm-pop vm)
   nil)
 
-(defop copy #x64 1
+(defop copy :hexcode #x64 :instruction-length 1
   "Duplicate the top of stack (COPY)."
   :operands nil
   :stack-effect (:pop 1 :push 2)

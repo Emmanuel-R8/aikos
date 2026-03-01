@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 
 ;; Variable access operations
 ;; ivar0-6, pvar0-6, fvar0-6, gvar, arg0, myargcount
@@ -8,7 +8,7 @@
 ;; INSTANCE VARIABLE ACCESS (IVAR)
 ;;; ===========================================================================
 
-(defop ivar0 #x40 1
+(defop ivar0 :hexcode #x40 :instruction-length 1
   "IVAR0: Push value of instance variable 0."
   :operands nil
   :stack-effect (:push 1)
@@ -16,7 +16,7 @@
   :side-effects nil
   (push-stack vm (get-ivar vm 0)))
 
-(defop ivar1 #x41 1
+(defop ivar1 :hexcode #x41 :instruction-length 1
   "IVAR1: Push value of instance variable 1."
   :operands nil
   :stack-effect (:push 1)
@@ -24,7 +24,7 @@
   :side-effects nil
   (push-stack vm (get-ivar vm 1)))
 
-(defop ivar2 #x42 1
+(defop ivar2 :hexcode #x42 :instruction-length 1
   "IVAR2: Push value of instance variable 2."
   :operands nil
   :stack-effect (:push 1)
@@ -32,7 +32,7 @@
   :side-effects nil
   (push-stack vm (get-ivar vm 2)))
 
-(defop ivar3 #x43 1
+(defop ivar3 :hexcode #x43 :instruction-length 1
   "IVAR3: Push value of instance variable 3."
   :operands nil
   :stack-effect (:push 1)
@@ -40,7 +40,7 @@
   :side-effects nil
   (push-stack vm (get-ivar vm 3)))
 
-(defop ivar4 #x44 1
+(defop ivar4 :hexcode #x44 :instruction-length 1
   "IVAR4: Push value of instance variable 4."
   :operands nil
   :stack-effect (:push 1)
@@ -48,7 +48,7 @@
   :side-effects nil
   (push-stack vm (get-ivar vm 4)))
 
-(defop ivar5 #x45 1
+(defop ivar5 :hexcode #x45 :instruction-length 1
   "IVAR5: Push value of instance variable 5."
   :operands nil
   :stack-effect (:push 1)
@@ -56,7 +56,7 @@
   :side-effects nil
   (push-stack vm (get-ivar vm 5)))
 
-(defop ivar6 #x46 1
+(defop ivar6 :hexcode #x46 :instruction-length 1
   "IVAR6: Push value of instance variable 6."
   :operands nil
   :stack-effect (:push 1)
@@ -68,7 +68,7 @@
 ;; PARAMETER VARIABLE ACCESS (PVAR)
 ;;; ===========================================================================
 
-(defop pvar0 #x48 1
+(defop pvar0 :hexcode #x48 :instruction-length 1
   "PVAR0: Push value of parameter variable 0."
   :operands nil
   :stack-effect (:push 1)
@@ -76,7 +76,7 @@
   :side-effects nil
   (push-stack vm (get-pvar vm 0)))
 
-(defop pvar1 #x49 1
+(defop pvar1 :hexcode #x49 :instruction-length 1
   "PVAR1: Push value of parameter variable 1."
   :operands nil
   :stack-effect (:push 1)
@@ -84,7 +84,7 @@
   :side-effects nil
   (push-stack vm (get-pvar vm 1)))
 
-(defop pvar2 #x4A 1
+(defop pvar2 :hexcode #x4A :instruction-length 1
   "PVAR2: Push value of parameter variable 2."
   :operands nil
   :stack-effect (:push 1)
@@ -92,7 +92,7 @@
   :side-effects nil
   (push-stack vm (get-pvar vm 2)))
 
-(defop pvar3 #x4B 1
+(defop pvar3 :hexcode #x4B :instruction-length 1
   "PVAR3: Push value of parameter variable 3."
   :operands nil
   :stack-effect (:push 1)
@@ -100,7 +100,7 @@
   :side-effects nil
   (push-stack vm (get-pvar vm 3)))
 
-(defop pvar4 #x4C 1
+(defop pvar4 :hexcode #x4C :instruction-length 1
   "PVAR4: Push value of parameter variable 4."
   :operands nil
   :stack-effect (:push 1)
@@ -108,7 +108,7 @@
   :side-effects nil
   (push-stack vm (get-pvar vm 4)))
 
-(defop pvar5 #x4D 1
+(defop pvar5 :hexcode #x4D :instruction-length 1
   "PVAR5: Push value of parameter variable 5."
   :operands nil
   :stack-effect (:push 1)
@@ -116,7 +116,7 @@
   :side-effects nil
   (push-stack vm (get-pvar vm 5)))
 
-(defop pvar6 #x4E 1
+(defop pvar6 :hexcode #x4E :instruction-length 1
   "PVAR6: Push value of parameter variable 6."
   :operands nil
   :stack-effect (:push 1)
@@ -128,7 +128,7 @@
 ;; FREE VARIABLE ACCESS (FVAR)
 ;;; ===========================================================================
 
-(defop fvar0 #x50 1
+(defop fvar0 :hexcode #x50 :instruction-length 1
   "FVAR0: Push value of free variable 0 from closure environment."
   :operands nil
   :stack-effect (:push 1)
@@ -136,7 +136,7 @@
   :side-effects nil
   (push-stack vm (get-fvar vm 0)))
 
-(defop fvar1 #x51 1
+(defop fvar1 :hexcode #x51 :instruction-length 1
   "FVAR1: Push value of free variable 1 from closure environment."
   :operands nil
   :stack-effect (:push 1)
@@ -144,7 +144,7 @@
   :side-effects nil
   (push-stack vm (get-fvar vm 1)))
 
-(defop fvar2 #x52 1
+(defop fvar2 :hexcode #x52 :instruction-length 1
   "FVAR2: Push value of free variable 2 from closure environment."
   :operands nil
   :stack-effect (:push 1)
@@ -152,7 +152,7 @@
   :side-effects nil
   (push-stack vm (get-fvar vm 2)))
 
-(defop fvar3 #x53 1
+(defop fvar3 :hexcode #x53 :instruction-length 1
   "FVAR3: Push value of free variable 3 from closure environment."
   :operands nil
   :stack-effect (:push 1)
@@ -160,7 +160,7 @@
   :side-effects nil
   (push-stack vm (get-fvar vm 3)))
 
-(defop fvar4 #x54 1
+(defop fvar4 :hexcode #x54 :instruction-length 1
   "FVAR4: Push value of free variable 4 from closure environment."
   :operands nil
   :stack-effect (:push 1)
@@ -168,7 +168,7 @@
   :side-effects nil
   (push-stack vm (get-fvar vm 4)))
 
-(defop fvar5 #x55 1
+(defop fvar5 :hexcode #x55 :instruction-length 1
   "FVAR5: Push value of free variable 5 from closure environment."
   :operands nil
   :stack-effect (:push 1)
@@ -176,7 +176,7 @@
   :side-effects nil
   (push-stack vm (get-fvar vm 5)))
 
-(defop fvar6 #x56 1
+(defop fvar6 :hexcode #x56 :instruction-length 1
   "FVAR6: Push value of free variable 6 from closure environment."
   :operands nil
   :stack-effect (:push 1)
@@ -188,7 +188,7 @@
 ;; GLOBAL VARIABLE ACCESS (GVAR)
 ;;; ===========================================================================
 
-(defop gvar #x60 5
+(defop gvar :hexcode #x60 :instruction-length 5
   "GVAR: Push value of global variable (atom value cell).
  Reads 4-byte atom index from instruction stream.
  For BIGVM: atom_index = op0<<24 | op1<<16 | op2<<8 | op3.
@@ -202,14 +202,14 @@
   ;; For BIGVM, the full index is used (no 16-bit masking)
   ;; The read-atom-value function handles LITATOM vs NEWATOM dispatch
   (let ((atom-idx (read-pc-32-be vm)))
-    (let ((value (maiko-lisp.data:read-atom-value vm atom-idx)))
+    (let ((value (laiko.data:read-atom-value vm atom-idx)))
       (vm-push vm value))))
 
 ;;; ===========================================================================
 ;; ARGUMENT ACCESS
 ;;; ===========================================================================
 
-(defop arg0 #x61 1
+(defop arg0 :hexcode #x61 :instruction-length 1
   "ARG0: Push value of argument 0 (alias for PVAR0)."
   :operands nil
   :stack-effect (:push 1)
@@ -217,7 +217,7 @@
   :side-effects nil
   (push-stack vm (get-pvar vm 0)))
 
-(defop myargcount #x65 1
+(defop myargcount :hexcode #x65 :instruction-length 1
   "MYARGCOUNT: Push the argument count for the current function."
   :operands nil
   :stack-effect (:push 1)
@@ -227,7 +227,7 @@
     (if frame
         (let ((fn-header (sf-fn-header frame)))
           (if fn-header
-              (push-stack vm (maiko-lisp.data:get-num-args fn-header))
+              (push-stack vm (laiko.data:get-num-args fn-header))
               (push-stack vm 0)))
         (push-stack vm 0))))
 
@@ -235,7 +235,7 @@
 ;; PARAMETER VARIABLE SET (PVARSETPOP)
 ;;; ===========================================================================
 
-(defop pvarsetpop0 #xB8 1
+(defop pvarsetpop0 :hexcode #xB8 :instruction-length 1
   "PVARSETPOP0: Pop stack and store in parameter variable 0."
   :operands nil
   :stack-effect (:pop 1)
@@ -243,7 +243,7 @@
   :side-effects t  ; Modifies frame
   (set-pvar vm 0))
 
-(defop pvarsetpop1 #xB9 1
+(defop pvarsetpop1 :hexcode #xB9 :instruction-length 1
   "PVARSETPOP1: Pop stack and store in parameter variable 1."
   :operands nil
   :stack-effect (:pop 1)
@@ -251,7 +251,7 @@
   :side-effects t
   (set-pvar vm 1))
 
-(defop pvarsetpop2 #xBA 1
+(defop pvarsetpop2 :hexcode #xBA :instruction-length 1
   "PVARSETPOP2: Pop stack and store in parameter variable 2."
   :operands nil
   :stack-effect (:pop 1)
@@ -259,7 +259,7 @@
   :side-effects t
   (set-pvar vm 2))
 
-(defop pvarsetpop3 #xBB 1
+(defop pvarsetpop3 :hexcode #xBB :instruction-length 1
   "PVARSETPOP3: Pop stack and store in parameter variable 3."
   :operands nil
   :stack-effect (:pop 1)
@@ -267,7 +267,7 @@
   :side-effects t
   (set-pvar vm 3))
 
-(defop pvarsetpop4 #xBC 1
+(defop pvarsetpop4 :hexcode #xBC :instruction-length 1
   "PVARSETPOP4: Pop stack and store in parameter variable 4."
   :operands nil
   :stack-effect (:pop 1)
@@ -275,7 +275,7 @@
   :side-effects t
   (set-pvar vm 4))
 
-(defop pvarsetpop5 #xBD 1
+(defop pvarsetpop5 :hexcode #xBD :instruction-length 1
   "PVARSETPOP5: Pop stack and store in parameter variable 5."
   :operands nil
   :stack-effect (:pop 1)
@@ -283,7 +283,7 @@
   :side-effects t
   (set-pvar vm 5))
 
-(defop pvarsetpop6 #xBE 1
+(defop pvarsetpop6 :hexcode #xBE :instruction-length 1
   "PVARSETPOP6: Pop stack and store in parameter variable 6."
   :operands nil
   :stack-effect (:pop 1)
@@ -319,7 +319,7 @@
     (when current-frame
       (let ((fn-header (sf-fn-header current-frame)))
         (when fn-header
-          (let ((closure-env (maiko-lisp.data:get-closure-environment fn-header)))
+          (let ((closure-env (laiko.data:get-closure-environment fn-header)))
             (when closure-env
               (aref closure-env index))))))))
 

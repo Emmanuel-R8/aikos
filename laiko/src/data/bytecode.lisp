@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.data)
+(in-package :laiko.data)
 
 ;; Bytecode extraction from virtual memory
 ;; Per maiko/src/xc.c (bytecode extraction)
@@ -21,7 +21,7 @@
   "Apply XOR addressing for byte access (BYTESWAP mode).
    Per maiko/src/adr68k.h and Zig memory_access.zig:
    GETBYTE(base) = *(unsigned char *)(3 ^ (UNSIGNED)(base))
-   
+
    For address 0x60F130, reads from 0x60F130 ^ 3 = 0x60F133"
   (declare (type (unsigned-byte 32) address))
   (logxor address +xor-byte-mask+))
@@ -70,11 +70,11 @@
                  (if (null page)
                      (setf (aref bytecode offset) 0)
                      (progn
-                       (when (>= page-offset 512)
+                       (when (>= page-offset #x200)
                          (return bytecode))
                        (setf (aref bytecode offset)
                              (aref page page-offset)))))
-           (incf offset)))
+               (incf offset)))
     bytecode))
 
 (defun get-vm-byte (virtual-memory address)
@@ -87,7 +87,7 @@
   (let* ((page-num (ash address -9))
          (page-offset (logand address #x1FF)))
     (when (and (< page-num (length virtual-memory))
-               (< page-offset 512))
+               (< page-offset #x200))
       (let ((page (aref virtual-memory page-num)))
         (when page
           (aref page page-offset))))))
@@ -105,12 +105,12 @@
          (page-offset (logand address #x1FF)))
     (let ((aligned-offset (logand page-offset #xFFFE)))
       (if (and (< page-num (length virtual-memory))
-               (< (+ aligned-offset 1) 512))
+               (< (+ aligned-offset 1) #x200))
           (let ((page (aref virtual-memory page-num)))
             (if page
                 (let ((low-byte (aref page aligned-offset))
                       (high-byte (aref page (1+ aligned-offset))))
-                  (if (maiko-lisp.utils:little-endian-p)
+                  (if (laiko.utils:little-endian-p)
                       (logior (ash high-byte 8) low-byte)
                       (logior (ash low-byte 8) high-byte)))
                 0))

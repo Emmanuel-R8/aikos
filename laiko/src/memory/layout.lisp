@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.memory)
+(in-package :laiko.memory)
 
 ;; Memory layout
 ;; Per rewrite documentation memory/memory-layout.md
@@ -32,10 +32,10 @@
 
 (defun get-page-number (addr)
   "Get page number from LispPTR address"
-  (declare (type maiko-lisp.utils:lisp-ptr addr))
+  (declare (type laiko.utils:lisp-ptr addr))
   (ash addr -16)) ; Divide by PAGE_SIZE (2^16)
 
 (defun get-page-offset (addr)
   "Get offset within page from LispPTR address"
-  (declare (type maiko-lisp.utils:lisp-ptr addr))
+  (declare (type laiko.utils:lisp-ptr addr))
   (logand addr +page-mask+))

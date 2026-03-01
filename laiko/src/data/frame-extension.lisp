@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.data)
+(in-package :laiko.data)
 
 ;; Frame Extension structure (matches C frameex1 for BIGVM)
 ;; Per maiko/inc/stack.h

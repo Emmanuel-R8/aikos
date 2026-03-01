@@ -1,4 +1,4 @@
-(in-package :maiko-lisp-tests)
+(in-package :laiko-tests)
 
 ;; Compatibility test suite
 ;; Per task T074: Comparing results with C implementation

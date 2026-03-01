@@ -8,34 +8,34 @@
 
 ### Phase 1: Sysout Loading Foundation ✅ COMPLETE
 
-| Task | Status | Notes |
-|------|--------|-------|
-| 1.1 Fix IFPAGE constants | ✅ Done | `#x15e3`, 512 offset |
-| 1.2 Add IFPAGE_ADDRESS constant | ✅ Done | |
-| 1.3 Read IFPAGE at offset 512 | ✅ Done | |
-| 1.4 Extract FPtoVP table | ✅ Done | |
-| 1.5 Build virtual memory pages | ✅ Done | |
-| 1.6 Initialize VM memory | ✅ Done | |
-| 1.7 Bytecode extraction | ✅ Done | `extract-bytecode-from-vm` |
+| Task                            | Status  | Notes                      |
+| ------------------------------- | ------- | -------------------------- |
+| 1.1 Fix IFPAGE constants        | ✅ Done | `#x15e3`, 512 offset       |
+| 1.2 Add IFPAGE_ADDRESS constant | ✅ Done |                            |
+| 1.3 Read IFPAGE at offset 512   | ✅ Done |                            |
+| 1.4 Extract FPtoVP table        | ✅ Done |                            |
+| 1.5 Build virtual memory pages  | ✅ Done |                            |
+| 1.6 Initialize VM memory        | ✅ Done |                            |
+| 1.7 Bytecode extraction         | ✅ Done | `extract-bytecode-from-vm` |
 
 ### Phase 2: Unified Trace Format ✅ IMPLEMENTED
 
-| Task | Status | Notes |
-|------|--------|-------|
-| 2.1 Create trace module | ✅ Done | `src/vm/trace.lisp` |
-| 2.2 Implement trace logging | ✅ Done | Unified format columns |
-| 2.3 EMULATOR_MAX_STEPS support | ✅ Done | Environment variable |
+| Task                               | Status  | Notes                                                |
+| ---------------------------------- | ------- | ---------------------------------------------------- |
+| 2.1 Create trace module            | ✅ Done | `src/vm/trace.lisp`                                  |
+| 2.2 Implement trace logging        | ✅ Done | Unified format columns                               |
+| 2.3 EMULATOR_MAX_STEPS support     | ✅ Done | Environment variable                                 |
 | 2.4 Add Laiko to comparison script | ✅ Done | `scripts/compare_emulator_execution.sh --with-laiko` |
 
 ### File Organization Improvements
 
-| File | Lines | Status |
-|------|-------|--------|
-| `src/data/sysout.lisp` | 157 | ✅ Under 500 |
-| `src/data/sysout-utils.lisp` | 55 | ✅ New |
-| `src/data/bytecode.lisp` | 92 | ✅ New |
-| `src/vm/trace.lisp` | 48 | ✅ New |
-| `src/vm/opcodes.lisp` | 1354 | ⚠️ Needs splitting |
+| File                         | Lines | Status             |
+| ---------------------------- | ----- | ------------------ |
+| `src/data/sysout.lisp`       | 157   | ✅ Under 500       |
+| `src/data/sysout-utils.lisp` | 55    | ✅ New             |
+| `src/data/bytecode.lisp`     | 92    | ✅ New             |
+| `src/vm/trace.lisp`          | 48    | ✅ New             |
+| `src/vm/opcodes.lisp`        | 1354  | ⚠️ Needs splitting |
 
 ### Phase 3: Complete Opcode Implementation - NOT STARTED
 
@@ -51,7 +51,7 @@ Laiko is the Common Lisp implementation of the Maiko emulator (Interlisp virtual
 
 ```
 laiko/
-├── maiko-lisp.asd          # ASDF system definition
+├── laiko.asd          # ASDF system definition
 ├── README.md                # User-facing documentation
 ├── build.sh                # Build script
 ├── run.sh                  # Run script
@@ -95,25 +95,25 @@ laiko/
 
 ## Current State
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| Opcode handlers | 189/256 (74%) | Missing FP, BitBLT, I/O ops |
-| Dispatch loop | Complete | Needs trace logging |
-| Stack management | Complete | — |
-| Memory management | Complete | — |
-| Sysout loading | Partial | IFPAGE constants wrong |
-| SDL3 backend | Structure in place | Needs cl-sdl3 integration |
-| Unified trace | Not implemented | — |
+| Component         | Status             | Notes                       |
+| ----------------- | ------------------ | --------------------------- |
+| Opcode handlers   | 189/256 (74%)      | Missing FP, BitBLT, I/O ops |
+| Dispatch loop     | Complete           | Needs trace logging         |
+| Stack management  | Complete           | —                           |
+| Memory management | Complete           | —                           |
+| Sysout loading    | Partial            | IFPAGE constants wrong      |
+| SDL3 backend      | Structure in place | Needs cl-sdl3 integration   |
+| Unified trace     | Not implemented    | —                           |
 
 ## Critical Issues
 
-| Issue | Location | Severity |
-|-------|----------|----------|
-| `IFPAGE_KEYVAL` wrong | `sysout.lisp:7` | CRITICAL |
-| IFPAGE offset wrong | `sysout.lisp` | CRITICAL |
+| Issue                  | Location        | Severity |
+| ---------------------- | --------------- | -------- |
+| `IFPAGE_KEYVAL` wrong  | `sysout.lisp:7` | CRITICAL |
+| IFPAGE offset wrong    | `sysout.lisp`   | CRITICAL |
 | No bytecode extraction | `main.lisp:226` | CRITICAL |
-| 67 opcodes missing | `opcodes.lisp` | HIGH |
-| Unified trace format | Not implemented | HIGH |
+| 67 opcodes missing     | `opcodes.lisp`  | HIGH     |
+| Unified trace format   | Not implemented | HIGH     |
 
 ---
 
@@ -128,6 +128,7 @@ laiko/
 **File**: `laiko/src/data/sysout.lisp`
 
 **Changes**:
+
 ```lisp
 ;; Current (WRONG)
 (defconstant +sysout-keyval+ #x12345678)
@@ -143,6 +144,7 @@ laiko/
 **File**: `laiko/src/data/sysout.lisp`
 
 **Changes**:
+
 ```lisp
 ;; IFPAGE is at byte offset 512 in sysout file
 (defconstant +ifpage-address+ 512)
@@ -154,7 +156,7 @@ laiko/
 
 **File**: `laiko/src/data/sysout.lisp:load-sysout`
 
-**Changes**: Seek to byte 512 before reading IFPAGE structure
+**Changes**: Seek to byte #x200 before reading IFPAGE structure
 
 **Source Reference**: `maiko/src/xc.c` (sysout loading, `read_ifpage`)
 
@@ -163,11 +165,13 @@ laiko/
 **File**: `laiko/src/data/sysout.lisp`
 
 **Changes**:
+
 - Read `fptovpstart` from IFPAGE
 - Read FPtoVP table at computed offset
 - Build mapping array: file page → virtual page
 
 **Source Reference**:
+
 - `maiko/src/xc.c` (`fptovp` table loading)
 - `maiko/inc/fptovp.h`
 
@@ -176,6 +180,7 @@ laiko/
 **File**: `laiko/src/data/sysout.lisp`
 
 **Changes**:
+
 - Read `nactivepages` from IFPAGE
 - For each active page, read into virtual memory
 - Use FPtoVP mapping to place pages correctly
@@ -187,6 +192,7 @@ laiko/
 **File**: `laiko/src/memory/virtual.lisp`
 
 **Changes**:
+
 - Initialize virtual memory from FPtoVP mapping
 - Set up memory regions per sysout layout
 - Configure `currentfxp` (current frame pointer) from IFPAGE
@@ -198,6 +204,7 @@ laiko/
 **File**: `laiko/src/main.lisp:226-228`
 
 **Current** (WRONG):
+
 ```lisp
 (let ((test-code (make-array 10 ... :initial-contents '(#xD8 #xD9 #xBF ...))))
   ...)
@@ -228,6 +235,7 @@ laiko/
 **Changes**: Add trace logging before each instruction execution
 
 **Trace Format**:
+
 ```
 LINE#|PC|INSTRUCTION|OPCODE|OPERANDS|REGISTERS|FLAGS|SP_FP|STACK_SUMMARY|MEMORY_CONTEXT|FP_VP_FO_VA|BS_MEM|NOTES
 ```
@@ -250,6 +258,7 @@ LINE#|PC|INSTRUCTION|OPCODE|OPERANDS|REGISTERS|FLAGS|SP_FP|STACK_SUMMARY|MEMORY_
 | NOTES | Additional info | — |
 
 **Source Reference**:
+
 - `zaiko/src/vm/execution_trace.zig` (format implementation)
 - `documentation/implementations/unified-trace-format.typ`
 
@@ -284,6 +293,7 @@ LINE#|PC|INSTRUCTION|OPCODE|OPERANDS|REGISTERS|FLAGS|SP_FP|STACK_SUMMARY|MEMORY_
 **Implement**: Proper floating-point arithmetic
 
 **Source Reference**:
+
 - `maiko/src/float.c`
 - `maiko/src/fnmath.c`
 
@@ -365,10 +375,10 @@ Per trace analysis, fix systematic differences
 
 Per AGENTS.md §2 and `documentation/core/critical-memory.typ`:
 
-| Finding Type | Location |
-|--------------|----------|
-| General (emulator-independent) | `documentation/specifications/` |
-| Laiko-specific | `documentation/implementations/` |
+| Finding Type                   | Location                         |
+| ------------------------------ | -------------------------------- |
+| General (emulator-independent) | `documentation/specifications/`  |
+| Laiko-specific                 | `documentation/implementations/` |
 
 ---
 
@@ -376,13 +386,13 @@ Per AGENTS.md §2 and `documentation/core/critical-memory.typ`:
 
 ```bash
 # Build
-sbcl --load maiko-lisp.asd --eval "(asdf:load-system :maiko-lisp)"
+sbcl --load laiko.asd --eval "(asdf:load-system :laiko)"
 
 # Run tests
-sbcl --load maiko-lisp.asd --eval "(asdf:test-system :maiko-lisp)"
+sbcl --load laiko.asd --eval "(asdf:test-system :laiko)"
 
 # Run with sysout
-sbcl --load maiko-lisp.asd --eval "(asdf:load-system :maiko-lisp)" -- \
+sbcl --load laiko.asd --eval "(asdf:load-system :laiko)" -- \
   -sysout medley/internal/loadups/starter.sysout
 
 # Trace comparison
@@ -393,28 +403,28 @@ EMULATOR_MAX_STEPS=50 ./scripts/compare_emulator_execution.sh
 
 # Source References
 
-| Resource | Path |
-|----------|------|
-| C implementation | `maiko/src/` |
-| C headers | `maiko/inc/` |
-| Zig trace format | `zaiko/src/vm/execution_trace.zig` |
-| Unified trace spec | `documentation/implementations/unified-trace-format.typ` |
-| Memory layout | `documentation/specifications/memory-layout.typ` |
-| Opcode specs | `documentation/specifications/instruction-set/opcodes.typ` |
-| IFPAGE def | `maiko/inc/ifpage.h` |
-| FPtoVP | `maiko/inc/fptovp.h` |
+| Resource           | Path                                                       |
+| ------------------ | ---------------------------------------------------------- |
+| C implementation   | `maiko/src/`                                               |
+| C headers          | `maiko/inc/`                                               |
+| Zig trace format   | `zaiko/src/vm/execution_trace.zig`                         |
+| Unified trace spec | `documentation/implementations/unified-trace-format.typ`   |
+| Memory layout      | `documentation/specifications/memory-layout.typ`           |
+| Opcode specs       | `documentation/specifications/instruction-set/opcodes.typ` |
+| IFPAGE def         | `maiko/inc/ifpage.h`                                       |
+| FPtoVP             | `maiko/inc/fptovp.h`                                       |
 
 ---
 
 # Timeline
 
-| Phase | Duration | Dependencies |
-|-------|----------|--------------|
-| 1. Sysout Loading | 2-3 days | None |
-| 2. Unified Trace | 2 days | None |
-| 3. Missing Opcodes | 3-5 days | maiko/src/ |
-| 4. SDL3 Backend | 3-4 days | cl-sdl3 |
-| 5. Parity Testing | Ongoing | Phases 1-4 |
+| Phase              | Duration | Dependencies |
+| ------------------ | -------- | ------------ |
+| 1. Sysout Loading  | 2-3 days | None         |
+| 2. Unified Trace   | 2 days   | None         |
+| 3. Missing Opcodes | 3-5 days | maiko/src/   |
+| 4. SDL3 Backend    | 3-4 days | cl-sdl3      |
+| 5. Parity Testing  | Ongoing  | Phases 1-4   |
 
 **Total**: 8-12 days to functional execution + ongoing parity
 

@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 
 ;; Bitwise and logical operations
 ;; logand, logior, logxor, lognot, lsh, llsh1, llsh8, lrsh1, lrsh8
@@ -8,7 +8,7 @@
 ;; BITWISE OPERATIONS (Binary)
 ;;; ===========================================================================
 
-(defop logand #xE0 1
+(defop logand :hexcode #xE0 :instruction-length 1
   "LOGAND: Bitwise AND.
 Pops B and A, pushes A AND B."
   :operands nil
@@ -18,7 +18,7 @@ Pops B and A, pushes A AND B."
   (let ((b (pop-stack vm)) (a (pop-stack vm)))
     (push-stack vm (logand a b))))
 
-(defop logior #xE1 1
+(defop logior :hexcode #xE1 :instruction-length 1
   "LOGIOR: Bitwise inclusive OR.
 Pops B and A, pushes A OR B."
   :operands nil
@@ -28,7 +28,7 @@ Pops B and A, pushes A OR B."
   (let ((b (pop-stack vm)) (a (pop-stack vm)))
     (push-stack vm (logior a b))))
 
-(defop logxor #xE2 1
+(defop logxor :hexcode #xE2 :instruction-length 1
   "LOGXOR: Bitwise exclusive OR.
 Pops B and A, pushes A XOR B."
   :operands nil
@@ -42,7 +42,7 @@ Pops B and A, pushes A XOR B."
 ;; BITWISE OPERATIONS (Unary)
 ;;; ===========================================================================
 
-(defop lognot #xE3 1
+(defop lognot :hexcode #xE3 :instruction-length 1
   "LOGNOT: Bitwise NOT (complement).
 Replaces TOS with its bitwise complement.
 Result is masked to 32 bits."
@@ -57,7 +57,7 @@ Result is masked to 32 bits."
 ;; SHIFT OPERATIONS
 ;;; ===========================================================================
 
-(defop lsh #xEC 1
+(defop lsh :hexcode #xEC :instruction-length 1
   "LSH: Logical shift.
 Pops shift amount and value, shifts value left (positive) or right (negative).
 Shift amount is signed 32-bit."
@@ -74,7 +74,7 @@ Shift amount is signed 32-bit."
           (push-stack vm (ash value shift-signed))
           (push-stack vm (logand (ash value shift-signed) #xFFFFFFFF))))))
 
-(defop llsh1 #xE4 1
+(defop llsh1 :hexcode #xE4 :instruction-length 1
   "LLSH1: Logical left shift by 1.
 Shifts TOS left by 1 bit, masks to 32 bits."
   :operands nil
@@ -84,7 +84,7 @@ Shifts TOS left by 1 bit, masks to 32 bits."
   (let ((value (get-top-of-stack vm)))
     (set-top-of-stack vm (logand (ash value 1) #xFFFFFFFF))))
 
-(defop llsh8 #xE5 1
+(defop llsh8 :hexcode #xE5 :instruction-length 1
   "LLSH8: Logical left shift by 8.
 Shifts TOS left by 8 bits, masks to 32 bits."
   :operands nil
@@ -94,7 +94,7 @@ Shifts TOS left by 8 bits, masks to 32 bits."
   (let ((value (get-top-of-stack vm)))
     (set-top-of-stack vm (logand (ash value 8) #xFFFFFFFF))))
 
-(defop lrsh1 #xE6 1
+(defop lrsh1 :hexcode #xE6 :instruction-length 1
   "LRSH1: Logical right shift by 1.
 Shifts TOS right by 1 bit."
   :operands nil
@@ -104,7 +104,7 @@ Shifts TOS right by 1 bit."
   (let ((value (get-top-of-stack vm)))
     (set-top-of-stack vm (ash value -1))))
 
-(defop lrsh8 #xE7 1
+(defop lrsh8 :hexcode #xE7 :instruction-length 1
   "LRSH8: Logical right shift by 8.
 Shifts TOS right by 8 bits."
   :operands nil
@@ -118,7 +118,7 @@ Shifts TOS right by 8 bits."
 ;; ALTERNATE NAMES
 ;;; ===========================================================================
 
-(defop logor2 #xE8 1
+(defop logor2 :hexcode #xE8 :instruction-length 1
   "LOGOR2: Bitwise OR (alternate for LOGIOR).
 Pops B and A, pushes A OR B."
   :operands nil
@@ -128,7 +128,7 @@ Pops B and A, pushes A OR B."
   (let ((b (pop-stack vm)) (a (pop-stack vm)))
     (push-stack vm (logior a b))))
 
-(defop logand2 #xE9 1
+(defop logand2 :hexcode #xE9 :instruction-length 1
   "LOGAND2: Bitwise AND (alternate for LOGAND).
 Pops B and A, pushes A AND B."
   :operands nil
@@ -138,7 +138,7 @@ Pops B and A, pushes A AND B."
   (let ((b (pop-stack vm)) (a (pop-stack vm)))
     (push-stack vm (logand a b))))
 
-(defop logxor2 #xEA 1
+(defop logxor2 :hexcode #xEA :instruction-length 1
   "LOGXOR2: Bitwise XOR (alternate for LOGXOR).
 Pops B and A, pushes A XOR B."
   :operands nil
@@ -152,7 +152,7 @@ Pops B and A, pushes A XOR B."
 ;; ADDRESS EXTRACTION
 ;;; ===========================================================================
 
-(defop hiloc #xD2 1
+(defop hiloc :hexcode #xD2 :instruction-length 1
   "HILOC: Extract high 16 bits.
 Replaces TOS with upper 16 bits."
   :operands nil
@@ -162,7 +162,7 @@ Replaces TOS with upper 16 bits."
   (let ((value (get-top-of-stack vm)))
     (set-top-of-stack vm (ash value -16))))
 
-(defop loloc #xD3 1
+(defop loloc :hexcode #xD3 :instruction-length 1
   "LOLOC: Extract low 16 bits.
 Replaces TOS with lower 16 bits (masked)."
   :operands nil

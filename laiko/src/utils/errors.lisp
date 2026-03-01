@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.utils)
+(in-package :laiko.utils)
 
 (define-condition vm-error (error)
   ((message :initarg :message :reader vm-error-message))
