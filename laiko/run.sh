@@ -19,6 +19,8 @@ sbcl --noinform \
 	--eval "(load \"src/package.lisp\")" \
 	--eval "(load \"src/utils/types.lisp\")" \
 	--eval "(load \"src/utils/errors.lisp\")" \
+	--eval "(load \"src/data/cons-defs.lisp\")" \
+	--eval "(load \"src/memory/storage.lisp\")" \
 	--eval "(load \"src/data/cons.lisp\")" \
 	--eval "(load \"src/data/array.lisp\")" \
 	--eval "(load \"src/data/function-header.lisp\")" \
@@ -29,7 +31,6 @@ sbcl --noinform \
 	--eval "(load \"src/data/atom.lisp\")" \
 	--eval "(load \"src/data/defcell.lisp\")" \
 	--eval "(load \"src/data/sysout.lisp\")" \
-	--eval "(load \"src/memory/storage.lisp\")" \
 	--eval "(load \"src/memory/gc.lisp\")" \
 	--eval "(load \"src/memory/virtual.lisp\")" \
 	--eval "(load \"src/memory/layout.lisp\")" \

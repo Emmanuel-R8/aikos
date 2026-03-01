@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Automated Parity Check Script for Laiko (Common Lisp)
 # Runs C and Laiko emulators, compares traces, and reports parity status
-# Usage: ./scripts/check_parity_laiko.sh [max_steps] [sysout_file]
+# Usage: ./scripts/check_parity_laiko.sh --max-steps N [sysout_file]
 
 set -euo pipefail
 
@@ -9,8 +9,27 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
-MAX_STEPS="${1:-100}"
-SYSOUT_FILE="${2:-medley/internal/loadups/starter.sysout}"
+# Parse named arguments
+MAX_STEPS=100
+SYSOUT_FILE="medley/internal/loadups/starter.sysout"
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --max-steps)
+            MAX_STEPS="$2"
+            shift 2
+            ;;
+        --sysout)
+            SYSOUT_FILE="$2"
+            shift 2
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 --max-steps N [--sysout PATH]"
+            exit 1
+            ;;
+    esac
+done
 
 # Use absolute sysout path
 if [[ "$SYSOUT_FILE" != /* ]]; then
@@ -32,8 +51,12 @@ rm -f "$REPO_ROOT/c_emulator_execution_log.txt" "$REPO_ROOT/lisp_emulator_execut
 
 # Find C emulator
 C_EMULATOR=""
-if [ -f "$REPO_ROOT/maiko/build-cmake/ldesdl" ]; then
+if [ -f "$REPO_ROOT/maiko/build/c/linux.x86_64/ldesdl" ]; then
+    C_EMULATOR="$REPO_ROOT/maiko/build/c/linux.x86_64/ldesdl"
+elif [ -f "$REPO_ROOT/maiko/build-cmake/ldesdl" ]; then
     C_EMULATOR="$REPO_ROOT/maiko/build-cmake/ldesdl"
+elif [ -f "$REPO_ROOT/maiko/bin/ldesdl" ]; then
+    C_EMULATOR="$REPO_ROOT/maiko/bin/ldesdl"
 elif [ -f "$REPO_ROOT/maiko/linux.x86_64/ldesdl" ]; then
     C_EMULATOR="$REPO_ROOT/maiko/linux.x86_64/ldesdl"
 else

@@ -8,17 +8,15 @@
     llms.url = "github:numtide/llm-agents.nix";
   };
 
-  outputs =
-    {
-      self,
-      flake-utils,
-      nixpkgs-stable,
-      nixpkgs-unstable,
-      llms,
-    }:
+  outputs = {
+    self,
+    flake-utils,
+    nixpkgs-stable,
+    nixpkgs-unstable,
+    llms,
+  }:
     flake-utils.lib.eachDefaultSystem (
-      system:
-      let
+      system: let
         pkgs = import nixpkgs-unstable {
           inherit system;
           config = {
@@ -32,8 +30,7 @@
           };
         };
         llmsPkgs = llms.packages.${pkgs.stdenv.hostPlatform.system};
-      in
-      {
+      in {
         devShells.default = pkgs.mkShell {
           # Use stdenv to get proper C compilation environment
           # This ensures standard C library headers (ctype.h, errno.h, etc.) are available
@@ -45,7 +42,7 @@
 
           # Build inputs (libraries and runtime dependencies)
           buildInputs =
-            (with pkgs-stable; [ roswell ])
+            (with pkgs-stable; [roswell])
             ++ (with pkgs; [
               # Basic utilities
               ripgrep # Text search utility
@@ -89,6 +86,8 @@
               vscode
 
               sbcl # Steel Bank Common Lisp (for Lisp emulator)
+              ecl
+              rlwrap # To get a history when using sbcl/ecl from the CLI
             ])
             ++ (with llmsPkgs; [
               cursor-agent
@@ -108,8 +107,7 @@
             # Nix automatically sets up library paths, but we ensure SDL2/X11 are available
             export LD_LIBRARY_PATH="${pkgs.openssl.out}/lib:${
               pkgs.lib.makeLibraryPath (
-                with pkgs-stable;
-                [
+                with pkgs-stable; [
                   openssl
 
                   SDL2
@@ -121,8 +119,7 @@
             # Set up PKG_CONFIG_PATH for pkg-config to find SDL2/X11
             export PKG_CONFIG_PATH="${
               pkgs.lib.makeSearchPath "lib/pkgconfig" (
-                with pkgs;
-                [
+                with pkgs; [
                   SDL2
                   sdl3
                 ]

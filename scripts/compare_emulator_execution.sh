@@ -71,7 +71,7 @@ echo ""
 echo "=== Running C Emulator ==="
 echo "Command: $C_EMULATOR $SYSOUT_FILE"
 cd "$REPO_ROOT"
-timeout 10 "$C_EMULATOR" "$SYSOUT_FILE" >/dev/null 2>&1 || true
+timeout --signal=KILL 10 "$C_EMULATOR" "$SYSOUT_FILE" >/dev/null 2>&1 || true
 
 if [ -f "$REPO_ROOT/c_emulator_execution_log.txt" ]; then
 	C_LINES=$(wc -l <"$REPO_ROOT/c_emulator_execution_log.txt")
@@ -140,7 +140,7 @@ if [ "$WITH_LAIKO" = true ]; then
 	else
 		echo "Command: $LAIKO_RUN $SYSOUT_PATH"
 		cd "$REPO_ROOT"
-		timeout 90 "$LAIKO_RUN" "$SYSOUT_PATH" >/dev/null 2>&1 || true
+		timeout --signal=KILL 90 "$LAIKO_RUN" "$SYSOUT_PATH" >/dev/null 2>&1 || true
 		if [ -f "$REPO_ROOT/lisp_emulator_execution_log.txt" ]; then
 			LISP_LOG="$REPO_ROOT/lisp_emulator_execution_log.txt"
 		elif [ -f "$REPO_ROOT/laiko/lisp_emulator_execution_log.txt" ]; then
