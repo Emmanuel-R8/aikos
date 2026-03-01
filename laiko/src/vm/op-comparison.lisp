@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 
 ;; Comparison operations
 ;; eq, eql, lessp, greaterp, leq, geq, equal, numequal, igreaterp

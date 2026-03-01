@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 
 ;; Integer arithmetic operations
 ;; iplus2, idifference, itimes2, iquo, irem, iminus, idivide, imod
@@ -67,7 +67,7 @@ Signals error on division by zero."
   :category :arithmetic
   :side-effects nil
   (let ((b (pop-stack vm)) (a (pop-stack vm)))
-    (when (zerop b) (error 'maiko-lisp.utils:vm-arithmetic-error :message "Division by zero"))
+    (when (zerop b) (error 'laiko.utils:vm-arithmetic-error :message "Division by zero"))
     (let ((a-signed (if (>= a #x80000000) (- a #x100000000) a))
           (b-signed (if (>= b #x80000000) (- b #x100000000) b)))
       (let ((result (truncate a-signed b-signed)))
@@ -85,7 +85,7 @@ Signals error on division by zero."
   :category :arithmetic
   :side-effects nil
   (let ((b (pop-stack vm)) (a (pop-stack vm)))
-    (when (zerop b) (error 'maiko-lisp.utils:vm-arithmetic-error :message "Division by zero"))
+    (when (zerop b) (error 'laiko.utils:vm-arithmetic-error :message "Division by zero"))
     (let ((a-signed (if (>= a #x80000000) (- a #x100000000) a))
           (b-signed (if (>= b #x80000000) (- b #x100000000) b)))
       (let ((result (rem a-signed b-signed)))
@@ -128,7 +128,7 @@ Signals error on division by zero."
   :category :arithmetic
   :side-effects nil
   (let ((b (pop-stack vm)) (a (pop-stack vm)))
-    (when (zerop b) (error 'maiko-lisp.utils:vm-arithmetic-error :message "Division by zero"))
+    (when (zerop b) (error 'laiko.utils:vm-arithmetic-error :message "Division by zero"))
     (let ((a-signed (if (>= a #x80000000) (- a #x100000000) a))
           (b-signed (if (>= b #x80000000) (- b #x100000000) b)))
       (let ((quot (truncate a-signed b-signed))
@@ -150,7 +150,7 @@ Signals error on modulo by zero."
   :category :arithmetic
   :side-effects nil
   (let ((b (pop-stack vm)) (a (pop-stack vm)))
-    (when (zerop b) (error 'maiko-lisp.utils:vm-arithmetic-error :message "Modulo by zero"))
+    (when (zerop b) (error 'laiko.utils:vm-arithmetic-error :message "Modulo by zero"))
     (let ((a-signed (if (>= a #x80000000) (- a #x100000000) a))
           (b-signed (if (>= b #x80000000) (- b #x100000000) b)))
       (let ((result (mod a-signed b-signed)))

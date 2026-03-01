@@ -1,18 +1,18 @@
-;;;; sysout.lisp - Sysout File Loader for Laiko (Common Lisp Maiko Emulator)
+;;;; sysout.lisp - Sysout File Loader for Laiko (Common Lisp Laiko Emulator)
 ;;;;
 ;;;; Based on maiko/src/ldsout.c and maiko/inc/ifpage.h
 ;;;; Handles BIGVM format (32-bit FPtoVP entries) for 256MB address space.
 
-(in-package :maiko-lisp.data)
+(in-package :laiko.data)
 
 ;;;============================================================================
 ;;; Constants
 ;;;============================================================================
 
-(defconstant +ifpage-address+ 512
+(defconstant +ifpage-address+ #x200
   "Byte offset in sysout file where IFPAGE is located.")
 
-(defconstant +bytesper-page+ 512
+(defconstant +bytesper-page+ #x200
   "Bytes per page (same as C BYTESPER_PAGE).")
 
 (defconstant +ifpage-keyval+ #x15e3
@@ -68,7 +68,7 @@
 
 (defstruct (ifpage (:constructor make-ifpage-raw))
   "Interface Page structure from sysout file.
-   
+
    This structure matches the BYTESWAP + BIGVM layout from ifpage.h.
    On little-endian hosts, word pairs are swapped, so we read them
    in the order they appear in the byte-swapped file."
@@ -170,7 +170,7 @@
 
 (defun read-dlword (stream)
   "Read a 16-bit word from stream.
-   
+
    The sysout file is always big-endian. We read high byte first,
    then low byte, and combine as high*256 + low."
   (let* ((b1 (read-byte-safe stream))
@@ -180,7 +180,7 @@
 
 (defun read-lispptr (stream)
   "Read a 32-bit LispPTR from stream.
-   
+
    The sysout file is always big-endian. We read high word first."
   (let ((w1 (read-dlword stream))
         (w2 (read-dlword stream)))
@@ -189,7 +189,7 @@
 
 (defun read-ifpage (stream)
   "Read IFPAGE structure from current stream position.
-   
+
    Reads according to BIGVM non-BYTESWAP layout from ifpage.h lines 18-99.
    The sysout file is big-endian, we read words as big-endian.
    Returns an IFPAGE structure."
@@ -297,7 +297,7 @@
     ;; Words 81-82: BIGVM process_size (unsigned 32-bit)
     (let ((ps (read-lispptr stream)))
       ;; If process_size is huge or zero, use 0 (will default to 64MB)
-      (setf (ifpage-process-size ifp) (if (or (zerop ps) (> ps 256)) 0 ps)))
+      (setf (ifpage-process-size ifp) (if (or (zerop ps) (> ps #x100)) 0 ps)))
 
     ifp))
 
@@ -307,13 +307,13 @@
 
 (defun read-fptovp-table (stream num-entries)
   "Read FPtoVP table from stream.
-   
+
    Parameters:
    - stream: Binary input stream positioned at FPtoVP table
    - num-entries: Number of 32-bit entries to read
-   
+
    Returns: (simple-array (unsigned-byte 32) (*))
-   
+
    For BIGVM, each entry is 32 bits:
    - Low 16 bits: virtual page number (GETFPTOVP)
    - High 16 bits: page OK flag (GETPAGEOK, 0xFFFF = not present)"
@@ -331,13 +331,13 @@
 
 (defun get-fptovp (table file-page)
   "Get virtual page number from FPtoVP table.
-   
+
    GETFPTOVP macro: low 16 bits of entry."
   (logand (aref table file-page) #xFFFF))
 
 (defun get-page-ok (table file-page)
   "Get page OK flag from FPtoVP table.
-   
+
    GETPAGEOK macro: high 16 bits of entry.
    Returns #xFFFF if page is NOT present in sysout."
   (logand (ash (aref table file-page) -16) #xFFFF))
@@ -347,11 +347,11 @@
 ;;;============================================================================
 
 (defun read-sysout-page (stream)
-  "Read one page (512 bytes) from stream.
-   
-   Returns: (simple-array (unsigned-byte 8) (512))
+  "Read one page (#x200 bytes) from stream.
+
+   Returns: (simple-array (unsigned-byte 8) (#x200))
    Performs 32-bit word swapping on little-endian hosts.
-   
+
    CRITICAL: C uses word_swap_page which swaps 32-bit words, not 16-bit pairs!
    Per maiko/src/ldsout.c:989 and Zig endianness.zig:
    - word_swap_page swaps 32-bit words: [0,1,2,3] -> [3,2,1,0]
@@ -361,8 +361,8 @@
     (read-sequence page stream)
     ;; CRITICAL: 32-bit word swap on little-endian (NOT 16-bit pair swap!)
     ;; C: word_swap_page((DLword *)(lispworld_scratch + lispworld_offset), 128)
-    ;; 128 = 512 bytes / 4 bytes per 32-bit word
-    (when (maiko-lisp.utils:little-endian-p)
+    ;; 128 = #x200 bytes / 4 bytes per 32-bit word
+    (when (laiko.utils:little-endian-p)
       (loop for i from 0 below +bytesper-page+ by 4
             do (let ((b0 (aref page i))
                      (b1 (aref page (1+ i)))
@@ -381,16 +381,16 @@
 
 (defun load-sysout (path)
   "Load a sysout file into virtual memory.
-   
+
    Parameters:
    - path: Pathname or string path to .sysout file
-   
+
    Returns: (values ifpage fptovp virtual-memory)
-   
+
    - ifpage: IFPAGE structure with system configuration
    - fptovp: FPtoVP table (array of 32-bit entries)
    - virtual-memory: Array of page arrays (or NIL for sparse pages)
-   
+
    Signals:
    - invalid-sysout-key: IFPAGE key mismatch
    - sysout-read-error: File read failure
@@ -401,7 +401,7 @@
 
   (with-open-file (stream path :element-type '(unsigned-byte 8)
                                :direction :input)
-    ;; Step 1: Seek to IFPAGE at offset 512
+    ;; Step 1: Seek to IFPAGE at offset #x200
     (file-position stream +ifpage-address+)
 
     ;; Step 2: Read IFPAGE
@@ -448,7 +448,7 @@
             ;; Step 7: Create virtual memory array
             (let* ((proc-size (ifpage-process-size ifpage))
                    (vm-size-mb (if (zerop proc-size) +default-process-size+ proc-size))
-                   (vm-size-bytes (* vm-size-mb 1024 1024))
+                   (vm-size-bytes (* vm-size-mb #x400 #x400))
                    (num-vm-pages (ash vm-size-bytes -9)))
               (format t "  VM size: ~D MB (~D pages)~%" vm-size-mb num-vm-pages)
 

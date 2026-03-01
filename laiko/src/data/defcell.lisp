@@ -3,7 +3,7 @@
 ;;;; Implements definition cell structure matching C DefCell from maiko/inc/cell.h
 ;;;; Per zaiko/src/data/defcell.zig
 
-(in-package :maiko-lisp.data)
+(in-package :laiko.data)
 
 ;;;============================================================================
 ;;; DefCell Structure
@@ -11,7 +11,7 @@
 
 (defstruct (defcell (:constructor make-defcell-raw))
   "Definition cell structure for function definitions.
-   
+
    For BIGVM: 28-bit defpointer, for non-BIGVM: 24-bit defpointer
    Matches C DefCell from maiko/inc/cell.h"
   (ccodep 0 :type (unsigned-byte 1))
@@ -25,22 +25,22 @@
 
 (defun read-defcell (vm atom-index)
   "Read DefCell from atom's definition cell.
-   
+
    Per C: GetDEFCELL68k(atom_index) then read DefCell structure.
-   
+
    Returns a defcell structure."
   (declare (type (unsigned-byte 32) atom-index))
-  (let ((vmem (maiko-lisp.vm:vm-virtual-memory vm)))
+  (let ((vmem (laiko.vm:vm-virtual-memory vm)))
     (unless vmem
       (return-from read-defcell (make-defcell-raw)))
-    
+
     (let ((defcell-offset (get-defcell vm atom-index)))
       (when (zerop defcell-offset)
         (return-from read-defcell (make-defcell-raw)))
-      
+
       (when (>= (+ defcell-offset 4) (length vmem))
         (return-from read-defcell (make-defcell-raw)))
-      
+
       ;; Read first LispPTR from virtual memory
       ;; Use vm-read-lispptr from stack.lisp
       (let* ((first-ptr (vm-read-lispptr vm defcell-offset))
@@ -51,7 +51,7 @@
              ;; For BIGVM: 28-bit defpointer (low 28 bits)
              ;; For non-BIGVM: 24-bit defpointer (low 24 bits)
              (defpointer (logand first-ptr #x0FFFFFFF)))
-        
+
         (make-defcell-raw
          :ccodep ccodep
          :fastp fastp
@@ -69,7 +69,7 @@
 
 (defun get-function-header (defcell)
   "Get function header pointer from DefCell.
-   
+
    Per C: LOCFNCELL = (struct fnhead *)NativeAligned4FromLAddr(defpointer)"
   (declare (type defcell defcell))
   ;; For non-BIGVM, mask to 24 bits
@@ -84,23 +84,23 @@
 
 (defun read-function-header (vm fnheader-offset)
   "Read function header from virtual memory.
-   
+
    Per C: struct fnhead at offset.
    Returns a function-header structure."
   (declare (type (unsigned-byte 32) fnheader-offset))
-  (let ((vmem (maiko-lisp.vm:vm-virtual-memory vm)))
+  (let ((vmem (laiko.vm:vm-virtual-memory vm)))
     (unless vmem
       (return-from read-function-header nil))
-    
+
     (let ((page-num (ash fnheader-offset -9))
           (page-offset (logand fnheader-offset #x1FF)))
       (when (>= page-num (length vmem))
         (return-from read-function-header nil))
-      
+
       (let ((page (aref vmem page-num)))
         (when (null page)
           (return-from read-function-header nil))
-        
+
         ;; Read function header fields
         ;; startpc is at bytes 0-1
         ;; nv is at bytes 2-3 (number of variables)

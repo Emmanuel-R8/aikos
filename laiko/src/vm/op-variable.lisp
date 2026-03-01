@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 
 ;; Variable access operations
 ;; ivar0-6, pvar0-6, fvar0-6, gvar, arg0, myargcount
@@ -202,7 +202,7 @@
   ;; For BIGVM, the full index is used (no 16-bit masking)
   ;; The read-atom-value function handles LITATOM vs NEWATOM dispatch
   (let ((atom-idx (read-pc-32-be vm)))
-    (let ((value (maiko-lisp.data:read-atom-value vm atom-idx)))
+    (let ((value (laiko.data:read-atom-value vm atom-idx)))
       (vm-push vm value))))
 
 ;;; ===========================================================================
@@ -227,7 +227,7 @@
     (if frame
         (let ((fn-header (sf-fn-header frame)))
           (if fn-header
-              (push-stack vm (maiko-lisp.data:get-num-args fn-header))
+              (push-stack vm (laiko.data:get-num-args fn-header))
               (push-stack vm 0)))
         (push-stack vm 0))))
 
@@ -319,7 +319,7 @@
     (when current-frame
       (let ((fn-header (sf-fn-header current-frame)))
         (when fn-header
-          (let ((closure-env (maiko-lisp.data:get-closure-environment fn-header)))
+          (let ((closure-env (laiko.data:get-closure-environment fn-header)))
             (when closure-env
               (aref closure-env index))))))))
 

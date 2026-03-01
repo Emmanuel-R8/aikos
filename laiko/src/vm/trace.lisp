@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 
 ;; Unified execution trace format
 ;; Compatible with C and Zig implementations
@@ -33,9 +33,9 @@
   ;; Use the virtual-memory stack for parity with C/Zig traces.
   ;; SP here is the byte offset of CurrentStackPTR into virtual memory.
   (let* ((sp-bytes (vm-stack-ptr-offset vm))
-         (tos (maiko-lisp.vm:vm-tos vm))
-         (n1 (maiko-lisp.vm:vm-read-lispptr vm (+ sp-bytes 4)))
-         (n2 (maiko-lisp.vm:vm-read-lispptr vm (+ sp-bytes 8)))
+         (tos (laiko.vm:vm-tos vm))
+         (n1 (laiko.vm:vm-read-lispptr vm (+ sp-bytes 4)))
+         (n2 (laiko.vm:vm-read-lispptr vm (+ sp-bytes 8)))
          (page-num (ash pc -9))
          (page-off (logand pc #x1FF))
          (instr-name (or instruction-name (symbol-name opcode)))
@@ -62,10 +62,12 @@
     (let ((z (if (zerop tos) 1 0))
           (n (if (logbitp 31 tos) 1 0))) ; Check sign bit
       (format *vm-trace-output* "Z:~D,N:~D,C:0|" z n))
-    ;; SP_FP (comma-separated: SP:0x%06x,FP:0x%06x)
+    ;; SP_FP (comma-separated: SP:0x%06x,FP:0x%06x,OLD_SP:%d)
     ;; Use byte offset stack pointer to match C trace SP semantics; FP is 0 for now.
-    (let ((fp 0))
-      (format *vm-trace-output* "SP:0x~6,'0X,FP:0x~6,'0X|" sp-bytes fp))
+    ;; DIAGNOSTIC: Also show old array-based stack-ptr for debugging
+    (let ((fp 0)
+          (old-stack-ptr (vm-stack-ptr vm)))
+      (format *vm-trace-output* "SP:0x~6,'0X,FP:0x~6,'0X,OLD_SP:~D|" sp-bytes fp old-stack-ptr))
     ;; STACK_SUMMARY (comma-separated: TOS:0x%08x,N1:0x%08x,N2:0x%08x)
     (format *vm-trace-output* "TOS:0x~8,'0X,N1:0x~8,'0X,N2:0x~8,'0X|" tos n1 n2)
     ;; MEMORY_CONTEXT (comma-separated: @mem:?,vpage:%u,off:0x%03x)

@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 
 ;; Constant operations
 ;; aconst, sic, snic, sicx, gconst, makenumber, swap, nop, cl_equal

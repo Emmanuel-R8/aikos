@@ -1,10 +1,11 @@
-# Maiko Emulator Implementation in Common Lisp
+# Laiko Emulator Implementation in Common Lisp
 
-This directory contains a complete implementation of the Maiko emulator in Common Lisp (SBCL), following the rewrite documentation specifications in `documentation/rewrite-spec/`.
+This directory contains a complete implementation of the Laiko emulator in Common Lisp (SBCL), following the rewrite documentation specifications in `documentation/rewrite-spec/`.
 
 ## Overview
 
 The Common Lisp implementation provides:
+
 - Complete VM core with bytecode interpreter
 - Memory management with garbage collection
 - SDL3 display backend
@@ -20,6 +21,7 @@ The Common Lisp implementation provides:
 ### Installing SBCL
 
 **Linux**:
+
 ```bash
 # Ubuntu/Debian
 sudo apt install sbcl
@@ -28,11 +30,13 @@ sudo apt install sbcl
 ```
 
 **macOS**:
+
 ```bash
 brew install sbcl
 ```
 
 **NixOS**:
+
 ```bash
 nix-env -i sbcl
 # Or use /usr/bin/env sbcl if already in PATH
@@ -41,12 +45,14 @@ nix-env -i sbcl
 ### Installing SDL3
 
 **Linux**:
+
 ```bash
 # Check your distribution's package manager
 # SDL3 may need to be built from source or use development packages
 ```
 
 **macOS**:
+
 ```bash
 brew install sdl3
 ```
@@ -59,7 +65,7 @@ The project uses ASDF (Another System Definition Facility) for building and depe
 
 ```bash
 # Build and load the system
-sbcl --load maiko-lisp.asd --eval "(asdf:load-system :maiko-lisp)"
+sbcl --load laiko.asd --eval "(asdf:load-system :laiko)"
 
 # Or use the build script
 ./build.sh
@@ -69,7 +75,7 @@ sbcl --load maiko-lisp.asd --eval "(asdf:load-system :maiko-lisp)"
 
 ```bash
 # Run with a sysout file
-sbcl --load maiko-lisp.asd --eval "(asdf:load-system :maiko-lisp)" -- \
+sbcl --load laiko.asd --eval "(asdf:load-system :laiko)" -- \
   -sysout path/to/sysout
 
 # Or use the run script
@@ -80,7 +86,7 @@ sbcl --load maiko-lisp.asd --eval "(asdf:load-system :maiko-lisp)" -- \
 
 ```
 alternatives/lisp/
-├── maiko-lisp.asd          # ASDF system definition
+├── laiko.asd          # ASDF system definition
 ├── README.md               # This file
 ├── build.sh                # Build script
 ├── run.sh                  # Run script
@@ -102,25 +108,26 @@ alternatives/lisp/
 
 ```lisp
 (require :asdf)
-(asdf:load-system :maiko-lisp)
+(asdf:load-system :laiko)
 ```
 
 ### Running Tests
 
 ```bash
-sbcl --load maiko-lisp.asd --eval "(asdf:test-system :maiko-lisp)"
+sbcl --load laiko.asd --eval "(asdf:test-system :laiko)"
 ```
 
 ### REPL Development
 
 ```bash
-sbcl --load maiko-lisp.asd
+sbcl --load laiko.asd
 ```
 
 Then in the REPL:
+
 ```lisp
-(asdf:load-system :maiko-lisp)
-(in-package :maiko-lisp)
+(asdf:load-system :laiko)
+(in-package :laiko)
 ```
 
 ## Command Line Options

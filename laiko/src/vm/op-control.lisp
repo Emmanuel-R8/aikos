@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 
 ;; Control flow operations
 ;; return, jump0-15, fjump0-15, tjump0-15, jumpx, fjumpx, tjumpx
@@ -16,7 +16,7 @@ Pops return value from stack and returns to caller."
   :category :control-flow
   :side-effects t  ; Modifies control flow
   (let ((return-value (pop-stack vm)))
-    (maiko-lisp.vm:return-from-function vm return-value)))
+    (laiko.vm:return-from-function vm return-value)))
 
 ;;; ===========================================================================
 ;; UNCONDITIONAL JUMPS (JUMP0-15)
@@ -528,12 +528,12 @@ Reads 2-byte atom index, looks up function definition, calls it."
   :category :function-call
   :side-effects t
   (let* ((atom-idx (read-pc-16-be vm))
-         (defcell (maiko-lisp.data:read-defcell vm atom-idx)))
-    (when (maiko-lisp.data:is-c-code defcell)
-      (error 'maiko-lisp.utils:vm-error :message "FN0: C code not supported"))
-    (let ((fnheader-offset (maiko-lisp.data:get-function-header defcell)))
+         (defcell (laiko.data:read-defcell vm atom-idx)))
+    (when (laiko.data:is-c-code defcell)
+      (error 'laiko.utils:vm-error :message "FN0: C code not supported"))
+    (let ((fnheader-offset (laiko.data:get-function-header defcell)))
       (when (zerop fnheader-offset)
-        (error 'maiko-lisp.utils:vm-error :message "FN0: Undefined function"))
+        (error 'laiko.utils:vm-error :message "FN0: Undefined function"))
       ;; TODO: Implement function call
       nil)))
 

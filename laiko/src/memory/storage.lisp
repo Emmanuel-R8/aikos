@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.memory)
+(in-package :laiko.memory)
 
 ;; Storage management
 ;; Per rewrite documentation memory/storage-allocation.md
@@ -27,7 +27,7 @@
             when (and (<= (+ i size) heap-size)
                       (every #'zerop (subseq heap i (min (+ i size) heap-size))))
               do (return-from allocate i))
-      (error 'maiko-lisp.utils:memory-error
+      (error 'laiko.utils:memory-error
              :message (format nil "Storage full: requested ~A bytes, available ~A bytes"
                               size heap-size)))))
 
@@ -43,18 +43,18 @@
   "Get cons cell from storage at given LispPTR address.
    Returns cons-cell structure."
   (declare (type storage storage)
-           (type maiko-lisp.utils:lisp-ptr ptr))
+           (type laiko.utils:lisp-ptr ptr))
   (let ((heap (storage-heap storage))
         (offset ptr))
     (when (>= offset (length heap))
-      (error 'maiko-lisp.utils:invalid-address
+      (error 'laiko.utils:invalid-address
              :message (format nil "Cons cell address out of bounds: ~A" ptr)))
     (let ((car-field (logior (aref heap offset)
                              (ash (aref heap (+ offset 1)) 8)
                              (ash (aref heap (+ offset 2)) 16)
                              (ash (aref heap (+ offset 3)) 24)))
           (cdr-code (aref heap (+ offset 6))))
-      (maiko-lisp.data:make-cons-cell :car-field car-field :cdr-code cdr-code))))
+      (laiko.data:make-cons-cell :car-field car-field :cdr-code cdr-code))))
 
 (defun set-cons-cell (storage ptr cons-cell)
   "Set cons cell at given pointer (alias for put-cons-cell)."
@@ -63,14 +63,14 @@
 (defun put-cons-cell (storage ptr cons-cell)
   "Write cons cell to storage at given LispPTR address."
   (declare (type storage storage)
-           (type maiko-lisp.utils:lisp-ptr ptr)
-           (type maiko-lisp.data:cons-cell cons-cell))
+           (type laiko.utils:lisp-ptr ptr)
+           (type laiko.data:cons-cell cons-cell))
   (let ((heap (storage-heap storage))
         (offset ptr)
-        (car-field (maiko-lisp.data:cons-car-field cons-cell))
-        (cdr-code (maiko-lisp.data:cons-cdr-code cons-cell)))
+        (car-field (laiko.data:cons-car-field cons-cell))
+        (cdr-code (laiko.data:cons-cdr-code cons-cell)))
     (when (>= offset (length heap))
-      (error 'maiko-lisp.utils:invalid-address
+      (error 'laiko.utils:invalid-address
              :message (format nil "Cons cell address out of bounds: ~A" ptr)))
     (setf (aref heap offset) (logand car-field #xFF))
     (setf (aref heap (+ offset 1)) (logand (ash car-field -8) #xFF))
@@ -106,7 +106,7 @@
            (type (unsigned-byte 32) addr))
   (let ((heap (storage-heap storage)))
     (when (>= addr (length heap))
-      (error 'maiko-lisp.utils:invalid-address
+      (error 'laiko.utils:invalid-address
              :message (format nil "Read address out of bounds: ~A" addr)))
     (aref heap addr)))
 
@@ -117,7 +117,7 @@
            (type (unsigned-byte 8) value))
   (let ((heap (storage-heap storage)))
     (when (>= addr (length heap))
-      (error 'maiko-lisp.utils:invalid-address
+      (error 'laiko.utils:invalid-address
              :message (format nil "Write address out of bounds: ~A" addr)))
     (setf (aref heap addr) value)))
 
@@ -127,7 +127,7 @@
            (type (unsigned-byte 32) addr))
   (let ((heap (storage-heap storage)))
     (when (>= addr (- (length heap) 3))
-      (error 'maiko-lisp.utils:invalid-address
+      (error 'laiko.utils:invalid-address
              :message (format nil "Read word address out of bounds: ~A" addr)))
     (logior (aref heap addr)
             (ash (aref heap (+ addr 1)) 8)
@@ -141,7 +141,7 @@
            (type (unsigned-byte 32) value))
   (let ((heap (storage-heap storage)))
     (when (>= addr (- (length heap) 3))
-      (error 'maiko-lisp.utils:invalid-address
+      (error 'laiko.utils:invalid-address
              :message (format nil "Write word address out of bounds: ~A" addr)))
     (setf (aref heap addr) (logand value #xFF))
     (setf (aref heap (+ addr 1)) (logand (ash value -8) #xFF))

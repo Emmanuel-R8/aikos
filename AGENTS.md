@@ -73,6 +73,7 @@ Interlisp/
 For detailed implementation status of all Maiko emulator implementations, see [`reports/IMPLEMENTATION_STATUS.md`](reports/IMPLEMENTATION_STATUS.md).
 
 **Summary**:
+
 - **C (Maiko)**: Production-ready (94.5% opcode coverage)
 - **Zig (Zaiko)**: Incomplete (~60-70% actual coverage, 245 TODO markers)
 - **Common Lisp (Laiko)**: In progress (early stage)
@@ -283,6 +284,7 @@ Language-Specific Documentation Updates:
 For comprehensive parity testing methodology, workflows, and tools, see [`reports/PARITY_TESTING_GUIDE.md`](reports/PARITY_TESTING_GUIDE.md).
 
 **Key Points**:
+
 - **Canonical Script**: `scripts/compare_emulator_execution.sh` with `EMULATOR_MAX_STEPS` runtime cap
 - **Unified Trace Format**: Single-line pipe-delimited format for rapid divergence identification
 - **Comparison Tools**: `scripts/compare_unified_traces.awk` (fast), `scripts/compare_unified_traces.py` (detailed)
@@ -291,6 +293,7 @@ For comprehensive parity testing methodology, workflows, and tools, see [`report
 - **Systematic Debugging**: Cross-reference C traces, validate incrementally, document findings
 
 **Multi-Implementation Support**:
+
 - C (Maiko): Production-ready reference
 - Zig (Zaiko): Incomplete (~60-70% actual coverage)
 - Common Lisp (Laiko): In progress
@@ -471,6 +474,7 @@ When a file exceeds 500 lines:
 ### Memory Management
 
 For comprehensive memory management documentation, see [`documentation/components/memory-management.typ`](documentation/components/memory-management.typ). This document covers:
+
 - Virtual memory architecture and address translation (LispPTR, DLword, FPtoVP table)
 - Garbage collection algorithm (reference counting, scan/reclaim phases)
 - Storage allocation (cons cells, arrays, memory regions)
@@ -486,6 +490,7 @@ For comprehensive memory management documentation, see [`documentation/component
 ### Common Debugging Gotchas
 
 For comprehensive debugging techniques and systematic debugging workflows, see [`documentation/core/critical-debugging-technique.typ`](documentation/core/critical-debugging-technique.typ). This document covers:
+
 - Cross-referencing C traces for baseline establishment
 - Step-by-instruction validation with EMULATOR_MAX_STEPS
 - Debug instrumentation hierarchy

@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.utils)
+(in-package :laiko.utils)
 
 ;; Address translation utilities
 ;; Per data-model.md and rewrite documentation memory/address-translation.md
@@ -9,16 +9,16 @@
    Returns a native pointer to DLword array."
   (declare (type lisp-ptr ptr)
            (type (simple-array lisp-ptr (*)) fptovp))
-  (let ((page-num (maiko-lisp.memory:get-page-number ptr))
-        (page-offset (maiko-lisp.memory:get-page-offset ptr)))
+  (let ((page-num (laiko.memory:get-page-number ptr))
+        (page-offset (laiko.memory:get-page-offset ptr)))
     ;; Check bounds
     (when (>= page-num (length fptovp))
-      (error 'maiko-lisp.utils:invalid-address
+      (error 'laiko.utils:invalid-address
              :message (format nil "Page number ~A out of bounds" page-num)))
     ;; Get virtual page base from FPtoVP table
     (let ((virtual-page-base (aref fptovp page-num)))
       (when (zerop virtual-page-base)
-        (error 'maiko-lisp.utils:invalid-address
+        (error 'laiko.utils:invalid-address
                :message (format nil "Page ~A not mapped" page-num)))
       ;; Calculate native address
       ;; For now, assume direct mapping (will need proper page mapping later)
@@ -33,16 +33,16 @@
    Returns a native pointer to u32 array."
   (declare (type lisp-ptr ptr)
            (type (simple-array lisp-ptr (*)) fptovp))
-  (let ((page-num (maiko-lisp.memory:get-page-number ptr))
-        (page-offset (maiko-lisp.memory:get-page-offset ptr)))
+  (let ((page-num (laiko.memory:get-page-number ptr))
+        (page-offset (laiko.memory:get-page-offset ptr)))
     ;; Check bounds
     (when (>= page-num (length fptovp))
-      (error 'maiko-lisp.utils:invalid-address
+      (error 'laiko.utils:invalid-address
              :message (format nil "Page number ~A out of bounds" page-num)))
     ;; Get virtual page base from FPtoVP table
     (let ((virtual-page-base (aref fptovp page-num)))
       (when (zerop virtual-page-base)
-        (error 'maiko-lisp.utils:invalid-address
+        (error 'laiko.utils:invalid-address
                :message (format nil "Page ~A not mapped" page-num)))
       ;; Calculate native address
       ;; For now, assume direct mapping (will need proper page mapping later)

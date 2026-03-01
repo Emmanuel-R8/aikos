@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 
 ;; Stack and constant operations
 ;; nil, t, push, pop, constants

@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 
 ;; Memory and array access operations
 ;; aref1, aset1, aref2, aset2
@@ -14,7 +14,7 @@
 (defop aref1 :hexcode #xEE :instruction-length 2
   "AREF1: 1-dimensional array access.
 Reads 1-byte operand, pops array-ptr, pushes element at index."
-  :operands ((index :uint8 "Array index (0-255)"))
+  :operands ((index :uint8 "Array index (0-#xFF)"))
   :stack-effect (:pop 1 :push 1)
   :category :memory
   :side-effects nil
@@ -26,7 +26,7 @@ Reads 1-byte operand, pops array-ptr, pushes element at index."
 (defop aset1 :hexcode #xEF :instruction-length 2
   "ASET1: 1-dimensional array set.
 Reads 1-byte operand, pops value and array-ptr, stores value at index."
-  :operands ((index :uint8 "Array index (0-255)"))
+  :operands ((index :uint8 "Array index (0-#xFF)"))
   :stack-effect (:pop 2 :push 1)
   :category :memory
   :side-effects t  ; Modifies array
@@ -83,7 +83,7 @@ Reads index from bytecode, pops array-ptr, pushes element."
   (let ((index (read-pc-8 vm))
         (array-ptr (pop-stack vm)))
     (when (zerop array-ptr)
-      (error 'maiko-lisp.utils:vm-error :message "GETAEL1: NIL is not an array"))
+      (error 'laiko.utils:vm-error :message "GETAEL1: NIL is not an array"))
     (let ((value (get-array-element array-ptr index)))
       (push-stack vm value))))
 
@@ -97,7 +97,7 @@ Reads 16-bit index from bytecode, pops array-ptr, pushes element."
   (let ((index (read-pc-16-be vm))
         (array-ptr (pop-stack vm)))
     (when (zerop array-ptr)
-      (error 'maiko-lisp.utils:vm-error :message "GETAEL2: NIL is not an array"))
+      (error 'laiko.utils:vm-error :message "GETAEL2: NIL is not an array"))
     (let ((value (get-array-element array-ptr index)))
       (push-stack vm value))))
 
@@ -112,7 +112,7 @@ Reads index, pops value and array-ptr, stores value."
         (value (pop-stack vm))
         (array-ptr (pop-stack vm)))
     (when (zerop array-ptr)
-      (error 'maiko-lisp.utils:vm-error :message "SETAEL1: NIL is not an array"))
+      (error 'laiko.utils:vm-error :message "SETAEL1: NIL is not an array"))
     (let ((new-ptr (set-array-element array-ptr index value)))
       (push-stack vm new-ptr))))
 
@@ -127,7 +127,7 @@ Reads 16-bit index, pops value and array-ptr, stores value."
         (value (pop-stack vm))
         (array-ptr (pop-stack vm)))
     (when (zerop array-ptr)
-      (error 'maiko-lisp.utils:vm-error :message "SETAEL2: NIL is not an array"))
+      (error 'laiko.utils:vm-error :message "SETAEL2: NIL is not an array"))
     (let ((new-ptr (set-array-element array-ptr index value)))
       (push-stack vm new-ptr))))
 
@@ -235,18 +235,18 @@ Used for calculating addresses relative to a base pointer."
 
 (defun get-array-element (array-ptr index)
   "Get element from array at given index."
-  (declare (type maiko-lisp.utils:lisp-ptr array-ptr)
+  (declare (type laiko.utils:lisp-ptr array-ptr)
            (type (unsigned-byte 32) index))
   (when (zerop array-ptr)
-    (error 'maiko-lisp.utils:vm-error :message "Array access: NIL is not an array"))
+    (error 'laiko.utils:vm-error :message "Array access: NIL is not an array"))
   index)
 
 (defun set-array-element (array-ptr index value)
   "Set element in array at given index."
-  (declare (type maiko-lisp.utils:lisp-ptr array-ptr index)
-           (type maiko-lisp.utils:lisp-ptr value))
+  (declare (type laiko.utils:lisp-ptr array-ptr index)
+           (type laiko.utils:lisp-ptr value))
   (when (zerop array-ptr)
-    (error 'maiko-lisp.utils:vm-error :message "Array set: NIL is not an array"))
+    (error 'laiko.utils:vm-error :message "Array set: NIL is not an array"))
   array-ptr)
 
 (defun read-pc-8 (vm)

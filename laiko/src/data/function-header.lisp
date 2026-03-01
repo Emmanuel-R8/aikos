@@ -1,18 +1,18 @@
-(in-package :maiko-lisp.data)
+(in-package :laiko.data)
 
 ;; Function header structure (matches C fnhead)
 ;; Per maiko/inc/stack.h struct fnhead
 
 (defstruct (function-header (:conc-name fn-))
   "Function header structure"
-  (stkmin 0 :type maiko-lisp.utils:dlword)
-  (na 0 :type maiko-lisp.utils:dlword)
-  (nv 0 :type maiko-lisp.utils:dlword)
-  (startpc 0 :type maiko-lisp.utils:dlword)
-  (framename 0 :type maiko-lisp.utils:lisp-ptr)
-  (ntsize 0 :type maiko-lisp.utils:dlword)
-  (nlocals 0 :type maiko-lisp.utils:dlword)
-  (fvaroffset 0 :type maiko-lisp.utils:dlword))
+  (stkmin 0 :type laiko.utils:dlword)
+  (na 0 :type laiko.utils:dlword)
+  (nv 0 :type laiko.utils:dlword)
+  (startpc 0 :type laiko.utils:dlword)
+  (framename 0 :type laiko.utils:lisp-ptr)
+  (ntsize 0 :type laiko.utils:dlword)
+  (nlocals 0 :type laiko.utils:dlword)
+  (fvaroffset 0 :type laiko.utils:dlword))
 
 (defmethod print-object ((obj function-header) stream)
   "Print function header for debugging"
@@ -62,7 +62,7 @@
    For old atoms: store at VALSPACE + (index * 2)
    For new atoms: store in atom cell"
   (declare (type (unsigned-byte 32) atom-index)
-           (type maiko-lisp.utils:lisp-ptr value))
+           (type laiko.utils:lisp-ptr value))
   (cond
     ((< atom-index #x8000)
      (let ((val-offset (* atom-index 2)))

@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.io)
+(in-package :laiko.io)
 
 ;; Keyboard handling
 ;; Per rewrite documentation io/keyboard-protocol.md

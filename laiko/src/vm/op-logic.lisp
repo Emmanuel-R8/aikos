@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 
 ;; Bitwise and logical operations
 ;; logand, logior, logxor, lognot, lsh, llsh1, llsh8, lrsh1, lrsh8

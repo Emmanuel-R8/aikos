@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 
 ;; Miscellaneous operations
 ;; bind, unbind, typep, fixp, smallp, charcode, charn
@@ -209,7 +209,7 @@ Signals error if B is zero."
   (let ((b (pop-stack vm))
         (a (pop-stack vm)))
     (when (zerop b)
-      (error 'maiko-lisp.utils:vm-arithmetic-error :message "Division by zero"))
+      (error 'laiko.utils:vm-arithmetic-error :message "Division by zero"))
     (push-stack vm (truncate a b))))
 
 ;;; ===========================================================================
@@ -268,7 +268,7 @@ Signals error if B is zero."
     (let ((fa (decode-float-pointer a))
           (fb (decode-float-pointer b)))
       (if (= fb 0.0d0)
-          (error 'maiko-lisp.utils:vm-error :message "Floating-point division by zero")
+          (error 'laiko.utils:vm-error :message "Floating-point division by zero")
           (push-stack vm (encode-float-pointer (/ fa fb)))))))
 
 ;;; ===========================================================================
@@ -303,7 +303,7 @@ Pops catch tag, unwinds stack."
   "Set value in PVAR slot at given index."
   (declare (type vm vm)
            (type (integer 0 *) index)
-           (type maiko-lisp.utils:lisp-ptr value))
+           (type laiko.utils:lisp-ptr value))
   (let ((pvar (vm-pvar vm))
         (pvar-ptr (vm-pvar-ptr vm)))
     (when (and (> pvar-ptr 0) (< index pvar-ptr))
@@ -324,7 +324,7 @@ Pops catch tag, unwinds stack."
 
 (defun decode-float-pointer (ptr)
   "Decode a LispPTR to a float value."
-  (declare (type maiko-lisp.utils:lisp-ptr ptr))
+  (declare (type laiko.utils:lisp-ptr ptr))
   (let ((type-code (ldb (byte 3 24) ptr)))
     (cond
       ((= type-code 2)

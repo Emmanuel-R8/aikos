@@ -44,7 +44,7 @@ The FPtoVP (File Page to Virtual Page) table maps file page numbers to virtual p
 
 Virtual memory is organized as an array of 512-byte pages:
 
-- `BYTESPER_PAGE = 512` bytes (256 DLwords)
+- `BYTESPER_PAGE = #x200` bytes (#x100 DLwords)
 - Pages stored in big-endian, byte-swapped on little-endian hosts
 - Page access via `read-vm-word(address)` helper function
 
@@ -59,7 +59,7 @@ Virtual memory is organized as an array of 512-byte pages:
 | `src/package.lisp`     | Updated exports for new functions           |
 | `src/vm/stack.lisp`    | Added `fptovp` slot to VM struct            |
 | `src/main.lisp`        | Updated to use new sysout loading           |
-| `maiko-lisp.asd`       | Fixed ASDF system definition                |
+| `laiko.asd`            | Fixed ASDF system definition                |
 
 ### Key Functions Added
 
@@ -69,7 +69,7 @@ Virtual memory is organized as an array of 512-byte pages:
 | `read-dlword`       | Read 16-bit word (with byte-swap)    |
 | `read-lisp-ptr`     | Read 32-bit pointer (with byte-swap) |
 | `read-ifpage`       | Parse IFPAGE structure               |
-| `byte-swap-page`    | Byte-swap 512-byte page              |
+| `byte-swap-page`    | Byte-swap #x200-byte page            |
 | `read-fptovp-table` | Load FPtoVP mapping                  |
 | `load-sysout`       | Complete sysout loading              |
 
@@ -102,7 +102,7 @@ This layout keeps the execution pipeline close to the C/Zig implementations, whi
 
 **Invocation notes**:
 
-- `run.sh` lives under `laiko/` and runs SBCL with `maiko-lisp:main` as the entry point. When calling it from the repository root you should pass sysout paths relative to `laiko/`, e.g.:
+- `run.sh` lives under `laiko/` and runs SBCL with `laiko:main` as the entry point. When calling it from the repository root you should pass sysout paths relative to `laiko/`, e.g.:
 
   ```bash
   cd /path/to/Interlisp
@@ -113,10 +113,10 @@ This layout keeps the execution pipeline close to the C/Zig implementations, whi
 
 ### Trace configuration and comparison
 
-- *Environment*: `EMULATOR_MAX_STEPS=N` limits execution to N instructions and, when no explicit `-trace` file is given, triggers auto-tracing for parity runs.
-- *CLI*: `-max-steps <N>` and `-trace <file>`; `-max-steps` is combined with `EMULATOR_MAX_STEPS` so that the effective limit is `max(N, EMULATOR_MAX_STEPS)`.
-- *Default trace file*: When tracing is auto-enabled (e.g., `EMULATOR_MAX_STEPS` set but no `-trace` flag), output is written to `lisp_emulator_execution_log.txt` in the current working directory (typically the repo root when using the comparison script).
-- *Comparison script*: From repo root, run `EMULATOR_MAX_STEPS=N ./scripts/compare_emulator_execution.sh [sysout]`; use `--with-laiko` to include Laiko in the run and comparison (the script will invoke C, Zig, and Laiko with consistent limits and trace formats).
+- _Environment_: `EMULATOR_MAX_STEPS=N` limits execution to N instructions and, when no explicit `-trace` file is given, triggers auto-tracing for parity runs.
+- _CLI_: `-max-steps <N>` and `-trace <file>`; `-max-steps` is combined with `EMULATOR_MAX_STEPS` so that the effective limit is `max(N, EMULATOR_MAX_STEPS)`.
+- _Default trace file_: When tracing is auto-enabled (e.g., `EMULATOR_MAX_STEPS` set but no `-trace` flag), output is written to `lisp_emulator_execution_log.txt` in the current working directory (typically the repo root when using the comparison script).
+- _Comparison script_: From repo root, run `EMULATOR_MAX_STEPS=N ./scripts/compare_emulator_execution.sh [sysout]`; use `--with-laiko` to include Laiko in the run and comparison (the script will invoke C, Zig, and Laiko with consistent limits and trace formats).
 
 ## Known Issues
 

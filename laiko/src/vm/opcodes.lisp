@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 ;; Opcode handlers
 ;; Per rewrite documentation instruction-set/opcodes.md
 
@@ -45,7 +45,7 @@
 
 (defun handle-push (vm)
   "Handle PUSH opcode: Push value onto stack.
-   Note: PUSH (0xD0) is actually ADDBASE in Maiko, but can be used to push values.
+   Note: PUSH (0xD0) is actually ADDBASE in Laiko, but can be used to push values.
    For now, we'll push a constant value from operands if present."
   (declare (type vm vm))
   ;; If operands are provided, push the first operand as a value
@@ -56,7 +56,7 @@
 (defun handle-push-constant (vm value)
   "Handle PUSH with constant value"
   (declare (type vm vm)
-           (type maiko-lisp.utils:lisp-ptr value))
+           (type laiko.utils:lisp-ptr value))
   (push-stack vm value))
 
 (defun handle-pop (vm)
@@ -103,7 +103,7 @@
   (let ((b (pop-stack vm))
         (a (pop-stack vm)))
     (when (zerop b)
-      (error 'maiko-lisp.utils:vm-division-by-zero))
+      (error 'laiko.utils:vm-division-by-zero))
     ;; Divide them (treating as signed 32-bit integers)
     (let ((a-signed (if (>= a #x80000000)
                         (- a #x100000000)
@@ -125,7 +125,7 @@
   (let ((b (pop-stack vm))
         (a (pop-stack vm)))
     (when (zerop b)
-      (error 'maiko-lisp.utils:vm-division-by-zero))
+      (error 'laiko.utils:vm-division-by-zero))
     ;; Modulo them (treating as signed 32-bit integers)
     (let ((a-signed (if (>= a #x80000000)
                         (- a #x100000000)
@@ -150,7 +150,7 @@
       ((zerop list-ptr) ; NIL
        (set-top-of-stack vm 0))
       ((not storage)
-       (error 'maiko-lisp.utils:vm-error
+       (error 'laiko.utils:vm-error
               :message "CAR: No storage available"))
       (t
        ;; TODO: Translate list-ptr to storage offset
@@ -167,7 +167,7 @@
       ((zerop list-ptr) ; NIL
        (set-top-of-stack vm 0))
       ((not storage)
-       (error 'maiko-lisp.utils:vm-error
+       (error 'laiko.utils:vm-error
               :message "CDR: No storage available"))
       (t
        ;; TODO: Translate list-ptr to storage offset
@@ -182,19 +182,19 @@
         (car-value (pop-stack vm))
         (storage (vm-storage vm)))
     (unless storage
-      (error 'maiko-lisp.utils:vm-error
+      (error 'laiko.utils:vm-error
              :message "CONS: No storage available"))
     ;; Allocate cons cell from storage
-    (let ((cons-offset (maiko-lisp.memory:allocate-cons-cell storage)))
+    (let ((cons-offset (laiko.memory:allocate-cons-cell storage)))
       ;; Create cons cell structure
-      (let ((cons-cell (maiko-lisp.data:make-cons-cell
+      (let ((cons-cell (laiko.data:make-cons-cell
                         :car-field car-value
                         :cdr-code (if (zerop cdr-value)
-                                      maiko-lisp.data:+cdr-nil+
-                                      maiko-lisp.data:+cdr-indirect+))))
+                                      laiko.data:+cdr-nil+
+                                      laiko.data:+cdr-indirect+))))
         ;; TODO: Write cons cell to memory at offset
         ;; For now, use offset as pointer (will need proper address translation)
-        (let ((cons-ptr (+ maiko-lisp.memory:+mds-offset+ cons-offset)))
+        (let ((cons-ptr (+ laiko.memory:+mds-offset+ cons-offset)))
           ;; Update GC reference counts
           (when (vm-storage vm)
             ;; TODO: Call ADDREF for car-value and cdr-value if they're pointers
@@ -210,7 +210,7 @@
     ;; TODO: Handle CDR_INDIRECT case
     ;; TODO: Update CAR field
     ;; TODO: Push cons-ptr back onto stack
-    (error 'maiko-lisp.utils:vm-error
+    (error 'laiko.utils:vm-error
            :message "RPLACA implementation needs memory access")))
 
 (defun handle-rplacd (vm)
@@ -221,7 +221,7 @@
     ;; TODO: Get cons cell from memory
     ;; TODO: Update CDR with CDR coding
     ;; TODO: Push cons-ptr back onto stack
-    (error 'maiko-lisp.utils:vm-error
+    (error 'laiko.utils:vm-error
            :message "RPLACD implementation needs memory access and CDR encoding")))
 
 ;; Comparison opcodes
@@ -269,7 +269,7 @@
         (stack (vm-stack vm))
         (stack-ptr (vm-stack-ptr vm)))
     (unless frame
-      (error 'maiko-lisp.utils:vm-error :message "No current frame for IVAR access"))
+      (error 'laiko.utils:vm-error :message "No current frame for IVAR access"))
     ;; Local variables are stored in the stack frame
     ;; For now, return 0 as placeholder
     ;; TODO: Calculate correct offset based on frame layout
@@ -401,7 +401,7 @@
   "Handle RETURN opcode: Return from function"
   (declare (type vm vm))
   ;; Return value should be on stack
-  (let ((return-value (maiko-lisp.vm:return-from-function vm)))
+  (let ((return-value (laiko.vm:return-from-function vm)))
     ;; PC is updated by return-from-function
     return-value))
 
@@ -416,7 +416,7 @@
                                  (- offset #x100)
                                  offset)))
           (incf (vm-pc vm) signed-offset)))
-      (error 'maiko-lisp.utils:vm-error :message "JUMP needs offset operand")))
+      (error 'laiko.utils:vm-error :message "JUMP needs offset operand")))
 
 (defun handle-jumpif (vm operands)
   "Handle JUMPIF opcode: Conditional jump if TOS is non-NIL"
@@ -468,10 +468,10 @@
   (let ((index (if operands (first operands) 0))
         (array-ptr (pop-stack vm)))
     (when (zerop array-ptr)
-      (error 'maiko-lisp.utils:vm-error :message "GETAEL1: NIL is not an array"))
+      (error 'laiko.utils:vm-error :message "GETAEL1: NIL is not an array"))
     ;; TODO: Get array header from memory, access element at index
     ;; For now, push 0 as placeholder
-    (error 'maiko-lisp.utils:vm-error :message "GETAEL1 needs memory access")))
+    (error 'laiko.utils:vm-error :message "GETAEL1 needs memory access")))
 
 (defun handle-getael2 (vm operands)
   "Handle GETAEL2 opcode: Get array element with 2-byte index"
@@ -483,9 +483,9 @@
                    0))
         (array-ptr (pop-stack vm)))
     (when (zerop array-ptr)
-      (error 'maiko-lisp.utils:vm-error :message "GETAEL2: NIL is not an array"))
+      (error 'laiko.utils:vm-error :message "GETAEL2: NIL is not an array"))
     ;; TODO: Get array header from memory, access element at index
-    (error 'maiko-lisp.utils:vm-error :message "GETAEL2 needs memory access")))
+    (error 'laiko.utils:vm-error :message "GETAEL2 needs memory access")))
 
 (defun handle-setael1 (vm operands)
   "Handle SETAEL1 opcode: Set array element with 1-byte index"
@@ -495,11 +495,11 @@
         (value (pop-stack vm))
         (array-ptr (pop-stack vm)))
     (when (zerop array-ptr)
-      (error 'maiko-lisp.utils:vm-error :message "SETAEL1: NIL is not an array"))
+      (error 'laiko.utils:vm-error :message "SETAEL1: NIL is not an array"))
     ;; TODO: Get array header from memory, set element at index
     ;; Push array pointer back
     (push-stack vm array-ptr)
-    (error 'maiko-lisp.utils:vm-error :message "SETAEL1 needs memory access")))
+    (error 'laiko.utils:vm-error :message "SETAEL1 needs memory access")))
 
 (defun handle-setael2 (vm operands)
   "Handle SETAEL2 opcode: Set array element with 2-byte index"
@@ -512,10 +512,10 @@
         (value (pop-stack vm))
         (array-ptr (pop-stack vm)))
     (when (zerop array-ptr)
-      (error 'maiko-lisp.utils:vm-error :message "SETAEL2: NIL is not an array"))
+      (error 'laiko.utils:vm-error :message "SETAEL2: NIL is not an array"))
     ;; TODO: Get array header from memory, set element at index
     (push-stack vm array-ptr)
-    (error 'maiko-lisp.utils:vm-error :message "SETAEL2 needs memory access")))
+    (error 'laiko.utils:vm-error :message "SETAEL2 needs memory access")))
 
 ;; Function call opcodes
 (defun handle-fn0 (vm)
@@ -523,9 +523,9 @@
   (declare (type vm vm))
   (let ((func-obj (pop-stack vm)))
     (when (zerop func-obj)
-      (error 'maiko-lisp.utils:vm-error :message "FN0: Cannot call NIL"))
+      (error 'laiko.utils:vm-error :message "FN0: Cannot call NIL"))
     ;; TODO: Get function header, validate, call with 0 args
-    (error 'maiko-lisp.utils:vm-error :message "FN0 needs function call implementation")))
+    (error 'laiko.utils:vm-error :message "FN0 needs function call implementation")))
 
 (defun handle-fn1 (vm)
   "Handle FN1 opcode: Call function with 1 argument"
@@ -533,9 +533,9 @@
   (let ((arg1 (pop-stack vm))
         (func-obj (pop-stack vm)))
     (when (zerop func-obj)
-      (error 'maiko-lisp.utils:vm-error :message "FN1: Cannot call NIL"))
+      (error 'laiko.utils:vm-error :message "FN1: Cannot call NIL"))
     ;; TODO: Get function header, validate, call with 1 arg
-    (error 'maiko-lisp.utils:vm-error :message "FN1 needs function call implementation")))
+    (error 'laiko.utils:vm-error :message "FN1 needs function call implementation")))
 
 (defun handle-fn2 (vm)
   "Handle FN2 opcode: Call function with 2 arguments"
@@ -544,9 +544,9 @@
         (arg1 (pop-stack vm))
         (func-obj (pop-stack vm)))
     (when (zerop func-obj)
-      (error 'maiko-lisp.utils:vm-error :message "FN2: Cannot call NIL"))
+      (error 'laiko.utils:vm-error :message "FN2: Cannot call NIL"))
     ;; TODO: Get function header, validate, call with 2 args
-    (error 'maiko-lisp.utils:vm-error :message "FN2 needs function call implementation")))
+    (error 'laiko.utils:vm-error :message "FN2 needs function call implementation")))
 
 (defun handle-fn3 (vm)
   "Handle FN3 opcode: Call function with 3 arguments"
@@ -556,9 +556,9 @@
         (arg1 (pop-stack vm))
         (func-obj (pop-stack vm)))
     (when (zerop func-obj)
-      (error 'maiko-lisp.utils:vm-error :message "FN3: Cannot call NIL"))
+      (error 'laiko.utils:vm-error :message "FN3: Cannot call NIL"))
     ;; TODO: Get function header, validate, call with 3 args
-    (error 'maiko-lisp.utils:vm-error :message "FN3 needs function call implementation")))
+    (error 'laiko.utils:vm-error :message "FN3 needs function call implementation")))
 
 (defun handle-fn4 (vm)
   "Handle FN4 opcode: Call function with 4 arguments"
@@ -569,9 +569,9 @@
         (arg1 (pop-stack vm))
         (func-obj (pop-stack vm)))
     (when (zerop func-obj)
-      (error 'maiko-lisp.utils:vm-error :message "FN4: Cannot call NIL"))
+      (error 'laiko.utils:vm-error :message "FN4: Cannot call NIL"))
     ;; TODO: Get function header, validate, call with 4 args
-    (error 'maiko-lisp.utils:vm-error :message "FN4 needs function call implementation")))
+    (error 'laiko.utils:vm-error :message "FN4 needs function call implementation")))
 
 (defun handle-fnx (vm operands)
   "Handle FNX opcode: Call function with variable arguments"
@@ -586,7 +586,7 @@
                        (third operands)
                        0)))
     ;; TODO: Get function from atom, validate, call with N args
-    (error 'maiko-lisp.utils:vm-error :message "FNX needs atom and function call implementation")))
+    (error 'laiko.utils:vm-error :message "FNX needs atom and function call implementation")))
 
 ;; Bitwise operations
 (defun handle-logand (vm)
@@ -701,14 +701,14 @@
            (type list operands))
   (let ((count (if operands (first operands) 0)))
     ;; TODO: Bind N variables from stack
-    (error 'maiko-lisp.utils:vm-error
+    (error 'laiko.utils:vm-error
            :message "BIND needs variable binding implementation")))
 
 (defun handle-unbind (vm)
   "Handle UNBIND opcode: Unbind variables"
   (declare (type vm vm))
   ;; TODO: Unbind variables
-  (error 'maiko-lisp.utils:vm-error
+  (error 'laiko.utils:vm-error
          :message "UNBIND needs variable unbinding implementation"))
 
 ;; Copy operations
@@ -728,7 +728,7 @@
                                 (ash (second operands) 8))
                         0)))
     ;; TODO: Get global variable value from atom table
-    (error 'maiko-lisp.utils:vm-error
+    (error 'laiko.utils:vm-error
            :message "GVAR needs atom table access")))
 
 ;; Store operations
@@ -738,7 +738,7 @@
   (let ((value (pop-stack vm))
         (var-ptr (pop-stack vm)))
     ;; TODO: Store value to variable location
-    (error 'maiko-lisp.utils:vm-error
+    (error 'laiko.utils:vm-error
            :message "STORE needs variable storage implementation")))
 
 ;; Apply operations
@@ -748,7 +748,7 @@
   (let ((arg-list (pop-stack vm))
         (func-obj (pop-stack vm)))
     ;; TODO: Apply function to argument list
-    (error 'maiko-lisp.utils:vm-error
+    (error 'laiko.utils:vm-error
            :message "APPLYFN needs apply implementation")))
 
 ;; Unwind operations
@@ -756,7 +756,7 @@
   "Handle UNWIND opcode: Unwind stack"
   (declare (type vm vm))
   ;; TODO: Unwind stack to catch point
-  (error 'maiko-lisp.utils:vm-error
+  (error 'laiko.utils:vm-error
          :message "UNWIND needs unwind implementation"))
 
 ;; List operations
@@ -879,7 +879,7 @@
                                 (ash (second operands) 8))
                         0)))
     ;; TODO: Get atom from atom table and push
-    (error 'maiko-lisp.utils:vm-error
+    (error 'laiko.utils:vm-error
            :message "ACONST needs atom table access")))
 
 (defun handle-sic (vm operands)
@@ -920,7 +920,7 @@
                            (ash (second operands) 8))
                    0)))
     ;; TODO: Get global constant from constant table
-    (error 'maiko-lisp.utils:vm-error
+    (error 'laiko.utils:vm-error
            :message "GCONST needs constant table access")))
 
 ;; Optimized jump opcodes (offset encoded in opcode)
@@ -1041,10 +1041,10 @@
   (let ((index (pop-stack vm))
         (array-ptr (pop-stack vm)))
     (when (zerop array-ptr)
-      (error 'maiko-lisp.utils:vm-error :message "AREF1: NIL is not an array"))
+      (error 'laiko.utils:vm-error :message "AREF1: NIL is not an array"))
     ;; TODO: Get array header from memory, validate index, access element
     ;; For now, push 0 as placeholder
-    (error 'maiko-lisp.utils:vm-error :message "AREF1 needs memory access")))
+    (error 'laiko.utils:vm-error :message "AREF1 needs memory access")))
 
 (defun handle-aset1 (vm)
   "Handle ASET1 opcode: 1-dimensional array set"
@@ -1053,11 +1053,11 @@
         (index (pop-stack vm))
         (array-ptr (pop-stack vm)))
     (when (zerop array-ptr)
-      (error 'maiko-lisp.utils:vm-error :message "ASET1: NIL is not an array"))
+      (error 'laiko.utils:vm-error :message "ASET1: NIL is not an array"))
     ;; TODO: Get array header from memory, validate index, set element
     ;; Push array pointer back
     (push-stack vm array-ptr)
-    (error 'maiko-lisp.utils:vm-error :message "ASET1 needs memory access")))
+    (error 'laiko.utils:vm-error :message "ASET1 needs memory access")))
 
 (defun handle-aref2 (vm)
   "Handle AREF2 opcode: 2-dimensional array access"
@@ -1066,9 +1066,9 @@
         (index0 (pop-stack vm))
         (array-ptr (pop-stack vm)))
     (when (zerop array-ptr)
-      (error 'maiko-lisp.utils:vm-error :message "AREF2: NIL is not an array"))
+      (error 'laiko.utils:vm-error :message "AREF2: NIL is not an array"))
     ;; TODO: Get array header from memory, calculate linear index, access element
-    (error 'maiko-lisp.utils:vm-error :message "AREF2 needs memory access")))
+    (error 'laiko.utils:vm-error :message "AREF2 needs memory access")))
 
 (defun handle-aset2 (vm)
   "Handle ASET2 opcode: 2-dimensional array set"
@@ -1078,10 +1078,10 @@
         (index0 (pop-stack vm))
         (array-ptr (pop-stack vm)))
     (when (zerop array-ptr)
-      (error 'maiko-lisp.utils:vm-error :message "ASET2: NIL is not an array"))
+      (error 'laiko.utils:vm-error :message "ASET2: NIL is not an array"))
     ;; TODO: Get array header from memory, calculate linear index, set element
     (push-stack vm array-ptr)
-    (error 'maiko-lisp.utils:vm-error :message "ASET2 needs memory access")))
+    (error 'laiko.utils:vm-error :message "ASET2 needs memory access")))
 
 ;; Variable setting opcodes
 (defun set-pvar (vm index)
@@ -1091,7 +1091,7 @@
   (let ((value (pop-stack vm))
         (frame (vm-current-frame vm)))
     (unless frame
-      (error 'maiko-lisp.utils:vm-error :message "No current frame for PVAR set"))
+      (error 'laiko.utils:vm-error :message "No current frame for PVAR set"))
     ;; TODO: Set parameter variable in frame
     ;; For now, just pop the value
     value))
@@ -1150,7 +1150,7 @@
   "Handle DUNBIND opcode: Dynamic unbind"
   (declare (type vm vm))
   ;; TODO: Implement dynamic unbinding
-  (error 'maiko-lisp.utils:vm-error
+  (error 'laiko.utils:vm-error
          :message "DUNBIND needs dynamic unbinding implementation"))
 
 (defun handle-gcref (vm operands)
@@ -1160,7 +1160,7 @@
   (let ((ref-type (if operands (first operands) 0))
         (object-ptr (get-top-of-stack vm)))
     ;; TODO: Implement GC reference operations (ADDREF, DELREF, STKREF)
-    (error 'maiko-lisp.utils:vm-error
+    (error 'laiko.utils:vm-error
            :message "GCREF needs GC reference implementation")))
 
 ;; Shift opcodes (optimized)
@@ -1236,7 +1236,7 @@
   (let ((type-code (pop-stack vm)))
     ;; TODO: Allocate cell of given type from storage
     ;; For now, return NIL as placeholder
-    (error 'maiko-lisp.utils:vm-error
+    (error 'laiko.utils:vm-error
            :message "CREATECELL needs type-based cell allocation")))
 
 (defun handle-rplcons (vm)
@@ -1315,13 +1315,13 @@
   "Handle HILOC opcode: Get high 16 bits of address"
   (declare (type vm vm))
   (let ((value (get-top-of-stack vm)))
-    (set-top-of-stack vm (maiko-lisp.utils:hiloc value))))
+    (set-top-of-stack vm (laiko.utils:hiloc value))))
 
 (defun handle-loloc (vm)
   "Handle LOLOC opcode: Get low 16 bits of address"
   (declare (type vm vm))
   (let ((value (get-top-of-stack vm)))
-    (set-top-of-stack vm (maiko-lisp.utils:loloc value))))
+    (set-top-of-stack vm (laiko.utils:loloc value))))
 
 ;; Additional comparison opcodes (alternative opcodes)
 (defun handle-eq-alt (vm)

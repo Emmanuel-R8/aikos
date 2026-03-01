@@ -3,7 +3,7 @@
 ;;;; Provides tested primitives for reading from virtual memory with
 ;;;; correct byte ordering and XOR addressing for BYTESWAP mode.
 
-(in-package :maiko-lisp.data)
+(in-package :laiko.data)
 
 ;;;============================================================================
 ;;; XOR Addressing Constants
@@ -12,7 +12,7 @@
 (defconstant +xor-byte+ 3
   "XOR mask for byte access: GETBYTE(base) = *(base ^ 3)")
 
-(defconstant +xor-word+ 2  
+(defconstant +xor-word+ 2
   "XOR mask for word access: GETWORD(base) = *(base ^ 2)")
 
 ;;;============================================================================
@@ -21,7 +21,7 @@
 
 (defun vm-read-byte (vm byte-offset)
   "Read a single byte from virtual memory with XOR addressing.
-   
+
    Per C: GETBYTE(base) = *(unsigned char *)(3 ^ (UNSIGNED)(base))
    Returns 0 if page not loaded or address invalid."
   (declare (type (unsigned-byte 32) byte-offset))
@@ -31,12 +31,12 @@
          (page-offset (logand xor-offset #x1FF)))
     (when (and vmem (< page-num (length vmem)))
       (let ((page (aref vmem page-num)))
-        (when (and page (< page-offset 512))
+        (when (and page (< page-offset #x200))
           (aref page page-offset))))))
 
 (defun vm-read-word (vm byte-offset)
   "Read a 16-bit word from virtual memory with XOR addressing.
-   
+
    Per C: GETWORD(base) = *(DLword *)(2 ^ (UNSIGNED)(base))
    Constructs word from two bytes with XOR addressing.
    Returns 0 if page not loaded."
@@ -48,14 +48,14 @@
          (page-offset (logand word-base #x1FF)))
     (when (and vmem (< page-num (length vmem)))
       (let ((page (aref vmem page-num)))
-        (when (and page (< (+ page-offset 1) 512))
+        (when (and page (< (+ page-offset 1) #x200))
           ;; Word is stored big-endian after swap
           (logior (ash (aref page page-offset) 8)
                   (aref page (1+ page-offset))))))))
 
 (defun vm-read-lispptr (vm byte-offset)
   "Read a 32-bit LispPTR from virtual memory.
-   
+
    Uses word XOR addressing. Constructs 32-bit value from two words.
    Returns 0 if page not loaded."
   (declare (type (unsigned-byte 32) byte-offset))
@@ -73,7 +73,7 @@
          (page-offset (logand xor-offset #x1FF)))
     (when (and vmem (< page-num (length vmem)))
       (let ((page (aref vmem page-num)))
-        (when (and page (< page-offset 512))
+        (when (and page (< page-offset #x200))
           (setf (aref page page-offset) value)
           value)))))
 
@@ -87,7 +87,7 @@
          (page-offset (logand word-base #x1FF)))
     (when (and vmem (< page-num (length vmem)))
       (let ((page (aref vmem page-num)))
-        (when (and page (< (+ page-offset 1) 512))
+        (when (and page (< (+ page-offset 1) #x200))
           (setf (aref page page-offset) (logand (ash value -8) #xFF)
                 (aref page (1+ page-offset)) (logand value #xFF))
           value)))))

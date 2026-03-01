@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.memory)
+(in-package :laiko.memory)
 
 ;; Garbage collection
 ;; Per rewrite documentation memory/garbage-collection.md
@@ -6,7 +6,7 @@
 ;; Hash table entry structure (simplified version)
 (defstruct (gc-entry (:conc-name gce-))
   "GC hash table entry"
-  (ptr 0 :type maiko-lisp.utils:lisp-ptr)
+  (ptr 0 :type laiko.utils:lisp-ptr)
   (refcnt 0 :type (integer 0 *))
   (stackref nil :type boolean))
 
@@ -25,7 +25,7 @@
 
 (defun refcntp (ptr)
   "Check if pointer is reference-counted"
-  (declare (type maiko-lisp.utils:lisp-ptr ptr))
+  (declare (type laiko.utils:lisp-ptr ptr))
   ;; For now, assume all heap objects are reference-counted
   ;; In full implementation, check type tag
   (not (zerop ptr)))
@@ -33,7 +33,7 @@
 (defun add-ref (gc ptr)
   "Add reference to object (ADDREF operation)"
   (declare (type gc gc)
-           (type maiko-lisp.utils:lisp-ptr ptr))
+           (type laiko.utils:lisp-ptr ptr))
   (unless (refcntp ptr)
     (return-from add-ref))
 
@@ -49,7 +49,7 @@
 (defun del-ref (gc ptr)
   "Remove reference to object (DELREF operation)"
   (declare (type gc gc)
-           (type maiko-lisp.utils:lisp-ptr ptr))
+           (type laiko.utils:lisp-ptr ptr))
   (unless (refcntp ptr)
     (return-from del-ref))
 
@@ -65,7 +65,7 @@
 (defun mark-stack-ref (gc ptr)
   "Mark object as stack-referenced (STKREF operation)"
   (declare (type gc gc)
-           (type maiko-lisp.utils:lisp-ptr ptr))
+           (type laiko.utils:lisp-ptr ptr))
   (unless (refcntp ptr)
     (return-from mark-stack-ref))
 
@@ -79,7 +79,7 @@
 (defun find-in-hash-table (gc ptr)
   "Find entry in hash table for given pointer"
   (declare (type gc gc)
-           (type maiko-lisp.utils:lisp-ptr ptr))
+           (type laiko.utils:lisp-ptr ptr))
   (gethash ptr (gc-hash-table gc)))
 
 (defun collect (gc storage)
@@ -111,9 +111,9 @@
 ;; Per research.md: Use explicit memory pinning and coordinate GC triggers
 
 (defun coordinate-gc-with-common-lisp (gc storage)
-  "Coordinate Maiko's reference-counting GC with Common Lisp's GC.
+  "Coordinate Laiko's reference-counting GC with Common Lisp's GC.
    This function ensures that:
-   1. Maiko-managed objects are pinned to prevent Common Lisp GC from moving them
+   1. Laiko-managed objects are pinned to prevent Common Lisp GC from moving them
    2. Common Lisp GC is triggered only at safe points
    3. Cross-references are handled correctly"
   (declare (type gc gc)
@@ -123,7 +123,7 @@
   ;; In SBCL, we use sb-sys:with-pinned-objects
   #+sbcl
   (sb-sys:with-pinned-objects ((storage-heap storage))
-    ;; Run Maiko GC first
+    ;; Run Laiko GC first
     (let ((reclaimed (collect gc storage)))
       ;; If we reclaimed a significant amount, trigger Common Lisp GC
       ;; This is a safe point for Common Lisp GC
@@ -133,5 +133,5 @@
       reclaimed))
 
   #-sbcl
-  ;; For non-SBCL implementations, just run Maiko GC
+  ;; For non-SBCL implementations, just run Laiko GC
   (collect gc storage))

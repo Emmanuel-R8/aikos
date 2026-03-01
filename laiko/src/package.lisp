@@ -1,4 +1,4 @@
-(defpackage :maiko-lisp
+(defpackage :laiko
   (:use :cl)
   (:nicknames :ml)
   (:export
@@ -10,7 +10,7 @@
    #:get-command-line-arguments
    #:getenv))
 
-(defpackage :maiko-lisp.utils
+(defpackage :laiko.utils
   (:use :cl)
   (:export
    #:lisp-ptr
@@ -38,7 +38,7 @@
    #:sysout-load-failed
    #:sysout-load-failed-message))
 
-(defpackage :maiko-lisp.vm
+(defpackage :laiko.vm
   (:use :cl)
   (:export
    #:vm
@@ -53,6 +53,7 @@
    #:vm-stack-ptr
    #:vm-stack-size
    #:vm-current-frame
+   #:vm-frame-pointer-offset
    #:stack-frame
    #:dispatch
    #:execute-opcode
@@ -143,7 +144,7 @@
    #:*opcode-handlers* #:register-opcode-handler #:get-opcode-handler #:initialize-opcode-handlers #:dispatch-opcode
    #:*trace-line-number*))
 
-(defpackage :maiko-lisp.memory
+(defpackage :laiko.memory
   (:use :cl)
   (:export
    #:storage
@@ -168,7 +169,7 @@
    #:get-page-offset
    #:+mds-offset+))
 
-(defpackage :maiko-lisp.data
+(defpackage :laiko.data
   (:use :cl)
   (:export
    #:cons-cell
@@ -265,7 +266,7 @@
    #:vm-stack-tos
    #:vm-stack-set-tos))
 
-(defpackage :maiko-lisp.io
+(defpackage :laiko.io
   (:use :cl)
   (:export
    #:keyboard-event
@@ -285,11 +286,11 @@
    #:translate-mouse-event
    #:update-mouse-position
    #:get-mouse-position
-   #:maiko-translate-pathname
+   #:laiko-translate-pathname
    #:open-file
    #:close-file))
 
-(defpackage :maiko-lisp.display
+(defpackage :laiko.display
   (:use :cl)
   (:export
    #:display-interface
@@ -307,8 +308,8 @@
    #:poll-events
    #:wait-for-event))
 
-(defpackage :maiko-lisp-tests
-  (:use :cl :maiko-lisp.vm :maiko-lisp.memory :maiko-lisp.data :maiko-lisp.utils)
+(defpackage :laiko-tests
+  (:use :cl :laiko.vm :laiko.memory :laiko.data :laiko.utils)
   (:export
    #:run-opcode-tests
    #:run-stack-tests

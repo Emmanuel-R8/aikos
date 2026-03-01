@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 
 ;; BitBLT and graphics operations
 ;; PILOTBITBLT: Bit Block Transfer for moving/combining rectangular regions of bits
@@ -13,10 +13,10 @@
   "BitBLT operation state structure.
 Implements the classic BitBLT algorithm for transferring rectangular bit regions
 with various raster operations (AND, OR, XOR, etc.)."
-  (source-ptr 0 :type maiko-lisp.utils:lisp-ptr)
-  (dest-ptr 0 :type maiko-lisp.utils:lisp-ptr)
-  (width 0 :type (integer 0 1024))
-  (height 0 :type (integer 0 1024))
+  (source-ptr 0 :type laiko.utils:lisp-ptr)
+  (dest-ptr 0 :type laiko.utils:lisp-ptr)
+  (width 0 :type (integer 0 #x400))
+  (height 0 :type (integer 0 #x400))
   (source-pitch 0 :type (integer 0 2048))
   (dest-pitch 0 :type (integer 0 2048))
   (operation 0 :type (integer 0 15))
@@ -197,7 +197,7 @@ Handles all raster operations including:
 (defun set-pixel (vm x y color)
   "Set a single pixel on the display."
   (declare (type vm vm)
-           (type (integer 0 1024) x y)
+           (type (integer 0 #x400) x y)
            (type (unsigned-byte 32) color))
   (declare (ignore vm color))
   (when (and (>= x 0) (< x *display-width*)

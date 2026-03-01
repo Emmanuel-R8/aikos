@@ -3,7 +3,7 @@
 ;;;; Implements atom table access matching C implementation in maiko/inc/cell.h
 ;;;; Per zaiko/src/data/atom.zig
 
-(in-package :maiko-lisp.data)
+(in-package :laiko.data)
 
 ;;;============================================================================
 ;;; Constants
@@ -86,7 +86,7 @@
 
    Returns byte offset in virtual memory."
   (declare (type (unsigned-byte 32) atom-index))
-  (let ((vmem (maiko-lisp.vm:vm-virtual-memory vm)))
+  (let ((vmem (laiko.vm:vm-virtual-memory vm)))
     (unless vmem
       (return-from get-defcell 0))
 
@@ -115,7 +115,7 @@
 
    Per C: GVAR macro - reads value from value cell."
   (declare (type (unsigned-byte 32) atom-index))
-  (let ((vmem (maiko-lisp.vm:vm-virtual-memory vm)))
+  (let ((vmem (laiko.vm:vm-virtual-memory vm)))
     (unless vmem
       (return-from read-atom-value 0))
     (let ((value-cell-offset (get-valcell vm atom-index)))
@@ -146,7 +146,7 @@
 
    Per C: GVAR_ opcode - writes value to value cell."
   (declare (type (unsigned-byte 32) atom-index value))
-  (let ((vmem (maiko-lisp.vm:vm-virtual-memory vm)))
+  (let ((vmem (laiko.vm:vm-virtual-memory vm)))
     (unless vmem
       (return-from write-atom-value nil))
     (let ((value-cell-offset (get-valcell vm atom-index)))

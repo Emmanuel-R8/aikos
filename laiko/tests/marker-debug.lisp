@@ -1,4 +1,4 @@
-(in-package :maiko-lisp-tests)
+(in-package :laiko-tests)
 
 (defun test-marker-encoding ()
   "Debug marker encoding"

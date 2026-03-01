@@ -1,7 +1,7 @@
 ;;; Parity testing between C and Common Lisp emulators
 ;;; Compares execution traces to verify correctness
 
-(in-package :maiko-lisp-tests)
+(in-package :laiko-tests)
 
 ;;; Configuration
 (defparameter *c-emulator-path*
@@ -50,10 +50,10 @@
   (let ((sbcl-code
           `(progn
              (require :asdf)
-             (load ,(namestring (merge-pathnames "../maiko-lisp.asd" (make-pathname :name nil :type nil :defaults (or *load-pathname* #P"."))))))
-          (asdf:load-system :maiko-lisp)
-          (setf maiko-lisp.vm:*max-trace-steps* ,max-steps)
-          (maiko-lisp:run-emulator
+             (load ,(namestring (merge-pathnames "../laiko.asd" (make-pathname :name nil :type nil :defaults (or *load-pathname* #P"."))))))
+          (asdf:load-system :laiko)
+          (setf laiko.vm:*max-trace-steps* ,max-steps)
+          (laiko:run-emulator
            ,*sysout-path*
            (list "-trace" ,*lisp-trace-file*)))))
   (sb-ext:run-program
@@ -115,21 +115,21 @@
   (format t "=== Parity Test ===~%")
   (format t "Sysout: ~A~%" *sysout-path*)
   (format t "Max steps: ~D~%" max-steps)
-  
+
   (cond
     ((not (c-emulator-available-p))
      (format t "WARNING: C emulator not found at ~A~%" *c-emulator-path*)
      (format t "Running only Lisp emulator test...~%")
      (run-lisp-emulator-trace max-steps)
      (format t "Trace saved to: ~A~%" *lisp-trace-file*))
-    
+
     (t
      ;; Run C emulator
      (run-c-emulator-trace max-steps)
-     
+
      ;; Run Lisp emulator
      (run-lisp-emulator-trace max-steps)
-     
+
      ;; Compare traces
      (let ((diffs (compare-trace-files *c-trace-file* *lisp-trace-file*)))
        (format t "~%=== Test Complete ===~%")
