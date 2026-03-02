@@ -30,9 +30,8 @@
   (unless (trace-enabled-p)
     (return-from trace-log))
   (incf *trace-step*)
-  ;; Use the virtual-memory stack for parity with C/Zig traces.
-  ;; SP here is the byte offset of CurrentStackPTR into virtual memory.
-  (let* ((sp-bytes (vm-stack-ptr-offset vm))
+  ;; Use byte offset stack pointer; divide by 2 for DLword units to match C trace.
+  (let* ((sp-bytes (ash (vm-stack-ptr-offset vm) -1))
          (tos (laiko.vm:vm-tos vm))
          (n1 (laiko.vm:vm-read-lispptr vm (+ sp-bytes 4)))
          (n2 (laiko.vm:vm-read-lispptr vm (+ sp-bytes 8)))
@@ -65,7 +64,7 @@
     ;; SP_FP (comma-separated: SP:0x%06x,FP:0x%06x,OLD_SP:%d)
     ;; Use byte offset stack pointer to match C trace SP semantics; FP is 0 for now.
     ;; DIAGNOSTIC: Also show old array-based stack-ptr for debugging
-    (let ((fp 0)
+    (let ((fp (laiko.vm:vm-frame-pointer-offset vm))
           (old-stack-ptr (vm-stack-ptr vm)))
       (format *vm-trace-output* "SP:0x~6,'0X,FP:0x~6,'0X,OLD_SP:~D|" sp-bytes fp old-stack-ptr))
     ;; STACK_SUMMARY (comma-separated: TOS:0x%08x,N1:0x%08x,N2:0x%08x)

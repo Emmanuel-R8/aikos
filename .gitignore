@@ -1,9 +1,12 @@
 # Object files
 *.o
+**/*.fasl
+
 # Editor backups and recovery files
 *~
 \#*#
 .DS_Store
+
 # build directories
 **/build/**
 **/build-cmake/**
@@ -11,6 +14,7 @@
 **/bin-legacy/**
 *.make
 *.cmake
+
 maiko/CMakeCache.txt
 maiko/CMakeFiles
 maiko/Makefile
@@ -28,7 +32,6 @@ trace.db*
 
 cmake-build-*/**
 .idea/
-.kilocode/
 *.m68k-x/**
 *.m68k/**
 *.386-sdl/**
@@ -57,13 +60,13 @@ core
 *.core
 *.swp
 
-# build cache 
+# build cache
 maiko/.cache
-maiko/build 
+maiko/build
 maiko/build-cmake/CMakeFiles
 taiko/node_modules/
 taiko/package-lock.json
-
+**/.github/
 
 maiko_untouched
 medley
@@ -93,3 +96,10 @@ documentation/**/*.pdf
 # Nix
 flake.lock
 
+# LLMs
+.agent/
+.cursor/
+.kilocode/
+.opencode/
+.specify/
+.vscode/
