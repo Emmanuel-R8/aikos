@@ -53,6 +53,16 @@ Pushes 0 on success."
       (execute-bitblt state)
       (push-stack vm 0))))
 
+(defun set-pixel (vm x y color)
+  "Set a single pixel on the display."
+  (declare (type vm vm)
+           (type (integer 0 #x400) x y)
+           (type (unsigned-byte 32) color))
+  (declare (ignore vm color))
+  (when (and (>= x 0) (< x *display-width*)
+             (>= y 0) (< y *display-height*))
+    nil))
+
 (defop drawline :hexcode #x3B :instruction-length 1
   "DRAWLINE: Draw a line on the display.
 Pops y2, x2, y1, x1, color.
@@ -67,7 +77,7 @@ Draws a line from (x1, y1) to (x2, y2) with Bresenham's algorithm."
         (x1 (pop-stack vm))
         (y1 (pop-stack vm)))
     (declare (ignore color))
-    (let ((dx (abs (- x2 x1)))
+    (let* ((dx (abs (- x2 x1)))
           (dy (abs (- y2 y1)))
           (sx (if (< x1 x2) 1 -1))
           (sy (if (< y1 y2) 1 -1))
@@ -75,7 +85,6 @@ Draws a line from (x1, y1) to (x2, y2) with Bresenham's algorithm."
           (e2 0)
           (x x1)
           (y y1))
-      (declare (ignore dx dy err e2))
       (loop while (and (>= x 0) (< x *display-width*)
                        (>= y 0) (< y *display-height*)) do
                          (set-pixel vm x y 1)
@@ -193,16 +202,6 @@ Handles all raster operations including:
   "Generic BitBLT fallback for unsupported operations."
   (declare (type bitblt-state state))
   (bitblt-src-copy state))
-
-(defun set-pixel (vm x y color)
-  "Set a single pixel on the display."
-  (declare (type vm vm)
-           (type (integer 0 #x400) x y)
-           (type (unsigned-byte 32) color))
-  (declare (ignore vm color))
-  (when (and (>= x 0) (< x *display-width*)
-             (>= y 0) (< y *display-height*))
-    nil))
 
 ;; Subroutine stubs
 (defun subr-open-stream (args)

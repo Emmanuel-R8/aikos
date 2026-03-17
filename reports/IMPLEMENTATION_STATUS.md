@@ -111,12 +111,12 @@ EMULATOR_MAX_STEPS=15 ./zaiko/build/zaiko ./medley/internal/loadups/starter.syso
 
 ## Common Lisp Implementation (laiko/)
 
-**Status**: 🔧 IN PROGRESS
+**Status**: 🔧 EXECUTION WORKING
 
 ### Completeness
 
-- **Stage**: Early stage with project structure and ASDF build system in place
-- **Current Focus**: VM core implementation, memory management
+- **Stage**: Execution stage - running sysouts
+- **Current Focus**: Parity testing, missing opcodes, REPL loop
 
 ### What Works
 
@@ -124,30 +124,28 @@ EMULATOR_MAX_STEPS=15 ./zaiko/build/zaiko ./medley/internal/loadups/starter.syso
 - ✅ Sysout file loading (load-sysout function)
 - ✅ VM state structure (stack, PC, frame pointers, registers)
 - ✅ Dispatch loop with opcode fetching and execution
-- ✅ ~190+ opcode handlers registered (partial implementation)
+- ✅ **186 opcodes defined (72.7%)**
+- ✅ **Full Execution**: Loads `starter.sysout` and executes to completion.
 - ✅ Trace infrastructure matching C format
 - ✅ Parity testing framework (tests/run-parity.lisp)
 - ✅ Load scripts for manual loading
 
 ### Known Issues
 
-- ⚠️ ASDF compilation has undefined function warnings
-- ⚠️ Some opcode handlers not loading correctly (handle-nthcdr, handle-append, etc.)
-- ⚠️ IFPAGE accessor functions not properly exported
-- ⚠️ Load order dependencies between modules
-- ⚠️ `read-pc-32-be` is a placeholder returning 0 (GVAR always reads atom 0)
+- ⚠️ Graphics opcodes are partial/stubs.
+- ⚠️ Subroutine calls are stubs.
+- ⚠️ Emulator exits after initial return (needs hard loop for REPL).
 - ⚠️ `*bigatoms*` set to nil but C uses BIGVM/BIGATOMS
 - ⚠️ Atom index incorrectly masked to 16 bits in GVAR handler
 
 ### Backend
 
-- **Display**: SDL3 for display
+- **Display**: SDL3 for display (stubbed)
 
 ### Load Command
 
 ```bash
-cd laiko
-./load-emulator.lisp
+./laiko/run.sh medley/internal/loadups/starter.sysout
 ```
 
 ### Key Files Modified

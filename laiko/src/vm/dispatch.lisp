@@ -126,6 +126,10 @@ Returns symbol or NIL if undefined."
                    (trace-log vm (+ base-pc pc) opcode-byte operands
                               :instruction-name opcode-name)))
 
+               ;; Initialize VM-PC to point to operands (PC + 1)
+               ;; Handlers that read operands will increment this further
+               (setf (vm-pc vm) (+ pc 1))
+
                ;; Execute handler
                (handler-case
                    (if handler-fn
@@ -138,15 +142,15 @@ Returns symbol or NIL if undefined."
                    (error 'laiko.utils:vm-error
                           :message (format nil "Error in opcode 0x~2,'0X: ~A" opcode-byte err))))
 
-               ;; Update PC (unless handler modified it)
-               (let ((current-pc (vm-pc vm)))
-                 (if (= current-pc pc)
-                     ;; PC wasn't modified, advance normally
-                     (progn
-                       (setf pc (+ pc instruction-len))
-                       (setf (vm-pc vm) pc))
-                     ;; PC was modified by opcode (e.g., JUMP, RETURN)
-                     (setf pc current-pc))))
+               ;; Update PC
+               ;; If handler didn't modify VM-PC (beyond the initial +1), advance by instruction-len
+               ;; If handler modified VM-PC (jump, or read operands), use VM-PC
+               (let ((new-pc (vm-pc vm)))
+                 (if (= new-pc (+ pc 1))
+                     ;; Handler didn't touch VM-PC (e.g. POP, ADD)
+                     (setf pc (+ pc instruction-len))
+                     ;; Handler modified VM-PC (JUMP, or read-pc-*)
+                     (setf pc new-pc))))
 
              ;; Check interrupts after execution
              (when (check-interrupts vm)

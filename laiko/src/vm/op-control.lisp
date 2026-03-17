@@ -528,7 +528,7 @@ Reads 2-byte atom index, looks up function definition, calls it."
   :category :function-call
   :side-effects t
   (let* ((atom-idx (read-pc-16-be vm))
-         (defcell (laiko.data:read-defcell vm atom-idx)))
+         (defcell (laiko.data:read-defcell (vm-virtual-memory vm) atom-idx)))
     (when (laiko.data:is-c-code defcell)
       (error 'laiko.utils:vm-error :message "FN0: C code not supported"))
     (let ((fnheader-offset (laiko.data:get-function-header defcell)))
@@ -619,14 +619,17 @@ Pops function object and argument list, applies function."
 (defun read-pc-8 (vm)
   "Read 8-bit value from PC and advance PC by 1."
   (declare (type vm vm))
-  ;; Placeholder
-  0)
+  (prog1 (fetch-instruction-byte (vm-pc vm) *current-code*)
+    (incf (vm-pc vm) 1)))
 
 (defun read-pc-16-be (vm)
   "Read 16-bit big-endian value from PC and advance PC by 2."
   (declare (type vm vm))
-  ;; Placeholder
-  0)
+  (let* ((pc (vm-pc vm))
+         (b1 (fetch-instruction-byte pc *current-code*))
+         (b2 (fetch-instruction-byte (1+ pc) *current-code*)))
+    (incf (vm-pc vm) 2)
+    (logior (ash b1 8) b2)))
 
 (defun read-pc-16-be-signed (vm)
   "Read signed 16-bit big-endian value from PC."

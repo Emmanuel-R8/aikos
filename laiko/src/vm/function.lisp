@@ -64,34 +64,44 @@
              :message "No current frame to return from"))
 
     ;; Get the link (caller's stack pointer where frame data is stored)
-    (let ((link (sf-link current-frame))
-          (return-pc (vm-return-pc vm)))
-      (unless return-pc
-        (error 'laiko.utils:vm-error
-               :message "No return PC set"))
+    ;; link is a DLword offset from Stackspace
+    (let ((link (sf-link current-frame)))
+      
+      ;; If link is 0, we are at the top level and have nowhere to return to.
+      (when (zerop link)
+        (format t "Execution complete (returned from top frame)~%")
+        (laiko.vm:trace-end)
+        (laiko:quit 0))
 
-      ;; Restore stack pointer to caller's position
-      (setf (vm-stack-ptr vm) link)
+      ;; Read caller's frame extension from VM
+      (let ((caller-fx (laiko.data:read-fx-from-vm (vm-virtual-memory vm) link)))
+        
+        ;; Restore Frame Pointer (FP) to caller's FX
+        (setf (vm-frame-pointer-offset vm) 
+              (+ laiko.data:+stackspace-byte-offset+ (* link 2)))
 
-      ;; Restore previous frame from stored data at caller's stack position
-      (if (zerop link)
-          (setf (vm-current-frame vm) nil)
-          (let* ((stack (vm-stack vm))
-                 (caller-link (aref stack link))
-                 (caller-fn-header (aref stack (+ link 1)))
-                 (caller-pc-offset (aref stack (+ link 2))))
-            (setf (vm-current-frame vm)
-                  (make-stack-frame
-                   :next-block 0
-                   :link caller-link
-                   :fn-header caller-fn-header
-                   :pc-offset caller-pc-offset))))
+        ;; Restore Stack Pointer (SP) to caller's nextblock
+        ;; SP = nextblock * 2 - 4
+        (let ((nextblock (laiko.data:fx-nextblock caller-fx)))
+          (setf (vm-stack-ptr-offset vm) 
+                (+ laiko.data:+stackspace-byte-offset+ (- (* nextblock 2) 4))))
 
-      ;; Restore PC
-      (setf (vm-pc vm) return-pc)
-      (setf (vm-return-pc vm) nil)
+        ;; Restore PC
+        (let* ((fnheader (laiko.data:fx-fnheader caller-fx))
+               (pc-offset (laiko.data:fx-pc caller-fx))
+               ;; PC = (fnheader * 2) + pc-offset
+               (new-pc (+ (* fnheader 2) pc-offset)))
+          (setf (vm-pc vm) new-pc))
+          
+        ;; Restore current-frame struct
+        (setf (vm-current-frame vm)
+              (make-stack-frame
+               :next-block (laiko.data:fx-nextblock caller-fx)
+               :link (laiko.data:fx-alink caller-fx)
+               :fn-header (laiko.data:fx-fnheader caller-fx)
+               :pc-offset (laiko.data:fx-pc caller-fx)))
 
-      ;; Push return value onto caller's stack
-      (push-stack vm return-value)
+        ;; Push return value onto caller's stack
+        (vm-push vm return-value)
 
-      return-value)))
+        return-value))))

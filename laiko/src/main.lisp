@@ -14,9 +14,9 @@
   #+sbcl (sb-ext:posix-getenv var)
   #-sbcl nil)
 
-(defun main ()
+(defun main (&optional args)
   "Main entry point for Laiko Lisp emulator"
-  (let ((args (get-command-line-arguments)))
+  (let ((args (or args (get-command-line-arguments))))
     (cond
       ((or (member "-info" args :test #'string-equal)
            (member "-INFO" args :test #'string-equal))
@@ -180,7 +180,21 @@ NEW: FP = currentfxp (from IFPAGE directly)"
         (setf (laiko.vm:vm-top-of-stack vm)
               (laiko.vm:vm-read-lispptr vm current-stack-ptr))
         (format t "  Top-of-stack (cached): 0x~X~%"
-                (laiko.vm:vm-top-of-stack vm))))))
+                (laiko.vm:vm-top-of-stack vm))
+        ;; CRITICAL FIX: Initialize current-frame from the initial FX
+        ;; This is required for any opcode that accesses frames (including RETURN)
+        ;; The initial frame is the one pointed to by currentfxp from IFPAGE
+        (let ((initial-frame (laiko.vm:make-stack-frame
+                              :next-block (laiko.data:fx-nextblock fx)
+                              :link (laiko.data:fx-alink fx)  ; Use actual alink from FX
+                              :fn-header (laiko.data:fx-fnheader fx)
+                              :pc-offset (laiko.data:fx-pc fx))))
+          (setf (laiko.vm:vm-current-frame vm) initial-frame)
+          (format t "  Initial frame: fnheader=0x~X, pc=~D, nextblock=0x~X, link=0x~X~%"
+                  (laiko.data:fx-fnheader fx)
+                  (laiko.data:fx-pc fx)
+                  (laiko.data:fx-nextblock fx)
+                  (laiko.data:fx-alink fx)))))))
 
 (defun create-and-initialize-vm (ifpage fptovp virtual-memory)
   "Create a VM and wire it up to IFPAGE, FPTOVP, and VIRTUAL-MEMORY."
@@ -232,7 +246,7 @@ Returns the effective trace file name (or NIL if tracing disabled)."
   (format t "~D opcode handlers registered~%"
           (hash-table-count laiko.vm:*opcode-handlers*))
   (format t "Starting execution...~%")
-  (handler-case
+  ;; (handler-case
       (let* ((start-pc (laiko.vm:vm-pc vm))
              (bytecode (laiko.data:extract-bytecode-from-vm
                         (laiko.vm:vm-virtual-memory vm)
@@ -259,11 +273,11 @@ Returns the effective trace file name (or NIL if tracing disabled)."
               ;; Dispatch with base PC for trace reporting
               (laiko.vm:dispatch vm bytecode start-pc))
             (format t "Error: Could not extract bytecode from sysout (bytecode=~A)~%"
-                    bytecode)))
-    (laiko.utils:vm-error (e)
-      (format t "VM Error: ~A~%" (laiko.utils:vm-error-message e)))
-    (error (e)
-      (format t "Execution error: ~A~%" e))))
+                    bytecode))))
+    ;; (laiko.utils:vm-error (e)
+    ;;   (format t "VM Error: ~A~%" (laiko.utils:vm-error-message e)))
+    ;; (error (e)
+    ;;   (format t "Execution error: ~A~%" e))))
 
 (defun run-emulator (sysout-path args)
   "Run the emulator with given sysout file."

@@ -3,8 +3,8 @@
 *Navigation*: README | Index | Architecture
 
 *Feature*: 002-lisp-implementation
-*Date*: 2026-03-01
-*Status*: 🔧 IN DEVELOPMENT - Stack System Consolidation Complete
+*Date*: 2026-03-17
+*Status*: 🔧 EXECUTION WORKING - Starter Sysout Runs
 
 == Overview
 
@@ -19,13 +19,17 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL), following t
 - *Build System*: ASDF
 - *Target Platform*: Linux (SBCL), macOS, Windows (partial)
 
-== Current Status (2026-02-16)
+== Current Status (2026-03-17)
 
-=== Opcode alignment with Maiko (2026-03-01)
+=== Opcode alignment with Maiko (2026-03-17)
 
-Laiko stack-constant opcodes were corrected to match `maiko/inc/opcodes.h`: NIL = 0x68, T = 0x69, CONST_0 (opc_0) = 0x6A, CONST_1 (opc_1) = 0x6B. See `reports/laiko-opcode-audit-vs-maiko.md` for the audit and remaining discrepancies (comparison 0x3B-0x3F, logic 0xE0-0xE7).
+Laiko now successfully loads and executes `starter.sysout` to completion (returning from the top-level frame).
 
-**2026-03-01 Update**: GVAR (0x60) was fixed to correctly read from Valspace. The stack system consolidation was completed - see details below.
+**2026-03-17 Update**:
+- Fixed `return-from-function` to correctly use virtual memory stack pointers and restore caller frames.
+- Fixed `initialize-vm-from-ifpage` to correctly initialize the initial stack frame's link field from `fx-alink`.
+- Resolved compilation warnings in graphics opcodes (undefined `DX`/`DY`).
+- Resolved package visibility issues for `quit` and `fetch-instruction-byte`.
 
 === ✅ Completed
 
@@ -33,29 +37,22 @@ Laiko stack-constant opcodes were corrected to match `maiko/inc/opcodes.h`: NIL 
 - ✅ Sysout file loading (BIGVM format, FPtoVP table loading)
 - ✅ VM state structure (stack, PC, frame pointers, registers)
 - ✅ Dispatch loop with opcode fetching and execution
-- ✅ ~191 opcode handlers registered
-- ✅ **32-bit word swapping** for page loading
-- ✅ **XOR addressing** for bytecode access
-- ✅ **Frame Extension reading** and PC initialization
-- ✅ **Virtual memory stack operations**
-- ✅ **Atom/Defcell infrastructure**
-- ✅ **Valspace page allocation** (runtime memory, not from sysout)
-- ✅ **Stack system consolidation** (unified VM-based stack operations)
-- ✅ **4+ instructions executing**:
-  1. POP (0xBF) at PC 0x60F130
-  2. GVAR (0x60) at PC 0x60F131
-  3. UNBIND (0x12) at PC 0x60F136
-  4. GETBASEPTR-N (0xC9) at PC 0x60F137
+- ✅ **186/256 opcodes defined (72.7%)**
+- ✅ **Full Execution Cycle**: Loads sysout, initializes VM, executes instructions, and returns cleanly.
+- ✅ **Stack System**: Fully consolidated to use virtual memory byte offsets (matching C/Zig).
+- ✅ **Graphics**: Basic opcode definitions compiled without warnings (stubbed or partial).
 
 === ⚠️ Known Issues
 
-- ⚠️ Value cells need initialization from Lisp startup code
-- ⚠️ Trace FP display shows 0x000000 (trace formatting issue, not actual FP corruption)
+- ⚠️ Graphics opcodes are largely stubs or have unverified implementations.
+- ⚠️ Subroutine calls are stubs.
+- ⚠️ REPL interaction is not yet visible (emulator exits after initial bytecode).
 
 === 🔧 In Progress
 
-- Verifying stack consolidation fix with parity testing
-- Continuing Tier 2 opcode implementation
+- Parity testing against C emulator traces.
+- Implementing missing opcodes (graphics, I/O).
+- Establishing a persistent REPL loop.
 
 == Critical Fix: Stack System Consolidation (2026-03-01)
 

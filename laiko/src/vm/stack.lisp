@@ -203,24 +203,26 @@
 
 (defun vm-push (vm value)
   "Push value onto stack using virtual memory.
-   Stack grows DOWN (decreasing byte offset).
-   Per C: PSTKPTR += 2; *(PSTKPTR-2) = value"
+   Stack grows UP (increasing byte offset).
+   Per C: PSTKPTR += 2; *(PSTKPTR-2) = value
+   Actually, with SP pointing to TOS:
+   Inc SP; Write at SP."
   (declare (type vm vm)
            (type (unsigned-byte 32) value))
   (let ((sp (vm-stack-ptr-offset vm)))
-    (decf sp 4)  ; Move stack pointer down by 4 bytes (1 LispPTR)
+    (incf sp 4)  ; Move stack pointer UP by 4 bytes (1 LispPTR)
     (vm-write-lispptr vm sp value)
     (setf (vm-stack-ptr-offset vm) sp)
     (setf (vm-top-of-stack vm) value)))
 
 (defun vm-pop (vm)
   "Pop value from stack using virtual memory.
-   Returns value and increments stack pointer.
-   Per C: value = *PSTKPTR; PSTKPTR += 2"
+   Returns value and decrements stack pointer.
+   Stack grows UP."
   (declare (type vm vm))
   (let ((sp (vm-stack-ptr-offset vm)))
     (let ((value (vm-read-lispptr vm sp)))
-      (incf sp 4)  ; Move stack pointer up by 4 bytes
+      (decf sp 4)  ; Move stack pointer DOWN by 4 bytes
       (setf (vm-stack-ptr-offset vm) sp)
       ;; Update cached TOS
       (setf (vm-top-of-stack vm) (vm-read-lispptr vm sp))
@@ -235,6 +237,21 @@
 (defun vm-set-tos (vm value)
   "Set top-of-stack value in virtual memory.
    Per C: *CSTKPTRL = value; TopOfStack = value"
+  (declare (type vm vm)
+           (type (unsigned-byte 32) value))
+  (let ((sp (vm-stack-ptr-offset vm)))
+    (vm-write-lispptr vm sp value)
+    (setf (vm-top-of-stack vm) value)))
+
+(defun vm-peek (vm)
+  "Peek at top-of-stack value without popping.
+   Returns the value at the current stack pointer."
+  (declare (type vm vm))
+  (vm-read-lispptr vm (vm-stack-ptr-offset vm)))
+
+(defun vm-poke (vm value)
+  "Poke value onto top of stack without advancing stack pointer.
+   Overwrites the current top value."
   (declare (type vm vm)
            (type (unsigned-byte 32) value))
   (let ((sp (vm-stack-ptr-offset vm)))
