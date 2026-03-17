@@ -55,6 +55,11 @@
    #:vm-current-frame
    #:vm-frame-pointer-offset
    #:stack-frame
+   #:make-stack-frame
+   #:sf-next-block
+   #:sf-link
+   #:sf-fn-header
+   #:sf-pc-offset
    #:dispatch
    #:execute-opcode
    #:handle-opcode

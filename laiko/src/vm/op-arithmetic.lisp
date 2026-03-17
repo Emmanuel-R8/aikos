@@ -98,63 +98,7 @@ Signals error on division by zero."
 ;; UNARY ARITHMETIC
 ;;; ===========================================================================
 
-(defop iminus :hexcode #x9A :instruction-length 1
-  "IMINUS: Integer negation.
-Pops A, pushes -A.
-Negates a 32-bit signed integer."
-  :operands nil
-  :stack-effect (:pop 1 :push 1)
-  :category :arithmetic
-  :side-effects nil
-  (let ((a (pop-stack vm)))
-    (let ((a-signed (if (>= a #x80000000) (- a #x100000000) a)))
-      (let ((result (- a-signed)))
-        (let ((result-unsigned (if (minusp result)
-                                   (logand (+ result #x100000000) #xFFFFFFFF)
-                                   (logand result #xFFFFFFFF))))
-          (push-stack vm result-unsigned))))))
+;; IMINUS (0x9A) removed - duplicate/not standard opcode
+;; IDIVIDE (0x9B) removed - covered by IQUO (0xDB) and IREM (0xDC)
+;; IMOD (0x9C) removed - covered by IREM (0xDC)
 
-;;; ===========================================================================
-;; COMBINED ARITHMETIC
-;;; ===========================================================================
-
-(defop idivide :hexcode #x9B :instruction-length 1
-  "IDIVIDE: Integer division with remainder.
-Pops B and A, pushes remainder then quotient.
-Returns both values like (values remainder quotient).
-Signals error on division by zero."
-  :operands nil
-  :stack-effect (:pop 2 :push 2)
-  :category :arithmetic
-  :side-effects nil
-  (let ((b (pop-stack vm)) (a (pop-stack vm)))
-    (when (zerop b) (error 'laiko.utils:vm-arithmetic-error :message "Division by zero"))
-    (let ((a-signed (if (>= a #x80000000) (- a #x100000000) a))
-          (b-signed (if (>= b #x80000000) (- b #x100000000) b)))
-      (let ((quot (truncate a-signed b-signed))
-            (rem-val (rem a-signed b-signed)))
-        (push-stack vm (if (minusp rem-val)
-                           (logand (+ rem-val #x100000000) #xFFFFFFFF)
-                           (logand rem-val #xFFFFFFFF)))
-        (let ((quot-unsigned (if (minusp quot)
-                                 (logand (+ quot #x100000000) #xFFFFFFFF)
-                                 (logand quot #xFFFFFFFF))))
-          (push-stack vm quot-unsigned))))))
-
-(defop imod :hexcode #x9C :instruction-length 1
-  "IMOD: Integer modulus (sign follows divisor).
-Pops B and A, pushes mod(A,B) where sign matches B.
-Signals error on modulo by zero."
-  :operands nil
-  :stack-effect (:pop 2 :push 1)
-  :category :arithmetic
-  :side-effects nil
-  (let ((b (pop-stack vm)) (a (pop-stack vm)))
-    (when (zerop b) (error 'laiko.utils:vm-arithmetic-error :message "Modulo by zero"))
-    (let ((a-signed (if (>= a #x80000000) (- a #x100000000) a))
-          (b-signed (if (>= b #x80000000) (- b #x100000000) b)))
-      (let ((result (mod a-signed b-signed)))
-        (let ((result-unsigned (if (minusp result)
-                                   (logand (+ result #x100000000) #xFFFFFFFF)
-                                   (logand result #xFFFFFFFF))))
-          (push-stack vm result-unsigned))))))

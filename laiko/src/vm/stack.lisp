@@ -53,17 +53,30 @@
   (registers nil :type (simple-array laiko.utils:lisp-ptr (*))))
 
 (defun create-vm (stack-size &key (pvar-size #x100))
-  "Initialize VM with given stack size and PVAR size"
+  "Initialize VM with given stack size and PVAR size.
+   Creates a virtual memory space for the stack to support new VM stack operations."
   (declare (type (integer 1 *) stack-size pvar-size))
-  (let ((stack-mem (make-array stack-size
+  (let* ((stack-mem (make-array stack-size
+                                :element-type 'laiko.utils:lisp-ptr
+                                :initial-element 0))
+         (pvar-mem (make-array pvar-size
                                :element-type 'laiko.utils:lisp-ptr
                                :initial-element 0))
-        (pvar-mem (make-array pvar-size
-                              :element-type 'laiko.utils:lisp-ptr
-                              :initial-element 0))
-        (regs (make-array 4
-                          :element-type 'laiko.utils:lisp-ptr
-                          :initial-element 0)))
+         (regs (make-array 4
+                           :element-type 'laiko.utils:lisp-ptr
+                           :initial-element 0))
+         ;; Initialize virtual memory for stack
+         ;; Stack size is in DLwords (2 bytes), so bytes = stack-size * 2
+         (stack-bytes (* stack-size 2))
+         (page-size 512)
+         (num-pages (ceiling stack-bytes page-size))
+         (vmem (make-array num-pages :initial-element nil)))
+    
+    ;; Allocate pages
+    (loop for i from 0 below num-pages do
+      (setf (aref vmem i) 
+            (make-array page-size :element-type '(unsigned-byte 8) :initial-element 0)))
+
     (make-vm :stack stack-mem
              :stack-ptr 0
              :stack-size stack-size
@@ -73,19 +86,26 @@
              :pvar-size pvar-size
              :pc 0
              :return-pc nil
-             :registers regs)))
+             :registers regs
+             ;; New stack architecture initialization
+             :virtual-memory vmem
+             :stack-base-offset 0
+             :stack-ptr-offset 0
+             :stack-end-offset stack-bytes
+             :top-of-stack 0)))
 
 (defun allocate-stack-frame (vm size)
   "Allocate stack frame of given size (in DLwords)"
   (declare (type vm vm)
            (type (integer 1 *) size))
-  (let ((stack-ptr (vm-stack-ptr vm))
-        (stack-size (vm-stack-size vm)))
-    (when (> (+ stack-ptr size) stack-size)
+  (let ((stack-ptr (vm-stack-ptr-offset vm))
+        (stack-end (vm-stack-end-offset vm))
+        (byte-size (* size 2)))
+    (when (> (+ stack-ptr byte-size) stack-end)
       (laiko.vm:set-interrupt-flag vm :stack-overflow)
       (error 'laiko.utils:stack-overflow
              :message (format nil "Stack frame allocation would overflow: need ~A, have ~A"
-                              size (- stack-size stack-ptr))))
+                              byte-size (- stack-end stack-ptr))))
     (let ((new-frame (make-stack-frame
                       :next-block 0
                       :link (if (vm-current-frame vm)
@@ -93,7 +113,7 @@
                                 0)
                       :fn-header 0
                       :pc-offset 0)))
-      (setf (vm-stack-ptr vm) (+ stack-ptr size))
+      (setf (vm-stack-ptr-offset vm) (+ stack-ptr byte-size))
       (setf (vm-current-frame vm) new-frame)
       new-frame)))
 
@@ -102,12 +122,13 @@
   (declare (type vm vm)
            (type stack-frame frame))
   (let ((link (sf-link frame)))
+    ;; Restore stack pointer to the link (start of this frame)
+    ;; In real implementation, this would involve more complex return logic
+    (setf (vm-stack-ptr-offset vm) link)
     (if (zerop link)
         (setf (vm-current-frame vm) nil)
-        (setf (vm-current-frame vm) nil))
-    (let ((stack-ptr (vm-stack-ptr vm)))
-      (when (> stack-ptr 0)
-        (setf (vm-stack-ptr vm) (1- stack-ptr))))))
+        ;; TODO: We should restore the previous frame struct here if we were tracking it
+        (setf (vm-current-frame vm) nil))))
 
 ;; DEPRECATED: Old array-based stack functions
 ;; These now redirect to VM-based stack operations for consistency
@@ -118,7 +139,7 @@
    This redirects to vm-push for consistency with C/Zig implementations."
   (declare (type vm vm)
            (type laiko.utils:lisp-ptr value))
-  (vm-push vm (if (typep value 'fixnum) value (logand value #xFFFFFFFF))))
+  (vm-push vm value))
 
 (defun pop-stack (vm)
   "Pop value from stack. DEPRECATED - use vm-pop instead.
@@ -137,7 +158,7 @@
    This redirects to vm-set-tos for consistency with C/Zig implementations."
   (declare (type vm vm)
            (type laiko.utils:lisp-ptr value))
-  (vm-set-tos vm (if (typep value 'fixnum) value (logand value #xFFFFFFFF))))
+  (vm-set-tos vm value))
 
 ;;;============================================================================
 ;;; Virtual Memory Stack Operations
@@ -166,10 +187,14 @@
       (let ((page (aref vmem page-num)))
         (if (null page)
             0
-            (logior (ash (aref page page-offset) 24)
-                    (ash (aref page (1+ page-offset)) 16)
-                    (ash (aref page (+ page-offset 2)) 8)
-                    (aref page (+ page-offset 3))))))))
+            (let ((b0 (aref page (logxor page-offset 3)))
+                  (b1 (aref page (logxor (1+ page-offset) 3)))
+                  (b2 (aref page (logxor (+ page-offset 2) 3)))
+                  (b3 (aref page (logxor (+ page-offset 3) 3))))
+              (logior (ash b0 24)
+                      (ash b1 16)
+                      (ash b2 8)
+                      b3)))))))
 
 (defun vm-write-lispptr (vm byte-offset value)
   "Write 32-bit LispPTR to virtual memory at byte offset.

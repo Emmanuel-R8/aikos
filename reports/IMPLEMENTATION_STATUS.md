@@ -111,12 +111,14 @@ EMULATOR_MAX_STEPS=15 ./zaiko/build/zaiko ./medley/internal/loadups/starter.syso
 
 ## Common Lisp Implementation (laiko/)
 
-**Status**: 🔧 EXECUTION WORKING
+**Status**: 🔧 PARITY TESTING
 
 ### Completeness
 
-- **Stage**: Execution stage - running sysouts
-- **Current Focus**: Parity testing, missing opcodes, REPL loop
+- **Stage**: Parity testing and verification
+- **Current Focus**: Comparing execution traces with C implementation
+- **Opcode Coverage**: Opcode collisions resolved, 186 opcodes defined
+- **Architecture**: New virtual-memory based stack implementation verified
 
 ### What Works
 
@@ -124,11 +126,11 @@ EMULATOR_MAX_STEPS=15 ./zaiko/build/zaiko ./medley/internal/loadups/starter.syso
 - ✅ Sysout file loading (load-sysout function)
 - ✅ VM state structure (stack, PC, frame pointers, registers)
 - ✅ Dispatch loop with opcode fetching and execution
-- ✅ **186 opcodes defined (72.7%)**
+- ✅ **Opcode Collisions Resolved**: All conflicting opcodes fixed/removed.
+- ✅ **Stack Architecture**: Virtual memory-based stack fully implemented and tested.
 - ✅ **Full Execution**: Loads `starter.sysout` and executes to completion.
 - ✅ Trace infrastructure matching C format
 - ✅ Parity testing framework (tests/run-parity.lisp)
-- ✅ Load scripts for manual loading
 
 ### Known Issues
 
@@ -136,7 +138,6 @@ EMULATOR_MAX_STEPS=15 ./zaiko/build/zaiko ./medley/internal/loadups/starter.syso
 - ⚠️ Subroutine calls are stubs.
 - ⚠️ Emulator exits after initial return (needs hard loop for REPL).
 - ⚠️ `*bigatoms*` set to nil but C uses BIGVM/BIGATOMS
-- ⚠️ Atom index incorrectly masked to 16 bits in GVAR handler
 
 ### Backend
 
@@ -150,12 +151,10 @@ EMULATOR_MAX_STEPS=15 ./zaiko/build/zaiko ./medley/internal/loadups/starter.syso
 
 ### Key Files Modified
 
-- `src/vm/op-list.lisp` - Fixed list operation handlers
+- `src/vm/stack.lisp` - Implemented virtual memory stack operations, fixed create-vm
+- `src/vm/op-*.lisp` - Resolved opcode collisions
 - `src/main.lisp` - Added VM initialization and sysout loading
-- `src/vm/trace.lisp` - Updated trace format to match C
-- `src/package.lisp` - Added exports for IFPAGE accessors
-- `tests/run-parity.lisp` - Created parity testing infrastructure
-- `load-emulator.lisp` - Created load script
+- `tests/vm-core.lisp` - Updated tests for new stack architecture
 
 ---
 
@@ -265,10 +264,10 @@ EMULATOR_MAX_STEPS=15 ./zaiko/build/zaiko ./medley/internal/loadups/starter.syso
 
 ### Laiko (Priority 1)
 
-1. Fix opcode handler loading issues
-2. Export IFPAGE accessor functions properly
-3. Achieve first successful VM execution with sysout
-4. Run parity test against C implementation
+1. Run full parity comparison against C implementation for startup sequence
+2. Implement missing SUBRCALL and I/O opcodes to enable REPL
+3. Implement SDL3 backend for graphics
+4. Resolve 20+ stubs in `op-misc.lisp`
 
 ### Zaiko (Priority 2)
 

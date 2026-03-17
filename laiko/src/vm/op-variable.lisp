@@ -202,7 +202,7 @@
   ;; For BIGVM, the full index is used (no 16-bit masking)
   ;; The read-atom-value function handles LITATOM vs NEWATOM dispatch
   (let ((atom-idx (read-pc-32-be vm)))
-    (let ((value (laiko.data:read-atom-value vm atom-idx)))
+    (let ((value (laiko.data:read-atom-value (vm-virtual-memory vm) atom-idx)))
       (vm-push vm value))))
 
 ;;; ===========================================================================

@@ -54,7 +54,7 @@
 ;;; Atom Table Access Functions
 ;;;============================================================================
 
-(defun get-valcell (vm atom-index)
+(defun get-valcell (virtual-memory atom-index)
   "Get value cell byte offset for an atom.
 
    Per C: GetVALCELL68k(atom_index)
@@ -79,14 +79,14 @@
                  (laddr-dlwords (+ +atoms-offset+ (* cells 2))))
             (* laddr-dlwords 2)))))
 
-(defun get-defcell (vm atom-index)
+(defun get-defcell (virtual-memory atom-index)
   "Get definition cell byte offset for an atom.
 
    Per C: GetDEFCELL68k(atom_index)
 
    Returns byte offset in virtual memory."
   (declare (type (unsigned-byte 32) atom-index))
-  (let ((vmem (laiko.vm:vm-virtual-memory vm)))
+  (let ((vmem virtual-memory))
     (unless vmem
       (return-from get-defcell 0))
 
@@ -110,15 +110,15 @@
                    (defn-offset (* laddr-dlwords 2)))
               (if (>= (+ defn-offset 4) (length vmem)) 0 defn-offset))))))
 
-(defun read-atom-value (vm atom-index)
+(defun read-atom-value (virtual-memory atom-index)
   "Read value from atom's value cell.
 
    Per C: GVAR macro - reads value from value cell."
   (declare (type (unsigned-byte 32) atom-index))
-  (let ((vmem (laiko.vm:vm-virtual-memory vm)))
+  (let ((vmem virtual-memory))
     (unless vmem
       (return-from read-atom-value 0))
-    (let ((value-cell-offset (get-valcell vm atom-index)))
+    (let ((value-cell-offset (get-valcell virtual-memory atom-index)))
       (when (>= (+ value-cell-offset 4) (length vmem))
         (return-from read-atom-value 0))
       ;; Read LispPTR from virtual memory (little-endian, already swapped)
@@ -141,15 +141,15 @@
                         (ash (aref page (+ page-offset 2)) 8)
                         (aref page (+ page-offset 3))))))))))
 
-(defun write-atom-value (vm atom-index value)
+(defun write-atom-value (virtual-memory atom-index value)
   "Write value to atom's value cell.
 
    Per C: GVAR_ opcode - writes value to value cell."
   (declare (type (unsigned-byte 32) atom-index value))
-  (let ((vmem (laiko.vm:vm-virtual-memory vm)))
+  (let ((vmem virtual-memory))
     (unless vmem
       (return-from write-atom-value nil))
-    (let ((value-cell-offset (get-valcell vm atom-index)))
+    (let ((value-cell-offset (get-valcell virtual-memory atom-index)))
       (when (>= (+ value-cell-offset 4) (length vmem))
         (return-from write-atom-value nil))
       (let ((page-num (ash value-cell-offset -9))

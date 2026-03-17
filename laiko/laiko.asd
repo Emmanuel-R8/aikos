@@ -27,6 +27,8 @@
                   :components
                   ((:file "cons")
                    (:file "array")
+                   (:file "defcell")
+                   (:file "atom")
                    (:file "function-header")
                    (:file "bytecode")
                    (:file "frame-extension" :depends-on ("bytecode"))

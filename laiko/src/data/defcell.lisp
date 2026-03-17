@@ -23,18 +23,18 @@
 ;;; DefCell Reading
 ;;;============================================================================
 
-(defun read-defcell (vm atom-index)
+(defun read-defcell (virtual-memory atom-index)
   "Read DefCell from atom's definition cell.
 
    Per C: GetDEFCELL68k(atom_index) then read DefCell structure.
 
    Returns a defcell structure."
   (declare (type (unsigned-byte 32) atom-index))
-  (let ((vmem (laiko.vm:vm-virtual-memory vm)))
+  (let ((vmem virtual-memory))
     (unless vmem
       (return-from read-defcell (make-defcell-raw)))
 
-    (let ((defcell-offset (get-defcell vm atom-index)))
+    (let ((defcell-offset (get-defcell virtual-memory atom-index)))
       (when (zerop defcell-offset)
         (return-from read-defcell (make-defcell-raw)))
 
@@ -42,21 +42,27 @@
         (return-from read-defcell (make-defcell-raw)))
 
       ;; Read first LispPTR from virtual memory
-      ;; Use vm-read-lispptr from stack.lisp
-      (let* ((first-ptr (vm-read-lispptr vm defcell-offset))
-             ;; Extract fields from first LispPTR
-             (ccodep (logand (ash first-ptr -31) 1))
-             (fastp (logand (ash first-ptr -30) 1))
-             (argtype (logand (ash first-ptr -28) 3))
-             ;; For BIGVM: 28-bit defpointer (low 28 bits)
-             ;; For non-BIGVM: 24-bit defpointer (low 24 bits)
-             (defpointer (logand first-ptr #x0FFFFFFF)))
-
-        (make-defcell-raw
-         :ccodep ccodep
-         :fastp fastp
-         :argtype argtype
-         :defpointer defpointer)))))
+      ;; Manual read to avoid circular dependency on VM functions
+      (let ((page-num (ash defcell-offset -9))
+            (page-offset (logand defcell-offset #x1FF)))
+        (if (>= page-num (length vmem))
+            (make-defcell-raw)
+            (let ((page (aref vmem page-num)))
+              (if (null page)
+                  (make-defcell-raw)
+                  (let ((first-ptr (logior (ash (aref page page-offset) 24)
+                                           (ash (aref page (1+ page-offset)) 16)
+                                           (ash (aref page (+ page-offset 2)) 8)
+                                           (aref page (+ page-offset 3)))))
+                    (let ((ccodep (logand (ash first-ptr -31) 1))
+                          (fastp (logand (ash first-ptr -30) 1))
+                          (argtype (logand (ash first-ptr -28) 3))
+                          (defpointer (logand first-ptr #x0FFFFFFF)))
+                      (make-defcell-raw
+                       :ccodep ccodep
+                       :fastp fastp
+                       :argtype argtype
+                       :defpointer defpointer))))))))))
 
 ;;;============================================================================
 ;;; DefCell Accessors
@@ -82,13 +88,13 @@
 ;;; Function Header Reading
 ;;;============================================================================
 
-(defun read-function-header (vm fnheader-offset)
+(defun read-function-header (virtual-memory fnheader-offset)
   "Read function header from virtual memory.
 
    Per C: struct fnhead at offset.
    Returns a function-header structure."
   (declare (type (unsigned-byte 32) fnheader-offset))
-  (let ((vmem (laiko.vm:vm-virtual-memory vm)))
+  (let ((vmem virtual-memory))
     (unless vmem
       (return-from read-function-header nil))
 
