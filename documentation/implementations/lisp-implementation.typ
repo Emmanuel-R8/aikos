@@ -54,6 +54,41 @@ Laiko now successfully loads and executes `starter.sysout` to completion (return
 - Implementing missing opcodes (graphics, I/O).
 - Establishing a persistent REPL loop.
 
+=== Critical Fix: Memory Operations (2026-03-20)
+
+=== Problem
+
+The memory access opcodes (`GETBASEBYTE`, `PUTBASEBYTE`, `GETBASE_N`, `GETBASEPTR_N`, `PUTBASE_N`, `PUTBASEPTR_N`) were incorrectly implemented using simple address arithmetic on stack values, returning addresses instead of reading/writing the memory at those addresses.
+
+- `GETBASEPTR_N` was pushing `base + index*4` (address) instead of reading the pointer at that address.
+- `GETBASEBYTE` was incorrectly masking the address instead of reading memory.
+
+=== Solution
+
+Implemented proper memory access using the `vm-read-*` and `vm-write-*` family of functions:
+
+1. **Byte Access**: `GETBASEBYTE`/`PUTBASEBYTE` now use `vm-read-byte` / `vm-write-byte`.
+2. **Word Access**: `GETBASE_N`/`PUTBASE_N` now use `vm-read-word` / `vm-write-word` (16-bit).
+3. **Pointer Access**: `GETBASEPTR_N`/`PUTBASEPTR_N` now use `vm-read-lispptr` / `vm-write-lispptr` (32-bit).
+
+Added `vm-read-word` and `vm-write-word` to `laiko/src/vm/stack.lisp` to support 16-bit memory operations with Little Endian handling.
+
+=== Critical Fix: GVAR Bounds Check (2026-03-20)
+
+=== Problem
+
+The `GVAR` instruction was pushing `0` instead of `0x140000` (for Atom 522). This was traced to a bug in `laiko/src/data/atom.lisp` where bounds checks compared byte offsets against page counts:
+
+#codeblock(lang: "lisp", [
+(when (>= (+ value-cell-offset 4) (length vmem)) ...)
+])
+
+`value-cell-offset` is a byte offset (e.g., 131072), while `(length vmem)` is the number of pages (e.g., 256). This caused valid accesses to fail silently.
+
+=== Solution
+
+Fixed the bounds check logic in `read-atom-value`, `write-atom-value`, and `get-defcell` to correctly compare page indices derived from offsets.
+
 == Critical Fix: Stack System Consolidation (2026-03-01)
 
 === Problem

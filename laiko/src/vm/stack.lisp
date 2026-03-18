@@ -170,60 +170,125 @@
 
 (defun vm-read-lispptr (vm byte-offset)
   "Read 32-bit LispPTR from virtual memory at byte offset.
-   Uses XOR addressing for BYTESWAP mode."
+   Reads Little Endian (consistent with swapped memory)."
   (declare (type vm vm)
            (type (unsigned-byte 32) byte-offset))
   (let ((vmem (vm-virtual-memory vm)))
     (unless vmem
       (return-from vm-read-lispptr 0))
-    ;; Apply XOR addressing for word access
-    (let* ((xor-offset (if (laiko.utils:little-endian-p)
-                           (logxor byte-offset 2)
-                           byte-offset))
-           (page-num (ash xor-offset -9))
-           (page-offset (logand xor-offset #x1FF)))
+    ;; No XOR 2 addressing for 32-bit access!
+    ;; Access is naturally aligned or unaligned but sequential.
+    (let* ((page-num (ash byte-offset -9))
+           (page-offset (logand byte-offset #x1FF)))
       (when (>= page-num (length vmem))
         (return-from vm-read-lispptr 0))
       (let ((page (aref vmem page-num)))
         (if (null page)
             0
-            (let ((b0 (aref page (logxor page-offset 3)))
-                  (b1 (aref page (logxor (1+ page-offset) 3)))
-                  (b2 (aref page (logxor (+ page-offset 2) 3)))
-                  (b3 (aref page (logxor (+ page-offset 3) 3))))
-              (logior (ash b0 24)
-                      (ash b1 16)
-                      (ash b2 8)
-                      b3)))))))
+            ;; Read Little Endian: byte[0] is LSB, byte[3] is MSB
+            (logior (ash (aref page (+ page-offset 3)) 24)
+                    (ash (aref page (+ page-offset 2)) 16)
+                    (ash (aref page (1+ page-offset)) 8)
+                    (aref page page-offset)))))))
+
+(defun vm-read-byte (vm byte-offset)
+  "Read 8-bit byte from virtual memory at byte offset."
+  (declare (type vm vm)
+           (type (unsigned-byte 32) byte-offset))
+  (let ((vmem (vm-virtual-memory vm)))
+    (unless vmem
+      (return-from vm-read-byte 0))
+    (let* ((page-num (ash byte-offset -9))
+           (page-offset (logand byte-offset #x1FF)))
+      (when (>= page-num (length vmem))
+        (return-from vm-read-byte 0))
+      (let ((page (aref vmem page-num)))
+        (if (null page)
+            0
+            (aref page page-offset))))))
+
+(defun vm-write-byte (vm byte-offset value)
+  "Write 8-bit byte to virtual memory at byte offset."
+  (declare (type vm vm)
+           (type (unsigned-byte 32) byte-offset)
+           (type (unsigned-byte 8) value))
+  (let ((vmem (vm-virtual-memory vm)))
+    (unless vmem
+      (return-from vm-write-byte nil))
+    (let* ((page-num (ash byte-offset -9))
+           (page-offset (logand byte-offset #x1FF)))
+      (when (>= page-num (length vmem))
+        (return-from vm-write-byte nil))
+      (let ((page (aref vmem page-num)))
+        (when page
+          (setf (aref page page-offset) value)))))
+  value)
+
+(defun vm-read-word (vm byte-offset)
+  "Read 16-bit word from virtual memory at byte offset."
+  (declare (type vm vm)
+           (type (unsigned-byte 32) byte-offset))
+  (let ((vmem (vm-virtual-memory vm)))
+    (unless vmem
+      (return-from vm-read-word 0))
+    (let* ((page-num (ash byte-offset -9))
+           (page-offset (logand byte-offset #x1FF)))
+      (when (>= page-num (length vmem))
+        (return-from vm-read-word 0))
+      (let ((page (aref vmem page-num)))
+        (if (null page)
+            0
+            (if (< (1+ page-offset) 512)
+                (logior (aref page page-offset)
+                        (ash (aref page (1+ page-offset)) 8))
+                ;; Handle page crossing (rare but possible)
+                (logior (aref page page-offset)
+                        (ash (vm-read-byte vm (1+ byte-offset)) 8))))))))
+
+(defun vm-write-word (vm byte-offset value)
+  "Write 16-bit word to virtual memory at byte offset."
+  (declare (type vm vm)
+           (type (unsigned-byte 32) byte-offset)
+           (type (unsigned-byte 16) value))
+  (let ((vmem (vm-virtual-memory vm)))
+    (unless vmem
+      (return-from vm-write-word nil))
+    (let* ((page-num (ash byte-offset -9))
+           (page-offset (logand byte-offset #x1FF)))
+      (when (>= page-num (length vmem))
+        (return-from vm-write-word nil))
+      (let ((page (aref vmem page-num)))
+        (when page
+          (if (< (1+ page-offset) 512)
+              (setf (aref page page-offset) (logand value #xFF)
+                    (aref page (1+ page-offset)) (logand (ash value -8) #xFF))
+              ;; Handle page crossing
+              (progn
+                (setf (aref page page-offset) (logand value #xFF))
+                (vm-write-byte vm (1+ byte-offset) (logand (ash value -8) #xFF))))))))
+  value)
 
 (defun vm-write-lispptr (vm byte-offset value)
   "Write 32-bit LispPTR to virtual memory at byte offset.
-   Uses XOR addressing for BYTESWAP mode."
+   Writes Little Endian (consistent with swapped memory)."
   (declare (type vm vm)
            (type (unsigned-byte 32) byte-offset)
            (type (unsigned-byte 32) value))
   (let ((vmem (vm-virtual-memory vm)))
     (unless vmem
       (return-from vm-write-lispptr nil))
-    (let* ((xor-offset (if (laiko.utils:little-endian-p)
-                           (logxor byte-offset 2)
-                           byte-offset))
-           (page-num (ash xor-offset -9))
-           (page-offset (logand xor-offset #x1FF)))
+    (let* ((page-num (ash byte-offset -9))
+           (page-offset (logand byte-offset #x1FF)))
       (when (>= page-num (length vmem))
         (return-from vm-write-lispptr nil))
       (let ((page (aref vmem page-num)))
         (when page
-          ;; Write with XOR byte addressing (each byte at offset ^ 3)
-          (let ((b0 (logand (ash value -24) #xFF))
-                (b1 (logand (ash value -16) #xFF))
-                (b2 (logand (ash value -8) #xFF))
-                (b3 (logand value #xFF)))
-            (when (< (+ page-offset 3) #x200)
-              (setf (aref page (logxor page-offset 3)) b0
-                    (aref page (logxor (1+ page-offset) 3)) b1
-                    (aref page (logxor (+ page-offset 2) 3)) b2
-                    (aref page (logxor (+ page-offset 3) 3)) b3)))))))
+          ;; Write Little Endian: LSB at offset 0, MSB at offset 3
+          (when (< (+ page-offset 3) #x200)
+            (setf (aref page (+ page-offset 3)) (logand (ash value -24) #xFF)
+                  (aref page (+ page-offset 2)) (logand (ash value -16) #xFF)
+                  (aref page (1+ page-offset))  (logand (ash value -8) #xFF)
+                  (aref page page-offset)       (logand value #xFF)))))))
   value)
 
 (defun vm-push (vm value)

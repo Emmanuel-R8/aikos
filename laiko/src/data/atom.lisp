@@ -34,15 +34,19 @@
   "Plist cell index in AtomSpace")
 
 ;; Memory layout constants from maiko/inc/lispmap.h
-;; For BIGVM: ATOMS_OFFSET = 0x2c0000 (byte offset)
-(defconstant +atoms-offset+ #x2c0000
-  "Byte offset for AtomSpace (BIGVM)")
+;; For BIGVM: ATOMS_OFFSET = 0x80000 DLwords (0x100000 bytes)
+;; Note: Code uses this as DLword offset (adds cells*2).
+(defconstant +atoms-offset-dlwords+ #x80000
+  "DLword offset for AtomSpace (BIGVM)")
 
 ;; For non-BIGATOMS: Valspace/Defspace offsets (DLword offsets)
 (defconstant +defs-offset-dlwords+ #xA0000
   "Defspace offset in DLwords")
 (defconstant +vals-offset-dlwords+ #xC0000
   "Valspace offset in DLwords")
+
+(defconstant +atom-t-index+ #o114
+  "Atom index for T (114 octal = 76 decimal)")
 
 ;; Build configuration
 ;; For Medley with BIGVM, uses 32-bit atom indices (BIGATOMS)
@@ -76,7 +80,7 @@
 
           ;; LITATOM (BIGVM)
           (let* ((cells (+ (* atom-index 5) +newatom-value-ptroff+))
-                 (laddr-dlwords (+ +atoms-offset+ (* cells 2))))
+                 (laddr-dlwords (+ +atoms-offset-dlwords+ (* cells 2))))
             (* laddr-dlwords 2)))))
 
 (defun get-defcell (virtual-memory atom-index)
@@ -95,20 +99,20 @@
         ;; Byte offset = (DEFS_OFFSET + (atom_index << 1)) * 2
         (let* ((laddr-dlwords (+ +defs-offset-dlwords+ (ash atom-index 1)))
                (byte-off (* laddr-dlwords 2)))
-          (if (>= (+ byte-off 4) (length vmem)) 0 byte-off))
+          byte-off)
 
         ;; BIGATOMS
         (if (/= (logand atom-index +segmask+) 0)
             ;; NEWATOM
             (let ((defn-offset-bytes (* +newatom-defn-offset+ 2))
                   (defn-addr (+ atom-index (* +newatom-defn-offset+ 2))))
-              (if (>= (+ defn-addr 4) (length vmem)) 0 defn-addr))
+              defn-addr)
 
             ;; LITATOM (BIGVM)
             (let* ((cells (+ (* atom-index 5) +newatom-defn-ptroff+))
-                   (laddr-dlwords (+ +atoms-offset+ (* cells 2)))
+                   (laddr-dlwords (+ +atoms-offset-dlwords+ (* cells 2)))
                    (defn-offset (* laddr-dlwords 2)))
-              (if (>= (+ defn-offset 4) (length vmem)) 0 defn-offset))))))
+              defn-offset)))))
 
 (defun read-atom-value (virtual-memory atom-index)
   "Read value from atom's value cell.
@@ -119,27 +123,20 @@
     (unless vmem
       (return-from read-atom-value 0))
     (let ((value-cell-offset (get-valcell virtual-memory atom-index)))
-      (when (>= (+ value-cell-offset 4) (length vmem))
-        (return-from read-atom-value 0))
       ;; Read LispPTR from virtual memory (little-endian, already swapped)
-      (let ((bytes (make-array 4 :element-type '(unsigned-byte 8))))
-        ;; Read with XOR addressing for bytes
-        (loop for i from 0 below 4
-              for xor-addr = (logxor (+ value-cell-offset i) 3)
-              for page-num = (ash xor-addr -9)
-              for page-offset = (logand xor-addr #x1FF))
-        ;; For now, use simple read without XOR for atoms
-        (let ((page-num (ash value-cell-offset -9))
-              (page-offset (logand value-cell-offset #x1FF)))
-          (when (>= page-num (length vmem))
-            (return-from read-atom-value 0))
-          (let ((page (aref vmem page-num)))
-            (if (null page)
-                0
-                (logior (ash (aref page page-offset) 24)
-                        (ash (aref page (1+ page-offset)) 16)
-                        (ash (aref page (+ page-offset 2)) 8)
-                        (aref page (+ page-offset 3))))))))))
+      ;; Consistent with write-atom-value which writes LSB to lowest address (XOR 3 logic)
+      (let ((page-num (ash value-cell-offset -9))
+            (page-offset (logand value-cell-offset #x1FF)))
+        (when (>= page-num (length vmem))
+          (return-from read-atom-value 0))
+        (let ((page (aref vmem page-num)))
+          (if (null page)
+              0
+              ;; Read Little Endian: byte[0] is LSB, byte[3] is MSB
+              (logior (ash (aref page (+ page-offset 3)) 24)
+                      (ash (aref page (+ page-offset 2)) 16)
+                      (ash (aref page (1+ page-offset)) 8)
+                      (aref page page-offset))))))))
 
 (defun write-atom-value (virtual-memory atom-index value)
   "Write value to atom's value cell.
@@ -150,17 +147,16 @@
     (unless vmem
       (return-from write-atom-value nil))
     (let ((value-cell-offset (get-valcell virtual-memory atom-index)))
-      (when (>= (+ value-cell-offset 4) (length vmem))
-        (return-from write-atom-value nil))
       (let ((page-num (ash value-cell-offset -9))
             (page-offset (logand value-cell-offset #x1FF)))
         (when (>= page-num (length vmem))
           (return-from write-atom-value nil))
         (let ((page (aref vmem page-num)))
           (when page
-            ;; Write with XOR byte addressing
-            (setf (aref page (logxor page-offset 3)) (logand (ash value -24) #xFF)
-                  (aref page (logxor (1+ page-offset) 3)) (logand (ash value -16) #xFF)
-                  (aref page (logxor (+ page-offset 2) 3)) (logand (ash value -8) #xFF)
-                  (aref page (logxor (+ page-offset 3) 3)) (logand value #xFF)))))))
-  value)
+            ;; Write Little Endian: LSB at offset 0, MSB at offset 3
+            ;; (No XOR logic needed if we directly map bytes to offsets)
+            (setf (aref page (+ page-offset 3)) (logand (ash value -24) #xFF)
+                  (aref page (+ page-offset 2)) (logand (ash value -16) #xFF)
+                  (aref page (+ page-offset 1)) (logand (ash value -8) #xFF)
+                  (aref page page-offset)       (logand value #xFF))))))
+  value))
