@@ -38,7 +38,15 @@ This document provides a high-level overview. For detailed opcode specifications
 
 `CONTEXTSWITCH` (`0x7E`) uses the low 16 bits of cached `TOPOFSTACK` as an IFPAGE FX-slot selector. It saves the current FX, writes a free-stack-block header, exchanges the chosen slot (`Midpunt` semantics), and resumes the selected frame.
 
-`PVAR_0`-`PVAR_6` and `PVARX_` store cached `TOPOFSTACK` into the current frame's PVAR area without popping. The `PVARSETPOP` family performs the same store followed by the normal pop.
+`PVAR_0`-`PVAR_6` and `PVARX_` store cached `TOPOFSTACK` into the current frame's PVAR area without popping. The `PVARSETPOP` family performs the same store followed by the normal pop. `PVARX` is the indexed read form of the same PVAR-area access.
+
+The `FVAR` family is resolved relative to the current PVAR base in #emph[DLword] units, not by indexing a separate closure array:
+
+- `FVAR0`-`FVAR6` use offsets `0, 2, 4, 6, 8, 10, 12`
+- `FVARX` uses an explicit byte operand in the same DLword-offset space
+- `FVARX_` stores cached `TOPOFSTACK` through the same resolved chain without popping
+
+If an `FVAR` slot is still unbound, Maiko resolves it by walking caller frames via `alink` and the active name table, then caches the discovered address back into the current frame slot.
 
 === Data Operations (0x00-0x3F, 0x80-0xBF)
 - Cons operations: CAR, CDR, CONS, RPLACA, RPLACD, CREATECELL, RPLPTR_N
@@ -70,6 +78,10 @@ This document provides a high-level overview. For detailed opcode specifications
 
 === Miscellaneous
 - COPY, SWAP, NOP, MAKENUMBER, MYALINK, MYARGCOUNT, STKSCAN
+
+=== Frontier note from startup parity work
+
+Recent startup-path parity work advanced Laiko through resumed-frame `FVARX`, `FVARX_`, and `PVARX`. The next observed frontier in the authoritative C/Laiko comparison is byte `0x00` immediately after `ACONST`. Since `opcodes.h` marks `0x00` as `opc_unused_0`, implementations should verify the surrounding instruction stepping first before assuming that a real executable `0x00` path exists.
 
 === Implementation guidance: opcode metadata tables
 

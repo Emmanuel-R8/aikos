@@ -3,7 +3,7 @@
 *Navigation*: README | Index | Architecture
 
 *Feature*: 002-lisp-implementation
-*Date*: 2026-03-19 02:11
+*Date*: 2026-03-19 02:56
 *Status*: 🔧 PARITY DEBUGGING - Startup Path Advancing
 
 == Overview
@@ -19,13 +19,13 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL), following t
 - *Build System*: ASDF
 - *Target Platform*: Linux (SBCL), macOS, Windows (partial)
 
-== Current Status (2026-03-19 02:11)
+== Current Status (2026-03-19 02:56)
 
-=== Opcode alignment with Maiko (2026-03-19 02:11)
+=== Opcode alignment with Maiko (2026-03-19 02:56)
 
 Laiko now loads `starter.sysout`, enters the startup bytecode, and matches Maiko substantially deeper into the trace than before, but it does #emph[not] yet run to completion.
 
-**2026-03-19 02:11 Update**:
+**2026-03-19 02:56 Update**:
 - Implemented `GVAR_` (`0x17`) using Maiko semantics: store cached `TOS` into the atom value cell without changing `TOS`.
 - Implemented `LISTP` (`0x03`) using the MDS type table rather than a heuristic.
 - Corrected the `JUMPX` family so `JUMPX`, `FJUMPX`, `TJUMPX`, `NFJUMPX`, and `NTJUMPX` use signed 8-bit offsets, while `JUMPXX` uses signed 16-bit offsets.
@@ -38,7 +38,10 @@ Laiko now loads `starter.sysout`, enters the startup bytecode, and matches Maiko
 - Corrected the packed FX flag masks so `nopush`, `validnametable`, and `incall` are decoded from the actual packed flag byte rather than from a swapped low-byte interpretation.
 - Rewired resumed-frame `PVAR` reads and writes to the real VM-memory PVAR area immediately after the current FX, instead of the obsolete array-based stack model.
 - Implemented the non-pop parameter-store family `PVAR_0`-`PVAR_6` and `PVARX_`, matching Maiko `PVARSETMACRO` / `PVARX_` behavior.
-- Current blocker: Laiko now passes the false-`incall` switched-frame failure and the resumed `PVAR`/`PVAR_` path, and the next live frontier is missing opcode `FVARX` (`0x57`) deeper in the resumed startup call chain.
+- Corrected the `FVAR0`-`FVAR6` family to use Maiko DLword offsets (`0, 2, 4, 6, 8, 10, 12`) rather than a fake closure-environment index.
+- Implemented `FVARX` (`0x57`) and ported the unbound-chain lookup path needed by the startup trace: unresolved free-variable slots now scan caller frames via `alink`, choose `fnheader` vs `nametable` according to `validnametable`, and cache the resolved address back into the current frame slot.
+- Implemented the indexed non-pop store family needed immediately after that lookup work: `IVARX_` (`0x62`), `FVARX_` (`0x63`), and `PVARX` (`0x4F`).
+- Current blocker: Laiko now passes the resumed `FVARX` / `FVARX_` sequence and reaches byte `0x00` at `0x71ca89`, immediately after `ACONST`. The next task is to verify whether this is a real `opc_unused_0` execution path or an `ACONST` / `nextop_atom` length mismatch.
 
 === ✅ Completed
 
@@ -249,7 +252,46 @@ These fixes removed the false later `CONTEXTSWITCH returned to incall frame` fai
 
 === Current limitation
 
-The next live parity frontier is now a later missing variable-access opcode, `FVARX` (`0x57`), rather than a frame-switch state bug.
+The next live parity frontier is no longer the first unbound free-variable access. Laiko now resolves that startup path and the next question is a post-`ACONST` decode frontier at byte `0x00`.
+
+== Critical Fix: Free-variable chain resolution and indexed variable opcodes (2026-03-19 02:56)
+
+=== Problem
+
+After the resumed-frame `PVAR` / `PVAR_` fixes, Laiko advanced to `FVARX` (`0x57`) in the deeper startup call chain.
+
+The remaining issue was not just a missing handler:
+
+1. Laiko's `FVAR` helpers still treated free variables like a flat closure array.
+2. The C implementation actually addresses `FVAR` slots relative to the current PVAR area in #emph[DLword] units.
+3. When a slot is unbound, Maiko does #emph[not] fail immediately. It resolves the variable by scanning caller frames through `alink` and the active name table, then caches the discovered address back into the current frame's FVAR slot.
+
+That meant the whole `FVAR` family was wrong in kind, not just missing `FVARX`.
+
+=== Solution
+
+Laiko now follows the C model much more closely:
+
+1. `FVAR0`-`FVAR6` use DLword offsets `0, 2, 4, 6, 8, 10, 12`.
+2. `FVARX` uses the instruction operand as the same DLword offset format.
+3. Unbound `FVAR` slots now trigger a caller-frame scan that:
+   - starts from the current frame's `alink`
+   - reads the next FX from VM memory
+   - chooses `fnheader` vs `nametable` according to `validnametable`
+   - scans the name table for the target free-variable atom
+   - caches either a stack slot address, another free-variable chain pointer, or a top-level atom value-cell address
+4. The matching store-side opcodes were added in the same slice:
+   - `IVARX_` (`0x62`)
+   - `FVARX_` (`0x63`)
+   - `PVARX` (`0x4F`)
+
+=== Result
+
+These fixes moved Laiko past the first missing `FVARX` frontier, through several consecutive `FVARX` / `FVARX_` / `PVARX` operations in the resumed startup function, and into the next decode frontier after `ACONST`.
+
+=== Current limitation
+
+The current live mismatch is byte `0x00` at `0x71ca89`. Because this appears immediately after `ACONST`, the next step is to verify whether Laiko is actually reaching a real `opc_unused_0` byte or whether `ACONST` still disagrees with Maiko's `nextop_atom` stepping convention.
 
 === Critical Fix: GVAR Bounds Check (2026-03-20)
 

@@ -325,6 +325,32 @@ So a logical 16-bit word at address `A` is physically read from address `A xor 2
 
 By contrast, 32-bit Lisp pointers remain ordinary sequential values. Implementations must not apply XOR-2 separately to each byte of a 32-bit Lisp pointer read.
 
+=== Free-variable lookup across caller frames
+
+`FVAR` / `FVARX` are part of the frame-link mechanism, not a separate closure-array abstraction.
+
+In Maiko:
+
+1. The current frame's free-variable slots live in the PVAR area and are addressed in #emph[DLword] units from `PVAR`.
+2. Fixed opcodes `FVAR0`-`FVAR6` therefore use offsets `0, 2, 4, 6, 8, 10, 12`.
+3. `FVARX` uses a byte operand in the same DLword-offset space.
+4. If the slot is already resolved, it contains a cached address (or chained free-variable pointer) that can be dereferenced directly.
+5. If the slot is still unbound, the emulator resolves it by scanning caller frames through `alink` and the active name table:
+   - start from the current frame's `alink`
+   - follow caller frames one by one
+   - choose `fnheader` or `nametable` according to the caller FX `validnametable` flag
+   - search the name table for the target atom
+   - cache the discovered address back into the current frame's FVAR slot
+
+The cached target may be:
+
+- a caller PVAR address
+- another caller FVAR chain pointer
+- an IVAR-derived stack address
+- or, at top level, the atom's global value-cell address
+
+The store form `FVARX_` uses the same resolution path, then writes cached `TOPOFSTACK` to the resolved address without popping.
+
 == Function Object Structure
 
 === Function Header
