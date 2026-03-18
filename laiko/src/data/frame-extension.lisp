@@ -10,9 +10,9 @@
 ;; So stackspace byte offset = STK_OFFSET * 2 = 0x00020000
 (defconstant +stk-offset-dlword+ #x00010000 "Stack offset in DLwords")
 (defconstant +stackspace-byte-offset+ #x00020000 "Stack offset in bytes (STK_OFFSET * 2)")
-(defconstant +fx-incall-mask+ #x20 "Bit mask for the FX incall flag in the low flag byte.")
-(defconstant +fx-validnametable-mask+ #x40 "Bit mask for the FX validnametable flag.")
-(defconstant +fx-nopush-mask+ #x80 "Bit mask for the FX nopush flag in the low flag byte.")
+(defconstant +fx-nopush-mask+ #x01 "Bit mask for the FX nopush flag in the packed flag byte.")
+(defconstant +fx-validnametable-mask+ #x02 "Bit mask for the FX validnametable flag.")
+(defconstant +fx-incall-mask+ #x04 "Bit mask for the FX incall flag in the packed flag byte.")
 
 (defstruct (frame-extension (:conc-name fx-))
   "Frame Extension structure (C FX from stack.h)"
@@ -63,9 +63,9 @@
            (blink (or (get-vm-word virtual-memory (+ byte-offset 16)) 0))
            (clink (or (get-vm-word virtual-memory (+ byte-offset 18)) 0)))
       (make-frame-extension
-       :flags (logand word0 #xFF)
-       :usecount (ash word0 -8)
-       :alink word1
+       :flags (ash word1 -8)
+       :usecount (logand word1 #xFF)
+       :alink word0
        :fnheader fnheader
        :nextblock nextblock
        :pc pc
@@ -78,13 +78,14 @@
   (declare (type (unsigned-byte 32) stack-offset)
            (type frame-extension fx))
   (let* ((byte-offset (+ +stackspace-byte-offset+ (* stack-offset 2)))
-         (word0 (logior (ash (fx-usecount fx) 8)
-                        (fx-flags fx)))
+         (word0 (fx-alink fx))
+         (word1 (logior (fx-usecount fx)
+                        (ash (fx-flags fx) 8)))
          (fnheader (fx-fnheader fx))
          (nametable (fx-nametable fx)))
-    (set-vm-word virtual-memory byte-offset word0)
-    (set-vm-word virtual-memory (+ byte-offset 2) (fx-alink fx))
-    (set-vm-word virtual-memory (+ byte-offset 4) (logand fnheader #xFFFF))
+     (set-vm-word virtual-memory byte-offset word0)
+     (set-vm-word virtual-memory (+ byte-offset 2) word1)
+     (set-vm-word virtual-memory (+ byte-offset 4) (logand fnheader #xFFFF))
     (set-vm-word virtual-memory (+ byte-offset 6) (logand (ash fnheader -16) #x00FF))
     (set-vm-word virtual-memory (+ byte-offset 8) (fx-pc fx))
     (set-vm-word virtual-memory (+ byte-offset 10) (fx-nextblock fx))

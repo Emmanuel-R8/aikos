@@ -306,6 +306,13 @@ This means `RETURN`, `CONTEXTSWITCH`, and later frame resumes all share the same
 - `pc` stored in an FX is relative to the active function object
 - cached `TOPOFSTACK` and the spill-slot pointer (`CSTKPTRL`) must stay synchronized with the free-stack-block layout
 
+For resumed execution, the current frame's PVAR area begins immediately after the current FX (`PVAR = CURRENTFX + FRAMESIZE` in DLword units). Parameter-variable loads and stores therefore address memory relative to the current frame, not to a separate logical stack array.
+
+This matters for both families of parameter writes:
+
+- the `PVARSETPOP` family stores cached `TOPOFSTACK` into `PVAR[x]` and then performs the normal pop
+- the `PVAR_` / `PVARX_` family stores cached `TOPOFSTACK` into `PVAR[x]` without popping
+
 === BYTESWAP rule for stack and FX words
 
 On BYTESWAP builds, all 16-bit stack, FX, and IFPAGE word accesses use Maiko's `GETWORD` rule:

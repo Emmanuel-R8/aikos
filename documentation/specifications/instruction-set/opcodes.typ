@@ -33,10 +33,12 @@ This document provides a high-level overview. For detailed opcode specifications
 
 === Memory Operations (0x40-0x7F)
 - Variable access: IVAR0-IVAR6, IVARX, PVAR0-PVAR6, PVARX, FVAR0-FVAR6, FVARX, GVAR, GVAR\_
-- Variable setting: PVARSETPOP0-PVARSETPOP6
+- Variable setting: PVAR_0-PVAR_6, PVARX_, PVARSETPOP0-PVARSETPOP6
 - Stack operations: POP, POP_N
 
 `CONTEXTSWITCH` (`0x7E`) uses the low 16 bits of cached `TOPOFSTACK` as an IFPAGE FX-slot selector. It saves the current FX, writes a free-stack-block header, exchanges the chosen slot (`Midpunt` semantics), and resumes the selected frame.
+
+`PVAR_0`-`PVAR_6` and `PVARX_` store cached `TOPOFSTACK` into the current frame's PVAR area without popping. The `PVARSETPOP` family performs the same store followed by the normal pop.
 
 === Data Operations (0x00-0x3F, 0x80-0xBF)
 - Cons operations: CAR, CDR, CONS, RPLACA, RPLACD, CREATECELL, RPLPTR_N

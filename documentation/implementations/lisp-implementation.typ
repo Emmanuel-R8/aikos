@@ -3,7 +3,7 @@
 *Navigation*: README | Index | Architecture
 
 *Feature*: 002-lisp-implementation
-*Date*: 2026-03-19 01:40
+*Date*: 2026-03-19 02:11
 *Status*: 🔧 PARITY DEBUGGING - Startup Path Advancing
 
 == Overview
@@ -19,13 +19,13 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL), following t
 - *Build System*: ASDF
 - *Target Platform*: Linux (SBCL), macOS, Windows (partial)
 
-== Current Status (2026-03-19 01:40)
+== Current Status (2026-03-19 02:11)
 
-=== Opcode alignment with Maiko (2026-03-19 01:40)
+=== Opcode alignment with Maiko (2026-03-19 02:11)
 
 Laiko now loads `starter.sysout`, enters the startup bytecode, and matches Maiko substantially deeper into the trace than before, but it does #emph[not] yet run to completion.
 
-**2026-03-19 01:40 Update**:
+**2026-03-19 02:11 Update**:
 - Implemented `GVAR_` (`0x17`) using Maiko semantics: store cached `TOS` into the atom value cell without changing `TOS`.
 - Implemented `LISTP` (`0x03`) using the MDS type table rather than a heuristic.
 - Corrected the `JUMPX` family so `JUMPX`, `FJUMPX`, `TJUMPX`, `NFJUMPX`, and `NTJUMPX` use signed 8-bit offsets, while `JUMPXX` uses signed 16-bit offsets.
@@ -34,7 +34,11 @@ Laiko now loads `starter.sysout`, enters the startup bytecode, and matches Maiko
 - Fixed Laiko's 16-bit VM word access to follow Maiko `GETWORD` semantics on BYTESWAP builds: logical word reads use address XOR `2`, while 32-bit Lisp pointer reads remain sequential.
 - Updated dispatch to reload the active bytecode window when a handler resumes execution at an absolute PC outside the currently extracted block.
 - Implemented `VAG2` (`0xD1`) using Maiko's cached-TOS and spill-slot stack model.
-- Current blocker: startup now advances through the first switched fault frame and reaches a later `CONTEXTSWITCH`, but the resumed frame is still being decoded with the wrong switched-frame state and is currently misclassified as `incall`.
+- Corrected FX word decoding so the first two FX words match the C layout: `alink` is the first word, while `usecount` and the packed flag bits live in the second.
+- Corrected the packed FX flag masks so `nopush`, `validnametable`, and `incall` are decoded from the actual packed flag byte rather than from a swapped low-byte interpretation.
+- Rewired resumed-frame `PVAR` reads and writes to the real VM-memory PVAR area immediately after the current FX, instead of the obsolete array-based stack model.
+- Implemented the non-pop parameter-store family `PVAR_0`-`PVAR_6` and `PVARX_`, matching Maiko `PVARSETMACRO` / `PVARX_` behavior.
+- Current blocker: Laiko now passes the false-`incall` switched-frame failure and the resumed `PVAR`/`PVAR_` path, and the next live frontier is missing opcode `FVARX` (`0x57`) deeper in the resumed startup call chain.
 
 === ✅ Completed
 
@@ -45,7 +49,7 @@ Laiko now loads `starter.sysout`, enters the startup bytecode, and matches Maiko
 - ✅ **186+/256 opcodes defined**
 - ✅ **Deep startup execution**: loads the sysout, initializes VM state, and executes into the startup control-flow path.
 - ✅ **Frame switching frontier advanced**: Laiko now matches Maiko through the first startup `CONTEXTSWITCH` into `faultfxp`.
-- ✅ **Later startup arithmetic/path progress**: execution now continues through `VAG2` and into the subsequent switched-frame bytecode.
+- ✅ **Later startup arithmetic/path progress**: execution now continues through `VAG2`, through the resumed startup frame, and into a deeper resumed call chain.
 - ✅ **Stack System**: Fully consolidated to use virtual memory byte offsets (matching C/Zig).
 - ✅ **Graphics**: Basic opcode definitions compiled without warnings (stubbed or partial).
 
@@ -53,7 +57,7 @@ Laiko now loads `starter.sysout`, enters the startup bytecode, and matches Maiko
 
 - ⚠️ Graphics opcodes are largely stubs or have unverified implementations.
 - ⚠️ Subroutine calls are stubs.
-- ⚠️ `CONTEXTSWITCH` now has the correct overall control-transfer shape, but later switched-frame flag/state restoration is still incomplete.
+- ⚠️ `CONTEXTSWITCH` now has the correct overall control-transfer shape and no longer fails on the false `incall` path, but deeper resumed-frame opcode coverage is still incomplete.
 - ⚠️ `RETURN` slow path (`alink & 1`) is not yet implemented.
 - ⚠️ REPL interaction is not yet visible because startup parity is not complete.
 
@@ -216,6 +220,36 @@ These fixes moved Laiko past the old post-`RETURN` / `UNBIND` failure. It now fo
 === Current limitation
 
 The next live divergence is no longer the first context switch itself. The current blocker is a later switched-frame path where the resumed FX state is still being decoded incorrectly, causing Laiko to treat the target frame as `incall` when the C reference continues.
+
+== Critical Fix: FX packed-word decoding and resumed-frame PVAR access (2026-03-19 02:11)
+
+=== Problem
+
+After the first real `CONTEXTSWITCH` implementation, Laiko advanced into the later switched-frame startup path but then failed in two closely related ways:
+
+1. the resumed FX was falsely reported as `incall`
+2. once that was bypassed, resumed `PVAR` access still used the obsolete array-based stack helpers rather than the real PVAR area in VM memory
+
+Both issues came from low-level frame-layout interpretation rather than from the overall control-transfer shape.
+
+=== Solution
+
+Laiko now matches the C frame model more closely:
+
+1. The first two FX words are decoded in the C order:
+   - word 0 = `alink`
+   - word 1 = packed `usecount` + flag bits
+2. The packed FX flag byte now uses the correct bit assignments for `nopush`, `validnametable`, and `incall`.
+3. `get-pvar` and `set-pvar` now address the PVAR area in VM memory at `FP + FRAMESIZE`, matching Maiko `PVAR[x]`.
+4. The `PVAR_0`-`PVAR_6` and `PVARX_` family are now implemented so cached `TOS` can be written back without a pop, just like `PVARSETMACRO` / `PVARX_` in the C source.
+
+=== Result
+
+These fixes removed the false later `CONTEXTSWITCH returned to incall frame` failure and advanced parity through the resumed startup-frame `PVAR` / `PVAR_` sequence.
+
+=== Current limitation
+
+The next live parity frontier is now a later missing variable-access opcode, `FVARX` (`0x57`), rather than a frame-switch state bug.
 
 === Critical Fix: GVAR Bounds Check (2026-03-20)
 
