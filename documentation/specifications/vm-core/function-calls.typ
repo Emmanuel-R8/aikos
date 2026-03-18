@@ -25,9 +25,9 @@ Function calls in the VM involve:
 - *Length*: 3 bytes for non-BIGATOMS (FN_OPCODE_SIZE = 3)
   - Byte 0: Opcode (0x08-0x0C)
   - Bytes 1-2: Atom index (DLword, 2 bytes) - `Get_AtomNo_PCMAC1` in C
-- *Length*: 4-5 bytes for BIGATOMS (FN_OPCODE_SIZE = 4-5)
+- *Length*: 5 bytes for BIGVM/BIGATOMS (FN_OPCODE_SIZE = 5)
   - Byte 0: Opcode
-  - Bytes 1-3/4: Atom index (extended size)
+  - Bytes 1-4: Atom index (32-bit atom operand)
 
 *Argument Count*: Fixed by opcode (FN0=0, FN1=1, FN2=2, FN3=3, FN4=4)
 
@@ -61,9 +61,10 @@ function ExecuteFN(arg_count, atom_index):
         // If defpointer is 0 or not a compiled closure, uses ATOM_INTERPRETER
         // If defpointer is 0, should trigger UFN (Undefined Function Name) lookup
         if fnheader_ptr == 0:
-            // Atom has no function definition - trigger UFN lookup
-            // C: goto op_ufn; - looks up function in UFN table
-            TriggerUFNLookup(atom_index)
+            // Atom has no compiled defpointer. Maiko does not treat this as
+            // an opcode decode failure; op_fn_common falls back to
+            // ATOM_INTERPRETER and pushes the original atom when needed.
+            UseInterpreterFallback(atom_index)
             return
         
         function_obj = ReadFunctionHeader(fnheader_ptr)
@@ -111,6 +112,8 @@ At a high level:
 5. Enter the same common call path used by `FNx`, while applying the UFN-specific operand-push rules from `APPLY_POP_PUSH_TEST`.
 
 This means that an "unused" opcode such as `MISC1` (`0x78`) is not necessarily an error. On a real Maiko build it may be a UFN-dispatched Lisp call, so parity implementations must not equate "unused in the main switch" with "abort immediately".
+
+The same common call machinery also serves ordinary `FNx` calls when the target atom does not yet name a compiled function: Maiko falls back into the interpreter path rather than treating that case as a hard opcode fault.
 
 == Function Call Process
 

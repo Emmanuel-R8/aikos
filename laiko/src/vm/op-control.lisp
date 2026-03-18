@@ -561,14 +561,14 @@ If TOS is NIL, pop it and continue."
 ;; FUNCTION CALL (FN0-4, FNX)
 ;;; ===========================================================================
 
-(defop fn0 :hexcode #x08 :instruction-length 3
+(defop fn0 :hexcode #x08 :instruction-length 5
   "FN0: Call function with 0 arguments.
-Reads 2-byte atom index, looks up function definition, calls it."
+Reads 4-byte atom index on BIGVM, looks up function definition, calls it."
   :operands ((atom-index :atom-index "Atom index of function"))
   :stack-effect nil
   :category :function-call
   :side-effects t
-  (let* ((atom-idx (read-pc-16-be vm))
+  (let* ((atom-idx (read-pc-32-be vm))
          (defcell (laiko.data:read-defcell (vm-virtual-memory vm) atom-idx)))
     (when (laiko.data:is-c-code defcell)
       (error 'laiko.utils:vm-error :message "FN0: C code not supported"))
@@ -578,64 +578,64 @@ Reads 2-byte atom index, looks up function definition, calls it."
       ;; TODO: Implement function call
       nil)))
 
-(defop fn1 :hexcode #x09 :instruction-length 3
+(defop fn1 :hexcode #x09 :instruction-length 5
   "FN1: Call function with 1 argument.
-Reads 2-byte atom index, pops 1 argument, calls function."
+Reads 4-byte atom index on BIGVM, pops 1 argument, calls function."
   :operands ((atom-index :atom-index "Atom index of function"))
   :stack-effect (:pop 1)
   :category :function-call
   :side-effects t
-  (let ((atom-idx (read-pc-16-be vm)))
+  (let ((atom-idx (read-pc-32-be vm)))
     (declare (ignore atom-idx))
     ;; TODO: Implement
     nil))
 
-(defop fn2 :hexcode #x0A :instruction-length 3
+(defop fn2 :hexcode #x0A :instruction-length 5
   "FN2: Call function with 2 arguments.
-Reads 2-byte atom index, pops 2 arguments, calls function."
+Reads 4-byte atom index on BIGVM, pops 2 arguments, calls function."
   :operands ((atom-index :atom-index "Atom index of function"))
   :stack-effect (:pop 2)
   :category :function-call
   :side-effects t
-  (let ((atom-idx (read-pc-16-be vm)))
+  (let ((atom-idx (read-pc-32-be vm)))
     (declare (ignore atom-idx))
     ;; TODO: Implement
     nil))
 
-(defop fn3 :hexcode #x0B :instruction-length 3
+(defop fn3 :hexcode #x0B :instruction-length 5
   "FN3: Call function with 3 arguments.
-Reads 2-byte atom index, pops 3 arguments, calls function."
+Reads 4-byte atom index on BIGVM, pops 3 arguments, calls function."
   :operands ((atom-index :atom-index "Atom index of function"))
   :stack-effect (:pop 3)
   :category :function-call
   :side-effects t
-  (let ((atom-idx (read-pc-16-be vm)))
+  (let ((atom-idx (read-pc-32-be vm)))
     (declare (ignore atom-idx))
     ;; TODO: Implement
     nil))
 
-(defop fn4 :hexcode #x0C :instruction-length 3
+(defop fn4 :hexcode #x0C :instruction-length 5
   "FN4: Call function with 4 arguments.
-Reads 2-byte atom index, pops 4 arguments, calls function."
+Reads 4-byte atom index on BIGVM, pops 4 arguments, calls function."
   :operands ((atom-index :atom-index "Atom index of function"))
   :stack-effect (:pop 4)
   :category :function-call
   :side-effects t
-  (let ((atom-idx (read-pc-16-be vm)))
+  (let ((atom-idx (read-pc-32-be vm)))
     (declare (ignore atom-idx))
     ;; TODO: Implement
     nil))
 
-(defop fnx :hexcode #x0D :instruction-length 4
+(defop fnx :hexcode #x0D :instruction-length 6
   "FNX: Call function with variable arguments.
-Reads 1-byte argument count and 2-byte atom index."
+Reads 1-byte argument count and 4-byte atom index on BIGVM."
   :operands ((arg-count :uint8 "Number of arguments")
              (atom-index :atom-index "Atom index of function"))
   :stack-effect (:pop-n arg-count)
   :category :function-call
   :side-effects t
   (let ((arg-count (read-pc-8 vm))
-        (atom-idx (read-pc-16-be vm)))
+        (atom-idx (read-pc-32-be vm)))
     (declare (ignore arg-count atom-idx))
     ;; TODO: Implement
     nil))

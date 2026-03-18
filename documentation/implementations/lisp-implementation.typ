@@ -42,7 +42,9 @@ Laiko now loads `starter.sysout`, enters the startup bytecode, and matches Maiko
 - Implemented `FVARX` (`0x57`) and ported the unbound-chain lookup path needed by the startup trace: unresolved free-variable slots now scan caller frames via `alink`, choose `fnheader` vs `nametable` according to `validnametable`, and cache the resolved address back into the current frame slot.
 - Implemented the indexed non-pop store family needed immediately after that lookup work: `IVARX_` (`0x62`), `FVARX_` (`0x63`), and `PVARX` (`0x4F`).
 - Corrected `ACONST` for the actual BIGVM build: it now reads a 32-bit atom operand and advances by 5 bytes, matching Maiko `Get_AtomNo_PCMAC1` / `nextop_atom`.
-- Current blocker: after the `ACONST` fix, the next live frontier moved to opcode `0x78` (`MISC1`) at `0x71cad6`. In Maiko this is not a hard undefined opcode; it routes through `op_ufn`, so the next work is on `UFN` dispatch rather than on ordinary opcode decoding.
+- Corrected BIGVM `FN0`-`FN4` / `FNX` operand widths to match Maiko: `FN0`-`FN4` are 5-byte instructions and `FNX` is a 6-byte instruction because `Get_AtomNo_PCMAC1` / `Get_AtomNo_PCMAC2` read 32-bit atom operands on BIGVM/BIGATOMS.
+- Revalidation showed that the old `0x78` (`MISC1`) frontier at `0x71cad6` was another false decode frontier caused by the wrong `FNx` sizes.
+- Current blocker: with the `FNx` widths fixed, startup now stops earlier at `FN0` (`0x08`) / PC `0x60f0af` with `FN0: Undefined function`. The next work is therefore the shared Maiko function-call path for undefined-function / interpreter dispatch, which later also underpins `op_ufn`.
 
 === ✅ Completed
 
@@ -253,7 +255,7 @@ These fixes removed the false later `CONTEXTSWITCH returned to incall frame` fai
 
 === Current limitation
 
-The next live parity frontier is no longer the first unbound free-variable access or the post-`ACONST` fake decode. Laiko now reaches the first real `UFN`-dispatched unused opcode in this startup path.
+The next live parity frontier is no longer the first unbound free-variable access or the post-`ACONST` fake decode. After correcting BIGVM `FNx` widths, Laiko now exposes an earlier undefined-function call path at `FN0` (`0x08`) / `0x60f0af`; the later `0x78` / `op_ufn` path remains relevant, but only after the common call machinery is made Maiko-faithful.
 
 == Critical Fix: Free-variable chain resolution and indexed variable opcodes (2026-03-19 02:56)
 
@@ -322,7 +324,7 @@ This removed the false post-`ACONST` `0x00` frontier and advanced the startup tr
 
 === Current limitation
 
-The next live frontier is opcode `0x78` (`MISC1`) at `0x71cad6`. Maiko dispatches that byte through `op_ufn`, so the next parity slice needs `UFN` table / dispatch support rather than another ordinary opcode stub.
+That later `0x78` (`MISC1`) frontier turned out not to be the next real blocker. Once BIGVM `FN0`-`FN4` / `FNX` were corrected to use 32-bit atom operands and 5/6-byte instruction sizes, Laiko stopped earlier in the startup path at `FN0` (`0x08`) / `0x60f0af` with `FN0: Undefined function`. The next parity slice therefore needs the real Maiko undefined-function / interpreter call path before the later `op_ufn` route can be trusted.
 
 === Critical Fix: GVAR Bounds Check (2026-03-20)
 
