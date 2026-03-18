@@ -273,18 +273,21 @@ Returns the effective trace file name (or NIL if tracing disabled)."
   (format t "~D opcode handlers registered~%"
           (hash-table-count laiko.vm:*opcode-handlers*))
   
-  ;; WORKAROUND: Patch Atom 522 (likely IL:DEFSPACE or similar) to 0x140000 (DEFS_OFFSET)
-  ;; This atom is read by the first instruction (GVAR 522) but is 0 in sysout.
-  ;; Maiko initializes it via C code (probably in build_lisp_map or similar).
-  (format t "Patching Atom 522...~%")
-  (let* ((vmem (laiko.vm:vm-virtual-memory vm))
-         (valcell (laiko.data:get-valcell vmem 522))
-         (page-num (ash valcell -9)))
-    (unless (aref vmem page-num)
-      (format t "Allocating AtomSpace Page ~D for Atom 522~%" page-num)
-      (setf (aref vmem page-num) (make-array 512 :element-type '(unsigned-byte 8) :initial-element 0)))
-    (laiko.data:write-atom-value vmem 522 #x140000)
-    (format t "Atom 522 patched to 0x140000~%"))
+  ;; WORKAROUND: Seed known startup atoms with DEFS_OFFSET (0x140000).
+  ;; Current parity traces show the first executed GVAR reads atom 14, while
+  ;; earlier debugging also identified atom 522 as requiring the same bootstrap
+  ;; value in some runs. Preserve both until startup initialization is modeled.
+  (let ((vmem (laiko.vm:vm-virtual-memory vm)))
+    (dolist (atom-index '(14 522))
+      (format t "Patching Atom ~D...~%" atom-index)
+      (let* ((valcell (laiko.data:get-valcell vmem atom-index))
+             (page-num (ash valcell -9)))
+        (unless (aref vmem page-num)
+          (format t "Allocating AtomSpace Page ~D for Atom ~D~%" page-num atom-index)
+          (setf (aref vmem page-num)
+                (make-array 512 :element-type '(unsigned-byte 8) :initial-element 0)))
+        (laiko.data:write-atom-value vmem atom-index #x140000)
+        (format t "Atom ~D patched to 0x140000~%" atom-index))))
 
   ;; DEBUG: Inspect Bytecode Page
   (format t "Checking Bytecode Page 12408 (offset 304):~%")

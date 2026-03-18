@@ -205,6 +205,15 @@
     (let ((value (laiko.data:read-atom-value (vm-virtual-memory vm) atom-idx)))
       (vm-push vm value))))
 
+(defop gvar_ :hexcode #x17 :instruction-length 5
+  "GVAR_: Store TOS into a global variable's value cell and leave TOS unchanged."
+  :operands ((atom-index :uint32-be "Atom index (4 bytes, big-endian)"))
+  :stack-effect nil
+  :category :variable-access
+  :side-effects t
+  (let ((atom-idx (read-pc-32-be vm)))
+    (laiko.data:write-atom-value (vm-virtual-memory vm) atom-idx (vm-tos vm))))
+
 ;;; ===========================================================================
 ;; ARGUMENT ACCESS
 ;;; ===========================================================================
@@ -330,4 +339,3 @@
   (pop-stack vm))
 
 ;; read-pc-32-be moved to laiko/src/vm/dispatch.lisp
-

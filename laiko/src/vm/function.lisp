@@ -55,53 +55,50 @@
 
 (defun return-from-function (vm return-value)
   "Return from function.
-   Pops the current stack frame, restores PC to return address, and returns VALUE."
+   Restores caller state using Maiko's fast OPRETURN path and preserves VALUE in cached TOS."
   (declare (type vm vm)
-           (type laiko.utils:lisp-ptr return-value))
-  (let ((current-frame (vm-current-frame vm)))
-    (unless current-frame
+            (type laiko.utils:lisp-ptr return-value))
+  (let ((current-frame-offset nil)
+        (virtual-memory (vm-virtual-memory vm)))
+    (unless virtual-memory
       (error 'laiko.utils:vm-error
-             :message "No current frame to return from"))
-
-    ;; Get the link (caller's stack pointer where frame data is stored)
-    ;; link is a DLword offset from Stackspace
-    (let ((link (sf-link current-frame)))
-      
-      ;; If link is 0, we are at the top level and have nowhere to return to.
-      (when (zerop link)
+             :message "No virtual memory available for RETURN"))
+    (when (< (vm-frame-pointer-offset vm) laiko.data:+stackspace-byte-offset+)
+      (error 'laiko.utils:vm-error
+             :message (format nil "Invalid frame pointer 0x~X in RETURN"
+                              (vm-frame-pointer-offset vm))))
+    (setf current-frame-offset
+          (ash (- (vm-frame-pointer-offset vm) laiko.data:+stackspace-byte-offset+) -1))
+    (let* ((current-fx (laiko.data:read-fx-from-vm virtual-memory current-frame-offset))
+           (alink (laiko.data:fx-alink current-fx)))
+      (when (zerop alink)
         (format t "Execution complete (returned from top frame)~%")
         (laiko.vm:trace-end)
         (laiko:quit 0))
-
-      ;; Read caller's frame extension from VM
-      (let ((caller-fx (laiko.data:read-fx-from-vm (vm-virtual-memory vm) link)))
-        
-        ;; Restore Frame Pointer (FP) to caller's FX
-        (setf (vm-frame-pointer-offset vm) 
-              (+ laiko.data:+stackspace-byte-offset+ (* link 2)))
-
-        ;; Restore Stack Pointer (SP) to caller's nextblock
-        ;; SP = nextblock * 2 - 4
-        (let ((nextblock (laiko.data:fx-nextblock caller-fx)))
-          (setf (vm-stack-ptr-offset vm) 
-                (+ laiko.data:+stackspace-byte-offset+ (- (* nextblock 2) 4))))
-
-        ;; Restore PC
-        (let* ((fnheader (laiko.data:fx-fnheader caller-fx))
-               (pc-offset (laiko.data:fx-pc caller-fx))
-               ;; PC = (fnheader * 2) + pc-offset
-               (new-pc (+ (* fnheader 2) pc-offset)))
-          (setf (vm-pc vm) new-pc))
-          
-        ;; Restore current-frame struct
+      (when (logbitp 0 alink)
+        (error 'laiko.utils:vm-error
+               :message (format nil "Slow RETURN path not yet implemented (alink=0x~X)" alink)))
+      (when (< alink laiko.data:+framesize+)
+        (error 'laiko.utils:vm-error
+               :message (format nil "Invalid fast RETURN alink 0x~X" alink)))
+      (let* ((return-fx-offset (- alink laiko.data:+framesize+))
+             (return-fx-byte-offset (+ laiko.data:+stackspace-byte-offset+
+                                       (* return-fx-offset 2)))
+             (ivar-offset (vm-read-word vm (- return-fx-byte-offset 2)))
+             (return-fx (laiko.data:read-fx-from-vm virtual-memory return-fx-offset))
+             (new-pc (+ (* 2 (laiko.data:fx-fnheader return-fx))
+                        (laiko.data:fx-pc return-fx))))
+        ;; Maiko OPRETURN restores CSTKPTRL to IVAR, not to nextblock/TOS.
+        ;; Cached TOPOFSTACK remains the return value through FastRetCALL.
+        (setf (vm-frame-pointer-offset vm) return-fx-byte-offset)
+        (setf (vm-stack-ptr-offset vm)
+              (+ laiko.data:+stackspace-byte-offset+ (* ivar-offset 2)))
+        (setf (vm-pc vm) new-pc)
         (setf (vm-current-frame vm)
               (make-stack-frame
-               :next-block (laiko.data:fx-nextblock caller-fx)
-               :link (laiko.data:fx-alink caller-fx)
-               :fn-header (laiko.data:fx-fnheader caller-fx)
-               :pc-offset (laiko.data:fx-pc caller-fx)))
-
-        ;; Push return value onto caller's stack
-        (vm-push vm return-value)
-
+               :next-block (laiko.data:fx-nextblock return-fx)
+               :link (laiko.data:fx-alink return-fx)
+               :fn-header (laiko.data:fx-fnheader return-fx)
+               :pc-offset (laiko.data:fx-pc return-fx)))
+        (setf (vm-top-of-stack vm) return-value)
         return-value))))

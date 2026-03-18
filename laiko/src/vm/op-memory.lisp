@@ -1,5 +1,8 @@
 (in-package :laiko.vm)
 
+(defconstant +pointermask+ #x0FFFFFFF
+  "BIGVM pointer mask matching Maiko's POINTERMASK.")
+
 ;; Memory and array access operations
 ;; aref1, aset1, aref2, aset2
 ;; getael1, getael2, setael1, setael2
@@ -139,29 +142,29 @@ Reads 16-bit index, pops value and array-ptr, stores value."
   "GETBASEBYTE: Get byte from base address.
 Reads byte at (base + offset) bytes."
   :operands nil
-  :stack-effect (:pop 2 :push 1)
+  :stack-effect (:pop 1)
   :category :memory
   :side-effects nil
-  (let ((offset (pop-stack vm))
-        (base-addr (pop-stack vm)))
-    ;; Base is word address, offset is byte offset
-    (let ((byte-addr (+ (* base-addr 2) offset)))
-      (push-stack vm (vm-read-byte vm byte-addr)))))
+  (let* ((offset (vm-pop vm))
+         (base-addr (vm-tos vm))
+         (byte-addr (+ (* (logand base-addr +pointermask+) 2) offset)))
+    (vm-set-tos vm (vm-read-byte vm byte-addr))))
 
 (defop putbasebyte :hexcode #xC7 :instruction-length 1
   "PUTBASEBYTE: Put byte to base address.
 Writes byte at (base + offset) bytes. Returns value."
   :operands nil
-  :stack-effect (:pop 3 :push 1)
+  :stack-effect (:pop 2)
   :category :memory
   :side-effects t
-  (let ((value (pop-stack vm))
-        (offset (pop-stack vm))
-        (base-addr (pop-stack vm)))
-    ;; Base is word address, offset is byte offset
-    (let ((byte-addr (+ (* base-addr 2) offset)))
-      (vm-write-byte vm byte-addr value)
-      (push-stack vm value))))
+  (let* ((sp (vm-stack-ptr-offset vm))
+         (value (vm-tos vm))
+         (offset (vm-read-lispptr vm (- sp 4)))
+         (base-addr (vm-read-lispptr vm (- sp 8)))
+         (byte-addr (+ (* (logand base-addr +pointermask+) 2) offset)))
+    (vm-write-byte vm byte-addr (logand value #xFF))
+    (setf (vm-stack-ptr-offset vm) (- sp 8))
+    (vm-set-tos vm value)))
 
 ;;; ===========================================================================
 ;; BASE ADDRESS OPERATIONS
@@ -169,59 +172,59 @@ Writes byte at (base + offset) bytes. Returns value."
 
 (defop getbase-n :hexcode #xC8 :instruction-length 2
   "GETBASE_N: Get 16-bit word from base with index N.
-Reads 16-bit word at (base + index) words."
-  :operands ((index :uint8 "Index (word offset)"))
+Reads 16-bit word at Lisp address (base + index)."
+  :operands ((index :uint8 "Index (DLword offset)"))
   :stack-effect (:pop 1 :push 1)
   :category :memory
   :side-effects nil
   (let ((index (read-pc-8 vm))
-        (base-addr (pop-stack vm)))
-    ;; Base and index are word addresses/offsets
-    (let ((byte-addr (* (+ base-addr index) 2)))
-      (push-stack vm (vm-read-word vm byte-addr)))))
+        (base-addr (vm-tos vm)))
+    (let ((byte-addr (* (+ (logand base-addr +pointermask+) index) 2)))
+      (vm-set-tos vm (vm-read-word vm byte-addr)))))
 
 (defop getbaseptr-n :hexcode #xC9 :instruction-length 2
   "GETBASEPTR_N: Get 32-bit pointer from base with index N.
-Reads 32-bit LispPTR at (base + index) words."
-  :operands ((index :uint8 "Index (word offset)"))
+Reads 32-bit LispPTR at Lisp address (base + index)."
+  :operands ((index :uint8 "Index (DLword offset)"))
   :stack-effect (:pop 1 :push 1)
   :category :memory
   :side-effects nil
   (let ((index (read-pc-8 vm))
-        (base-addr (pop-stack vm)))
-    ;; Base and index are word addresses/offsets
-    (let ((byte-addr (* (+ base-addr index) 2)))
-      (push-stack vm (vm-read-lispptr vm byte-addr)))))
+        (base-addr (vm-tos vm)))
+    (let ((byte-addr (* (+ (logand base-addr +pointermask+) index) 2)))
+      (vm-set-tos vm (vm-read-lispptr vm byte-addr)))))
 
 (defop putbase-n :hexcode #xCD :instruction-length 2
   "PUTBASE_N: Put 16-bit word to base with index N.
-Writes 16-bit word at (base + index) words. Returns value."
-  :operands ((index :uint8 "Index (word offset)"))
-  :stack-effect (:pop 2 :push 1)
+ Writes 16-bit word at Lisp address (base + index). Returns value."
+  :operands ((index :uint8 "Index (DLword offset)"))
+  :stack-effect (:pop 1)
   :category :memory
   :side-effects t
-  (let ((index (read-pc-8 vm))
-        (value (pop-stack vm))
-        (base-addr (pop-stack vm)))
-    ;; Base and index are word addresses/offsets
-    (let ((byte-addr (* (+ base-addr index) 2)))
-      (vm-write-word vm byte-addr value)
-      (push-stack vm value))))
+  (let* ((index (read-pc-8 vm))
+         (sp (vm-stack-ptr-offset vm))
+         (value (vm-tos vm))
+         (base-addr (vm-read-lispptr vm (- sp 4))))
+    (let ((byte-addr (* (+ (logand base-addr +pointermask+) index) 2)))
+      (vm-write-word vm byte-addr (logand value #xFFFF))
+      (setf (vm-stack-ptr-offset vm) (- sp 4))
+      (vm-set-tos vm base-addr))))
 
 (defop putbaseptr-n :hexcode #xCE :instruction-length 2
   "PUTBASEPTR_N: Put 32-bit pointer to base with index N.
-Writes 32-bit LispPTR at (base + index) words. Returns value."
-  :operands ((index :uint8 "Index (word offset)"))
-  :stack-effect (:pop 2 :push 1)
+ Writes 32-bit LispPTR at Lisp address (base + index). Returns value."
+  :operands ((index :uint8 "Index (DLword offset)"))
+  :stack-effect (:pop 1)
   :category :memory
   :side-effects t
-  (let ((index (read-pc-8 vm))
-        (value (pop-stack vm))
-        (base-addr (pop-stack vm)))
-    ;; Base and index are word addresses/offsets
-    (let ((byte-addr (* (+ base-addr index) 2)))
+  (let* ((index (read-pc-8 vm))
+         (sp (vm-stack-ptr-offset vm))
+         (value (vm-tos vm))
+         (base-addr (vm-read-lispptr vm (- sp 4))))
+    (let ((byte-addr (* (+ (logand base-addr +pointermask+) index) 2)))
       (vm-write-lispptr vm byte-addr value)
-      (push-stack vm value))))
+      (setf (vm-stack-ptr-offset vm) (- sp 4))
+      (vm-set-tos vm base-addr))))
 
 (defop addbase :hexcode #xD0 :instruction-length 1
   "ADDBASE: Add offset to base address.
@@ -256,4 +259,3 @@ Used for calculating addresses relative to a base pointer."
   array-ptr)
 
 ;; Helper functions moved to laiko/src/vm/dispatch.lisp
-

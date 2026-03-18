@@ -3,8 +3,8 @@
 *Navigation*: README | Index | Architecture
 
 *Feature*: 002-lisp-implementation
-*Date*: 2026-03-17
-*Status*: 🔧 EXECUTION WORKING - Starter Sysout Runs
+*Date*: 2026-03-19 00:58
+*Status*: 🔧 PARITY DEBUGGING - Startup Path Advancing
 
 == Overview
 
@@ -19,17 +19,18 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL), following t
 - *Build System*: ASDF
 - *Target Platform*: Linux (SBCL), macOS, Windows (partial)
 
-== Current Status (2026-03-17)
+== Current Status (2026-03-19 00:58)
 
-=== Opcode alignment with Maiko (2026-03-17)
+=== Opcode alignment with Maiko (2026-03-19 00:58)
 
-Laiko now successfully loads and executes `starter.sysout` to completion (returning from the top-level frame).
+Laiko now loads `starter.sysout`, enters the startup bytecode, and matches Maiko substantially deeper into the trace than before, but it does #emph[not] yet run to completion.
 
-**2026-03-17 Update**:
-- Fixed `return-from-function` to correctly use virtual memory stack pointers and restore caller frames.
-- Fixed `initialize-vm-from-ifpage` to correctly initialize the initial stack frame's link field from `fx-alink`.
-- Resolved compilation warnings in graphics opcodes (undefined `DX`/`DY`).
-- Resolved package visibility issues for `quit` and `fetch-instruction-byte`.
+**2026-03-19 00:58 Update**:
+- Implemented `GVAR_` (`0x17`) using Maiko semantics: store cached `TOS` into the atom value cell without changing `TOS`.
+- Implemented `LISTP` (`0x03`) using the MDS type table rather than a heuristic.
+- Corrected the `JUMPX` family so `JUMPX`, `FJUMPX`, `TJUMPX`, `NFJUMPX`, and `NTJUMPX` use signed 8-bit offsets, while `JUMPXX` uses signed 16-bit offsets.
+- Corrected `RETURN` to preserve cached `TOS` and reworked the fast-return path around Maiko's `alink -> PVAR -> FX` model.
+- Current blocker: `CONTEXTSWITCH` / runtime FX state restoration still diverges, so execution resumes after `RETURN` in the wrong frame and later crashes in `UNBIND`.
 
 === ✅ Completed
 
@@ -37,8 +38,8 @@ Laiko now successfully loads and executes `starter.sysout` to completion (return
 - ✅ Sysout file loading (BIGVM format, FPtoVP table loading)
 - ✅ VM state structure (stack, PC, frame pointers, registers)
 - ✅ Dispatch loop with opcode fetching and execution
-- ✅ **186/256 opcodes defined (72.7%)**
-- ✅ **Full Execution Cycle**: Loads sysout, initializes VM, executes instructions, and returns cleanly.
+- ✅ **186+/256 opcodes defined**
+- ✅ **Deep startup execution**: loads the sysout, initializes VM state, and executes into the startup control-flow path.
 - ✅ **Stack System**: Fully consolidated to use virtual memory byte offsets (matching C/Zig).
 - ✅ **Graphics**: Basic opcode definitions compiled without warnings (stubbed or partial).
 
@@ -46,7 +47,9 @@ Laiko now successfully loads and executes `starter.sysout` to completion (return
 
 - ⚠️ Graphics opcodes are largely stubs or have unverified implementations.
 - ⚠️ Subroutine calls are stubs.
-- ⚠️ REPL interaction is not yet visible (emulator exits after initial bytecode).
+- ⚠️ `CONTEXTSWITCH` is still a stub and does not yet preserve/swap frame state like Maiko.
+- ⚠️ `RETURN` slow path (`alink & 1`) is not yet implemented.
+- ⚠️ REPL interaction is not yet visible because startup parity is not complete.
 
 === 🔧 In Progress
 
@@ -97,6 +100,79 @@ Implemented proper memory access using the `vm-read-*` and `vm-write-*` family o
 3. **Pointer Access**: `GETBASEPTR_N`/`PUTBASEPTR_N` now use `vm-read-lispptr` / `vm-write-lispptr` (32-bit).
 
 Added `vm-read-word` and `vm-write-word` to `laiko/src/vm/stack.lisp` to support 16-bit memory operations with Little Endian handling.
+
+== Critical Fix: LISTP Uses the MDS Type Table (2026-03-18)
+
+=== Problem
+
+After fixing `GVAR_`, the next startup failure moved to opcode `0x03`. Investigation against the Maiko dispatch loop showed that `0x03` is `LISTP`, not `LISP`.
+
+The important semantic detail is that Maiko does #emph[not] implement `LISTP` as a simple non-NIL test or as a cons-space heuristic. Instead it consults the MDS type table:
+
+#codeblock(lang: "c", [
+#define GetTypeEntry(address)      ( GETWORD(MDStypetbl+((address)>>9)) )
+#define GetTypeNumber(address)     (GetTypeEntry(address) & 0x7ff)
+#define Listp(address)             (GetTypeNumber(address) == TYPE_LISTP)
+])
+
+For BIGVM, `MDStypetbl` is initialized from `MDS_OFFSET` in `build_lisp_map()`.
+
+=== Solution
+
+Laiko now implements opcode `0x03` by reading the 16-bit MDS entry for the page containing `TOS` and comparing its low 11 bits to `TYPE_LISTP = 5`.
+
+This matches the C logic exactly:
+
+1. Compute page index with `lispptr >> 9` (512-byte pages)
+2. Read the MDS entry from `MDS_OFFSET`
+3. Keep `TOS` unchanged only if the type number is `TYPE_LISTP`
+4. Otherwise replace `TOS` with `NIL`
+
+=== Debugging note
+
+The trace-name table in `maiko/src/xc.c` had historically labeled `0x03` as `LISP`, but the actual dispatch switch correctly executes `LISTP`. For parity work, the dispatch switch is the authoritative source.
+
+== Critical Fix: RETURN Preserves Cached TOS and Uses `alink` as a PVAR Pointer (2026-03-19 00:58)
+
+=== Problem
+
+After the `LISTP` and `NTJUMPX` fixes, Laiko advanced to a later `RETURN`, but resumed execution in the wrong frame and eventually crashed in `UNBIND`.
+
+Two Maiko-specific details turned out to be critical:
+
+1. `RETURN` does #emph[not] pop the return value first. It preserves cached `TOPOFSTACK` through frame restoration.
+2. In the fast path, raw `alink` is #emph[not] a caller-FX pointer. It points to the caller's PVAR area, and the caller FX is recovered with `alink - FRAMESIZE`.
+
+=== C reference
+
+The relevant Maiko logic is:
+
+#codeblock(lang: "c", [
+alink = CURRENTFX->alink;
+if (alink & 1) slowreturn();
+
+CSTKPTRL = (LispPTR *) IVAR;
+returnFX = (struct frameex2 *)
+  ((DLword *)(PVARL = (DLword *) NativeAligned2FromStackOffset(alink))
+   - FRAMESIZE);
+IVARL = (DLword *) NativeAligned2FromStackOffset(GETWORD((DLword *)returnFX - 1));
+PCMACL = returnFX->pc + (ByteCode *)(FuncObj = ...);
+])
+
+=== Solution
+
+Laiko now mirrors the fast-path structure more closely:
+
+1. `RETURN` reads the return value from cached `vm-tos`.
+2. `return-from-function` reads the active FX from VM using the current frame-pointer offset.
+3. Raw `alink` is interpreted as the caller PVAR offset.
+4. The caller FX is reconstructed at `alink - FRAMESIZE`.
+5. The stack spill pointer is restored from the IVAR word immediately preceding the caller FX.
+6. Cached `TOS` is preserved as the return value instead of being pushed back into memory immediately.
+
+=== Current limitation
+
+This fix corrected one major source of stack-model divergence, but it did not fully solve the later resume mismatch. The next remaining issue is that `CONTEXTSWITCH` still does not update runtime FX state the way Maiko does, so the frame visible to `RETURN` is still not the one Maiko would see.
 
 === Critical Fix: GVAR Bounds Check (2026-03-20)
 

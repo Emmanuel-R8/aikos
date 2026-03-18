@@ -44,8 +44,28 @@ Scans stack for binding marker and restores PVAR slots."
   :stack-effect (:pop 1)
   :category :control-flow
   :side-effects t
-  ;; TODO: Implement proper UNBIND
-  nil)
+  ;; C semantics:
+  ;; - scan downward from CSTKPTRL until a BIND marker is found
+  ;; - leave TOS unchanged
+  ;; - move SP to the marker slot
+  ;; - restore the bound PVAR slots to +unbound-marker+
+  ;;
+  ;; Laiko's vm-stack-ptr-offset points at the current in-memory top slot,
+  ;; while Maiko's CSTKPTRL points one slot past the in-memory stack top
+  ;; (the place cached TOPOFSTACK would be spilled). So `*--CSTKPTRL` maps to
+  ;; starting from SP+4, then stepping downward by one LispPTR at a time.
+  (let ((scan-sp (vm-stack-ptr-offset vm))
+        (marker 0))
+    (incf scan-sp 4)
+    (loop do
+      (decf scan-sp 4)
+      (setf marker (vm-read-lispptr vm scan-sp))
+      until (logbitp 31 marker))
+    (let* ((count (logand (lognot (ldb (byte 16 16) marker)) #xFFFF))
+           (pvar-offset (ash (logand marker #xFFFF) -1)))
+      (loop for i from 0 below count do
+        (set-pvar-slot vm (+ pvar-offset i) +unbound-marker+))
+      (setf (vm-stack-ptr-offset vm) scan-sp))))
 
 ;;; ===========================================================================
 ;; TYPE OPERATIONS

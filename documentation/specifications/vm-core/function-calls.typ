@@ -226,20 +226,30 @@ function TransferControl(function_obj):
 
 #codeblock(lang: "pseudocode", [
 function ExecuteRETURN():
-    // Get return value
+    // Preserve cached top-of-stack as the return value
     return_value = TopOfStack
 
-    // Get previous frame
-    previous_frame = GetPreviousFrame(CurrentFrame)
+    // Read raw activation link from the current frame
+    alink = CurrentFrame.alink
 
-    // Restore execution state
-    RestoreExecutionState(previous_frame)
+    if (alink is slow-return marker):
+        ExecuteSlowReturn()
+    else:
+        // Fast path: raw alink points to caller PVAR, not caller FX
+        PVar = NativeAligned2FromStackOffset(alink)
+        previous_frame = PVar - FRAMESIZE
 
-    // Set return value
-    TopOfStack = return_value
+        // Restore spill-slot stack pointer from the IVAR offset word
+        IVar = NativeAligned2FromStackOffset(*(previous_frame - 1))
+        CurrentStackPTR = IVar
 
-    // Continue dispatch loop
-    ContinueDispatch()
+        // Restore frame and function/PC
+        CurrentFrame = previous_frame
+        FunctionObject = GetFunctionFromFrame(previous_frame)
+        PC = FunctionObject.code_start + previous_frame.pc
+
+        // Keep cached TOS as the function result
+        TopOfStack = return_value
 ])
 
 === State Restoration
@@ -255,13 +265,21 @@ function RestoreExecutionState(frame):
     // Restore program counter
     PC = FunctionObject.code_start + frame.pc
 
-    // Restore stack pointer
-    CurrentStackPTR = CalculateStackPointer(frame)
+    // Restore spill-slot stack pointer
+    // CurrentStackPTR / CSTKPTR points to where cached TopOfStack would spill,
+    // not directly to the in-memory top value.
+    CurrentStackPTR = GetIVarPointerFromFrame(frame)
 
     // Restore IVar and PVar
-    IVar = NativeAligned2FromStackOffset(frame.nextblock)
-    PVar = CurrentStackPTR + FRAMESIZE
+    IVar = GetIVarPointerFromFrame(frame)
+    PVar = GetPVarPointerFromActivationLink(frame.alink)
 ])
+
+=== Fast Return Semantics
+
+In the Maiko fast path, `alink` is interpreted as the caller's PVAR stack offset, not as a direct pointer to the caller FX. The caller frame is recovered by subtracting `FRAMESIZE` from that PVAR pointer.
+
+This distinction is easy to get wrong when translating the code, because helper macros such as `GETALINK` expose a caller-frame view, while `OPRETURN` itself works from the raw encoded `alink` slot.
 
 == Function Object Structure
 

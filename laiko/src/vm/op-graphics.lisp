@@ -102,16 +102,18 @@ Draws a line from (x1, y1) to (x2, y2) with Bresenham's algorithm."
 ;; SUBROUTINE CALL OPCODE
 ;;; ===========================================================================
 
-(defop subrcall :hexcode #x7D :instruction-length 1
+(defop subrcall :hexcode #x7D :instruction-length 3
   "SUBRCALL: Call a C subroutine.
-Pops subr-no and arg-count from stack.
-Dispatches to appropriate subroutine handler."
-  :operands nil
-  :stack-effect (:pop 2 :push 1)
+  Operands: subr-no (1 byte), arg-count (1 byte).
+  Pops ARG-COUNT arguments from stack.
+  Pushes 1 result."
+  :operands ((subr-no :uint8 "Subroutine number")
+             (arg-count :uint8 "Number of arguments"))
+  :stack-effect (:pop-n arg-count :push 1)
   :category :function-call
   :side-effects t
-  (let ((arg-count (pop-stack vm))
-        (subr-no (pop-stack vm)))
+  (let ((subr-no (read-pc-8 vm))
+        (arg-count (read-pc-8 vm)))
     (dispatch-subroutine vm subr-no arg-count)))
 
 (defun dispatch-subroutine (vm subr-no arg-count)

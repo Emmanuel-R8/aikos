@@ -8,6 +8,8 @@ Complete specification of all 256 bytecode opcodes (0x00-0xFF). Format: `Name (0
 
 *All opcode byte values must match the C reference*: `maiko/inc/opcodes.h` (enum opcodes). Decimal enum values correspond to byte values (e.g. opc_NIL = 104 implies NIL = 0x68). In C source, constants may be written in octal (e.g. case 0150 for NIL); 0150 octal = 104 decimal = 0x68 hex.
 
+*Important historical note*: when reconstructing opcode names, trust the actual C dispatch implementation in `maiko/src/xc.c` and the opcode enum in `maiko/inc/opcodes.h` over ad hoc trace label tables. For example, opcode `0x03` is `LISTP`; older name tables may misleadingly label it `LISP`.
+
 == Opcode Categories
 
 - Control Flow & Memory Operations - Control flow, function calls, jumps, variable access

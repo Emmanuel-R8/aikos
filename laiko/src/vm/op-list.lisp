@@ -4,6 +4,25 @@
 ;; car, cdr, cons, rplaca, rplacd, createcell, rplcons
 ;; nth, nthcdr, last, listlength, append, reverse
 
+(defconstant +mds-offset-dlwords+ #x180000
+  "BIGVM MDS type table base, in DLwords. Per maiko/inc/lispmap.h:MDS_OFFSET.")
+
+(defconstant +type-listp+ 5
+  "Type number for LISTP pages. Per maiko/inc/lsptypes.h:TYPE_LISTP.")
+
+(defun get-type-entry (vm lispptr)
+  "Return the 16-bit MDS type-table entry for LISPPTR.
+
+Maiko implements `GetTypeEntry(address)` as `GETWORD(MDStypetbl + (address >> 9))`,
+where `MDStypetbl` points at `MDS_OFFSET`. Since Laiko virtual memory is byte
+addressed, that translates to reading a DLword at:
+
+  byte_offset = (MDS_OFFSET * 2) + ((lispptr >> 9) * 2)"
+  (declare (type vm vm)
+           (type (unsigned-byte 32) lispptr))
+  (vm-read-word vm (+ (* +mds-offset-dlwords+ 2)
+                      (* (ash lispptr -9) 2))))
+
 ;;; ===========================================================================
 ;; CORE LIST OPERATIONS
 ;;; ===========================================================================
@@ -57,6 +76,19 @@ Per maiko/src/car-cdr.c:N_OP_cdr()."
               (cell-obj (laiko.memory:get-cons-cell storage byte-offset))
               (cdr-value (laiko.data:decode-cdr cell-obj tos)))
          (set-top-of-stack vm cdr-value))))))
+
+(defop listp :hexcode #x03 :instruction-length 1
+  "LISTP: Leave TOS unchanged for list objects, else replace it with NIL.
+
+Per Maiko `LISTP` in `maiko/inc/inlineC.h`, this is a type-table lookup via
+`GetTypeNumber(TOS) == TYPE_LISTP`, not a cons-space heuristic."
+  :operands nil
+  :stack-effect (:pop 1 :push 1)
+  :category :list-operations
+  :side-effects nil
+  (let ((tos (get-top-of-stack vm)))
+    (unless (= (logand (get-type-entry vm tos) #x7FF) +type-listp+)
+      (set-top-of-stack vm 0))))
 
 (defop cons :hexcode #x1A :instruction-length 1
   "CONS: Create new cons cell from top two stack items.

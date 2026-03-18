@@ -167,6 +167,12 @@ Returns symbol or NIL if undefined."
   (prog1 (fetch-instruction-byte (vm-pc vm) *current-code*)
     (incf (vm-pc vm) 1)))
 
+(defun read-pc-8-signed (vm)
+  "Read signed 8-bit value from PC and advance VM-PC by 1."
+  (declare (type vm vm))
+  (let ((unsigned (read-pc-8 vm)))
+    (if (>= unsigned #x80) (- unsigned #x100) unsigned)))
+
 (defun read-pc-16-be (vm)
   "Read 16-bit big-endian value from PC and advance VM-PC by 2."
   (declare (type vm vm))
