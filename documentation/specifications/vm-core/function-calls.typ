@@ -64,6 +64,12 @@ function ExecuteFN(arg_count, atom_index):
             // Atom has no compiled defpointer. Maiko does not treat this as
             // an opcode decode failure; op_fn_common falls back to
             // ATOM_INTERPRETER and pushes the original atom when needed.
+            //
+            // Parity note from Laiko startup work: if ATOM_INTERPRETER also
+            // resolves to a zero literal-atom defpointer, the remaining bug is
+            // no longer in FNx decode. It is in the literal-atom bootstrap /
+            // initialization that must make the interpreter atom callable
+            // before this fallback can succeed.
             UseInterpreterFallback(atom_index)
             return
         

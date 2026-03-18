@@ -23,6 +23,32 @@
 ;;; DefCell Reading
 ;;;============================================================================
 
+(defun %read-vm-lispptr (virtual-memory byte-offset)
+  "Read a 32-bit LispPTR from VM storage at BYTE-OFFSET.
+
+   LispPTR fields remain sequential in the word-swapped VM image, so this uses
+   the same little-endian byte order as atom value reads."
+  (declare (type (unsigned-byte 32) byte-offset))
+  (let ((b0 (or (get-vm-byte virtual-memory byte-offset) 0))
+        (b1 (or (get-vm-byte virtual-memory (1+ byte-offset)) 0))
+        (b2 (or (get-vm-byte virtual-memory (+ byte-offset 2)) 0))
+        (b3 (or (get-vm-byte virtual-memory (+ byte-offset 3)) 0)))
+    (logior b0
+            (ash b1 8)
+            (ash b2 16)
+            (ash b3 24))))
+
+(defun %read-vm-logical-word (virtual-memory byte-offset)
+  "Read a logical 16-bit word from VM storage at BYTE-OFFSET.
+
+   Function-header fields are addressed through Maiko GETWORD semantics on
+   BYTESWAP builds, so apply the logical address XOR before using GET-VM-WORD."
+  (declare (type (unsigned-byte 32) byte-offset))
+  (get-vm-word virtual-memory
+               (if (laiko.utils:little-endian-p)
+                   (logxor byte-offset 2)
+                   byte-offset)))
+
 (defun read-defcell (virtual-memory atom-index)
   "Read DefCell from atom's definition cell.
 
@@ -37,32 +63,16 @@
     (let ((defcell-offset (get-defcell virtual-memory atom-index)))
       (when (zerop defcell-offset)
         (return-from read-defcell (make-defcell-raw)))
-
-      (when (>= (+ defcell-offset 4) (length vmem))
-        (return-from read-defcell (make-defcell-raw)))
-
-      ;; Read first LispPTR from virtual memory
-      ;; Manual read to avoid circular dependency on VM functions
-      (let ((page-num (ash defcell-offset -9))
-            (page-offset (logand defcell-offset #x1FF)))
-        (if (>= page-num (length vmem))
-            (make-defcell-raw)
-            (let ((page (aref vmem page-num)))
-              (if (null page)
-                  (make-defcell-raw)
-                  (let ((first-ptr (logior (ash (aref page page-offset) 24)
-                                           (ash (aref page (1+ page-offset)) 16)
-                                           (ash (aref page (+ page-offset 2)) 8)
-                                           (aref page (+ page-offset 3)))))
-                    (let ((ccodep (logand (ash first-ptr -31) 1))
-                          (fastp (logand (ash first-ptr -30) 1))
-                          (argtype (logand (ash first-ptr -28) 3))
-                          (defpointer (logand first-ptr #x0FFFFFFF)))
-                      (make-defcell-raw
-                       :ccodep ccodep
-                       :fastp fastp
-                       :argtype argtype
-                       :defpointer defpointer))))))))))
+      (let* ((first-ptr (%read-vm-lispptr virtual-memory defcell-offset))
+             (ccodep (logand (ash first-ptr -31) 1))
+             (fastp (logand (ash first-ptr -30) 1))
+             (argtype (logand (ash first-ptr -28) 3))
+             (defpointer (logand first-ptr #x0FFFFFFF)))
+        (make-defcell-raw
+         :ccodep ccodep
+         :fastp fastp
+         :argtype argtype
+         :defpointer defpointer)))))
 
 ;;;============================================================================
 ;;; DefCell Accessors
@@ -98,26 +108,29 @@
     (unless vmem
       (return-from read-function-header nil))
 
-    (let ((page-num (ash fnheader-offset -9))
-          (page-offset (logand fnheader-offset #x1FF)))
+    (let ((page-num (ash fnheader-offset -9)))
       (when (>= page-num (length vmem))
         (return-from read-function-header nil))
 
       (let ((page (aref vmem page-num)))
         (when (null page)
-          (return-from read-function-header nil))
+          (return-from read-function-header nil)))
 
-        ;; Read function header fields
-        ;; startpc is at bytes 0-1
-        ;; nv is at bytes 2-3 (number of variables)
-        ;; See maiko/inc/stack.h struct fnhead
-        (let ((startpc (logior (ash (aref page page-offset) 8)
-                               (aref page (1+ page-offset))))
-              (nv (logior (ash (aref page (+ page-offset 2)) 8)
-                          (aref page (+ page-offset 3))))
-              (na (logior (ash (aref page (+ page-offset 4)) 8)
-                          (aref page (+ page-offset 5)))))
-          (make-function-header
-           :startpc startpc
-           :nv nv
-           :na na))))))
+    ;; Follow the same logical-word offsets that the working FVAR scanner
+    ;; already uses for byte-swapped BIGVM function headers.
+    (let* ((stkmin (%read-vm-logical-word virtual-memory fnheader-offset))
+           (na (%read-vm-logical-word virtual-memory (+ fnheader-offset 2)))
+           (pv (%read-vm-logical-word virtual-memory (+ fnheader-offset 4)))
+           (startpc (%read-vm-logical-word virtual-memory (+ fnheader-offset 6)))
+           (framename/flags (%read-vm-lispptr virtual-memory (+ fnheader-offset 8)))
+           (ntsize (%read-vm-logical-word virtual-memory (+ fnheader-offset 12)))
+           (locals/fvars (%read-vm-logical-word virtual-memory (+ fnheader-offset 14))))
+      (make-function-header
+       :stkmin stkmin
+       :framename (logand framename/flags #x0FFFFFFF)
+       :startpc startpc
+       :nv pv
+       :na na
+       :ntsize ntsize
+       :nlocals (ash locals/fvars -8)
+       :fvaroffset (logand locals/fvars #xFF))))))

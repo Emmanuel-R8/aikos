@@ -43,8 +43,11 @@ Laiko now loads `starter.sysout`, enters the startup bytecode, and matches Maiko
 - Implemented the indexed non-pop store family needed immediately after that lookup work: `IVARX_` (`0x62`), `FVARX_` (`0x63`), and `PVARX` (`0x4F`).
 - Corrected `ACONST` for the actual BIGVM build: it now reads a 32-bit atom operand and advances by 5 bytes, matching Maiko `Get_AtomNo_PCMAC1` / `nextop_atom`.
 - Corrected BIGVM `FN0`-`FN4` / `FNX` operand widths to match Maiko: `FN0`-`FN4` are 5-byte instructions and `FNX` is a 6-byte instruction because `Get_AtomNo_PCMAC1` / `Get_AtomNo_PCMAC2` read 32-bit atom operands on BIGVM/BIGATOMS.
+- Corrected Laiko's raw `DefCell` / function-header readers for byte-swapped BIGVM VM images:
+  - `DefCell` now reads its first LispPTR with the same sequential 32-bit little-endian logic used elsewhere for swapped LispPTR cells, instead of treating the bytes as a big-endian host value.
+  - `read-function-header` now uses the same logical `GETWORD` offsets (`+2`, `+4`, `+6`, `+12`, `+14`) that already work in the live `FVAR` nametable scanner.
 - Revalidation showed that the old `0x78` (`MISC1`) frontier at `0x71cad6` was another false decode frontier caused by the wrong `FNx` sizes.
-- Current blocker: with the `FNx` widths fixed, startup now stops earlier at `FN0` (`0x08`) / PC `0x60f0af` with `FN0: Undefined function`. The next work is therefore the shared Maiko function-call path for undefined-function / interpreter dispatch, which later also underpins `op_ufn`.
+- Current blocker: with the `FNx` widths fixed, startup now stops earlier at `FN0` (`0x08`) / PC `0x60f0af` with `FN0: Undefined function`. Probing the live byte stream shows that this instruction calls atom `3433` (`0x0D69`) whose literal-atom `DefCell` is still zero in Laiko; even `ATOM_INTERPRETER` (`256`) currently resolves to a zero defpointer. The next work is therefore to model the literal-atom bootstrap / initialization that Maiko relies on before the shared undefined-function / interpreter call path can succeed.
 
 === ✅ Completed
 
@@ -255,7 +258,7 @@ These fixes removed the false later `CONTEXTSWITCH returned to incall frame` fai
 
 === Current limitation
 
-The next live parity frontier is no longer the first unbound free-variable access or the post-`ACONST` fake decode. After correcting BIGVM `FNx` widths, Laiko now exposes an earlier undefined-function call path at `FN0` (`0x08`) / `0x60f0af`; the later `0x78` / `op_ufn` path remains relevant, but only after the common call machinery is made Maiko-faithful.
+The next live parity frontier is no longer the first unbound free-variable access or the post-`ACONST` fake decode. After correcting BIGVM `FNx` widths, Laiko now exposes an earlier undefined-function call path at `FN0` (`0x08`) / `0x60f0af`; deeper probing shows this is atom `3433` (`0x0D69`), whose literal-atom `DefCell` is still zero in Laiko. The later `0x78` / `op_ufn` path remains relevant, but only after literal-atom bootstrap and the common call machinery are made Maiko-faithful.
 
 == Critical Fix: Free-variable chain resolution and indexed variable opcodes (2026-03-19 02:56)
 
@@ -324,7 +327,7 @@ This removed the false post-`ACONST` `0x00` frontier and advanced the startup tr
 
 === Current limitation
 
-That later `0x78` (`MISC1`) frontier turned out not to be the next real blocker. Once BIGVM `FN0`-`FN4` / `FNX` were corrected to use 32-bit atom operands and 5/6-byte instruction sizes, Laiko stopped earlier in the startup path at `FN0` (`0x08`) / `0x60f0af` with `FN0: Undefined function`. The next parity slice therefore needs the real Maiko undefined-function / interpreter call path before the later `op_ufn` route can be trusted.
+That later `0x78` (`MISC1`) frontier turned out not to be the next real blocker. Once BIGVM `FN0`-`FN4` / `FNX` were corrected to use 32-bit atom operands and 5/6-byte instruction sizes, Laiko stopped earlier in the startup path at `FN0` (`0x08`) / `0x60f0af` with `FN0: Undefined function`. Reader fixes confirmed that this is not just a bad decode: the failing call targets atom `3433` (`0x0D69`), and even `ATOM_INTERPRETER` (`256`) still resolves to a zero literal-atom defpointer in Laiko's current VM state. The next parity slice therefore needs literal-atom bootstrap before the real Maiko undefined-function / interpreter call path can be trusted.
 
 === Critical Fix: GVAR Bounds Check (2026-03-20)
 
