@@ -186,6 +186,9 @@ CRITICAL FIX: Match C implementation exactly (maiko/src/main.c & initsout.c):
               (setf (laiko.vm:vm-top-of-stack vm) 0))))
         
       (setf (laiko.vm:vm-stack-base-offset vm) laiko.data:+stackspace-byte-offset+)
+      (setf (laiko.vm:vm-stack-end-offset vm)
+            (+ laiko.data:+stackspace-byte-offset+
+               (* 2 (laiko.data:ifpage-endofstack ifpage))))
       
       ;; Initialize current frame from FX
       (let* ((fx (laiko.data:read-fx-from-vm virtual-memory currentfxp))
@@ -207,6 +210,7 @@ CRITICAL FIX: Match C implementation exactly (maiko/src/main.c & initsout.c):
                                 :pvar-size +default-pvar-size+)))
     (setf (laiko.vm:vm-virtual-memory vm) virtual-memory)
     (setf (laiko.vm:vm-fptovp vm) fptovp)
+    (setf (laiko.vm:vm-ifpage vm) ifpage)
     (setf (laiko.vm:vm-interrupt-state vm)
           (laiko.vm:create-interrupt-state))
     ;; Storage and GC

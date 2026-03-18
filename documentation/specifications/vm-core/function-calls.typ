@@ -281,6 +281,43 @@ In the Maiko fast path, `alink` is interpreted as the caller's PVAR stack offset
 
 This distinction is easy to get wrong when translating the code, because helper macros such as `GETALINK` expose a caller-frame view, while `OPRETURN` itself works from the raw encoded `alink` slot.
 
+=== CONTEXTSWITCH and switched-frame resumption
+
+`CONTEXTSWITCH` is part of the same frame-resumption machinery as fast `RETURN`. It does not merely branch to another PC; it saves the current FX, updates free-stack-block metadata, exchanges an IFPAGE slot, and resumes a different frame.
+
+At a high level:
+
+1. The selector is the low 16 bits of cached `TOPOFSTACK` (`fxnum = TopOfStack & 0xffff`).
+2. Before switching away, the emulator updates the current FX:
+   - save the current `pc` as a byte offset relative to the current function object
+   - set the outgoing FX `nopush` flag
+   - store the outgoing `nextblock`
+3. The emulator writes a free-stack-block header at the outgoing frame's stack frontier.
+4. A `Midpunt`-style exchange swaps the requested IFPAGE FX slot with the current FX slot.
+5. The selected FX is resumed using the same reconstruction pattern as `FastRetCALL`:
+   - recover `IVAR` from the word immediately preceding the resumed FX
+   - recover `FuncObj` from the FX function-header slot
+   - set `PC = FuncObj + fx.pc`
+6. If the resumed FX has `nopush` set, cached `TOPOFSTACK` is restored from the word just below the resumed free-stack-block marker before clearing `nopush`.
+
+This means `RETURN`, `CONTEXTSWITCH`, and later frame resumes all share the same invariants:
+
+- frame links and slot references are stack offsets, not host pointers
+- `pc` stored in an FX is relative to the active function object
+- cached `TOPOFSTACK` and the spill-slot pointer (`CSTKPTRL`) must stay synchronized with the free-stack-block layout
+
+=== BYTESWAP rule for stack and FX words
+
+On BYTESWAP builds, all 16-bit stack, FX, and IFPAGE word accesses use Maiko's `GETWORD` rule:
+
+#codeblock(lang: "c", [
+#define GETWORD(base) (* (DLword *) (2 ^ (UNSIGNED)(base)))
+])
+
+So a logical 16-bit word at address `A` is physically read from address `A xor 2` on little-endian hosts. This applies to 16-bit fields such as `alink`, `pc`, `nextblock`, free-stack-block markers, and IFPAGE FX slots.
+
+By contrast, 32-bit Lisp pointers remain ordinary sequential values. Implementations must not apply XOR-2 separately to each byte of a 32-bit Lisp pointer read.
+
 == Function Object Structure
 
 === Function Header

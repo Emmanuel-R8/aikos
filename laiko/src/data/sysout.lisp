@@ -301,6 +301,43 @@
 
     ifp))
 
+(defun get-ifpage-fx-slot (ifpage slot-index)
+  "Return the 16-bit FX slot value for SLOT-INDEX from IFPAGE."
+  (declare (type ifpage ifpage)
+           (type (unsigned-byte 16) slot-index))
+  (case slot-index
+    (0 (ifpage-currentfxp ifpage))
+    (1 (ifpage-resetfxp ifpage))
+    (2 (ifpage-subovfxp ifpage))
+    (3 (ifpage-kbdfxp ifpage))
+    (4 (ifpage-hardreturnfxp ifpage))
+    (5 (ifpage-gcfxp ifpage))
+    (6 (ifpage-faultfxp ifpage))
+    (14 (ifpage-miscfxp ifpage))
+    (24 (ifpage-teleraidfxp ifpage))
+    (otherwise
+     (error 'laiko.utils:vm-error
+            :message (format nil "Unsupported IFPAGE FX slot ~D" slot-index)))))
+
+(defun set-ifpage-fx-slot (ifpage slot-index value)
+  "Store VALUE into the 16-bit FX slot SLOT-INDEX in IFPAGE."
+  (declare (type ifpage ifpage)
+           (type (unsigned-byte 16) slot-index value))
+  (case slot-index
+    (0 (setf (ifpage-currentfxp ifpage) value))
+    (1 (setf (ifpage-resetfxp ifpage) value))
+    (2 (setf (ifpage-subovfxp ifpage) value))
+    (3 (setf (ifpage-kbdfxp ifpage) value))
+    (4 (setf (ifpage-hardreturnfxp ifpage) value))
+    (5 (setf (ifpage-gcfxp ifpage) value))
+    (6 (setf (ifpage-faultfxp ifpage) value))
+    (14 (setf (ifpage-miscfxp ifpage) value))
+    (24 (setf (ifpage-teleraidfxp ifpage) value))
+    (otherwise
+     (error 'laiko.utils:vm-error
+            :message (format nil "Unsupported IFPAGE FX slot ~D" slot-index))))
+  value)
+
 ;;;============================================================================
 ;;; FPtoVP Table
 ;;;============================================================================

@@ -117,6 +117,21 @@ Pops B and A, pushes A XOR B."
 ;; ADDRESS EXTRACTION
 ;;; ===========================================================================
 
+(defop vag2 :hexcode #xD1 :instruction-length 1
+  "VAG2: Combine GET_TOS_1 as high 16 bits with TOS as low 16 bits.
+Per Maiko N_OP_VAG2, this pops one in-memory stack cell and leaves the
+combined 32-bit Lisp pointer in cached TOS."
+  :operands nil
+  :stack-effect (:pop 1)
+  :category :bit-operations
+  :side-effects nil
+  (let* ((sp (vm-stack-ptr-offset vm))
+         (high-word (logand (vm-read-lispptr vm (- sp 4)) #xFFFF))
+         (result (logior (ash high-word 16)
+                         (logand (vm-tos vm) #xFFFF))))
+    (decf (vm-stack-ptr-offset vm) 4)
+    (setf (vm-top-of-stack vm) result)))
+
 (defop hiloc :hexcode #xD2 :instruction-length 1
   "HILOC: Extract high 16 bits.
 Replaces TOS with upper 16 bits."

@@ -3,7 +3,7 @@
 *Navigation*: README | Index | Architecture
 
 *Feature*: 002-lisp-implementation
-*Date*: 2026-03-19 00:58
+*Date*: 2026-03-19 01:40
 *Status*: 🔧 PARITY DEBUGGING - Startup Path Advancing
 
 == Overview
@@ -19,18 +19,22 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL), following t
 - *Build System*: ASDF
 - *Target Platform*: Linux (SBCL), macOS, Windows (partial)
 
-== Current Status (2026-03-19 00:58)
+== Current Status (2026-03-19 01:40)
 
-=== Opcode alignment with Maiko (2026-03-19 00:58)
+=== Opcode alignment with Maiko (2026-03-19 01:40)
 
 Laiko now loads `starter.sysout`, enters the startup bytecode, and matches Maiko substantially deeper into the trace than before, but it does #emph[not] yet run to completion.
 
-**2026-03-19 00:58 Update**:
+**2026-03-19 01:40 Update**:
 - Implemented `GVAR_` (`0x17`) using Maiko semantics: store cached `TOS` into the atom value cell without changing `TOS`.
 - Implemented `LISTP` (`0x03`) using the MDS type table rather than a heuristic.
 - Corrected the `JUMPX` family so `JUMPX`, `FJUMPX`, `TJUMPX`, `NFJUMPX`, and `NTJUMPX` use signed 8-bit offsets, while `JUMPXX` uses signed 16-bit offsets.
 - Corrected `RETURN` to preserve cached `TOS` and reworked the fast-return path around Maiko's `alink -> PVAR -> FX` model.
-- Current blocker: `CONTEXTSWITCH` / runtime FX state restoration still diverges, so execution resumes after `RETURN` in the wrong frame and later crashes in `UNBIND`.
+- Replaced the `CONTEXTSWITCH` stub with a first real implementation that saves runtime FX state, writes the free-stack-block header, performs a `Midpunt`-style IFPAGE slot exchange, and resumes the selected frame.
+- Fixed Laiko's 16-bit VM word access to follow Maiko `GETWORD` semantics on BYTESWAP builds: logical word reads use address XOR `2`, while 32-bit Lisp pointer reads remain sequential.
+- Updated dispatch to reload the active bytecode window when a handler resumes execution at an absolute PC outside the currently extracted block.
+- Implemented `VAG2` (`0xD1`) using Maiko's cached-TOS and spill-slot stack model.
+- Current blocker: startup now advances through the first switched fault frame and reaches a later `CONTEXTSWITCH`, but the resumed frame is still being decoded with the wrong switched-frame state and is currently misclassified as `incall`.
 
 === ✅ Completed
 
@@ -40,6 +44,8 @@ Laiko now loads `starter.sysout`, enters the startup bytecode, and matches Maiko
 - ✅ Dispatch loop with opcode fetching and execution
 - ✅ **186+/256 opcodes defined**
 - ✅ **Deep startup execution**: loads the sysout, initializes VM state, and executes into the startup control-flow path.
+- ✅ **Frame switching frontier advanced**: Laiko now matches Maiko through the first startup `CONTEXTSWITCH` into `faultfxp`.
+- ✅ **Later startup arithmetic/path progress**: execution now continues through `VAG2` and into the subsequent switched-frame bytecode.
 - ✅ **Stack System**: Fully consolidated to use virtual memory byte offsets (matching C/Zig).
 - ✅ **Graphics**: Basic opcode definitions compiled without warnings (stubbed or partial).
 
@@ -47,7 +53,7 @@ Laiko now loads `starter.sysout`, enters the startup bytecode, and matches Maiko
 
 - ⚠️ Graphics opcodes are largely stubs or have unverified implementations.
 - ⚠️ Subroutine calls are stubs.
-- ⚠️ `CONTEXTSWITCH` is still a stub and does not yet preserve/swap frame state like Maiko.
+- ⚠️ `CONTEXTSWITCH` now has the correct overall control-transfer shape, but later switched-frame flag/state restoration is still incomplete.
 - ⚠️ `RETURN` slow path (`alink & 1`) is not yet implemented.
 - ⚠️ REPL interaction is not yet visible because startup parity is not complete.
 
@@ -173,6 +179,43 @@ Laiko now mirrors the fast-path structure more closely:
 === Current limitation
 
 This fix corrected one major source of stack-model divergence, but it did not fully solve the later resume mismatch. The next remaining issue is that `CONTEXTSWITCH` still does not update runtime FX state the way Maiko does, so the frame visible to `RETURN` is still not the one Maiko would see.
+
+== Critical Fix: Frame Switching, BYTESWAP Word Access, and Dynamic Dispatch (2026-03-19 01:40)
+
+=== Problem
+
+Once `RETURN` preserved cached `TOS` correctly, the next authoritative Maiko trace step was a real `CONTEXTSWITCH` into `faultfxp`, not a no-op resume in the current frame.
+
+Laiko was missing three linked behaviors:
+
+1. `CONTEXTSWITCH` was still a stub and could not save the current FX, write an FSB, exchange the IFPAGE slot, and resume the selected frame.
+2. 16-bit stack/FX words were being read as plain little-endian words instead of using Maiko's BYTESWAP `GETWORD(base) = *(DLword *)(2 ^ address)` rule.
+3. Dispatch assumed a single extracted bytecode block and stopped once frame switching resumed execution at an absolute PC in a different function body.
+
+=== Solution
+
+Laiko now mirrors the C control-flow path much more closely:
+
+1. Added writable FX helpers and mutable IFPAGE FX-slot access so runtime frame state can be saved back into virtual memory.
+2. Implemented a first real `CONTEXTSWITCH` that:
+   - takes `fxnum` from the low 16 bits of cached `TOS`
+   - saves the current FX `pc`
+   - sets `nopush`
+   - stores the outgoing frame's `nextblock`
+   - writes an FSB header
+   - performs the `Midpunt`-style slot exchange with the chosen IFPAGE FX slot
+   - restores the selected frame using Maiko's `nopush` rule
+3. Fixed `vm-read-word` / `vm-write-word` so 16-bit stack and FX fields obey XOR-2 addressing on little-endian hosts.
+4. Updated dispatch so an absolute `vm-pc` outside the current bytecode buffer reloads a fresh code window from virtual memory and continues execution there.
+5. Implemented `VAG2` as Maiko defines it: combine the previous in-memory spill-slot word as the high 16 bits with cached `TOS` as the low 16 bits, then move the spill-slot pointer back by one LispPTR cell.
+
+=== Result
+
+These fixes moved Laiko past the old post-`RETURN` / `UNBIND` failure. It now follows Maiko through the startup transfer into `faultfxp`, through `VAG2`, and into the later switched-frame startup path.
+
+=== Current limitation
+
+The next live divergence is no longer the first context switch itself. The current blocker is a later switched-frame path where the resumed FX state is still being decoded incorrectly, causing Laiko to treat the target frame as `incall` when the C reference continues.
 
 === Critical Fix: GVAR Bounds Check (2026-03-20)
 

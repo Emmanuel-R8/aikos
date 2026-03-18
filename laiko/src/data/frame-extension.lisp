@@ -10,6 +10,9 @@
 ;; So stackspace byte offset = STK_OFFSET * 2 = 0x00020000
 (defconstant +stk-offset-dlword+ #x00010000 "Stack offset in DLwords")
 (defconstant +stackspace-byte-offset+ #x00020000 "Stack offset in bytes (STK_OFFSET * 2)")
+(defconstant +fx-incall-mask+ #x20 "Bit mask for the FX incall flag in the low flag byte.")
+(defconstant +fx-validnametable-mask+ #x40 "Bit mask for the FX validnametable flag.")
+(defconstant +fx-nopush-mask+ #x80 "Bit mask for the FX nopush flag in the low flag byte.")
 
 (defstruct (frame-extension (:conc-name fx-))
   "Frame Extension structure (C FX from stack.h)"
@@ -69,3 +72,37 @@
        :nametable nametable
        :blink blink
        :clink clink))))
+
+(defun write-fx-to-vm (virtual-memory stack-offset fx)
+  "Write FX back to virtual memory at STACK-OFFSET."
+  (declare (type (unsigned-byte 32) stack-offset)
+           (type frame-extension fx))
+  (let* ((byte-offset (+ +stackspace-byte-offset+ (* stack-offset 2)))
+         (word0 (logior (ash (fx-usecount fx) 8)
+                        (fx-flags fx)))
+         (fnheader (fx-fnheader fx))
+         (nametable (fx-nametable fx)))
+    (set-vm-word virtual-memory byte-offset word0)
+    (set-vm-word virtual-memory (+ byte-offset 2) (fx-alink fx))
+    (set-vm-word virtual-memory (+ byte-offset 4) (logand fnheader #xFFFF))
+    (set-vm-word virtual-memory (+ byte-offset 6) (logand (ash fnheader -16) #x00FF))
+    (set-vm-word virtual-memory (+ byte-offset 8) (fx-pc fx))
+    (set-vm-word virtual-memory (+ byte-offset 10) (fx-nextblock fx))
+    (set-vm-word virtual-memory (+ byte-offset 12) (logand (ash nametable -16) #xFFFF))
+    (set-vm-word virtual-memory (+ byte-offset 14) (logand nametable #xFFFF))
+    (set-vm-word virtual-memory (+ byte-offset 16) (fx-blink fx))
+    (set-vm-word virtual-memory (+ byte-offset 18) (fx-clink fx))
+    fx))
+
+(defun fx-incall-p (fx)
+  (logtest +fx-incall-mask+ (fx-flags fx)))
+
+(defun fx-nopush-p (fx)
+  (logtest +fx-nopush-mask+ (fx-flags fx)))
+
+(defun set-fx-nopush (fx enabledp)
+  (setf (fx-flags fx)
+        (if enabledp
+            (logior (fx-flags fx) +fx-nopush-mask+)
+            (logand (fx-flags fx) (lognot +fx-nopush-mask+))))
+  fx)

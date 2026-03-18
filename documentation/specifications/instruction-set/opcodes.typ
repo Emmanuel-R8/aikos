@@ -10,6 +10,8 @@ Complete specification of all 256 bytecode opcodes (0x00-0xFF). Format: `Name (0
 
 *Important historical note*: when reconstructing opcode names, trust the actual C dispatch implementation in `maiko/src/xc.c` and the opcode enum in `maiko/inc/opcodes.h` over ad hoc trace label tables. For example, opcode `0x03` is `LISTP`; older name tables may misleadingly label it `LISP`.
 
+*Execution note*: several opcodes in the startup path depend on Maiko's cached-TOS and BYTESWAP rules, not just their mnemonic name. In particular, `RETURN`, `CONTEXTSWITCH`, and `VAG2` interact through the spill-slot stack model, and 16-bit stack/FX words on BYTESWAP builds use `GETWORD(base) = *(DLword *)(2 ^ address)`.
+
 == Opcode Categories
 
 - Control Flow & Memory Operations - Control flow, function calls, jumps, variable access
@@ -27,10 +29,14 @@ This document provides a high-level overview. For detailed opcode specifications
 - Jumps: JUMP0-JUMP15, JUMPX, FJUMP0-FJUMP15, FJUMPX, TJUMP0-TJUMP15, TJUMPX, NFJUMPX, NTJUMPX
 - Other control: UNWIND, BIND, UNBIND, DUNBIND
 
+`RETURN` preserves cached `TOPOFSTACK` as the function result in the fast path. Raw `alink` identifies the caller PVAR area, so the caller FX is recovered as `alink - FRAMESIZE`.
+
 === Memory Operations (0x40-0x7F)
 - Variable access: IVAR0-IVAR6, IVARX, PVAR0-PVAR6, PVARX, FVAR0-FVAR6, FVARX, GVAR, GVAR\_
 - Variable setting: PVARSETPOP0-PVARSETPOP6
 - Stack operations: POP, POP_N
+
+`CONTEXTSWITCH` (`0x7E`) uses the low 16 bits of cached `TOPOFSTACK` as an IFPAGE FX-slot selector. It saves the current FX, writes a free-stack-block header, exchanges the chosen slot (`Midpunt` semantics), and resumes the selected frame.
 
 === Data Operations (0x00-0x3F, 0x80-0xBF)
 - Cons operations: CAR, CDR, CONS, RPLACA, RPLACD, CREATECELL, RPLPTR_N
@@ -54,6 +60,8 @@ This document provides a high-level overview. For detailed opcode specifications
 
 === Address Manipulation
 - ADDBASE, HILOC, LOLOC, BASE_LESSTHAN
+
+`VAG2` (`0xD1`) combines the previous in-memory stack word as the high 16 bits with the low 16 bits of cached `TOPOFSTACK`, then moves the spill-slot pointer back by one LispPTR cell.
 
 === GC Operations
 - GCREF

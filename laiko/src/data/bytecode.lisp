@@ -114,7 +114,27 @@
                       (logior (ash high-byte 8) low-byte)
                       (logior (ash low-byte 8) high-byte)))
                 0))
-          0))))
+           0))))
+
+(defun set-vm-word (virtual-memory address value)
+  "Store a 16-bit word into virtual memory at ADDRESS."
+  (declare (type (simple-array (or null (simple-array (unsigned-byte 8) (*))) (*)) virtual-memory)
+           (type (unsigned-byte 32) address)
+           (type (unsigned-byte 16) value)
+           (optimize (speed 3)))
+  (let* ((page-num (ash address -9))
+         (page-offset (logand address #x1FF))
+         (aligned-offset (logand page-offset #xFFFE)))
+    (when (and (< page-num (length virtual-memory))
+               (< (+ aligned-offset 1) #x200))
+      (let ((page (aref virtual-memory page-num)))
+        (when page
+          (if (laiko.utils:little-endian-p)
+              (setf (aref page aligned-offset) (logand value #xFF)
+                    (aref page (1+ aligned-offset)) (logand (ash value -8) #xFF))
+              (setf (aref page aligned-offset) (logand (ash value -8) #xFF)
+                    (aref page (1+ aligned-offset)) (logand value #xFF)))
+          value)))))
 
 (defun read-bytecode-word (virtual-memory pc)
   "Read a 16-bit word from bytecode stream at PC.

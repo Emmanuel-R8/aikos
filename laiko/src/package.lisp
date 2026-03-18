@@ -46,6 +46,7 @@
    #:vm-virtual-memory
    #:vm-fptovp
    #:vm-gc
+   #:vm-ifpage
    #:vm-interrupt-state
    #:vm-pc
    #:vm-return-pc
@@ -226,17 +227,20 @@
    #:get-vm-byte
    #:get-vm-word
    ;; IFPAGE accessors
-   #:ifpage-process-size
-   #:ifpage-stackbase
-   #:ifpage-currentfxp
+    #:ifpage-process-size
+    #:ifpage-stackbase
+    #:ifpage-endofstack
+    #:ifpage-currentfxp
    #:ifpage-key
    #:ifpage-fptovpstart
    #:ifpage-nactivepages
    #:ifpage-lversion
    #:ifpage-minbversion
    #:ifpage-machinetype
-   #:ifpage-storagefullstate
-   ;; Frame Extension
+    #:ifpage-storagefullstate
+    #:get-ifpage-fx-slot
+    #:set-ifpage-fx-slot
+    ;; Frame Extension
    #:frame-extension
    #:+framesize+
    #:+stk-offset-dlword+
@@ -248,10 +252,14 @@
    #:fx-nextblock
    #:fx-pc
    #:fx-nametable
-   #:fx-blink
-   #:fx-clink
-   #:read-fx-from-vm
-   ;; Atom table
+    #:fx-blink
+    #:fx-clink
+    #:read-fx-from-vm
+    #:write-fx-to-vm
+    #:fx-incall-p
+    #:fx-nopush-p
+    #:set-fx-nopush
+    ;; Atom table
    #:get-valcell
    #:get-defcell
    #:read-atom-value

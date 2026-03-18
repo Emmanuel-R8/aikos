@@ -100,13 +100,13 @@ Returns symbol or NIL if undefined."
 
   ;; Bind special variables for handler access to instruction stream
   (let ((*current-code* code)
-        (*current-base-pc* base-pc)
-        (pc 0)
-        (step-count 0))
+         (*current-base-pc* base-pc)
+         (pc 0)
+         (step-count 0))
     (declare (special *current-code* *current-base-pc*))
-    (loop while (and (< pc (length code))
+    (loop while (and (< pc (length *current-code*))
                      (or (zerop *max-trace-steps*)
-                         (< step-count *max-trace-steps*)))
+                          (< step-count *max-trace-steps*)))
           do
              (incf step-count)
 
@@ -115,16 +115,16 @@ Returns symbol or NIL if undefined."
                (handle-pending-interrupts vm))
 
              ;; Fetch instruction
-             (let* ((opcode-byte (fetch-instruction-byte pc code))
-                    (instruction-len (get-instruction-length opcode-byte))
-                    (handler-fn (get-opcode-handler-function opcode-byte))
-                    (opcode-name (get-opcode-name opcode-byte)))
+              (let* ((opcode-byte (fetch-instruction-byte pc *current-code*))
+                     (instruction-len (get-instruction-length opcode-byte))
+                     (handler-fn (get-opcode-handler-function opcode-byte))
+                     (opcode-name (get-opcode-name opcode-byte)))
 
                ;; Log trace before execution
                (when (trace-enabled-p)
-                 (let ((operands (fetch-operands pc code instruction-len)))
-                   (trace-log vm (+ base-pc pc) opcode-byte operands
-                              :instruction-name opcode-name)))
+                  (let ((operands (fetch-operands pc *current-code* instruction-len)))
+                    (trace-log vm (+ *current-base-pc* pc) opcode-byte operands
+                               :instruction-name opcode-name)))
 
                ;; Initialize VM-PC to point to operands (PC + 1)
                ;; Handlers that read operands will increment this further
@@ -142,15 +142,25 @@ Returns symbol or NIL if undefined."
                    (error 'laiko.utils:vm-error
                           :message (format nil "Error in opcode 0x~2,'0X: ~A" opcode-byte err))))
 
-               ;; Update PC
-               ;; If handler didn't modify VM-PC (beyond the initial +1), advance by instruction-len
-               ;; If handler modified VM-PC (jump, or read operands), use VM-PC
-               (let ((new-pc (vm-pc vm)))
-                 (if (= new-pc (+ pc 1))
+                ;; Update PC
+                ;; If handler didn't modify VM-PC (beyond the initial +1), advance by instruction-len
+                ;; If handler modified VM-PC (jump, or read operands), use VM-PC
+                (let ((new-pc (vm-pc vm)))
+                  (cond
+                    ((= new-pc (+ pc 1))
                      ;; Handler didn't touch VM-PC (e.g. POP, ADD)
-                     (setf pc (+ pc instruction-len))
-                     ;; Handler modified VM-PC (JUMP, or read-pc-*)
-                     (setf pc new-pc))))
+                     (setf pc (+ pc instruction-len)))
+                    ((>= new-pc (length *current-code*))
+                     ;; Handler switched to a different absolute PC/code region.
+                     (setf *current-base-pc* new-pc
+                           *current-code* (laiko.data:extract-bytecode-from-vm
+                                           (vm-virtual-memory vm)
+                                           new-pc)
+                           pc 0
+                           (vm-pc vm) 0))
+                    (t
+                     ;; Handler modified VM-PC within the current extracted block.
+                     (setf pc new-pc)))))
 
              ;; Check interrupts after execution
              (when (check-interrupts vm)
