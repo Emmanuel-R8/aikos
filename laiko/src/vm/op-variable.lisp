@@ -329,29 +329,5 @@
            (type (integer 0 6) index))
   (pop-stack vm))
 
-(defun read-pc-32-be (vm)
-  "Read 32-bit big-endian value from instruction stream at PC+1.
+;; read-pc-32-be moved to laiko/src/vm/dispatch.lisp
 
-   Per C: For GVAR, the atom index is read as 4 bytes after the opcode.
-   The bytes are in big-endian order: op0<<24 | op1<<16 | op2<<8 | op3.
-
-   This function reads from *current-code* special variable bound by dispatch.
-   Returns the 32-bit atom index."
-  (declare (type vm vm)
-           (special *current-code*))
-  (let* ((pc (vm-pc vm))
-         (code *current-code*))
-    (if (and code
-             (< (+ pc 4) (length code)))
-        ;; Read 4 bytes after opcode (PC+1 to PC+4)
-        (let ((b0 (aref code (+ pc 1)))
-              (b1 (aref code (+ pc 2)))
-              (b2 (aref code (+ pc 3)))
-              (b3 (aref code (+ pc 4))))
-          ;; Big-endian: first byte is MSB
-          (logior (ash b0 24)
-                  (ash b1 16)
-                  (ash b2 8)
-                  b3))
-        ;; Fallback: return 0 if code not available
-        0)))

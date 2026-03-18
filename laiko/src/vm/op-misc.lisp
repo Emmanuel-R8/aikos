@@ -317,10 +317,7 @@ Pops catch tag, unwinds stack."
     (setf (vm-pvar-ptr vm) (+ old-ptr count))
     old-ptr))
 
-(defun read-pc-8 (vm)
-  "Read 8-bit value from PC."
-  (declare (type vm vm))
-  0)
+;; Helper functions moved to laiko/src/vm/dispatch.lisp
 
 (defun decode-float-pointer (ptr)
   "Decode a LispPTR to a float value."

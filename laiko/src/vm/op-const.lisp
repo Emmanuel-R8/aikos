@@ -18,6 +18,38 @@ Pushes the atom index as a Lisp pointer."
   (let ((atom-idx (read-pc-16-be vm)))
     (push-stack vm atom-idx)))
 
+(defop nil-op :hexcode #x68 :instruction-length 1
+  "NIL: Push NIL (0)."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :constants
+  :side-effects nil
+  (push-stack vm 0))
+
+(defop t-op :hexcode #x69 :instruction-length 1
+  "T: Push T (Atom T)."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :constants
+  :side-effects nil
+  (push-stack vm laiko.data:+atom-t-index+))
+
+(defop zero :hexcode #x6A :instruction-length 1
+  "ZERO: Push 0 (Small Integer)."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :constants
+  :side-effects nil
+  (push-stack vm #xE0000))
+
+(defop one :hexcode #x6B :instruction-length 1
+  "ONE: Push 1 (Small Integer)."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :constants
+  :side-effects nil
+  (push-stack vm #xE0001))
+
 ;;; ===========================================================================
 ;; SMALL INTEGER CONSTANTS
 ;;; ===========================================================================
@@ -130,14 +162,5 @@ Pops B and A, pushes T if equal, NIL otherwise."
 ;; HELPER FUNCTIONS
 ;;; ===========================================================================
 
-(defun read-pc-8 (vm)
-  "Read 8-bit value from PC and advance PC by 1."
-  (declare (type vm vm))
-  ;; Placeholder - actual implementation depends on VM structure
-  0)
+;; Helper functions moved to laiko/src/vm/dispatch.lisp
 
-(defun read-pc-16-be (vm)
-  "Read 16-bit big-endian value from PC and advance PC by 2."
-  (declare (type vm vm))
-  ;; Placeholder
-  0)

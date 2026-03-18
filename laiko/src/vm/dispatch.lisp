@@ -156,6 +156,47 @@ Returns symbol or NIL if undefined."
              (when (check-interrupts vm)
                (handle-pending-interrupts vm)))))
 
+;;; ===========================================================================
+;;; INSTRUCTION STREAM READING HELPERS
+;;; ===========================================================================
+
+(defun read-pc-8 (vm)
+  "Read 8-bit value from PC and advance VM-PC by 1.
+   Reads from *current-code* at index (vm-pc vm)."
+  (declare (type vm vm))
+  (prog1 (fetch-instruction-byte (vm-pc vm) *current-code*)
+    (incf (vm-pc vm) 1)))
+
+(defun read-pc-16-be (vm)
+  "Read 16-bit big-endian value from PC and advance VM-PC by 2."
+  (declare (type vm vm))
+  (let* ((pc (vm-pc vm))
+         (b1 (fetch-instruction-byte pc *current-code*))
+         (b2 (fetch-instruction-byte (1+ pc) *current-code*)))
+    (incf (vm-pc vm) 2)
+    (logior (ash b1 8) b2)))
+
+(defun read-pc-16-be-signed (vm)
+  "Read signed 16-bit big-endian value from PC and advance VM-PC by 2."
+  (declare (type vm vm))
+  (let ((unsigned (read-pc-16-be vm)))
+    (if (>= unsigned #x8000) (- unsigned #x10000) unsigned)))
+
+(defun read-pc-32-be (vm)
+  "Read 32-bit big-endian value from PC and advance VM-PC by 4."
+  (declare (type vm vm))
+  (let* ((pc (vm-pc vm))
+         (b1 (fetch-instruction-byte pc *current-code*))
+         (b2 (fetch-instruction-byte (+ pc 1) *current-code*))
+         (b3 (fetch-instruction-byte (+ pc 2) *current-code*))
+         (b4 (fetch-instruction-byte (+ pc 3) *current-code*)))
+    (incf (vm-pc vm) 4)
+    (logior (ash b1 24)
+            (ash b2 16)
+            (ash b3 8)
+            b4)))
+
+
 (defun handle-pending-interrupts (vm)
   "Handle any pending interrupts."
   (let ((int-state (vm-interrupt-state vm)))

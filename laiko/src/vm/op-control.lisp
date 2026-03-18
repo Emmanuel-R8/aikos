@@ -616,23 +616,5 @@ Pops function object and argument list, applies function."
 ;; HELPER FUNCTIONS (not opcodes)
 ;;; ===========================================================================
 
-(defun read-pc-8 (vm)
-  "Read 8-bit value from PC and advance PC by 1."
-  (declare (type vm vm))
-  (prog1 (fetch-instruction-byte (vm-pc vm) *current-code*)
-    (incf (vm-pc vm) 1)))
+;; Helper functions moved to laiko/src/vm/dispatch.lisp
 
-(defun read-pc-16-be (vm)
-  "Read 16-bit big-endian value from PC and advance PC by 2."
-  (declare (type vm vm))
-  (let* ((pc (vm-pc vm))
-         (b1 (fetch-instruction-byte pc *current-code*))
-         (b2 (fetch-instruction-byte (1+ pc) *current-code*)))
-    (incf (vm-pc vm) 2)
-    (logior (ash b1 8) b2)))
-
-(defun read-pc-16-be-signed (vm)
-  "Read signed 16-bit big-endian value from PC."
-  (declare (type vm vm))
-  (let ((unsigned (read-pc-16-be vm)))
-    (if (>= unsigned #x8000) (- unsigned #x10000) unsigned)))

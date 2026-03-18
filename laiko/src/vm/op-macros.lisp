@@ -40,6 +40,8 @@
   :INT16-LE     - Signed 16-bit little-endian (low byte first)
   :UINT32-BE    - Unsigned 32-bit big-endian
   :INT32-BE     - Signed 32-bit big-endian
+  :UINT32-LE    - Unsigned 32-bit little-endian
+  :INT32-LE     - Signed 32-bit little-endian
   :LISP-PTR     - Lisp pointer (32-bit, architecture-dependent)
   :ATOM-INDEX   - Atom table index (16-bit)
   :PC-OFFSET    - PC-relative signed offset for jumps
@@ -47,7 +49,7 @@
   :VARIABLE     - Variable-length operand (count in previous byte)
   :NONE         - No operand (for documentation completeness)
 "
-  '(member :uint8 :int8 :uint16-be :int16-be :uint16-le :int16-le :uint32-be :int32-be
+  '(member :uint8 :int8 :uint16-be :int16-be :uint16-le :int16-le :uint32-be :int32-be :uint32-le :int32-le
     :lisp-ptr :atom-index :pc-offset :byte-count :variable :none))
 
 ;;; ===========================================================================

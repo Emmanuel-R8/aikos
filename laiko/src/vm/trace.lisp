@@ -41,7 +41,10 @@
          (n2 0) 
          (page-num (ash pc -9))
          (page-off (logand pc #x1FF))
-         (instr-name (or instruction-name (symbol-name opcode)))
+         (instr-name (or instruction-name 
+                         (if (symbolp opcode)
+                             (symbol-name opcode)
+                             (format nil "OP_~2,'0X" opcode))))
          (instr-padded (format nil "~16A" instr-name))) ; Pad to 16 chars
     ;; LINE# (6 digits, right-aligned)
     (format *vm-trace-output* "~6D|" *trace-line-number*)
@@ -51,11 +54,8 @@
     (format *vm-trace-output* "~A|" instr-padded)
     ;; OPCODE (0x%02x format, lowercase)
     (format *vm-trace-output* "0x~(~2,'0x~)|" opcode)
-    ;; OPERANDS (20 chars, empty for now)
-    (if operands
-        (let ((operand-str (format nil "~{~(~2,'0x~)~^ ~}" operands)))
-          (format *vm-trace-output* "~20A|" operand-str))
-        (format *vm-trace-output* "~20A|" ""))
+    ;; OPERANDS (20 chars, always empty to match Maiko C emulator trace)
+    (format *vm-trace-output* "~20A|" "")
     ;; REGISTERS (comma-separated: r1:0x%04x,r2:0x%04x,r3:0x%02x, lowercase)
     (let ((r1 (logand pc #xFFFF))
           (r2 (logand tos #xFFFF))
