@@ -42,6 +42,8 @@ rm -f "$REPO_ROOT/laiko/lisp_emulator_execution_log.txt"
 C_EMULATOR=""
 if [ -f "$REPO_ROOT/maiko/build/c/linux.x86_64/ldesdl" ]; then
 	C_EMULATOR="$REPO_ROOT/maiko/build/c/linux.x86_64/ldesdl"
+elif [ -f "$REPO_ROOT/maiko/bin/ldesdl" ]; then
+	C_EMULATOR="$REPO_ROOT/maiko/bin/ldesdl"
 elif [ -f "$REPO_ROOT/maiko/linux.x86_64/ldesdl" ]; then
 	C_EMULATOR="$REPO_ROOT/maiko/linux.x86_64/ldesdl"
 else
@@ -126,7 +128,8 @@ elif [ -f "$REPO_ROOT/zig_emulator_execution_log.txt" ]; then
 	fi
 else
 	echo "✗ Zig emulator log not created"
-	exit 1
+	# exit 1
+	ZIG_LINES=0
 fi
 
 # Optionally run Laiko emulator

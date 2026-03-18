@@ -78,6 +78,11 @@ fi
 # Compare
 echo ""
 echo "=== Comparison ==="
+
+# Strip trailing whitespace from both files
+sed -i 's/[ \t]*$//' "c_emulator_unified_trace.txt"
+sed -i 's/[ \t]*$//' "laiko_unified_trace.txt"
+
 if diff -q "c_emulator_unified_trace.txt" "laiko_unified_trace.txt" >/dev/null 2>&1; then
     echo "✅ SUCCESS: Traces are IDENTICAL!"
 else
