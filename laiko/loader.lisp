@@ -37,11 +37,16 @@
 (load "src/vm/function.lisp")
 (load "src/main.lisp")
 
-;; When running as script, *posix-argv* is (sbcl arg1 arg2 ...)
+;; When running as script, *posix-argv* is (sbcl loader.lisp arg1 arg2 ...)
 ;; We want to pass (arg1 arg2 ...) to main
-(handler-bind ((error (lambda (c)
-                        (format t "Error: ~A~%" c)
-                        (sb-debug:print-backtrace)
-                        (sb-ext:exit :code 1))))
-  (laiko:main (cdr sb-ext:*posix-argv*)))
+(let ((args (cdr sb-ext:*posix-argv*)))
+  ;; Remove the script name (loader.lisp) if present
+  (when (and args (string= (file-namestring (first args)) "loader.lisp"))
+    (setf args (rest args)))
+  
+  (handler-bind ((error (lambda (c)
+                          (format t "Error: ~A~%" c)
+                          (sb-debug:print-backtrace)
+                          (sb-ext:exit :code 1))))
+    (laiko:main args)))
 (sb-ext:exit :code 0)

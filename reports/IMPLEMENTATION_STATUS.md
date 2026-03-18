@@ -119,6 +119,7 @@ EMULATOR_MAX_STEPS=15 ./zaiko/build/zaiko ./medley/internal/loadups/starter.syso
 - **Current Focus**: Comparing execution traces with C implementation
 - **Opcode Coverage**: Opcode collisions resolved, 186 opcodes defined
 - **Architecture**: New virtual-memory based stack implementation verified
+- **Parity Status**: Trace format fully aligned with C emulator. Initial divergence detected at Step 0 (Stack Pointer initialization).
 
 ### What Works
 
@@ -129,11 +130,12 @@ EMULATOR_MAX_STEPS=15 ./zaiko/build/zaiko ./medley/internal/loadups/starter.syso
 - ✅ **Opcode Collisions Resolved**: All conflicting opcodes fixed/removed.
 - ✅ **Stack Architecture**: Virtual memory-based stack fully implemented and tested.
 - ✅ **Full Execution**: Loads `starter.sysout` and executes to completion.
-- ✅ Trace infrastructure matching C format
-- ✅ Parity testing framework (tests/run-parity.lisp)
+- ✅ **Trace Infrastructure**: Matching C format (lowercase hex, identical fields).
+- ✅ Parity testing framework (`scripts/compare_laiko_execution.sh`)
 
 ### Known Issues
 
+- ⚠️ **Parity Divergence**: Step 0 divergence in SP (0x012e88 vs C 0x012e8a) and TOS (0x000ea000 vs C 0x00000000).
 - ⚠️ Graphics opcodes are partial/stubs.
 - ⚠️ Subroutine calls are stubs.
 - ⚠️ Emulator exits after initial return (needs hard loop for REPL).
