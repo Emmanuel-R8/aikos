@@ -3,7 +3,7 @@
 *Navigation*: README | Index | Architecture
 
 *Feature*: 002-lisp-implementation
-*Date*: 2026-03-19 02:56
+*Date*: 2026-03-19 03:53
 *Status*: 🔧 PARITY DEBUGGING - Startup Path Advancing
 
 == Overview
@@ -19,13 +19,13 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL), following t
 - *Build System*: ASDF
 - *Target Platform*: Linux (SBCL), macOS, Windows (partial)
 
-== Current Status (2026-03-19 02:56)
+== Current Status (2026-03-19 03:53)
 
-=== Opcode alignment with Maiko (2026-03-19 02:56)
+=== Opcode alignment with Maiko (2026-03-19 03:53)
 
 Laiko now loads `starter.sysout`, enters the startup bytecode, and matches Maiko substantially deeper into the trace than before, but it does #emph[not] yet run to completion.
 
-**2026-03-19 02:56 Update**:
+**2026-03-19 03:53 Update**:
 - Implemented `GVAR_` (`0x17`) using Maiko semantics: store cached `TOS` into the atom value cell without changing `TOS`.
 - Implemented `LISTP` (`0x03`) using the MDS type table rather than a heuristic.
 - Corrected the `JUMPX` family so `JUMPX`, `FJUMPX`, `TJUMPX`, `NFJUMPX`, and `NTJUMPX` use signed 8-bit offsets, while `JUMPXX` uses signed 16-bit offsets.
@@ -41,7 +41,8 @@ Laiko now loads `starter.sysout`, enters the startup bytecode, and matches Maiko
 - Corrected the `FVAR0`-`FVAR6` family to use Maiko DLword offsets (`0, 2, 4, 6, 8, 10, 12`) rather than a fake closure-environment index.
 - Implemented `FVARX` (`0x57`) and ported the unbound-chain lookup path needed by the startup trace: unresolved free-variable slots now scan caller frames via `alink`, choose `fnheader` vs `nametable` according to `validnametable`, and cache the resolved address back into the current frame slot.
 - Implemented the indexed non-pop store family needed immediately after that lookup work: `IVARX_` (`0x62`), `FVARX_` (`0x63`), and `PVARX` (`0x4F`).
-- Current blocker: Laiko now passes the resumed `FVARX` / `FVARX_` sequence and reaches byte `0x00` at `0x71ca89`, immediately after `ACONST`. The next task is to verify whether this is a real `opc_unused_0` execution path or an `ACONST` / `nextop_atom` length mismatch.
+- Corrected `ACONST` for the actual BIGVM build: it now reads a 32-bit atom operand and advances by 5 bytes, matching Maiko `Get_AtomNo_PCMAC1` / `nextop_atom`.
+- Current blocker: after the `ACONST` fix, the next live frontier moved to opcode `0x78` (`MISC1`) at `0x71cad6`. In Maiko this is not a hard undefined opcode; it routes through `op_ufn`, so the next work is on `UFN` dispatch rather than on ordinary opcode decoding.
 
 === ✅ Completed
 
@@ -252,7 +253,7 @@ These fixes removed the false later `CONTEXTSWITCH returned to incall frame` fai
 
 === Current limitation
 
-The next live parity frontier is no longer the first unbound free-variable access. Laiko now resolves that startup path and the next question is a post-`ACONST` decode frontier at byte `0x00`.
+The next live parity frontier is no longer the first unbound free-variable access or the post-`ACONST` fake decode. Laiko now reaches the first real `UFN`-dispatched unused opcode in this startup path.
 
 == Critical Fix: Free-variable chain resolution and indexed variable opcodes (2026-03-19 02:56)
 
@@ -292,6 +293,36 @@ These fixes moved Laiko past the first missing `FVARX` frontier, through several
 === Current limitation
 
 The current live mismatch is byte `0x00` at `0x71ca89`. Because this appears immediately after `ACONST`, the next step is to verify whether Laiko is actually reaching a real `opc_unused_0` byte or whether `ACONST` still disagrees with Maiko's `nextop_atom` stepping convention.
+
+== Critical Fix: BIGVM `ACONST` atom width (2026-03-19 03:53)
+
+=== Problem
+
+After the free-variable work, Laiko appeared to hit byte `0x00` immediately after `ACONST`.
+
+That looked at first like a new opcode-coverage gap, but the C reference showed a different story:
+
+1. On BIGATOMS builds, `Get_AtomNo_PCMAC1` reads a pointer-sized atom operand.
+2. On BIGVM, `nextop_atom` advances by 5 bytes, not 3.
+3. Laiko still implemented `ACONST` as a 3-byte instruction with a 16-bit atom operand.
+
+So the `0x00` frontier was not a real executable opcode. It was a decode drift caused by reading only half of the atom operand.
+
+=== Solution
+
+Laiko `ACONST` now matches the Maiko BIGVM path:
+
+1. instruction length updated from 3 to 5 bytes
+2. operand widened from a 16-bit atom index to a 32-bit big-endian atom pointer/index
+3. handler updated to use the 32-bit operand reader
+
+=== Result
+
+This removed the false post-`ACONST` `0x00` frontier and advanced the startup trace to the next genuine control-transfer gap.
+
+=== Current limitation
+
+The next live frontier is opcode `0x78` (`MISC1`) at `0x71cad6`. Maiko dispatches that byte through `op_ufn`, so the next parity slice needs `UFN` table / dispatch support rather than another ordinary opcode stub.
 
 === Critical Fix: GVAR Bounds Check (2026-03-20)
 

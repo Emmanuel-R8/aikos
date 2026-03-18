@@ -7,15 +7,15 @@
 ;; ATOM CONSTANT
 ;;; ===========================================================================
 
-(defop aconst :hexcode #x67 :instruction-length 3
+(defop aconst :hexcode #x67 :instruction-length 5
   "ACONST: Push atom constant onto stack.
-Reads 2-byte atom index from instruction stream.
+Reads 4-byte atom index from instruction stream on BIGVM/BIGATOMS.
 Pushes the atom index as a Lisp pointer."
-  :operands ((atom-index :atom-index "Atom index (2 bytes)"))
+  :operands ((atom-index :uint32-be "Atom index (4 bytes, big-endian)"))
   :stack-effect (:push 1)
   :category :constants
   :side-effects nil
-  (let ((atom-idx (read-pc-16-be vm)))
+  (let ((atom-idx (read-pc-32-be vm)))
     (push-stack vm atom-idx)))
 
 (defop nil-op :hexcode #x68 :instruction-length 1
@@ -163,4 +163,3 @@ Pops B and A, pushes T if equal, NIL otherwise."
 ;;; ===========================================================================
 
 ;; Helper functions moved to laiko/src/vm/dispatch.lisp
-

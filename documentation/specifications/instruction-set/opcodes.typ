@@ -81,7 +81,7 @@ If an `FVAR` slot is still unbound, Maiko resolves it by walking caller frames v
 
 === Frontier note from startup parity work
 
-Recent startup-path parity work advanced Laiko through resumed-frame `FVARX`, `FVARX_`, and `PVARX`. The next observed frontier in the authoritative C/Laiko comparison is byte `0x00` immediately after `ACONST`. Since `opcodes.h` marks `0x00` as `opc_unused_0`, implementations should verify the surrounding instruction stepping first before assuming that a real executable `0x00` path exists.
+Recent startup-path parity work advanced Laiko through resumed-frame `FVARX`, `FVARX_`, and `PVARX`, and then exposed a BIGVM-specific `ACONST` bug: atom-bearing opcodes use `nextop_atom`, which is 5 bytes on BIGVM/BIGATOMS. After fixing that width mismatch, the next observed frontier became opcode `0x78` (`MISC1`), which Maiko routes through `op_ufn` rather than treating as a hard undefined opcode.
 
 === Implementation guidance: opcode metadata tables
 

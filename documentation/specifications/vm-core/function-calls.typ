@@ -95,6 +95,23 @@ function ExecuteFNX():
     CallFunction(function_obj, arg_count)
 ])
 
+=== UFN-routed opcodes
+
+Some bytecodes that appear "unused" in the opcode table are still executable in Maiko. Instead of trapping immediately, the dispatcher routes them through `op_ufn`, which consults the UFN table and turns the bytecode into a Lisp-level function call.
+
+At a high level:
+
+1. Read the `UFN` entry for the current opcode.
+2. Extract:
+   - `arg_num`
+   - `byte_num`
+   - `atom_name`
+3. Set `fn_opcode_size = byte_num + 1`.
+4. Load the handler function from `GetDEFCELL(atom_name)`.
+5. Enter the same common call path used by `FNx`, while applying the UFN-specific operand-push rules from `APPLY_POP_PUSH_TEST`.
+
+This means that an "unused" opcode such as `MISC1` (`0x78`) is not necessarily an error. On a real Maiko build it may be a UFN-dispatched Lisp call, so parity implementations must not equate "unused in the main switch" with "abort immediately".
+
 == Function Call Process
 
 === Step 1: Save Current State
