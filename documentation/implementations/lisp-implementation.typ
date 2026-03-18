@@ -54,7 +54,32 @@ Laiko now successfully loads and executes `starter.sysout` to completion (return
 - Implementing missing opcodes (graphics, I/O).
 - Establishing a persistent REPL loop.
 
-=== Critical Fix: Memory Operations (2026-03-20)
+=== Critical Fix: VM Initialization & Stack Logic (2026-03-18)
+
+=== Problem
+
+The VM initialization logic in `laiko/src/main.lisp` was incorrectly calculating the initial Frame Pointer (FP) and Stack Pointer (SP) by mixing absolute Lisp addresses with relative stack offsets.
+
+- **Old Logic**:
+  - `FP = STK_OFFSET + (currentfxp * 2)` (Incorrect base)
+  - `SP = STK_OFFSET + (nextblock * 2)` (Incorrect base)
+
+- **Correct Logic (Maiko Reference)**:
+  - `FP = currentfxp` (Relative offset from start of stack space)
+  - `SP = stackbase + 2` (Absolute address from `IFPAGE->stackbase`)
+  - `TOS = *stackbase` (Top of stack value)
+
+=== Solution
+
+Updated `initialize-vm-from-ifpage` to match Maiko's `initsout.c`:
+
+1. **FP Calculation**: `currentfxp` from IFPAGE is treated as a relative offset.
+2. **SP Calculation**: `stackbase` from IFPAGE is treated as an absolute LispPTR.
+3. **TOS Initialization**: The value at `stackbase` is loaded as the initial Top-Of-Stack.
+
+This ensures the VM starts execution in the correct stack frame state, preventing immediate crashes or stack corruption upon the first return.
+
+== Critical Fix: Memory Operations (2026-03-20)
 
 === Problem
 
