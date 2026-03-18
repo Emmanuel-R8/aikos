@@ -104,6 +104,9 @@
    ;; Instruction stream access
    #:*current-code*
    #:*current-base-pc*
+   #:read-pc-8
+   #:read-pc-16-be
+   #:read-pc-16-be-signed
    #:read-pc-32-be
    ;; Binding operations
    #:+bind-marker-msb+
@@ -190,7 +193,9 @@
    #:+cdr-indirect+
    #:+cdr-onpage-min+
    #:+cdr-onpage-max+
+   #:+atom-t-index+
    #:get-list-length
+   #:array-header
    #:array-header
    ;; Function header
    #:function-header

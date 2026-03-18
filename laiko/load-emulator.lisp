@@ -20,6 +20,7 @@ sbcl --non-interactive --eval "(require :asdf)" \
      --eval "(load \"src/vm/stack.lisp\")" \
      --eval "(load \"src/vm/interrupt.lisp\")" \
      --eval "(load \"src/vm/trace.lisp\")" \
+     --eval "(load \"src/vm/op-macros.lisp\")" \
      --eval "(load \"src/vm/dispatch.lisp\")" \
      --eval "(load \"src/vm/op-stack.lisp\")" \
      --eval "(load \"src/vm/op-arithmetic.lisp\")" \

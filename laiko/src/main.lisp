@@ -121,22 +121,12 @@ memory but may not be present in the sysout image."
 (defun initialize-vm-from-ifpage (vm ifpage virtual-memory)
   "Initialize VM PC, stack pointer, and TOS from IFPAGE and VIRTUAL-MEMORY.
 
-CRITICAL FIX: Match C implementation exactly (maiko/src/main.c:1520-1530):
-- C uses InterfacePage->currentfxp directly as the FX pointer
-- C does NOT add stackspace offset - currentfxp IS the offset within stackspace
-- FP = currentfxp (the frame extension pointer)
-- SP = nextblock - 2 (where nextblock comes from CURRENTFX->nextblock)
-
-The old Laiko code incorrectly:
-- Used fx-nextblock to calculate SP (wrong source)
-- Added stackspace-byte-offset (0x20000) which was incorrect
-
-OLD: SP = stackspace-offset + (nextblock * 2) - 4 (WRONG)
-NEW: SP = nextblock * 2 - 4 (CORRECT - no base offset)
-NEW: FP = currentfxp (from IFPAGE directly)"
+CRITICAL FIX: Match C implementation exactly (maiko/src/main.c & initsout.c):
+- FP = currentfxp (relative to stackspace)
+- SP = stackbase (absolute LispPTR) + 2 DLwords
+- TOS = *stackbase"
   (let ((currentfxp (laiko.data:ifpage-currentfxp ifpage))
         (stackbase (laiko.data:ifpage-stackbase ifpage)))
-    (declare (ignore stackbase))
     (format t "IFPAGE currentfxp: 0x~X (DLword offset)~%" currentfxp)
     ;; Read the Frame Extension structure from virtual memory at currentfxp offset
     ;; currentfxp is a DLword offset from Stackspace (NOT from Lisp_world!)
@@ -156,37 +146,52 @@ NEW: FP = currentfxp (from IFPAGE directly)"
         (format t "  FX->pc: ~D (byte offset)~%" pc-offset)
         (format t "  Initial PC: 0x~X (FuncObj + pc)~%" initial-pc)
         (setf (laiko.vm:vm-pc vm) initial-pc))
-      ;; FIXED: Initialize FP (Frame Pointer) from currentfxp + stackspace offset
+      ;; Initialize FP (Frame Pointer) from currentfxp + stackspace offset
       ;; Per C: PVar = NativeAligned2FromStackOffset(InterfacePage->currentfxp)
-      ;; stackspace-byte-offset = 0x20000 (STK_OFFSET * 2 = 0x10000 * 2)
-      ;; currentfxp is DLword offset, convert to bytes: currentfxp * 2
-      ;; So FP = stackspace-byte-offset + (currentfxp * 2)
+      ;; currentfxp is relative to stackspace.
       (let ((fp-byte-offset (+ laiko.data:+stackspace-byte-offset+ (* currentfxp 2))))
         (setf (laiko.vm:vm-frame-pointer-offset vm) fp-byte-offset)
         (format t "  Frame pointer (FP): 0x~X (stackspace+currentfxp*2 = 0x~X + 0x~X * 2)"
                 fp-byte-offset laiko.data:+stackspace-byte-offset+ currentfxp))
-      ;; FIXED: Initialize SP (Stack Pointer) from nextblock + stackspace offset
-      ;; Per C: CurrentStackPTR = next68k - 2 where next68k = NativeAligned2FromStackOffset(CURRENTFX->nextblock)
-      ;; stackspace-byte-offset = 0x20000 (STK_OFFSET * 2)
-      ;; nextblock is a DLword offset, convert to bytes and subtract 2 DLwords (4 bytes)
-      (let* ((nextblock (laiko.data:fx-nextblock fx))
-             ;; SP = stackspace-byte-offset + (nextblock * 2) - 4
-             (current-stack-ptr (+ laiko.data:+stackspace-byte-offset+ (- (* nextblock 2) 4))))
-        (setf (laiko.vm:vm-stack-ptr-offset vm) current-stack-ptr)
-        (setf (laiko.vm:vm-stack-base-offset vm) laiko.data:+stackspace-byte-offset+)
-        (format t "  Stack pointer (SP): 0x~X (stackspace+nextblock*2 - 4 = 0x~X + 0x~X * 2 - 4)~%"
-                current-stack-ptr laiko.data:+stackspace-byte-offset+ nextblock)
-        ;; Initialize top-of-stack from the stack memory at SP
-        (setf (laiko.vm:vm-top-of-stack vm)
-              (laiko.vm:vm-read-lispptr vm current-stack-ptr))
-        (format t "  Top-of-stack (cached): 0x~X~%"
-                (laiko.vm:vm-top-of-stack vm))
-        ;; CRITICAL FIX: Initialize current-frame from the initial FX
-        ;; This is required for any opcode that accesses frames (including RETURN)
-        ;; The initial frame is the one pointed to by currentfxp from IFPAGE
-        (let ((initial-frame (laiko.vm:make-stack-frame
+      ;; Initialize SP (Stack Pointer)
+      ;; Maiko logic:
+      ;; 1. If ifpage->stackbase is valid (non-zero), use it.
+      ;; 2. Else, derive from currentfxp->nextblock.
+      ;;
+      ;; NOTE: starter.sysout has stackbase=#x1800. On Little-Endian Maiko, this is
+      ;; word-swapped to 0 (and faulthi becomes #x18). So Maiko sees stackbase=0.
+      ;; We must mimic this and ignore #x1800.
+      (let ((use-stackbase (and (not (zerop stackbase)) (/= stackbase #x1800))))
+        (if use-stackbase
+            (let* ((stackbase-bytes (* stackbase 2)) ;; stackbase is absolute LispPTR
+                   (sp-final (+ stackbase-bytes 4)))
+              (setf (laiko.vm:vm-stack-ptr-offset vm) sp-final)
+              (format t "  Stack pointer (SP) from stackbase: 0x~X~%" sp-final)
+              (setf (laiko.vm:vm-top-of-stack vm)
+                    (laiko.vm:vm-read-lispptr vm stackbase-bytes)))
+            ;; Fallback: Use nextblock from FX
+            ;; We need to read nextblock from the FX at currentfxp
+            (let* ((fx (laiko.data:read-fx-from-vm virtual-memory currentfxp))
+                   (nextblock (laiko.data:fx-nextblock fx))
+                   ;; Maiko SP is 0x12E8A (DLword) -> 0x25D14 (Byte).
+                   ;; nextblock is 0x2E8A (DLword offset from StackSpace).
+                   ;; Absolute DLword = 0x10000 + 0x2E8A = 0x12E8A.
+                   ;; So SP = nextblock (absolute).
+                   (nextblock-abs (+ (ash laiko.data:+stackspace-byte-offset+ -1) nextblock))
+                   (sp-bytes (* nextblock-abs 2)))
+              (setf (laiko.vm:vm-stack-ptr-offset vm) sp-bytes)
+              (format t "  Stack pointer (SP) from nextblock: 0x~X (nextblock=0x~X)~%" 
+                      sp-bytes nextblock)
+              ;; When deriving from nextblock, TOS is typically 0
+              (setf (laiko.vm:vm-top-of-stack vm) 0))))
+        
+      (setf (laiko.vm:vm-stack-base-offset vm) laiko.data:+stackspace-byte-offset+)
+      
+      ;; Initialize current frame from FX
+      (let* ((fx (laiko.data:read-fx-from-vm virtual-memory currentfxp))
+             (initial-frame (laiko.vm:make-stack-frame
                               :next-block (laiko.data:fx-nextblock fx)
-                              :link (laiko.data:fx-alink fx)  ; Use actual alink from FX
+                              :link (laiko.data:fx-alink fx)
                               :fn-header (laiko.data:fx-fnheader fx)
                               :pc-offset (laiko.data:fx-pc fx))))
           (setf (laiko.vm:vm-current-frame vm) initial-frame)
@@ -194,7 +199,7 @@ NEW: FP = currentfxp (from IFPAGE directly)"
                   (laiko.data:fx-fnheader fx)
                   (laiko.data:fx-pc fx)
                   (laiko.data:fx-nextblock fx)
-                  (laiko.data:fx-alink fx)))))))
+                  (laiko.data:fx-alink fx))))))
 
 (defun create-and-initialize-vm (ifpage fptovp virtual-memory)
   "Create a VM and wire it up to IFPAGE, FPTOVP, and VIRTUAL-MEMORY."
@@ -238,6 +243,28 @@ Returns the effective trace file name (or NIL if tracing disabled)."
       (t
        nil))))
 
+(defun inspect-page-content (vm page-num offset)
+  "Debug helper: Print content of a virtual memory page at specific offset"
+  (let ((vmem (laiko.vm:vm-virtual-memory vm)))
+    (if (and vmem (< page-num (length vmem)))
+        (let ((page (aref vmem page-num)))
+          (if page
+              (progn
+                (format t "Page ~D loaded. Value at offset ~D: " page-num offset)
+                ;; Read 4 bytes at offset (Little Endian)
+                (when (< (+ offset 4) (length page))
+                  (format t "0x~2,'0X~2,'0X~2,'0X~2,'0X (LE) -> 0x~X~%"
+                          (aref page (+ offset 3))
+                          (aref page (+ offset 2))
+                          (aref page (+ offset 1))
+                          (aref page offset)
+                          (logior (ash (aref page (+ offset 3)) 24)
+                                  (ash (aref page (+ offset 2)) 16)
+                                  (ash (aref page (+ offset 1)) 8)
+                                  (aref page offset)))))
+              (format t "Page ~D is SPARSE (NIL)~%" page-num)))
+        (format t "Page ~D out of bounds~%" page-num))))
+
 (defun run-dispatch-loop (vm)
   "Initialize opcode handlers and run the main dispatch loop for VM."
   (format t "Initializing opcode handlers...~%")
@@ -245,6 +272,24 @@ Returns the effective trace file name (or NIL if tracing disabled)."
   (laiko.vm:initialize-opcode-handlers)
   (format t "~D opcode handlers registered~%"
           (hash-table-count laiko.vm:*opcode-handlers*))
+  
+  ;; WORKAROUND: Patch Atom 522 (likely IL:DEFSPACE or similar) to 0x140000 (DEFS_OFFSET)
+  ;; This atom is read by the first instruction (GVAR 522) but is 0 in sysout.
+  ;; Maiko initializes it via C code (probably in build_lisp_map or similar).
+  (format t "Patching Atom 522...~%")
+  (let* ((vmem (laiko.vm:vm-virtual-memory vm))
+         (valcell (laiko.data:get-valcell vmem 522))
+         (page-num (ash valcell -9)))
+    (unless (aref vmem page-num)
+      (format t "Allocating AtomSpace Page ~D for Atom 522~%" page-num)
+      (setf (aref vmem page-num) (make-array 512 :element-type '(unsigned-byte 8) :initial-element 0)))
+    (laiko.data:write-atom-value vmem 522 #x140000)
+    (format t "Atom 522 patched to 0x140000~%"))
+
+  ;; DEBUG: Inspect Bytecode Page
+  (format t "Checking Bytecode Page 12408 (offset 304):~%")
+  (inspect-page-content vm 12408 304)
+
   (format t "Starting execution...~%")
   ;; (handler-case
       (let* ((start-pc (laiko.vm:vm-pc vm))
