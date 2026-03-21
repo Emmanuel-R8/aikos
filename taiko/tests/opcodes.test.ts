@@ -13,5 +13,6 @@ describe('Opcode', () => {
         expect(getInstructionLength(Opcode.NIL)).toBe(1);
         expect(getInstructionLength(Opcode.JUMPX)).toBe(3);
         expect(getInstructionLength(Opcode.JUMPXX)).toBe(5);
+        expect(getInstructionLength(Opcode.GVAR)).toBe(5);
     });
 });

@@ -284,11 +284,14 @@ export function getInstructionLength(opcode: Opcode): number {
     // Opcodes with 1-byte operands
     if (opcode === Opcode.RPLPTR_N ||
         opcode === Opcode.TYPEP ||
-        opcode === Opcode.GVAR_ ||
         opcode === Opcode.GCREF ||
         opcode === Opcode.ASSOC ||
         opcode === Opcode.RESTLIST) {
         return 2; // opcode + 1-byte operand
+    }
+    // BIGATOMS/BIGVM atom-bearing opcodes carry a 32-bit atom number.
+    if (opcode === Opcode.GVAR) {
+        return 5; // opcode + 4-byte atom operand
     }
     // Opcodes with 2-byte operands
     if (opcode === Opcode.DTEST || opcode === Opcode.UNWIND) {

@@ -167,6 +167,18 @@ TypeScript-specific outcomes:
 - the real-sysout Bun regression is now hard rather than advisory: it requires successful initialization, the expected startup `PC`, and a decodable first instruction
 - this narrows the next parity slice from "can Taiko decode startup?" to "does Taiko execute the first startup instruction sequence like C?"
 
+=== 2026-03-21 22:50 - Startup Execution Progress Slice
+
+The next Taiko slice advanced from "first opcode decodes" to "the first startup instructions execute in the same order as C."
+
+TypeScript-specific outcomes:
+
+- `GVAR` now follows the current `BIGATOMS`/`BIGVM` operand-width rule on the real startup path, so the restored `starter.sysout` stream advances from `0x60f131` to `0x60f136` instead of desynchronizing after one byte
+- the real-sysout regression now checks the first executed startup slice, not just the first decoded opcode: `POP` at `0x60f130`, `GVAR`, then `UNBIND` at `0x60f136`, then `GETBASEPTR_N` at `0x60f137`
+- `UNBIND` now walks backward from `CSTKPTRL` through the restored evaluation stack, uses `PVAR` as the restoration base, and preserves cached `TOPOFSTACK` instead of clobbering it eagerly
+- Taiko now survives the old startup `UNBIND` frontier and reaches a later control-flow divergence after 8 startup steps (`PC = 0xfffe`)
+- the next parity slice is therefore no longer about sysout decoding or binding markers; it is about the later startup execution semantics that drive Taiko off the real control-flow path
+
 == Related Documentation
 
 - Trace Format: `documentation/specifications/vm-core/trace-and-logging-formats.typ`
@@ -175,9 +187,9 @@ TypeScript-specific outcomes:
 
 == Next Steps
 
-1. Compare Taiko's first executed startup instructions against the C reference trace
+1. Compare Taiko's later startup control-flow steps against the C reference trace
 2. Re-run parity comparisons against the C reference as each slice lands
 3. Reduce startup-path heuristics by replacing entry-point guessing with more direct sysout/runtime evidence where available
-4. Extend real-sysout validation from "restores the C startup PC and first opcode" to "first matched execution steps"
+4. Extend real-sysout validation from "first matched execution steps" to a longer matched startup prefix
 
-*Last Updated*: 2026-03-21 21:17
+*Last Updated*: 2026-03-21 22:50

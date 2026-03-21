@@ -3,6 +3,7 @@ import { describe, test, expect } from 'bun:test';
 import { loadSysout } from '../src/io/sysout';
 import { decodeInstructionFromMemory } from '../src/vm/dispatch/decoder';
 import { Opcode } from '../src/vm/dispatch/opcode';
+import { executeStep } from '../src/vm/execution';
 import { initializeVM } from '../src/vm/initialization';
 import { VM } from '../src/vm/vm';
 import { IFPAGE_KEYVAL, IFPAGE_ADDRESS, BYTESPER_PAGE, ATOMS_OFFSET, DEFS_OFFSET, VALS_OFFSET, PLIS_OFFSET, DTD_OFFSET } from '../src/utils/constants';
@@ -165,5 +166,15 @@ describe('Sysout Loading', () => {
         const instruction = decodeInstructionFromMemory(vm, vm.pc);
         expect(instruction).not.toBeNull();
         expect(instruction?.opcode).toBe(Opcode.POP);
+
+        expect(executeStep(vm)).toBe(true);
+        expect(vm.pc).toBe(0x60F131);
+
+        expect(executeStep(vm)).toBe(true);
+        expect(vm.pc).toBe(0x60F136);
+        expect(decodeInstructionFromMemory(vm, vm.pc)?.opcode).toBe(Opcode.UNBIND);
+
+        expect(executeStep(vm)).toBe(true);
+        expect(vm.pc).toBe(0x60F137);
     });
 });
