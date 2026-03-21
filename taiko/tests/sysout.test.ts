@@ -1,89 +1,82 @@
 // Sysout loading tests
 import { describe, test, expect } from 'bun:test';
 import { loadSysout } from '../src/io/sysout';
-import { IFPAGE_KEYVAL, IFPAGE_ADDRESS, BYTESPER_PAGE } from '../src/utils/constants';
+import { IFPAGE_KEYVAL, IFPAGE_ADDRESS, BYTESPER_PAGE, ATOMS_OFFSET, DEFS_OFFSET, VALS_OFFSET, PLIS_OFFSET, DTD_OFFSET } from '../src/utils/constants';
 import { MemoryManager } from '../src/vm/memory/manager';
 import { existsSync } from 'fs';
 import { resolve } from 'path';
 
 describe('Sysout Loading', () => {
-    test('creates minimal valid sysout buffer', () => {
+    function writeWordBE(view: DataView, offset: number, value: number): void {
+        view.setUint16(offset, value & 0xFFFF, false);
+    }
+
+    function writeDWordBE(view: DataView, offset: number, value: number): void {
+        view.setUint32(offset, value >>> 0, false);
+    }
+
+    function writeMinimalIFPage(buffer: ArrayBuffer, overrides: Record<number, number> = {}): void {
+        const view = new DataView(buffer, IFPAGE_ADDRESS);
+
+        writeWordBE(view, 30, IFPAGE_KEYVAL); // key
+        writeWordBE(view, 88, 1); // process_size (1 MB)
+        writeWordBE(view, 116, 3); // fptovpstart => page 3, after IFPAGE
+
+        for (const [offset, value] of Object.entries(overrides)) {
+            writeWordBE(view, Number(offset), value);
+        }
+    }
+
+    test('creates minimal valid sysout buffer', async () => {
         const buffer = new ArrayBuffer(2048);
-        const view = new Uint8Array(buffer);
+        writeMinimalIFPage(buffer);
 
-        // Write IFPAGE at offset 512
-        const ifpageOffset = IFPAGE_ADDRESS;
-        MemoryManager.Access.writeDLword(view, ifpageOffset + 0, IFPAGE_KEYVAL);
-        MemoryManager.Access.writeDLword(view, ifpageOffset + 2, 0); // lversion
-        MemoryManager.Access.writeDLword(view, ifpageOffset + 4, 0); // minbversion
-        MemoryManager.Access.writeDLword(view, ifpageOffset + 6, 0); // machine type
-        MemoryManager.Access.writeDLword(view, ifpageOffset + 8, 100); // process_size (pages)
-        MemoryManager.Access.writeDLword(view, ifpageOffset + 10, 0); // nxtpmaddr
-        MemoryManager.Access.writeDLword(view, ifpageOffset + 12, 0); // screenwidth
-        MemoryManager.Access.writeDLword(view, ifpageOffset + 14, 0); // emulatorspace
-
-        // Write FPtoVP table header (first entry)
-        const fptovpOffset = ifpageOffset + 16;
-        MemoryManager.Access.writeDLword(view, fptovpOffset + 0, 1); // First page maps to virtual page 1
-
-        expect(() => {
-            loadSysout(buffer);
-        }).not.toThrow();
+        await expect(loadSysout(buffer)).resolves.toBeDefined();
     });
 
-    test.skip('validates IFPAGE keyval', async () => {
+    test('validates IFPAGE keyval', async () => {
         const buffer = new ArrayBuffer(2048);
-        const view = new Uint8Array(buffer);
+        writeMinimalIFPage(buffer, { 30: 0x1234 });
 
-        // Write invalid keyval
-        MemoryManager.Access.writeDLword(view, IFPAGE_ADDRESS + 0, 0x1234);
-
-        await expect(async () => {
-            await loadSysout(buffer);
-        }).rejects.toThrow();
+        await expect(loadSysout(buffer)).rejects.toThrow(/Invalid IFPAGE key/);
     });
 
-    test.skip('loads virtual memory from FPtoVP table', async () => {
+    test('loads virtual memory from FPtoVP table', async () => {
         const buffer = new ArrayBuffer(4096);
-        const view = new Uint8Array(buffer);
+        writeMinimalIFPage(buffer, { 116: 5 });
+        const bufferView = new DataView(buffer);
 
-        // Write IFPAGE
-        const ifpageOffset = IFPAGE_ADDRESS;
-        MemoryManager.Access.writeDLword(view, ifpageOffset + 0, IFPAGE_KEYVAL);
-        MemoryManager.Access.writeDLword(view, ifpageOffset + 8, 2); // process_size = 2 pages
+        // FPtoVP table starts at page 5 offset 4 to avoid overlapping test pages.
+        const fptovpOffset = ((5 - 1) * BYTESPER_PAGE) + 4;
+        // Encode entries so that byte-swap yields 0x00000001 and 0x00000002.
+        writeDWordBE(bufferView, fptovpOffset + (1 * 4), 0x01000000);
+        writeDWordBE(bufferView, fptovpOffset + (2 * 4), 0x02000000);
 
-        // Write FPtoVP table: page 0 -> virtual page 1, page 1 -> virtual page 2
-        const fptovpOffset = ifpageOffset + 16;
-        MemoryManager.Access.writeDLword(view, fptovpOffset + 0, 1);
-        MemoryManager.Access.writeDLword(view, fptovpOffset + 2, 2);
-
-        // Write test data to file pages
-        view[ BYTESPER_PAGE + 10 ] = 0xAB; // File page 1, offset 10
-        view[ BYTESPER_PAGE * 2 + 20 ] = 0xCD; // File page 2, offset 20
+        // Write big-endian 32-bit words into file pages 1 and 2.
+        writeDWordBE(bufferView, (1 * BYTESPER_PAGE) + 8, 0x11223344);
+        writeDWordBE(bufferView, (2 * BYTESPER_PAGE) + 12, 0x55667788);
 
         const result = await loadSysout(buffer);
 
-        // Check virtual memory was loaded correctly
-        expect(result.virtualMemory.length).toBe(2 * BYTESPER_PAGE);
-        expect(result.virtualMemory[ BYTESPER_PAGE + 10 ]).toBe(0xAB); // Virtual page 1
-        expect(result.virtualMemory[ BYTESPER_PAGE * 2 + 20 ]).toBe(0xCD); // Virtual page 2
+        expect(Array.from(result.virtualMemory.slice((1 * BYTESPER_PAGE) + 8, (1 * BYTESPER_PAGE) + 12))).toEqual([
+            0x11, 0x22, 0x33, 0x44,
+        ]);
+        expect(Array.from(result.virtualMemory.slice((2 * BYTESPER_PAGE) + 12, (2 * BYTESPER_PAGE) + 16))).toEqual([
+            0x55, 0x66, 0x77, 0x88,
+        ]);
     });
 
-    test.skip('returns correct memory region offsets', async () => {
+    test('returns correct memory region offsets', async () => {
         const buffer = new ArrayBuffer(2048);
-        const view = new Uint8Array(buffer);
-
-        // Write minimal IFPAGE
-        MemoryManager.Access.writeDLword(view, IFPAGE_ADDRESS + 0, IFPAGE_KEYVAL);
-        MemoryManager.Access.writeDLword(view, IFPAGE_ADDRESS + 8, 1); // process_size
+        writeMinimalIFPage(buffer);
 
         const result = await loadSysout(buffer);
 
-        expect(result.atomSpaceOffset).toBeGreaterThan(0);
-        expect(result.defSpaceOffset).toBeGreaterThan(0);
-        expect(result.valSpaceOffset).toBeGreaterThan(0);
-        expect(result.plistSpaceOffset).toBeGreaterThan(0);
-        expect(result.dtdOffset).toBeGreaterThan(0);
+        expect(result.atomSpaceOffset).toBe(MemoryManager.Address.lispPtrToByte(ATOMS_OFFSET));
+        expect(result.defSpaceOffset).toBe(MemoryManager.Address.lispPtrToByte(DEFS_OFFSET));
+        expect(result.valSpaceOffset).toBe(MemoryManager.Address.lispPtrToByte(VALS_OFFSET));
+        expect(result.plistSpaceOffset).toBe(MemoryManager.Address.lispPtrToByte(PLIS_OFFSET));
+        expect(result.dtdOffset).toBe(MemoryManager.Address.lispPtrToByte(DTD_OFFSET));
     });
 
     test('loads real starter.sysout (if present)', async () => {

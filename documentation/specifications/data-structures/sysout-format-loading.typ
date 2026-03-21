@@ -116,6 +116,19 @@ For detailed byte-swapping procedures, see Sysout Byte Swapping and Endianness.
 - *Byte-swapping*: Required when loading on little-endian hosts (C: `#ifdef BYTESWAP`)
 - *Memory Pages*: All pages MUST be byte-swapped after loading (C: `word_swap_page()`)
 
+=== Practical validation rules for test fixtures
+
+When constructing synthetic sysout buffers for tests, the following rules matter:
+
+1. IFPAGE words must be written in file byte order (big-endian), not in the host's native in-memory order.
+2. The FPtoVP table must not overlap with pages that are also being used as synthetic file-page payloads.
+3. FPtoVP entries should be asserted in their post-load interpretation, not by assuming that raw fixture integers can be written in host order.
+4. Page-content assertions should account for the loader's page byte-swapping step. The safest fixture checks are:
+   - compare raw loaded bytes at the target virtual page offset, or
+   - compare values after explicitly applying the same byte-order interpretation used by the emulator.
+
+These rules are emulator-independent because they follow directly from the sysout file format and Maiko's loader behavior, not from a specific implementation language.
+
 == Version Compatibility
 
 === Version Checking

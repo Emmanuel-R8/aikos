@@ -2,7 +2,7 @@
 
 *Navigation*: Implementations README | Main README
 
-*Date*: 2026-03-21 19:57 *Status*: ACTIVE - Bun-based parity work in progress *Location*: `taiko/` *Build
+*Date*: 2026-03-21 20:00 *Status*: ACTIVE - Bun-based parity work in progress *Location*: `taiko/` *Build
 System*: TypeScript/Bun *Target Platform*: Browser/WebGL plus Bun-based CLI and tests
 
 == Overview
@@ -61,7 +61,7 @@ Format:
 
 *Status*: Active Bun-based validation
 
-- Current Bun status after the function-call slice: `56 pass, 4 skip, 0 fail`
+- Current Bun status after the sysout test slice: `59 pass, 1 skip, 0 fail`
 - The newly stabilized area is frame-relative address calculation:
   - shared stack offset <-> byte helpers
   - explicit `CURRENTFX` tracking in VM state
@@ -98,6 +98,17 @@ TypeScript-specific outcomes:
 - The cached return value is preserved during return-path restoration instead of being immediately overwritten by a premature memory re-sync.
 - The Bun test suite now exercises `FN0` and `RETURN` directly as instruction handlers, which is useful while byte-level decoder parity and sysout startup parity are still being tightened.
 
+=== 2026-03-21 20:00 - Sysout Fixture and Loader Validation Slice
+
+The next Taiko slice focused on turning skipped sysout tests into real Bun coverage without widening scope unnecessarily.
+
+TypeScript-specific outcomes:
+
+- synthetic sysout fixtures are now written in big-endian form to match the file format that `loadSysout()` actually parses
+- FPtoVP test fixtures were repositioned so table data does not overlap synthetic file pages
+- sysout assertions now validate loader-visible bytes and computed offsets instead of assuming host-endian fixture writes
+- this slice improved coverage without requiring a production loader rewrite
+
 == Related Documentation
 
 - Trace Format: `documentation/specifications/vm-core/trace-and-logging-formats.typ`
@@ -106,9 +117,9 @@ TypeScript-specific outcomes:
 
 == Next Steps
 
-1. Stabilize function-call entry and return tests using the explicit frame bookkeeping
-2. Push the same address-discipline into sysout startup and entry-point restoration
+1. Push the same address-discipline into sysout startup and entry-point restoration
+2. Investigate why real `starter.sysout` still yields `initialPC == 0` in Taiko's loader path
 3. Continue opcode and runtime parity work under Bun
 4. Re-run parity comparisons against the C reference as each slice lands
 
-*Last Updated*: 2026-03-21 19:57
+*Last Updated*: 2026-03-21 20:00
