@@ -17,6 +17,10 @@ export interface SysoutLoadResult {
     dtdOffset: number; // Byte offset of DTD space in virtual memory
 }
 
+function readSwappedDLword(memory: Uint8Array, offset: number): number {
+    return MemoryManager.Access.readDLword(memory, offset ^ 2);
+}
+
 /**
  * Parse IFPAGE from sysout file
  * IFPAGE is located at offset 512 bytes from start
@@ -239,13 +243,13 @@ function loadVirtualMemory(buffer: ArrayBuffer, fptovpTable: Uint32Array, ifpage
         // Write page to virtual memory
         virtualMemory.set(pageData, virtualOffset);
 
-        // Byte-swap page (sysout is big-endian, we need little-endian)
+        // Byte-swap page (sysout is big-endian, memory is little-endian)
         // Per C: word_swap_page((DLword *)(lispworld_scratch + lispworld_offset), 128)
         // 128 = BYTESPER_PAGE / 4 (number of 32-bit words per page)
         const pageView = new DataView(virtualMemory.buffer, virtualMemory.byteOffset + virtualOffset, BYTESPER_PAGE);
         for (let wordOffset = 0; wordOffset < BYTESPER_PAGE; wordOffset += 4) {
             const word = pageView.getUint32(wordOffset, false); // Read as big-endian
-            pageView.setUint32(wordOffset, MemoryManager.Endianness.swapU32(word), true); // Write as little-endian
+            pageView.setUint32(wordOffset, word, true); // Write host-order little-endian bytes
         }
 
         pagesLoaded++;
@@ -301,29 +305,17 @@ function initializePC(virtualMemory: Uint8Array, ifpage: IFPAGE): number {
         return 0;
     }
 
-    // Read frame structure (FX) - need to handle byte-swapping for big-endian sysout
-    // Frame layout per maiko/inc/stack.h (non-BIGVM):
-    //   offset 0-1: flags+usecount (DLword)
-    //   offset 2-3: alink (DLword)
-    //   offset 4-5: lofnheader (DLword) - low 16 bits of function header pointer
-    //   offset 6: hi1fnheader (8 bits)
-    //   offset 7: hi2fnheader (8 bits) - high 8 bits of function header pointer
-    //   offset 8-9: nextblock (DLword)
-    //   offset 10-11: pc (DLword) - PC offset within function
-
-    // Read fnheader pointer (non-BIGVM format: lofnheader + hi2fnheader)
-    // Note: sysout is big-endian, so we need to read as big-endian
-    const view = new DataView(virtualMemory.buffer, virtualMemory.byteOffset + frameOffset);
-    const lofnheader = view.getUint16(4, false); // big-endian
-    const hi2fnheader = virtualMemory[frameOffset + 7];
-    const fnheaderPtr: LispPTR = (hi2fnheader << 16) | lofnheader;
+    // Loaded pages are 32-bit word-swapped into host order. LispPTR fields can
+    // be read as little-endian 32-bit values, while DLword fields follow the
+    // BYTESWAP GETWORD convention (address ^ 2).
+    const fnheaderPtr: LispPTR = MemoryManager.Access.readLispPTR(virtualMemory, frameOffset + 4);
 
     if (fnheaderPtr === 0) {
         return 0; // Invalid function header pointer
     }
 
     // Read pc field from frame (offset 10-11)
-    const framePc = view.getUint16(10, false); // big-endian
+    const framePc = readSwappedDLword(virtualMemory, frameOffset + 10);
 
     // Convert fnheader pointer to byte offset
     const fnheaderByteOffset = MemoryManager.Address.lispPtrToByte(fnheaderPtr);

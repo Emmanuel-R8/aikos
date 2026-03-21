@@ -125,8 +125,13 @@ When constructing synthetic sysout buffers for tests, the following rules matter
 3. The FPtoVP table must not overlap with pages that are also being used as synthetic file-page payloads.
 4. FPtoVP entries should be asserted in their post-load interpretation, not by assuming that raw fixture integers can be written in host order.
 5. When using APIs like `DataView.getUint32(..., false)` to read FPtoVP entries directly from the big-endian file, do not apply an extra manual 32-bit byte swap afterward; the numeric value is already decoded.
-6. Page-content assertions should account for the loader's page byte-swapping step. The safest fixture checks are:
-   - compare raw loaded bytes at the target virtual page offset, or
+6. Page-content assertions should account for the loader's page byte-swapping step. On little-endian hosts, a C-faithful loader should copy each 32-bit sysout word into memory in host order, which means the raw loaded bytes differ from the raw file bytes even though the numeric 32-bit value is preserved.
+7. After that page load step, bytecode fetch and structured reads follow Maiko's BYTESWAP access rules:
+   - byte fetch (`GETBYTE`) observes the byte at `address ^ 3`
+   - DLword fetch (`GETWORD`) observes the 16-bit word at `address ^ 2`
+   - full 32-bit LispPTR values can then be read from the host-order memory image without an extra swap
+8. The safest fixture checks are:
+   - compare raw loaded bytes at the target virtual page offset after applying the expected page swap, or
    - compare values after explicitly applying the same byte-order interpretation used by the emulator.
 
 These rules are emulator-independent because they follow directly from the sysout file format and Maiko's loader behavior, not from a specific implementation language.

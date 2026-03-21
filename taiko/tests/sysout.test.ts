@@ -2,6 +2,7 @@
 import { describe, test, expect } from 'bun:test';
 import { loadSysout } from '../src/io/sysout';
 import { decodeInstructionFromMemory } from '../src/vm/dispatch/decoder';
+import { Opcode } from '../src/vm/dispatch/opcode';
 import { initializeVM } from '../src/vm/initialization';
 import { VM } from '../src/vm/vm';
 import { IFPAGE_KEYVAL, IFPAGE_ADDRESS, BYTESPER_PAGE, ATOMS_OFFSET, DEFS_OFFSET, VALS_OFFSET, PLIS_OFFSET, DTD_OFFSET } from '../src/utils/constants';
@@ -62,10 +63,10 @@ describe('Sysout Loading', () => {
         const result = await loadSysout(buffer);
 
         expect(Array.from(result.virtualMemory.slice((1 * BYTESPER_PAGE) + 8, (1 * BYTESPER_PAGE) + 12))).toEqual([
-            0x11, 0x22, 0x33, 0x44,
+            0x44, 0x33, 0x22, 0x11,
         ]);
         expect(Array.from(result.virtualMemory.slice((2 * BYTESPER_PAGE) + 12, (2 * BYTESPER_PAGE) + 16))).toEqual([
-            0x55, 0x66, 0x77, 0x88,
+            0x88, 0x77, 0x66, 0x55,
         ]);
     });
 
@@ -139,39 +140,30 @@ describe('Sysout Loading', () => {
 
         const arrayBuffer = await Bun.file(sysoutPath).arrayBuffer();
 
-        try {
-            const result = await loadSysout(arrayBuffer);
+        const result = await loadSysout(arrayBuffer);
 
-            // Basic sanity checks – we only assert that the sysout can be parsed
-            expect(result.virtualMemory.length).toBeGreaterThan(0);
-            expect(result.fptovpTable.length).toBeGreaterThan(0);
-            expect(result.initialSP).toBeGreaterThan(0);
+        expect(result.virtualMemory.length).toBeGreaterThan(0);
+        expect(result.fptovpTable.length).toBeGreaterThan(0);
+        expect(result.initialSP).toBeGreaterThan(0);
 
-            const vm = new VM();
-            vm.initializeMemory(
-                result.virtualMemory,
-                result.fptovpTable,
-                result.atomSpaceOffset,
-                result.defSpaceOffset,
-                result.valSpaceOffset,
-                result.plistSpaceOffset,
-                result.dtdOffset,
-            );
+        const vm = new VM();
+        vm.initializeMemory(
+            result.virtualMemory,
+            result.fptovpTable,
+            result.atomSpaceOffset,
+            result.defSpaceOffset,
+            result.valSpaceOffset,
+            result.plistSpaceOffset,
+            result.dtdOffset,
+        );
 
-            expect(initializeVM(vm, result.ifpage)).toBe(true);
-            expect(vm.pc).toBeGreaterThan(0);
-            expect(vm.funcObj).not.toBeNull();
-            expect(vm.currentFrameOffset).not.toBeNull();
-            expect(decodeInstructionFromMemory(vm, vm.pc)).not.toBeNull();
-        } catch (err: any) {
-            // If the real sysout does not match the current loader assumptions
-            // (e.g. different IFPAGE layout), treat this as a skipped integration
-            // scenario rather than a hard failure.
-            console.warn(
-                `starter.sysout found at ${sysoutPath} but could not be parsed by Taiko loader: ${String(
-                    err?.message ?? err,
-                )}. Treating as skipped real-sysout integration test.`,
-            );
-        }
+        expect(initializeVM(vm, result.ifpage)).toBe(true);
+        expect(vm.pc).toBe(0x60F130);
+        expect(vm.funcObj).toBe(0x60F0C8);
+        expect(vm.currentFrameOffset).not.toBeNull();
+
+        const instruction = decodeInstructionFromMemory(vm, vm.pc);
+        expect(instruction).not.toBeNull();
+        expect(instruction?.opcode).toBe(Opcode.POP);
     });
 });

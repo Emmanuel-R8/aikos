@@ -155,6 +155,18 @@ TypeScript-specific outcomes:
 - Taiko now restores the same startup `PC` as the C emulator from `starter.sysout` (`0x60f130`)
 - the remaining blocker is no longer startup-frame reconstruction; it is the bytecode fetch / decode mismatch at that now-correct restored PC
 
+=== 2026-03-21 21:17 - Startup Decode Alignment Slice
+
+The next Taiko slice resolved the byte-orientation mismatch between loaded sysout pages and the decoder.
+
+TypeScript-specific outcomes:
+
+- `loadVirtualMemory()` now stores each sysout 32-bit word in host-order memory, matching Maiko's post-`word_swap_page()` layout instead of preserving raw file byte order
+- startup-frame and free-stack-block DLword fields are now read with the same `address ^ 2` rule that Maiko uses under `GETWORD`
+- the real `starter.sysout` path now restores the C startup frame, lands at `PC = 0x60f130`, and decodes the same first opcode as C (`POP`, `0xBF`)
+- the real-sysout Bun regression is now hard rather than advisory: it requires successful initialization, the expected startup `PC`, and a decodable first instruction
+- this narrows the next parity slice from "can Taiko decode startup?" to "does Taiko execute the first startup instruction sequence like C?"
+
 == Related Documentation
 
 - Trace Format: `documentation/specifications/vm-core/trace-and-logging-formats.typ`
@@ -163,9 +175,9 @@ TypeScript-specific outcomes:
 
 == Next Steps
 
-1. Fix the bytecode fetch / decode mismatch at the now-correct restored startup `PC`
+1. Compare Taiko's first executed startup instructions against the C reference trace
 2. Re-run parity comparisons against the C reference as each slice lands
 3. Reduce startup-path heuristics by replacing entry-point guessing with more direct sysout/runtime evidence where available
-4. Extend real-sysout validation from "restores the C startup PC" to "first matched execution steps"
+4. Extend real-sysout validation from "restores the C startup PC and first opcode" to "first matched execution steps"
 
-*Last Updated*: 2026-03-21 20:52
+*Last Updated*: 2026-03-21 21:17
