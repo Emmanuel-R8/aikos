@@ -132,6 +132,18 @@ TypeScript-specific outcomes:
 - the real-sysout Bun test now checks that `decodeInstructionFromMemory(vm, vm.pc)` succeeds after `initializeVM()`
 - this gives Taiko a stable first instruction boundary for the next parity slice
 
+=== 2026-03-21 20:48 - Sysout File-Order Parsing Slice
+
+The next Taiko slice corrected a deeper sysout-loading mismatch: Taiko was still mixing file-order parsing with host-side BYTESWAP assumptions.
+
+TypeScript-specific outcomes:
+
+- IFPAGE parsing now follows the logical on-disk field order for direct big-endian file reads, which restores meaningful early startup fields such as `currentfxp`
+- FPtoVP loading no longer applies an extra 32-bit byte swap after `DataView` has already decoded big-endian entries
+- the focused sysout tests now cover file-order IFPAGE parsing explicitly
+- this moved Taiko from a partially synthetic startup path to loading the real saved stack frame and real page map from `starter.sysout`
+- the next startup blocker is now narrower and better scoped: saved-frame / free-stack-block interpretation during `initializeVM()`
+
 == Related Documentation
 
 - Trace Format: `documentation/specifications/vm-core/trace-and-logging-formats.typ`
@@ -140,9 +152,9 @@ TypeScript-specific outcomes:
 
 == Next Steps
 
-1. Continue opcode and runtime parity work under Bun now that real sysout startup reaches a real first instruction
+1. Fix saved-frame / free-stack-block interpretation in `initializeVM()` now that Taiko loads the real startup frame from `starter.sysout`
 2. Re-run parity comparisons against the C reference as each slice lands
 3. Reduce startup-path heuristics by replacing entry-point guessing with more direct sysout/runtime evidence where available
-4. Extend real-sysout validation from "first decodable instruction" to "first matched execution steps"
+4. Extend real-sysout validation from "loads real startup frame" to "first matched execution steps"
 
-*Last Updated*: 2026-03-21 20:35
+*Last Updated*: 2026-03-21 20:48

@@ -121,9 +121,11 @@ For detailed byte-swapping procedures, see Sysout Byte Swapping and Endianness.
 When constructing synthetic sysout buffers for tests, the following rules matter:
 
 1. IFPAGE words must be written in file byte order (big-endian), not in the host's native in-memory order.
-2. The FPtoVP table must not overlap with pages that are also being used as synthetic file-page payloads.
-3. FPtoVP entries should be asserted in their post-load interpretation, not by assuming that raw fixture integers can be written in host order.
-4. Page-content assertions should account for the loader's page byte-swapping step. The safest fixture checks are:
+2. If an implementation parses IFPAGE directly from file bytes instead of reading it into a host struct and then applying Maiko's `word_swap_page()` path, it should use the logical file-field order rather than the host BYTESWAP struct order.
+3. The FPtoVP table must not overlap with pages that are also being used as synthetic file-page payloads.
+4. FPtoVP entries should be asserted in their post-load interpretation, not by assuming that raw fixture integers can be written in host order.
+5. When using APIs like `DataView.getUint32(..., false)` to read FPtoVP entries directly from the big-endian file, do not apply an extra manual 32-bit byte swap afterward; the numeric value is already decoded.
+6. Page-content assertions should account for the loader's page byte-swapping step. The safest fixture checks are:
    - compare raw loaded bytes at the target virtual page offset, or
    - compare values after explicitly applying the same byte-order interpretation used by the emulator.
 
