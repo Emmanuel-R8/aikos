@@ -307,6 +307,26 @@ In the Maiko fast path, `alink` is interpreted as the caller's PVAR stack offset
 
 This distinction is easy to get wrong when translating the code, because helper macros such as `GETALINK` expose a caller-frame view, while `OPRETURN` itself works from the raw encoded `alink` slot.
 
+=== Implementation Guidance: explicit frame bookkeeping
+
+Parity implementations may choose to cache the current frame base (`CURRENTFX`) explicitly in VM state, as long as the cached value remains equivalent to the frame that Maiko would recover from the active stack layout.
+
+This is often safer than repeatedly inferring the frame from another derived pointer such as `PVAR`, because:
+
+- `PVAR` is itself derived from `CURRENTFX + FRAMESIZE`
+- `IVAR` is derived from a stored stack offset, not from `PVAR`
+- return and context-resume paths often need the frame base first, then reconstruct the other frame-relative addresses
+
+So a reliable implementation pattern is:
+
+#codeblock(lang: "pseudocode", [
+CURRENTFX = explicit cached frame base
+PVAR = CURRENTFX + FRAMESIZE
+IVAR = NativeAligned2FromStackOffset(BF_or_nextblock_offset)
+])
+
+The important invariant is not whether the implementation caches `CURRENTFX`, but that all derived addresses are recomputed from the correct stack-relative source.
+
 === CONTEXTSWITCH and switched-frame resumption
 
 `CONTEXTSWITCH` is part of the same frame-resumption machinery as fast `RETURN`. It does not merely branch to another PC; it saves the current FX, updates free-stack-block metadata, exchanges an IFPAGE slot, and resumes a different frame.
@@ -439,6 +459,19 @@ function HandleReturnValue(return_value):
     // Previous frame's TOS is restored
     TopOfStack = return_value
 ])
+
+=== Cached-TOS restoration rule
+
+On return, the cached `TopOfStack` value is the function result and must survive frame restoration.
+
+This means implementations must be careful not to immediately overwrite the cached return value by re-reading a stale spill slot from memory before the restored stack pointer and spill-slot conventions are fully re-established.
+
+Practical rule:
+
+- capture the cached return value first
+- restore frame-relative pointers (`CURRENTFX`, `PVAR`, `IVAR`, `FuncObj`, `PC`)
+- keep the cached return value as the post-return `TopOfStack`
+- only perform a memory re-sync when the restored spill-slot pointer is known to reference the correct post-return top-of-stack location
 
 === Multiple Return Values
 

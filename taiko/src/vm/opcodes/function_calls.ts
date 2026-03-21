@@ -204,29 +204,29 @@ function handleRETURN(vm: VM, instruction: Instruction): number | null {
     // Get return value from TOPOFSTACK
     const returnValue = vm.topOfStack;
 
-    // Find FX marker on stack (walk backwards from CSTKPTRL)
-    // C: Searches backwards for FX_MARK (0x40000000 in upper word)
-    let fxFound = false;
-    let fxOffset = vm.cstkptrl;
+    let fxOffset = vm.currentFrameOffset;
+    if (fxOffset === null) {
+        // Fallback for older code paths that do not track CURRENTFX explicitly.
+        let fxFound = false;
+        fxOffset = vm.cstkptrl;
 
-    // Search for FX marker (FX_MARK in upper word)
-    // FX marker is at: (FX_MARK << 16) | (pvarOffset & 0xFFFF)
-    for (let i = 0; i < 1000; i++) {
-        fxOffset -= 4;
-        if (fxOffset < vm.stackEnd || fxOffset >= vm.stackBase) {
-            break;
+        for (let i = 0; i < 1000; i++) {
+            fxOffset -= 4;
+            if (fxOffset < vm.stackEnd || fxOffset >= vm.stackBase) {
+                break;
+            }
+
+            const value = MemoryManager.Access.readLispPTR(vm.virtualMemory, fxOffset);
+            if ((value & FX_MARK) !== 0) {
+                fxFound = true;
+                break;
+            }
         }
 
-        const value = MemoryManager.Access.readLispPTR(vm.virtualMemory, fxOffset);
-        if ((value & FX_MARK) !== 0) { // FX_MARK = 0x40000000
-            fxFound = true;
-            break;
+        if (!fxFound) {
+            console.warn('RETURN: FX marker not found');
+            return null;
         }
-    }
-
-    if (!fxFound) {
-        console.warn('RETURN: FX marker not found');
-        return null;
     }
 
     // Read frame structure (FX is 10 DLwords = 20 bytes)
@@ -266,12 +266,8 @@ function handleRETURN(vm: VM, instruction: Instruction): number | null {
     vm.pc = fnheaderByteOffset + savedPc;
     vm.funcObj = fnheaderByteOffset;
 
-    // Restore PVAR from FX marker
-    // C: PVar = ((DLword *)returnFX) + FRAMESIZE
-    // FX marker contains pvarOffset: (FX_MARK << 16) | (pvarOffset & 0xFFFF)
-    const fxMarker = MemoryManager.Access.readLispPTR(vm.virtualMemory, fxOffset);
-    const pvarOffset = (fxMarker & 0xFFFF) * 2; // Convert DLword offset to byte offset
-    vm.pvar = vm.stackBase + pvarOffset;
+    // Restore PVAR from frame base
+    vm.pvar = FrameManager.getPVarOffsetFromFX(fxOffset);
     vm.currentFrameOffset = fxOffset;
     vm.currentFrame = FrameManager.parseFrame(vm, fxOffset);
 
@@ -282,9 +278,6 @@ function handleRETURN(vm: VM, instruction: Instruction): number | null {
 
     // Set return value as TOPOFSTACK
     vm.topOfStack = returnValue;
-
-    // Sync TOPOFSTACK
-    vm.syncTopOfStack();
 
     return null; // No jump offset - PC already updated
 }

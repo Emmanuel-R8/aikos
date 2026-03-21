@@ -2,7 +2,7 @@
 
 *Navigation*: Implementations README | Main README
 
-*Date*: 2026-03-21 19:49 *Status*: ACTIVE - Bun-based parity work in progress *Location*: `taiko/` *Build
+*Date*: 2026-03-21 19:57 *Status*: ACTIVE - Bun-based parity work in progress *Location*: `taiko/` *Build
 System*: TypeScript/Bun *Target Platform*: Browser/WebGL plus Bun-based CLI and tests
 
 == Overview
@@ -33,7 +33,6 @@ instead of relying on an overly flat byte-address model.
 - Execution parity with C reference
 - Opcode implementation completeness
 - Browser environment requirements
-- Full function-call behavior and return-path restoration
 - Sysout startup parity against the real C entry path
 
 == Implementation Structure
@@ -62,7 +61,7 @@ Format:
 
 *Status*: Active Bun-based validation
 
-- Current Bun status for the memory/frame work: `54 pass, 6 skip, 0 fail`
+- Current Bun status after the function-call slice: `56 pass, 4 skip, 0 fail`
 - The newly stabilized area is frame-relative address calculation:
   - shared stack offset <-> byte helpers
   - explicit `CURRENTFX` tracking in VM state
@@ -88,6 +87,17 @@ For TypeScript specifically, the safest pattern is:
 This reduces the risk of factor-of-two and wrong-base bugs when working across sysout loading,
 initialization, function entry, return handling, and tracing.
 
+=== 2026-03-21 19:57 - Function Entry / Return Test Slice
+
+The next Taiko slice used the explicit frame bookkeeping to stabilize function-call tests under Bun.
+
+TypeScript-specific outcomes:
+
+- `RETURN` now prefers the explicitly tracked current frame offset when available.
+- `PVAR` restoration is derived from the frame base rather than decoding an ad hoc marker word.
+- The cached return value is preserved during return-path restoration instead of being immediately overwritten by a premature memory re-sync.
+- The Bun test suite now exercises `FN0` and `RETURN` directly as instruction handlers, which is useful while byte-level decoder parity and sysout startup parity are still being tightened.
+
 == Related Documentation
 
 - Trace Format: `documentation/specifications/vm-core/trace-and-logging-formats.typ`
@@ -101,4 +111,4 @@ initialization, function entry, return handling, and tracing.
 3. Continue opcode and runtime parity work under Bun
 4. Re-run parity comparisons against the C reference as each slice lands
 
-*Last Updated*: 2026-03-21 19:49
+*Last Updated*: 2026-03-21 19:57
