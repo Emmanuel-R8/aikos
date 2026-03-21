@@ -32,6 +32,7 @@ export class VM {
     stackPtr: number; // Current stack pointer (byte offset)
     stackEnd: number; // End of stack (byte offset)
     currentFrame: StackFrame | null = null;
+    currentFrameOffset: number | null = null; // Byte offset of CURRENTFX within virtual memory
 
     // Memory management
     virtualMemory: Uint8Array | null = null;
@@ -164,10 +165,8 @@ export class VM {
      * Get current frame pointer offset (DLword offset from stack base)
      */
     getFramePtrOffset(): number {
-        if (this.currentFrame === null) return 0;
-        // Frame pointer is stored in currentFrame, need to calculate from stack
-        // This is a simplified version - actual implementation depends on frame structure
-        return this.getStackPtrOffset();
+        if (this.currentFrameOffset === null) return 0;
+        return MemoryManager.Address.byteToStackOffset(this.stackBase, this.currentFrameOffset);
     }
 
     /**
@@ -221,6 +220,7 @@ export class VM {
         this.topOfStack = 0;
         this.cstkptrl = null;
         this.currentFrame = null;
+        this.currentFrameOffset = null;
         this.funcObj = null;
         this.pvar = null;
         this.ivar = null;

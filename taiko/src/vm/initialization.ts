@@ -36,17 +36,15 @@ export function initializeVM(vm: VM, ifpage: IFPAGE): boolean {
 
     // Step 2: Set PVar from currentfxp frame
     // Per C: PVar = NativeAligned2FromStackOffset(InterfacePage->currentfxp) + FRAMESIZE
-    const STK_OFFSET_BYTES = STK_OFFSET * 2;
     const currentfxpStackOffset = ifpage.currentfxp; // DLword offset from Stackspace
-    const frameOffset = STK_OFFSET_BYTES + (currentfxpStackOffset * 2);
-    const pvarOffset = frameOffset + FRAMESIZE_BYTES;
+    const frameOffset = MemoryManager.Address.stackOffsetToByte(vm.stackBase, currentfxpStackOffset);
 
     if (frameOffset + FRAMESIZE_BYTES > vm.virtualMemory.length) {
         console.error(`initializeVM: Frame offset ${frameOffset} out of bounds`);
         return false;
     }
 
-    vm.pvar = pvarOffset;
+    FrameManager.setCurrentFrame(vm, frameOffset);
 
     // Step 3: Get nextblock from current frame
     // Per C: freeptr = next68k = NativeAligned2FromStackOffset(CURRENTFX->nextblock)
@@ -98,7 +96,7 @@ export function initializeVM(vm: VM, ifpage: IFPAGE): boolean {
     // Convert nextblock (stack offset) to byte offset
     // Per C: NativeAligned2FromStackOffset(stackOffset) = Stackspace + stackOffset
     // Stackspace = STK_OFFSET_BYTES, so byte offset = STK_OFFSET_BYTES + (stackOffset * 2)
-    const nextblockByteOffset = STK_OFFSET_BYTES + (nextblock * 2);
+    const nextblockByteOffset = MemoryManager.Address.stackOffsetToByte(vm.stackBase, nextblock);
 
     console.error(`initializeVM: nextblock=${nextblock} (0x${nextblock.toString(16)}), nextblockByteOffset=0x${nextblockByteOffset.toString(16)}`);
 
@@ -167,13 +165,7 @@ export function initializeVM(vm: VM, ifpage: IFPAGE): boolean {
     // Get IVar from binding frame before current frame
     // CURRENTFX - 1 points to the binding frame (BF)
     const bfOffset = frameOffset - 4; // BF is 2 DLwords (4 bytes) before FX
-    if (bfOffset >= 0 && bfOffset + 2 <= vm.virtualMemory.length) {
-        const bfView = new DataView(vm.virtualMemory.buffer, vm.virtualMemory.byteOffset + bfOffset);
-        const ivarStackOffset = bfView.getUint16(0, false); // big-endian
-        vm.ivar = STK_OFFSET_BYTES + (ivarStackOffset * 2);
-    } else {
-        vm.ivar = null;
-    }
+    vm.ivar = bfOffset >= 0 ? FrameManager.getIVarOffsetFromBF(vm, frameOffset) : null;
 
     // Get FuncObj from frame fnheader
     // Per C: FX_FNHEADER = (CURRENTFX->hi2fnheader << 16) | CURRENTFX->lofnheader (non-BIGVM)
@@ -258,8 +250,6 @@ function initializeSparseStack(vm: VM, frameOffset: number, currentfxpStackOffse
         return false;
     }
 
-    const STK_OFFSET_BYTES = STK_OFFSET * 2;
-
     // Calculate stack area boundaries
     // Stack grows downward (from high addresses to low addresses)
     // Stack base is at STK_OFFSET_BYTES (high address)
@@ -297,7 +287,7 @@ function initializeSparseStack(vm: VM, frameOffset: number, currentfxpStackOffse
     if (bfOffset >= 0) {
         const bfView = new DataView(vm.virtualMemory.buffer, vm.virtualMemory.byteOffset + bfOffset);
         // Set ivar_offset to point to free block start (as stack offset)
-        const ivarStackOffset = Math.floor((freeBlockStart - STK_OFFSET_BYTES) / 2);
+        const ivarStackOffset = MemoryManager.Address.byteToStackOffset(vm.stackBase, freeBlockStart);
         bfView.setUint16(0, ivarStackOffset, false); // big-endian
         bfView.setUint16(2, BF_MARK, false); // big-endian
     }
@@ -330,7 +320,7 @@ function initializeSparseStack(vm: VM, frameOffset: number, currentfxpStackOffse
     vm.virtualMemory[frameOffset + 7] = 0; // hi2fnheader
 
     // nextblock: points to free stack block (as stack offset)
-    const nextblockStackOffset = Math.floor((freeBlockStart - STK_OFFSET_BYTES) / 2);
+    const nextblockStackOffset = MemoryManager.Address.byteToStackOffset(vm.stackBase, freeBlockStart);
     frameView.setUint16(8, nextblockStackOffset, false); // big-endian
 
     // pc: program counter offset (0 for now)

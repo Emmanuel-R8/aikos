@@ -2,25 +2,30 @@
 
 *Navigation*: Implementations README | Main README
 
-*Date*: 2026-02-09 *Status*: 🔍 EXISTS - Status Verification Needed *Location*: `taiko/` *Build
-System*: TypeScript/Node.js *Target Platform*: Browser/WebGL
+*Date*: 2026-03-21 19:49 *Status*: ACTIVE - Bun-based parity work in progress *Location*: `taiko/` *Build
+System*: TypeScript/Bun *Target Platform*: Browser/WebGL plus Bun-based CLI and tests
 
 == Overview
 
 The TypeScript implementation (Taiko) provides a browser-based emulator implementation using WebGL
-for display rendering. The implementation exists with unified trace format support, but full parity
-status needs verification.
+for display rendering. The implementation also has a Bun-based CLI and Bun test suite used for
+parity work. Current work is focused on making Taiko follow Maiko's address and frame semantics
+instead of relying on an overly flat byte-address model.
 
 == Current Status
 
 === ✅ Confirmed
 
 - ✅ TypeScript source code exists in `taiko/src/`
+- ✅ Bun is the execution and test runtime (`bun test`, `bun run`)
 - ✅ Unified trace format module exists (`taiko/src/vm/trace.ts`)
 - ✅ VM core structure exists
 - ✅ Opcode handlers defined
 - ✅ WebGL renderer implemented
 - ✅ Sysout loading module exists
+- ✅ Memory/address helper layer now distinguishes Lisp-world and stack-space conversions
+- ✅ `CURRENTFX` bookkeeping is now tracked explicitly in VM state for frame-relative calculations
+- ✅ Bun test suite currently passes for the edited memory/frame slice
 
 === 🔍 Needs Verification
 
@@ -28,13 +33,16 @@ status needs verification.
 - Execution parity with C reference
 - Opcode implementation completeness
 - Browser environment requirements
-- Test execution status
+- Full function-call behavior and return-path restoration
+- Sysout startup parity against the real C entry path
 
 == Implementation Structure
 
 === Core Modules
 
 - `taiko/src/vm/vm.ts` - VM core
+- `taiko/src/vm/memory/address.ts` - Shared LispPTR and stack-space address conversions
+- `taiko/src/vm/memory/frame.ts` - `CURRENTFX`, `PVAR`, and `IVAR` helpers
 - `taiko/src/vm/execution.ts` - Execution engine
 - `taiko/src/vm/trace.ts` - Unified trace format
 - `taiko/src/vm/dispatch/` - Opcode dispatch
@@ -52,7 +60,33 @@ Format:
 
 == Testing Status
 
-*Status*: Needs verification *Parity Tests*: Not yet run *Trace Generation*: Needs verification
+*Status*: Active Bun-based validation
+
+- Current Bun status for the memory/frame work: `54 pass, 6 skip, 0 fail`
+- The newly stabilized area is frame-relative address calculation:
+  - shared stack offset <-> byte helpers
+  - explicit `CURRENTFX` tracking in VM state
+  - `PVAR` derived from frame base plus `FRAMESIZE`
+  - `IVAR` derived from BF / `nextblock` stack offsets
+
+== Recent TypeScript-Specific Findings
+
+=== 2026-03-21 19:49 - Memory and Frame Addressing Slice
+
+The Taiko implementation benefited from separating three categories that had started to blur together:
+
+- LispPTR values: DLword offsets from `Lisp_world`
+- Stack offsets: DLword offsets from `Stackspace`
+- Cached VM runtime locations: byte offsets after translation
+
+For TypeScript specifically, the safest pattern is:
+
+1. Keep explicit helper functions for stack offset <-> byte conversion.
+2. Track `CURRENTFX` directly in VM state once the current frame is known.
+3. Derive `PVAR` and `IVAR` from frame data instead of inferring the frame from `PVAR` alone.
+
+This reduces the risk of factor-of-two and wrong-base bugs when working across sysout loading,
+initialization, function entry, return handling, and tracing.
 
 == Related Documentation
 
@@ -62,9 +96,9 @@ Format:
 
 == Next Steps
 
-1. Verify trace generation capability
-2. Run parity comparison against C reference
-3. Document current implementation status
-4. Identify gaps and divergences
+1. Stabilize function-call entry and return tests using the explicit frame bookkeeping
+2. Push the same address-discipline into sysout startup and entry-point restoration
+3. Continue opcode and runtime parity work under Bun
+4. Re-run parity comparisons against the C reference as each slice lands
 
-*Last Updated*: 2026-02-09
+*Last Updated*: 2026-03-21 19:49

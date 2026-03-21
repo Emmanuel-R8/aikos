@@ -16,6 +16,18 @@ describe('MemoryManager.Address', () => {
         expect(MemoryManager.Address.byteToLispPtr(0xA000)).toBe(0x5000);
     });
 
+    test('converts stack offsets to byte offsets', () => {
+        const stackBase = 0x20000;
+        expect(MemoryManager.Address.stackOffsetToByte(stackBase, 0)).toBe(stackBase);
+        expect(MemoryManager.Address.stackOffsetToByte(stackBase, 0x10)).toBe(stackBase + 0x20);
+    });
+
+    test('converts byte offsets back to stack offsets', () => {
+        const stackBase = 0x20000;
+        expect(MemoryManager.Address.byteToStackOffset(stackBase, stackBase)).toBe(0);
+        expect(MemoryManager.Address.byteToStackOffset(stackBase, stackBase + 0x20)).toBe(0x10);
+    });
+
     test('calculates virtual page', () => {
         expect(MemoryManager.Address.getVirtualPage(0)).toBe(0);
         expect(MemoryManager.Address.getVirtualPage(BYTESPER_PAGE)).toBe(1);

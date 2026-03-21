@@ -7,6 +7,7 @@ import { Opcode } from '../dispatch/opcode';
 import { registerOpcodeHandler } from './index';
 import { MemoryManager } from '../memory/manager';
 import { DefCellManager, FunctionHeader } from '../memory/defcell';
+import { FrameManager } from '../memory/frame';
 import { pushStack, popStack } from './stack_helpers';
 import { NIL_PTR, FRAMESIZE } from '../../utils/constants';
 
@@ -83,7 +84,7 @@ function handleFN(vm: VM, instruction: Instruction, argCount: number): number | 
     // C: CURRENTFX->nextblock = StackOffsetFromNative(IVARL)
     // IVAR points to where arguments start (before the frame)
     const ivarOffset = vm.stackPtr - (argCount * 4) + 4; // +4 for TOS
-    const nextblock = (ivarOffset - vm.stackBase) / 2; // Convert to DLword offset
+    const nextblock = MemoryManager.Address.byteToStackOffset(vm.stackBase, ivarOffset);
     vm.ivar = ivarOffset; // Set IVAR pointer
 
     // Push TOS (save current top of stack)
@@ -131,6 +132,8 @@ function handleFN(vm: VM, instruction: Instruction, argCount: number): number | 
     vm.stackPtr += (FRAMESIZE * 2); // FRAMESIZE DLwords = FRAMESIZE * 2 bytes
     vm.cstkptrl = vm.stackPtr;
     vm.pvar = vm.stackPtr;
+    vm.currentFrameOffset = vm.pvar - (FRAMESIZE * 2);
+    vm.currentFrame = FrameManager.parseFrame(vm, vm.currentFrameOffset);
 
     // Initialize PVAR slots with unbound values
     // C: for (int pv = LOCFNCELL->pv; pv >= 0; pv--) { HARD_PUSH(unboundval); HARD_PUSH(unboundval); }
@@ -239,7 +242,7 @@ function handleRETURN(vm: VM, instruction: Instruction): number | null {
     const bfMarkerOffset = fxOffset - 4; // BF marker is 4 bytes before FX
     const bfMarker = MemoryManager.Access.readLispPTR(vm.virtualMemory, bfMarkerOffset);
     const nextblock = bfMarker & 0xFFFF; // Extract nextblock from BF marker
-    const ivarOffset = vm.stackBase + (nextblock * 2); // Convert DLword offset to byte offset
+    const ivarOffset = MemoryManager.Address.stackOffsetToByte(vm.stackBase, nextblock);
     vm.ivar = ivarOffset;
 
     // Read function header pointer from frame
@@ -269,6 +272,8 @@ function handleRETURN(vm: VM, instruction: Instruction): number | null {
     const fxMarker = MemoryManager.Access.readLispPTR(vm.virtualMemory, fxOffset);
     const pvarOffset = (fxMarker & 0xFFFF) * 2; // Convert DLword offset to byte offset
     vm.pvar = vm.stackBase + pvarOffset;
+    vm.currentFrameOffset = fxOffset;
+    vm.currentFrame = FrameManager.parseFrame(vm, fxOffset);
 
     // Restore stack pointer to position before FX marker
     // C: CurrentStackPTR = next68k - 2 (before FX marker)
