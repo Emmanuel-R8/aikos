@@ -58,14 +58,13 @@ export function initializeVM(vm: VM, ifpage: IFPAGE): boolean {
     console.error(`initializeVM: Frame bytes: ${frameBytes}`);
 
     // Read frame fields
-    let flags_usecount = frameView.getUint16(0, false); // big-endian
-    let alink = frameView.getUint16(2, false); // big-endian
-    let lofnheader = frameView.getUint16(4, false); // big-endian
-    let hi2fnheader = vm.virtualMemory[frameOffset + 7];
-    let nextblock = frameView.getUint16(8, false); // big-endian
-    let pc = frameView.getUint16(10, false); // big-endian
+    let flags_usecount = frameView.getUint16(0, false);
+    let alink = frameView.getUint16(2, false);
+    let fnheaderPtr = frameView.getUint32(4, false);
+    let nextblock = frameView.getUint16(8, false);
+    let pc = frameView.getUint16(10, false);
 
-    console.error(`initializeVM: flags_usecount=0x${flags_usecount.toString(16)}, alink=0x${alink.toString(16)}, lofnheader=0x${lofnheader.toString(16)}, hi2fnheader=0x${hi2fnheader.toString(16)}, nextblock=0x${nextblock.toString(16)}, pc=0x${pc.toString(16)}`);
+    console.error(`initializeVM: flags_usecount=0x${flags_usecount.toString(16)}, alink=0x${alink.toString(16)}, fnheaderPtr=0x${fnheaderPtr.toString(16)}, nextblock=0x${nextblock.toString(16)}, pc=0x${pc.toString(16)}`);
 
     // Check if frame needs initialization (sparse stack)
     // Critical fields: nextblock must be non-zero for valid frame
@@ -79,12 +78,11 @@ export function initializeVM(vm: VM, ifpage: IFPAGE): boolean {
         }
 
         // Re-read frame fields after initialization
-        flags_usecount = frameView.getUint16(0, false); // big-endian
-        alink = frameView.getUint16(2, false); // big-endian
-        lofnheader = frameView.getUint16(4, false); // big-endian
-        hi2fnheader = vm.virtualMemory[frameOffset + 7];
-        nextblock = frameView.getUint16(8, false); // big-endian
-        pc = frameView.getUint16(10, false); // big-endian
+        flags_usecount = frameView.getUint16(0, false);
+        alink = frameView.getUint16(2, false);
+        fnheaderPtr = frameView.getUint32(4, false);
+        nextblock = frameView.getUint16(8, false);
+        pc = frameView.getUint16(10, false);
 
         if (nextblock === 0) {
             console.error(`initializeVM: nextblock still 0 after initialization`);
@@ -107,7 +105,6 @@ export function initializeVM(vm: VM, ifpage: IFPAGE): boolean {
 
     // Step 4: Verify nextblock points to free stack block (STK_FSB_WORD)
     // Per C: if (GETWORD(next68k) != STK_FSB_WORD) error("Starting Lisp: Next stack block isn't free!");
-    // Memory is little-endian (after byte-swapping from sysout), so read as little-endian
     console.error(`initializeVM: Reading FSB at offset 0x${nextblockByteOffset.toString(16)}`);
     const nextblockView = new DataView(vm.virtualMemory.buffer, vm.virtualMemory.byteOffset + nextblockByteOffset);
 
@@ -117,12 +114,10 @@ export function initializeVM(vm: VM, ifpage: IFPAGE): boolean {
         .join(' ');
     console.error(`initializeVM: Raw FSB bytes: ${rawBytes}`);
 
-    // Read as 32-bit value (LispPTR), then extract flagword from high 16 bits
-    const fsbValue = nextblockView.getUint32(0, true); // little-endian
-    const flagword = (fsbValue >> 16) & 0xFFFF; // Extract high 16 bits
-    const size = fsbValue & 0xFFFF; // Extract low 16 bits
+    const flagword = nextblockView.getUint16(0, false);
+    const size = nextblockView.getUint16(2, false);
 
-    console.error(`initializeVM: Read FSB: fsbValue=0x${fsbValue.toString(16)}, flagword=0x${flagword.toString(16)}, size=${size}`);
+    console.error(`initializeVM: Read FSB: flagword=0x${flagword.toString(16)}, size=${size}`);
 
     if (flagword !== STK_FSB_WORD) {
         console.error(`initializeVM: Next stack block isn't free: flagword=0x${flagword.toString(16)}, expected STK_FSB_WORD=0x${STK_FSB_WORD.toString(16)}`);
@@ -136,15 +131,13 @@ export function initializeVM(vm: VM, ifpage: IFPAGE): boolean {
 
     while (freeptr + 4 <= vm.virtualMemory.length) {
         const freeptrView = new DataView(vm.virtualMemory.buffer, vm.virtualMemory.byteOffset + freeptr);
-        // Read as 32-bit value (LispPTR), then extract flagword and size
-        const freeFsbValue = freeptrView.getUint32(0, true); // little-endian
-        const freeFlagword = (freeFsbValue >> 16) & 0xFFFF; // Extract high 16 bits
+        const freeFlagword = freeptrView.getUint16(0, false);
 
         if (freeFlagword !== STK_FSB_WORD) {
             break; // End of free block chain
         }
 
-        const freeSize = freeFsbValue & 0xFFFF; // Extract low 16 bits (size in DLwords)
+        const freeSize = freeptrView.getUint16(2, false);
         endSTKP = freeptr;
         freeptr = freeptr + (freeSize * 2); // Convert DLwords to bytes
     }
@@ -165,12 +158,12 @@ export function initializeVM(vm: VM, ifpage: IFPAGE): boolean {
     // Get IVar from binding frame before current frame
     // CURRENTFX - 1 points to the binding frame (BF)
     const bfOffset = frameOffset - 4; // BF is 2 DLwords (4 bytes) before FX
-    vm.ivar = bfOffset >= 0 ? FrameManager.getIVarOffsetFromBF(vm, frameOffset) : null;
-
-    // Get FuncObj from frame fnheader
-    // Per C: FX_FNHEADER = (CURRENTFX->hi2fnheader << 16) | CURRENTFX->lofnheader (non-BIGVM)
-    // Note: lofnheader and hi2fnheader already read above
-    let fnheaderPtr: number = (hi2fnheader << 16) | lofnheader;
+    if (bfOffset >= 0) {
+        const bfView = new DataView(vm.virtualMemory.buffer, vm.virtualMemory.byteOffset + bfOffset);
+        vm.ivar = MemoryManager.Address.stackOffsetToByte(vm.stackBase, bfView.getUint16(0, false));
+    } else {
+        vm.ivar = null;
+    }
 
     if (fnheaderPtr === 0) {
         console.error(`initializeVM: fnheaderPtr is 0 - attempting to locate entry point...`);
@@ -187,21 +180,13 @@ export function initializeVM(vm: VM, ifpage: IFPAGE): boolean {
 
         // Update frame with entry point function header
         const entryFnheaderPtr = MemoryManager.Address.byteToLispPtr(entryPoint.fnheaderOffset);
-        const entryLofnheader = entryFnheaderPtr & 0xFFFF;
-        const entryHi2fnheader = (entryFnheaderPtr >> 16) & 0xFF;
-
-        frameView.setUint16(4, entryLofnheader, false); // big-endian
-        vm.virtualMemory[frameOffset + 7] = entryHi2fnheader;
-        frameView.setUint16(10, entryPoint.pcOffset, false); // big-endian (PC offset in DLwords)
+        frameView.setUint32(4, entryFnheaderPtr, false);
+        frameView.setUint16(10, entryPoint.pcOffset, false);
 
         // Re-read fnheaderPtr with updated values
-        const updatedLofnheader = frameView.getUint16(4, false);
-        const updatedHi2fnheader = vm.virtualMemory[frameOffset + 7];
-        fnheaderPtr = (updatedHi2fnheader << 16) | updatedLofnheader;
+        fnheaderPtr = frameView.getUint32(4, false);
 
         // Update local variables for use below
-        lofnheader = updatedLofnheader;
-        hi2fnheader = updatedHi2fnheader;
         pc = entryPoint.pcOffset;
 
         console.error(`initializeVM: Found entry point: fnheader=0x${entryPoint.fnheaderOffset.toString(16)}, pcOffset=${entryPoint.pcOffset}`);

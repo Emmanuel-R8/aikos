@@ -144,6 +144,17 @@ TypeScript-specific outcomes:
 - this moved Taiko from a partially synthetic startup path to loading the real saved stack frame and real page map from `starter.sysout`
 - the next startup blocker is now narrower and better scoped: saved-frame / free-stack-block interpretation during `initializeVM()`
 
+=== 2026-03-21 20:52 - Saved Startup Frame Restoration Slice
+
+The next Taiko slice stopped treating the real startup frame as if it were the older split-pointer layout.
+
+TypeScript-specific outcomes:
+
+- `initializeVM()` now reads the saved startup frame's function-header pointer as a full 32-bit LispPTR
+- free-stack-block validation now reads the loaded on-stack header as two big-endian DLwords, matching the real saved bytes
+- Taiko now restores the same startup `PC` as the C emulator from `starter.sysout` (`0x60f130`)
+- the remaining blocker is no longer startup-frame reconstruction; it is the bytecode fetch / decode mismatch at that now-correct restored PC
+
 == Related Documentation
 
 - Trace Format: `documentation/specifications/vm-core/trace-and-logging-formats.typ`
@@ -152,9 +163,9 @@ TypeScript-specific outcomes:
 
 == Next Steps
 
-1. Fix saved-frame / free-stack-block interpretation in `initializeVM()` now that Taiko loads the real startup frame from `starter.sysout`
+1. Fix the bytecode fetch / decode mismatch at the now-correct restored startup `PC`
 2. Re-run parity comparisons against the C reference as each slice lands
 3. Reduce startup-path heuristics by replacing entry-point guessing with more direct sysout/runtime evidence where available
-4. Extend real-sysout validation from "loads real startup frame" to "first matched execution steps"
+4. Extend real-sysout validation from "restores the C startup PC" to "first matched execution steps"
 
-*Last Updated*: 2026-03-21 20:48
+*Last Updated*: 2026-03-21 20:52
