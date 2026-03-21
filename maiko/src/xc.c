@@ -970,9 +970,12 @@ nextopcode:
     unsigned long sp_offset = (unsigned long)((DLword *)CSTKPTRL - (DLword *)Lisp_world);
     unsigned long fp_offset = (unsigned long)((DLword *)CURRENTFX - (DLword *)Lisp_world);
 
-    /* Get opcode name for logging */
+    /* Get opcode name for logging.
+     * Keep these names aligned with the actual switch dispatch below.
+     * In particular, opcode 0x03 is LISTP (historically some tables called it
+     * "LISP", which is misleading during parity debugging). */
     const char *const opcode_array[] = {
-        "UNUSED_0", "CAR", "CDR", "LISP", "NTYPX", "TYPEP", "DTEST", "UNWIND",
+        "UNUSED_0", "CAR", "CDR", "LISTP", "NTYPX", "TYPEP", "DTEST", "UNWIND",
         "FN0", "FN1", "FN2", "FN3", "FN4", "FNX", "APPLYFN", "CHECKAPPLY",
         "RETURN", "BIND", "UNBIND", "DUNBIND", "RPLPTR_N", "GCREF", "ASSOC", "GVAR_",
         "RPLACA", "RPLACD", "CONS", "CMLASSOC", "FMEMB", "CMLMEMBER", "FINDKEY", "CREATECELL",

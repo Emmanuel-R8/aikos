@@ -7,6 +7,14 @@ import { STK_OFFSET, FRAMESIZE, FRAMESIZE_BYTES, STK_FSB_WORD, STK_GUARD_WORD, B
 import { MemoryManager } from './memory/manager';
 import { FrameManager } from './memory/frame';
 
+function readSwappedDLword(memory: Uint8Array, offset: number): number {
+    return MemoryManager.Access.readDLword(memory, offset ^ 2);
+}
+
+function writeSwappedDLword(memory: Uint8Array, offset: number, value: number): void {
+    MemoryManager.Access.writeDLword(memory, offset ^ 2, value);
+}
+
 /**
  * Initialize VM state similar to C start_lisp()
  * Per C: main.c:start_lisp() -> initializes stack, frame, and PC
@@ -36,17 +44,15 @@ export function initializeVM(vm: VM, ifpage: IFPAGE): boolean {
 
     // Step 2: Set PVar from currentfxp frame
     // Per C: PVar = NativeAligned2FromStackOffset(InterfacePage->currentfxp) + FRAMESIZE
-    const STK_OFFSET_BYTES = STK_OFFSET * 2;
     const currentfxpStackOffset = ifpage.currentfxp; // DLword offset from Stackspace
-    const frameOffset = STK_OFFSET_BYTES + (currentfxpStackOffset * 2);
-    const pvarOffset = frameOffset + FRAMESIZE_BYTES;
+    const frameOffset = MemoryManager.Address.stackOffsetToByte(vm.stackBase, currentfxpStackOffset);
 
     if (frameOffset + FRAMESIZE_BYTES > vm.virtualMemory.length) {
         console.error(`initializeVM: Frame offset ${frameOffset} out of bounds`);
         return false;
     }
 
-    vm.pvar = pvarOffset;
+    FrameManager.setCurrentFrame(vm, frameOffset);
 
     // Step 3: Get nextblock from current frame
     // Per C: freeptr = next68k = NativeAligned2FromStackOffset(CURRENTFX->nextblock)
@@ -60,14 +66,13 @@ export function initializeVM(vm: VM, ifpage: IFPAGE): boolean {
     console.error(`initializeVM: Frame bytes: ${frameBytes}`);
 
     // Read frame fields
-    let flags_usecount = frameView.getUint16(0, false); // big-endian
-    let alink = frameView.getUint16(2, false); // big-endian
-    let lofnheader = frameView.getUint16(4, false); // big-endian
-    let hi2fnheader = vm.virtualMemory[frameOffset + 7];
-    let nextblock = frameView.getUint16(8, false); // big-endian
-    let pc = frameView.getUint16(10, false); // big-endian
+    let flags_usecount = readSwappedDLword(vm.virtualMemory, frameOffset);
+    let alink = readSwappedDLword(vm.virtualMemory, frameOffset + 2);
+    let fnheaderPtr = MemoryManager.Access.readLispPTR(vm.virtualMemory, frameOffset + 4);
+    let nextblock = readSwappedDLword(vm.virtualMemory, frameOffset + 8);
+    let pc = readSwappedDLword(vm.virtualMemory, frameOffset + 10);
 
-    console.error(`initializeVM: flags_usecount=0x${flags_usecount.toString(16)}, alink=0x${alink.toString(16)}, lofnheader=0x${lofnheader.toString(16)}, hi2fnheader=0x${hi2fnheader.toString(16)}, nextblock=0x${nextblock.toString(16)}, pc=0x${pc.toString(16)}`);
+    console.error(`initializeVM: flags_usecount=0x${flags_usecount.toString(16)}, alink=0x${alink.toString(16)}, fnheaderPtr=0x${fnheaderPtr.toString(16)}, nextblock=0x${nextblock.toString(16)}, pc=0x${pc.toString(16)}`);
 
     // Check if frame needs initialization (sparse stack)
     // Critical fields: nextblock must be non-zero for valid frame
@@ -81,12 +86,11 @@ export function initializeVM(vm: VM, ifpage: IFPAGE): boolean {
         }
 
         // Re-read frame fields after initialization
-        flags_usecount = frameView.getUint16(0, false); // big-endian
-        alink = frameView.getUint16(2, false); // big-endian
-        lofnheader = frameView.getUint16(4, false); // big-endian
-        hi2fnheader = vm.virtualMemory[frameOffset + 7];
-        nextblock = frameView.getUint16(8, false); // big-endian
-        pc = frameView.getUint16(10, false); // big-endian
+        flags_usecount = readSwappedDLword(vm.virtualMemory, frameOffset);
+        alink = readSwappedDLword(vm.virtualMemory, frameOffset + 2);
+        fnheaderPtr = MemoryManager.Access.readLispPTR(vm.virtualMemory, frameOffset + 4);
+        nextblock = readSwappedDLword(vm.virtualMemory, frameOffset + 8);
+        pc = readSwappedDLword(vm.virtualMemory, frameOffset + 10);
 
         if (nextblock === 0) {
             console.error(`initializeVM: nextblock still 0 after initialization`);
@@ -98,7 +102,7 @@ export function initializeVM(vm: VM, ifpage: IFPAGE): boolean {
     // Convert nextblock (stack offset) to byte offset
     // Per C: NativeAligned2FromStackOffset(stackOffset) = Stackspace + stackOffset
     // Stackspace = STK_OFFSET_BYTES, so byte offset = STK_OFFSET_BYTES + (stackOffset * 2)
-    const nextblockByteOffset = STK_OFFSET_BYTES + (nextblock * 2);
+    const nextblockByteOffset = MemoryManager.Address.stackOffsetToByte(vm.stackBase, nextblock);
 
     console.error(`initializeVM: nextblock=${nextblock} (0x${nextblock.toString(16)}), nextblockByteOffset=0x${nextblockByteOffset.toString(16)}`);
 
@@ -109,7 +113,6 @@ export function initializeVM(vm: VM, ifpage: IFPAGE): boolean {
 
     // Step 4: Verify nextblock points to free stack block (STK_FSB_WORD)
     // Per C: if (GETWORD(next68k) != STK_FSB_WORD) error("Starting Lisp: Next stack block isn't free!");
-    // Memory is little-endian (after byte-swapping from sysout), so read as little-endian
     console.error(`initializeVM: Reading FSB at offset 0x${nextblockByteOffset.toString(16)}`);
     const nextblockView = new DataView(vm.virtualMemory.buffer, vm.virtualMemory.byteOffset + nextblockByteOffset);
 
@@ -119,12 +122,10 @@ export function initializeVM(vm: VM, ifpage: IFPAGE): boolean {
         .join(' ');
     console.error(`initializeVM: Raw FSB bytes: ${rawBytes}`);
 
-    // Read as 32-bit value (LispPTR), then extract flagword from high 16 bits
-    const fsbValue = nextblockView.getUint32(0, true); // little-endian
-    const flagword = (fsbValue >> 16) & 0xFFFF; // Extract high 16 bits
-    const size = fsbValue & 0xFFFF; // Extract low 16 bits
+    const flagword = readSwappedDLword(vm.virtualMemory, nextblockByteOffset);
+    const size = readSwappedDLword(vm.virtualMemory, nextblockByteOffset + 2);
 
-    console.error(`initializeVM: Read FSB: fsbValue=0x${fsbValue.toString(16)}, flagword=0x${flagword.toString(16)}, size=${size}`);
+    console.error(`initializeVM: Read FSB: flagword=0x${flagword.toString(16)}, size=${size}`);
 
     if (flagword !== STK_FSB_WORD) {
         console.error(`initializeVM: Next stack block isn't free: flagword=0x${flagword.toString(16)}, expected STK_FSB_WORD=0x${STK_FSB_WORD.toString(16)}`);
@@ -137,16 +138,13 @@ export function initializeVM(vm: VM, ifpage: IFPAGE): boolean {
     let endSTKP = freeptr;
 
     while (freeptr + 4 <= vm.virtualMemory.length) {
-        const freeptrView = new DataView(vm.virtualMemory.buffer, vm.virtualMemory.byteOffset + freeptr);
-        // Read as 32-bit value (LispPTR), then extract flagword and size
-        const freeFsbValue = freeptrView.getUint32(0, true); // little-endian
-        const freeFlagword = (freeFsbValue >> 16) & 0xFFFF; // Extract high 16 bits
+        const freeFlagword = readSwappedDLword(vm.virtualMemory, freeptr);
 
         if (freeFlagword !== STK_FSB_WORD) {
             break; // End of free block chain
         }
 
-        const freeSize = freeFsbValue & 0xFFFF; // Extract low 16 bits (size in DLwords)
+        const freeSize = readSwappedDLword(vm.virtualMemory, freeptr + 2);
         endSTKP = freeptr;
         freeptr = freeptr + (freeSize * 2); // Convert DLwords to bytes
     }
@@ -167,18 +165,11 @@ export function initializeVM(vm: VM, ifpage: IFPAGE): boolean {
     // Get IVar from binding frame before current frame
     // CURRENTFX - 1 points to the binding frame (BF)
     const bfOffset = frameOffset - 4; // BF is 2 DLwords (4 bytes) before FX
-    if (bfOffset >= 0 && bfOffset + 2 <= vm.virtualMemory.length) {
-        const bfView = new DataView(vm.virtualMemory.buffer, vm.virtualMemory.byteOffset + bfOffset);
-        const ivarStackOffset = bfView.getUint16(0, false); // big-endian
-        vm.ivar = STK_OFFSET_BYTES + (ivarStackOffset * 2);
+    if (bfOffset >= 0) {
+        vm.ivar = MemoryManager.Address.stackOffsetToByte(vm.stackBase, readSwappedDLword(vm.virtualMemory, bfOffset));
     } else {
         vm.ivar = null;
     }
-
-    // Get FuncObj from frame fnheader
-    // Per C: FX_FNHEADER = (CURRENTFX->hi2fnheader << 16) | CURRENTFX->lofnheader (non-BIGVM)
-    // Note: lofnheader and hi2fnheader already read above
-    let fnheaderPtr: number = (hi2fnheader << 16) | lofnheader;
 
     if (fnheaderPtr === 0) {
         console.error(`initializeVM: fnheaderPtr is 0 - attempting to locate entry point...`);
@@ -195,21 +186,13 @@ export function initializeVM(vm: VM, ifpage: IFPAGE): boolean {
 
         // Update frame with entry point function header
         const entryFnheaderPtr = MemoryManager.Address.byteToLispPtr(entryPoint.fnheaderOffset);
-        const entryLofnheader = entryFnheaderPtr & 0xFFFF;
-        const entryHi2fnheader = (entryFnheaderPtr >> 16) & 0xFF;
-
-        frameView.setUint16(4, entryLofnheader, false); // big-endian
-        vm.virtualMemory[frameOffset + 7] = entryHi2fnheader;
-        frameView.setUint16(10, entryPoint.pcOffset, false); // big-endian (PC offset in DLwords)
+        frameView.setUint32(4, entryFnheaderPtr, true);
+        writeSwappedDLword(vm.virtualMemory, frameOffset + 10, entryPoint.pcOffset);
 
         // Re-read fnheaderPtr with updated values
-        const updatedLofnheader = frameView.getUint16(4, false);
-        const updatedHi2fnheader = vm.virtualMemory[frameOffset + 7];
-        fnheaderPtr = (updatedHi2fnheader << 16) | updatedLofnheader;
+        fnheaderPtr = MemoryManager.Access.readLispPTR(vm.virtualMemory, frameOffset + 4);
 
         // Update local variables for use below
-        lofnheader = updatedLofnheader;
-        hi2fnheader = updatedHi2fnheader;
         pc = entryPoint.pcOffset;
 
         console.error(`initializeVM: Found entry point: fnheader=0x${entryPoint.fnheaderOffset.toString(16)}, pcOffset=${entryPoint.pcOffset}`);
@@ -221,25 +204,16 @@ export function initializeVM(vm: VM, ifpage: IFPAGE): boolean {
 
     // Get PC from frame
     // Per C: PC = (ByteCode *)FuncObj + CURRENTFX->pc
-    const framePc = frameView.getUint16(10, false); // big-endian (PC offset in DLwords)
+    const framePc = readSwappedDLword(vm.virtualMemory, frameOffset + 10);
 
-    // Read function header to get startpc
     if (fnheaderByteOffset + 8 > vm.virtualMemory.length) {
         console.error(`initializeVM: Function header offset ${fnheaderByteOffset} out of bounds`);
         return false;
     }
 
-    const fnheaderView = new DataView(vm.virtualMemory.buffer, vm.virtualMemory.byteOffset + fnheaderByteOffset);
-    // Read startpc as little-endian (memory is byte-swapped from sysout)
-    const startpc = fnheaderView.getUint16(4, true); // little-endian (startpc in DLwords, offset 4-5 in fnheader)
+    vm.pc = fnheaderByteOffset + framePc;
 
-    // Calculate final PC: function header start + startpc + frame pc
-    // Per C: PC = (ByteCode *)FuncObj + CURRENTFX->pc
-    // FuncObj points to function header, so PC = fnheader_start + startpc + framePc
-    // All offsets are in DLwords, convert to bytes
-    vm.pc = fnheaderByteOffset + (startpc * 2) + (framePc * 2);
-
-    console.error(`initializeVM: PC calculation: fnheader=0x${fnheaderByteOffset.toString(16)}, startpc=${startpc}, framePc=${framePc}, finalPC=0x${vm.pc.toString(16)}`);
+    console.error(`initializeVM: PC calculation: fnheader=0x${fnheaderByteOffset.toString(16)}, framePc=${framePc}, finalPC=0x${vm.pc.toString(16)}`);
 
     return true;
 }
@@ -258,15 +232,8 @@ function initializeSparseStack(vm: VM, frameOffset: number, currentfxpStackOffse
         return false;
     }
 
-    const STK_OFFSET_BYTES = STK_OFFSET * 2;
-
-    // Calculate stack area boundaries
-    // Stack grows downward (from high addresses to low addresses)
-    // Stack base is at STK_OFFSET_BYTES (high address)
-    // We need to allocate space below (toward lower addresses)
-
-    // Frame is at frameOffset (STK_OFFSET_BYTES + currentfxp * 2)
-    // Free block should be placed after the frame (at lower address, since stack grows down)
+    // Stack offsets grow upward from Stackspace in DLword units, so keep the
+    // synthetic free block within the loaded virtual-memory arena.
     const frameEnd = frameOffset + FRAMESIZE_BYTES;
     const freeBlockStart = frameEnd;
 
@@ -277,13 +244,10 @@ function initializeSparseStack(vm: VM, frameOffset: number, currentfxpStackOffse
     }
 
     // Calculate free block size (in DLwords)
-    // Stack grows downward, so free block extends from freeBlockStart toward lower addresses
-    // Use a reasonable size: allocate space downward from the free block start
-    // Leave some margin at the end (e.g., 1KB)
     const marginBytes = 1024;
-    const availableSpace = freeBlockStart - marginBytes;
-    const freeBlockSizeBytes = Math.max(availableSpace - (STK_OFFSET_BYTES - (64 * 1024)), MINEXTRASTACKWORDS * 2);
-    const freeBlockSizeDLwords = Math.floor(freeBlockSizeBytes / 2);
+    const availableSpace = Math.max(vm.virtualMemory.length - marginBytes - freeBlockStart, 0);
+    const freeBlockSizeBytes = Math.max(availableSpace, MINEXTRASTACKWORDS * 2);
+    const freeBlockSizeDLwords = Math.min(Math.floor(freeBlockSizeBytes / 2), 0xFFFF);
 
     if (freeBlockSizeDLwords < MINEXTRASTACKWORDS) {
         console.error(`initializeSparseStack: Free block too small: ${freeBlockSizeDLwords} DLwords`);
@@ -295,11 +259,9 @@ function initializeSparseStack(vm: VM, frameOffset: number, currentfxpStackOffse
     // BF structure: [ivar_offset (DLword), BF_MARK (DLword)]
     const bfOffset = frameOffset - 4;
     if (bfOffset >= 0) {
-        const bfView = new DataView(vm.virtualMemory.buffer, vm.virtualMemory.byteOffset + bfOffset);
-        // Set ivar_offset to point to free block start (as stack offset)
-        const ivarStackOffset = Math.floor((freeBlockStart - STK_OFFSET_BYTES) / 2);
-        bfView.setUint16(0, ivarStackOffset, false); // big-endian
-        bfView.setUint16(2, BF_MARK, false); // big-endian
+        const ivarStackOffset = MemoryManager.Address.byteToStackOffset(vm.stackBase, freeBlockStart);
+        writeSwappedDLword(vm.virtualMemory, bfOffset, ivarStackOffset);
+        writeSwappedDLword(vm.virtualMemory, bfOffset + 2, BF_MARK);
     }
 
     // Step 2: Create current frame (FX)
@@ -319,31 +281,27 @@ function initializeSparseStack(vm: VM, frameOffset: number, currentfxpStackOffse
     const frameView = new DataView(vm.virtualMemory.buffer, vm.virtualMemory.byteOffset + frameOffset);
 
     // flags_usecount: flags (3 bits) + usecount (8 bits) = 0 for now
-    frameView.setUint16(0, 0, false); // big-endian
+    writeSwappedDLword(vm.virtualMemory, frameOffset, 0);
 
     // alink: activation link (0 for now, no previous frame)
-    frameView.setUint16(2, 0, false); // big-endian
+    writeSwappedDLword(vm.virtualMemory, frameOffset + 2, 0);
 
     // fnheader: function header pointer (0 for now - will need to find entry point)
-    frameView.setUint16(4, 0, false); // lofnheader
-    vm.virtualMemory[frameOffset + 6] = 0; // hi1fnheader
-    vm.virtualMemory[frameOffset + 7] = 0; // hi2fnheader
+    frameView.setUint32(4, 0, true);
 
     // nextblock: points to free stack block (as stack offset)
-    const nextblockStackOffset = Math.floor((freeBlockStart - STK_OFFSET_BYTES) / 2);
-    frameView.setUint16(8, nextblockStackOffset, false); // big-endian
+    const nextblockStackOffset = MemoryManager.Address.byteToStackOffset(vm.stackBase, freeBlockStart);
+    writeSwappedDLword(vm.virtualMemory, frameOffset + 8, nextblockStackOffset);
 
     // pc: program counter offset (0 for now)
-    frameView.setUint16(10, 0, false); // big-endian
+    writeSwappedDLword(vm.virtualMemory, frameOffset + 10, 0);
 
     // nametable: (0 for now)
-    frameView.setUint16(12, 0, false); // lonametable
-    vm.virtualMemory[frameOffset + 14] = 0; // hi1nametable
-    vm.virtualMemory[frameOffset + 15] = 0; // hi2nametable
+    frameView.setUint32(12, 0, true);
 
     // blink, clink: binding links (0 for now)
-    frameView.setUint16(16, 0, false); // blink
-    frameView.setUint16(18, 0, false); // clink
+    writeSwappedDLword(vm.virtualMemory, frameOffset + 16, 0);
+    writeSwappedDLword(vm.virtualMemory, frameOffset + 18, 0);
 
     // Step 3: Create free stack block (FSB)
     // Per C: MAKEFREEBLOCK(ptr68k, size)
@@ -351,14 +309,12 @@ function initializeSparseStack(vm: VM, frameOffset: number, currentfxpStackOffse
     // Per C: *((LispPTR *)(void *)(ptr68k)) = (STK_FSB_WORD << 16) | ((DLword)(size))
     // This is a 32-bit value: high 16 bits = STK_FSB_WORD, low 16 bits = size
     // Memory is little-endian (after byte-swapping from sysout), so write as little-endian
-    const fsbView = new DataView(vm.virtualMemory.buffer, vm.virtualMemory.byteOffset + freeBlockStart);
-    const fsbValue = (STK_FSB_WORD << 16) | freeBlockSizeDLwords;
-    fsbView.setUint32(0, fsbValue, true); // little-endian (our memory format)
+    writeSwappedDLword(vm.virtualMemory, freeBlockStart, STK_FSB_WORD);
+    writeSwappedDLword(vm.virtualMemory, freeBlockStart + 2, freeBlockSizeDLwords & 0xFFFF);
 
     // Verify the write
-    const writtenValue = fsbView.getUint32(0, true); // Read back as little-endian
-    const writtenFlagword = (writtenValue >> 16) & 0xFFFF;
-    const writtenSize = writtenValue & 0xFFFF;
+    const writtenFlagword = readSwappedDLword(vm.virtualMemory, freeBlockStart);
+    const writtenSize = readSwappedDLword(vm.virtualMemory, freeBlockStart + 2);
     console.error(`initializeSparseStack: Wrote FSB: flagword=0x${writtenFlagword.toString(16)}, size=${writtenSize} DLwords`);
 
     console.error(`initializeSparseStack: Created frame at 0x${frameOffset.toString(16)}, free block at 0x${freeBlockStart.toString(16)} (size=${freeBlockSizeDLwords} DLwords)`);
@@ -398,7 +354,7 @@ function locateEntryPoint(vm: VM, ifpage: IFPAGE): { fnheaderOffset: number; pcO
                 if (resetfxpFnheaderOffset + 8 <= vm.virtualMemory.length) {
                     // Read function header to get startpc
                     const resetfxpFnheaderView = new DataView(vm.virtualMemory.buffer, vm.virtualMemory.byteOffset + resetfxpFnheaderOffset);
-                    const resetfxpStartpc = resetfxpFnheaderView.getUint16(4, true); // little-endian
+                    const resetfxpStartpc = resetfxpFnheaderView.getUint16(6, true); // little-endian
                     const resetfxpPc = resetfxpFrameView.getUint16(10, true); // little-endian (PC offset within function)
                     console.error(`locateEntryPoint: Found function header in resetfxp frame: 0x${resetfxpFnheaderOffset.toString(16)}, startpc=${resetfxpStartpc}, framePc=${resetfxpPc}`);
                     return { fnheaderOffset: resetfxpFnheaderOffset, pcOffset: resetfxpPc };
@@ -407,9 +363,9 @@ function locateEntryPoint(vm: VM, ifpage: IFPAGE): { fnheaderOffset: number; pcO
         }
     }
 
-    // Strategy 2: Search for function headers in memory
-    // Look for valid function header structures (startpc field should be reasonable)
-    // Function header structure: na (2 bytes), stkmin (2 bytes), startpc (2 bytes), pv (2 bytes), ...
+    // Strategy 2: Search for function headers in memory.
+    // Function header layout per maiko/inc/stack.h:
+    //   0-1 stkmin, 2-3 na, 4-5 pv, 6-7 startpc.
     // NOTE: Memory has been byte-swapped from big-endian sysout to little-endian
     // So we read function headers as little-endian
     // CRITICAL: Only search in areas that are likely to be loaded (not sparse)
@@ -443,10 +399,10 @@ function locateEntryPoint(vm: VM, ifpage: IFPAGE): { fnheaderOffset: number; pcO
             const fnheaderView = new DataView(vm.virtualMemory.buffer, vm.virtualMemory.byteOffset + offset);
 
             // Read function header fields (little-endian, since memory is byte-swapped)
-            const na = fnheaderView.getInt16(0, true); // signed, little-endian
-            const stkmin = fnheaderView.getUint16(2, true); // little-endian
-            const startpc = fnheaderView.getUint16(4, true); // little-endian
-            const pv = fnheaderView.getInt16(6, true); // signed, little-endian
+            const stkmin = fnheaderView.getUint16(0, true); // little-endian
+            const na = fnheaderView.getInt16(2, true); // signed, little-endian
+            const pv = fnheaderView.getInt16(4, true); // signed, little-endian
+            const startpc = fnheaderView.getUint16(6, true); // little-endian
 
             // Heuristic: valid function header should have:
             // - Reasonable na (-1 to 20) - number of arguments
@@ -570,7 +526,7 @@ function locateEntryPoint(vm: VM, ifpage: IFPAGE): { fnheaderOffset: number; pcO
                                     if (consecutiveLoadedPages >= 3) {
                                         candidates.push({
                                             fnheaderOffset: offset,
-                                            pcOffset: 0,
+                                            pcOffset: startpc + 1,
                                             consecutivePages: consecutiveLoadedPages,
                                             startpc: startpc
                                         });

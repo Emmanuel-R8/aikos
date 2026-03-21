@@ -72,15 +72,15 @@ Control flow and memory operation opcodes (0x00-0x7F).
     - Walks backwards through stack until finding negative value (marker)
       - *CRITICAL*: Uses SIGNED comparison `((int)*--CSTKPTRL >= 0)`, NOT unsigned
       - Markers have sign bit set (e.g., `0xfffe0002`) but represent negative values when interpreted as signed integers
-    - Extracts `num = (~marker) >> 16` and `offset = GetLoWord(marker)`
-      - Note: `offset` is used directly (not shifted), calculation is `ppvar = (LispPTR *)((DLword *)PVAR + 2 + offset)`
-    - Calculates `ppvar = (LispPTR *)((DLword *)PVAR + 2 + offset)`
+    - Extracts `num = (~marker) >> 16` and `offset = GetLoWord(marker) >> 1`
+      - The low word stores `byte2 << 1`, so implementations must convert it back before reconstructing the PVAR-relative LispPTR cell offset
+    - Calculates `ppvar = (LispPTR *)((DLword *)PVAR + 2 + GetLoWord(marker))`
     - Restores `num` values to `0xFFFFFFFF` (unbound marker) backwards from `ppvar`
     - After unbinding, `CSTKPTRL` points to the marker
     - *TOPOFSTACK Synchronization*: UNBIND does NOT explicitly update TOPOFSTACK
-      - The dispatch loop reads TOPOFSTACK from memory after UNBIND completes
-      - This is different from RET which explicitly syncs: `TOPOFSTACK = TopOfStack`
-      - See `maiko/inc/inlineC.h:636-685` for implementation details
+      - The cached TOS remains whatever it was before UNBIND (for example the value pushed by a preceding `GVAR`)
+      - The next instruction may later spill or reload TOS through the usual dispatch mechanics
+      - See `maiko/inc/inlineC.h:733-753` for implementation details
 - *DUNBIND (0x13)* [1] Dynamic unbind.
   - *Stack*: `[marker, ...]` or `[TOS] -> []`
   - *Algorithm*: Similar to UNBIND, but checks TOS first
@@ -129,7 +129,10 @@ Control flow and memory operation opcodes (0x00-0x7F).
   - *C*: `PVARX_(x): *((LispPTR *)((DLword *)PVAR + (x))) = TOPOFSTACK;`
   - *Access*: Writes LispPTR to `(DLword *)PVAR + x` (x is in DLword units)
   - *Byte Order*: Writes in big-endian byte order for sysout format
-- *GVAR (0x60)* [3] Atom index (2B). Push global variable value.
+- *GVAR (0x60)* [3 or 5] Atom index. Push global variable value.
+  - Non-BIGATOMS builds use a 2-byte atom operand
+  - BIGVM/BIGATOMS builds use `Get_AtomNo_PCMAC1 = Get_Pointer_PCMAC1`, so `GVAR` advances with `nextop_atom = nextop5`
+  - On BIGVM/BIGATOMS, the operand is 4 bytes and the full instruction length is 5 bytes
 - *ARG0 (0x61)* [1] Push argument 0.
 - *IVARX_ (0x62)* [2] Set indexed local variable.
   - *Stack*: `[value] -> []`
@@ -138,9 +141,9 @@ Control flow and memory operation opcodes (0x00-0x7F).
   - *C*: `IVARX_(x): *((LispPTR *)((DLword *)IVAR + (x))) = TOPOFSTACK;`
   - *Access*: Writes LispPTR to `(DLword *)IVAR + x` (x is in DLword units)
   - *Byte Order*: Writes in big-endian byte order for sysout format
-- *GVAR_ (0x63)* [3] Atom index (2B). Set global variable value.
+- *GVAR_ (0x63)* [3 or 5] Atom index. Set global variable value.
   - *Stack*: `[value] -> []`
-  - *Operand*: atom_index (2B)
+  - *Operand*: atom index width follows the same BIGATOMS rule as `GVAR`
   - *CRITICAL*: Updates GC refs when setting global variable values
   - Reads old value before writing new value (for GC)
   - Calls `gc_module.deleteReference()` on old value
@@ -148,7 +151,7 @@ Control flow and memory operation opcodes (0x00-0x7F).
   - Matches C implementation: `FRPLPTR(((struct xpointer *)pslot)->addr, tos)`
   - GC errors are non-fatal (caught and ignored)
   - C: `N_OP_gvarset` in `maiko/src/gvar2.c`
-- *ACONST (0x67)* [3] Atom index (2B). Push atom constant.
+- *ACONST (0x67)* [3 or 5] Atom index. Push atom constant.
 - *GCONST (0x6F)* [3] Atom index (2B). Push global constant.
 
 === Variable Setting

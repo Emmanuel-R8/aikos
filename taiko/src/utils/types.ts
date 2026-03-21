@@ -47,68 +47,68 @@ export function makeLispPTR(hi: DLword, lo: DLword): LispPTR {
 }
 
 /**
- * Interface Page structure (matches C IFPAGE)
- * This is the BYTESWAP version for little-endian machines
- * See maiko/inc/ifpage.h lines 257-328 for the BYTESWAP struct definition
+ * Interface Page structure as parsed directly from the big-endian sysout file.
+ * This follows the logical on-disk field order, not Maiko's host-side
+ * BYTESWAP in-memory struct layout.
  */
 export interface IFPAGE {
-    // Frame pointers (BYTESWAP order)
+    // Frame pointers (file order)
+    currentfxp: DLword;
     resetfxp: DLword;
-    currentfxp: DLword; // hi word
+    subovfxp: DLword;
     kbdfxp: DLword;
-    subovfxp: DLword; // hi word
+    hardreturnfxp: DLword;
     gcfxp: DLword;
-    hardreturnfxp: DLword; // hi word
+    faultfxp: DLword;
     endofstack: DLword;
-    faultfxp: DLword; // hi word
 
     // Version information
+    lversion: DLword;
     minrversion: DLword;
-    lversion: DLword; // hi word
+    minbversion: DLword;
     rversion: DLword;
-    minbversion: DLword; // hi word
+    bversion: DLword;
     machinetype: DLword;
-    bversion: DLword; // hi word
 
     // Validation key (must be IFPAGE_KEYVAL = 0x15e3)
+    miscfxp: DLword;
     key: DLword;
-    miscfxp: DLword; // hi word
+    serialnumber: DLword;
     emulatorspace: DLword;
-    serialnumber: DLword; // hi word
+    screenwidth: DLword;
     nxtpmaddr: DLword;
-    screenwidth: DLword; // hi word
 
     // Page management
+    nactivepages: DLword;
     ndirtypages: DLword;
-    nactivepages: DLword; // hi word
+    filepnpmp0: DLword;
     filepnpmt0: DLword;
-    filepnpmp0: DLword; // hi word
     filler1: DLword;
-    teleraidfxp: DLword; // hi word
+    teleraidfxp: DLword;
+    filler2: DLword;
     filler3: DLword;
-    filler2: DLword; // hi word
 
     // User information
+    usernameaddr: DLword;
     userpswdaddr: DLword;
-    usernameaddr: DLword; // hi word
+    stackbase: DLword;
     faulthi: DLword;
-    stackbase: DLword; // hi word
     devconfig: DLword;
-    faultlo: DLword; // hi word
+    faultlo: DLword;
+    rptsize: DLword;
     rpoffset: DLword;
-    rptsize: DLword; // hi word
+    wasrptlast: DLword;
     embufvp: DLword;
-    wasrptlast: DLword; // hi word
+    nshost0: DLword;
     nshost1: DLword;
-    nshost0: DLword; // hi word
+    nshost2: DLword;
     mdszone: DLword;
-    nshost2: DLword; // hi word
+    mdszonelength: DLword;
     emubuffers: DLword;
-    mdszonelength: DLword; // hi word
     process_size: DLword;
-    emubuflength: DLword; // hi word
+    emubuflength: DLword;
+    storagefullstate: DLword;
     isfmap: DLword;
-    storagefullstate: DLword; // hi word
 
     // Misc apply
     miscstackfn: LispPTR;
@@ -117,15 +117,15 @@ export interface IFPAGE {
     miscstackresult: LispPTR;
 
     // Page management continued
+    nrealpages: DLword;
     lastlockedfilepage: DLword;
-    nrealpages: DLword; // hi word
+    lastdominofilepage: DLword;
     fptovpstart: DLword;
-    lastdominofilepage: DLword; // hi word
+    fakemousebits: DLword;
     dl24bitaddressable: DLword;
-    fakemousebits: DLword; // hi word
     realpagetableptr: LispPTR;
+    dllastvmempage: DLword;
     fullspaceused: DLword;
-    dllastvmempage: DLword; // hi word
+    fakekbdad4: DLword;
     fakekbdad5: DLword;
-    fakekbdad4: DLword; // hi word
 }

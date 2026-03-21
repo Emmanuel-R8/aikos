@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 
 ;; Stack and constant operations
 ;; nil, t, push, pop, constants
@@ -11,46 +11,40 @@
 ;;; CONSTANTS
 ;;; ===========================================================================
 
+;; Constants (NIL, T, 0, 1) are defined in laiko/src/vm/op-const.lisp
+;; to avoid symbol collision with CL:NIL and CL:T.
 
-;;; Per maiko/inc/opcodes.h: opc_NIL=104(0x68), opc_T=105(0x69), opc_0=106(0x6A), opc_1=107(0x6B)
-
-(defop nil #x68 1
-  "NIL: Push NIL (0) onto the stack."
-  :operands nil
-  :stack-effect (:push 1)
-  :category :constants
-  :side-effects nil
-  (vm-push vm 0))
-
-(defop t #x69 1
-  "T: Push T (the symbol T, value 1) onto the stack."
-  :operands nil
-  :stack-effect (:push 1)
-  :category :constants
-  :side-effects nil
-  (vm-push vm 1))
-
-(defop const-0 #x6A 1
-  "CONST_0 (opc_0): Push the small positive integer 0 onto the stack."
-  :operands nil
-  :stack-effect (:push 1)
-  :category :constants
-  :side-effects nil
-  (vm-push vm 0))
-
-(defop const-1 #x6B 1
-  "CONST_1 (opc_1): Push the small positive integer 1 onto the stack."
-  :operands nil
-  :stack-effect (:push 1)
-  :category :constants
-  :side-effects nil
-  (vm-push vm 1))
 
 ;;; ===========================================================================
 ;;; STACK OPERATIONS
 ;;; ===========================================================================
 
-(defop pop #xBF 1
+(defop copy-n :hexcode #x3D :instruction-length 2
+  "COPY_N: Copy the N-th element from the top of the stack.
+   Operand N is a byte value.
+   Maiko: PUSH(*(CSTKPTR - (((n) + 2) >> 1)))
+   CSTKPTR points at TOS (already written).
+   offset = (n+2)>>1: n=0 => 1 => TOS, n=2 => 2 => TOS-1, etc."
+  :operands ((n :uint8 "Offset specifier"))
+  :stack-effect (:push 1)
+  :category :stack-operations
+  :side-effects nil
+  (let* ((n (read-pc-8 vm))
+         ;; Maiko: PUSH(*(CSTKPTR - (((n) + 2) >> 1)))
+         ;; CSTKPTR points at current TOS (already written slot).
+         ;; offset = (n + 2) >> 1
+         ;; n=0 => offset=1 => CSTKPTR-1 => TOS
+         ;; n=2 => offset=2 => CSTKPTR-2 => TOS-1
+         (offset (ash (+ n 2) -1))
+         ;; vm-stack-ptr-offset points to current TOS slot.
+         ;; TOS is at sp, TOS-1 is at sp-4, etc.
+         ;; We want item at sp - (offset-1)*4
+         (sp (vm-stack-ptr-offset vm))
+         (addr (- sp (* (1- offset) 4)))
+         (val (vm-read-lispptr vm addr)))
+    (vm-push vm val)))
+
+(defop pop-op :hexcode #xBF :instruction-length 1
   "POP: Pop and discard the top of stack."
   :operands nil
   :stack-effect (:pop 1)
@@ -59,7 +53,7 @@
   (vm-pop vm)
   nil)
 
-(defop copy #x64 1
+(defop copy :hexcode #x64 :instruction-length 1
   "Duplicate the top of stack (COPY)."
   :operands nil
   :stack-effect (:pop 1 :push 2)

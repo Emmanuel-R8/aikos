@@ -10,6 +10,22 @@ import { pushStack, popStack } from './stack_helpers';
 import type { LispPTR } from '../../utils/types';
 import { S_POSITIVE } from '../../utils/constants';
 
+function decodeAtomOperand(operands: Uint8Array): number | null {
+    if (operands.length >= 4) {
+        return (((operands[0] << 24) | (operands[1] << 16) | (operands[2] << 8) | operands[3]) >>> 0);
+    }
+
+    if (operands.length >= 2) {
+        return ((operands[0] << 8) | operands[1]) >>> 0;
+    }
+
+    if (operands.length >= 1) {
+        return operands[0];
+    }
+
+    return null;
+}
+
 /**
  * GVAR opcode handler
  * Get global variable value
@@ -21,13 +37,10 @@ import { S_POSITIVE } from '../../utils/constants';
 function handleGVAR(vm: VM, instruction: Instruction): number | null {
     if (vm.virtualMemory === null) return null;
 
-    // Read atom number from operand (PC+1 with XOR addressing)
-    // C: Get_AtomNo_PCMAC1 = Get_AtomNo(PCMAC + 1)
-    // Get_AtomNo reads byte with XOR addressing
-    const atomNoByte = MemoryManager.Access.readByteXor(vm.virtualMemory, vm.pc + 1);
-    if (atomNoByte === null) return null;
-
-    const atomIndex = atomNoByte;
+    // On the current BIGATOMS/BIGVM build, GVAR carries a 32-bit atom number
+    // and advances by 5 bytes (`nextop_atom = nextop5` in Maiko).
+    const atomIndex = decodeAtomOperand(instruction.operands);
+    if (atomIndex === null) return null;
 
     // Look up atom's GVAR slot from AtomSpace/Valspace
     // C: pslot = (LispPTR *)Valspace + atom_index;

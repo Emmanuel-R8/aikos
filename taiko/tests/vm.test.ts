@@ -19,6 +19,11 @@ describe('VM', () => {
         expect(vm.stackPtr).toBe(STK_OFFSET * 2);
     });
 
+    test('reports frame pointer as stack offset', () => {
+        vm.currentFrameOffset = vm.stackBase + 0x40;
+        expect(vm.getFramePtrOffset()).toBe(0x20);
+    });
+
     test('initializes memory with all offsets', () => {
         const virtualMemory = new Uint8Array(1024);
         const fptovpTable = new Uint32Array(10);
@@ -69,6 +74,7 @@ describe('VM', () => {
         expect(vm.returnPc).toBeNull();
         expect(vm.cstkptrl).toBeNull();
         expect(vm.totalInstructionCount).toBe(0);
+        expect(vm.currentFrameOffset).toBeNull();
     });
 
     test('syncs top of stack from memory', () => {

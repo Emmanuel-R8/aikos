@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.io)
+(in-package :laiko.io)
 
 ;; Mouse handling
 ;; Per rewrite documentation io/mouse-protocol.md

@@ -116,6 +116,38 @@ For detailed byte-swapping procedures, see Sysout Byte Swapping and Endianness.
 - *Byte-swapping*: Required when loading on little-endian hosts (C: `#ifdef BYTESWAP`)
 - *Memory Pages*: All pages MUST be byte-swapped after loading (C: `word_swap_page()`)
 
+=== Practical validation rules for test fixtures
+
+When constructing synthetic sysout buffers for tests, the following rules matter:
+
+1. IFPAGE words must be written in file byte order (big-endian), not in the host's native in-memory order.
+2. If an implementation parses IFPAGE directly from file bytes instead of reading it into a host struct and then applying Maiko's `word_swap_page()` path, it should use the logical file-field order rather than the host BYTESWAP struct order.
+3. The FPtoVP table must not overlap with pages that are also being used as synthetic file-page payloads.
+4. FPtoVP entries should be asserted in their post-load interpretation, not by assuming that raw fixture integers can be written in host order.
+5. When using APIs like `DataView.getUint32(..., false)` to read FPtoVP entries directly from the big-endian file, do not apply an extra manual 32-bit byte swap afterward; the numeric value is already decoded.
+6. Page-content assertions should account for the loader's page byte-swapping step. On little-endian hosts, a C-faithful loader should copy each 32-bit sysout word into memory in host order, which means the raw loaded bytes differ from the raw file bytes even though the numeric 32-bit value is preserved.
+7. After that page load step, bytecode fetch and structured reads follow Maiko's BYTESWAP access rules:
+   - byte fetch (`GETBYTE`) observes the byte at `address ^ 3`
+   - DLword fetch (`GETWORD`) observes the 16-bit word at `address ^ 2`
+   - full 32-bit LispPTR values can then be read from the host-order memory image without an extra swap
+8. The safest fixture checks are:
+   - compare raw loaded bytes at the target virtual page offset after applying the expected page swap, or
+   - compare values after explicitly applying the same byte-order interpretation used by the emulator.
+
+These rules are emulator-independent because they follow directly from the sysout file format and Maiko's loader behavior, not from a specific implementation language.
+
+=== Sparse-stack startup rule
+
+Real sysout files may leave the stack area sparse even when the IFPAGE contains a `currentfxp` value. In that situation:
+
+1. The loader may legitimately return a provisional `initialPC` of `0` because the frame payload is not yet materialized in loaded memory.
+2. The runtime startup path must then synthesize the necessary free-stack-block / frame state before restoring execution.
+3. Once a valid frame exists, `PC` must be restored using the `FastRetCALL` rule from the function-call specification: `PC = FuncObj + CURRENTFX->pc`.
+4. If the runtime synthesizes a brand-new frame around a discovered entry function instead of restoring a saved one, it should seed the frame `pc` slot with `startpc + 1` so the first byte fetch lands on the function's first executable opcode.
+5. If the sysout already contains a real saved frame, startup should prefer that frame's own `fnheader`, `nextblock`, and `pc` values instead of replacing them with a synthetic entry-point guess.
+
+So, a zero loader-time `initialPC` does not by itself prove that the sysout is invalid; it can simply indicate that final startup state must be completed by the runtime initializer rather than by the file loader alone.
+
 == Version Compatibility
 
 === Version Checking

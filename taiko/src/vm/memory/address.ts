@@ -25,6 +25,22 @@ export class AddressManager {
     }
 
     /**
+     * Convert a stack-space offset in DLwords to an absolute byte offset.
+     * Per C: NativeAligned2FromStackOffset(StackOffset) = Stackspace + StackOffset.
+     */
+    static stackOffsetToByte(stack_base_byte_offset: number, stack_offset: number): number {
+        return stack_base_byte_offset + (stack_offset * 2);
+    }
+
+    /**
+     * Convert an absolute byte offset within Stackspace to a DLword stack offset.
+     * Per C: StackOffsetFromNative(SAddr) = ((DLword *)SAddr) - Stackspace.
+     */
+    static byteToStackOffset(stack_base_byte_offset: number, byte_offset: number): number {
+        return Math.floor((byte_offset - stack_base_byte_offset) / 2);
+    }
+
+    /**
      * Calculate virtual page number for byte offset
      * Formula: byte_offset / BYTES_PER_PAGE
      */

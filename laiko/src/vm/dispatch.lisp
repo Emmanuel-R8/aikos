@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 
 ;; dispatch loop
 ;; Per rewrite documentation vm-core/execution-model.md
@@ -21,9 +21,9 @@
 
 (defun fetch-instruction-byte (pc code)
   "Fetch instruction byte at PC.
-Returns the opcode byte (0-255) or 0 if past end of code."
-  (declare (type maiko-lisp.utils:lisp-ptr pc)
-           (type (simple-array maiko-lisp.utils:bytecode (*)) code))
+Returns the opcode byte (0-#xFF) or 0 if past end of code."
+  (declare (type laiko.utils:lisp-ptr pc)
+           (type (simple-array laiko.utils:bytecode (*)) code))
   (if (< pc (length code))
       (aref code pc)
       0))
@@ -32,8 +32,8 @@ Returns the opcode byte (0-255) or 0 if past end of code."
   "Fetch operands for instruction starting at PC.
 Returns list of operand bytes (excluding opcode byte).
 LENGTH is total instruction length including opcode."
-  (declare (type maiko-lisp.utils:lisp-ptr pc)
-           (type (simple-array maiko-lisp.utils:bytecode (*)) code)
+  (declare (type laiko.utils:lisp-ptr pc)
+           (type (simple-array laiko.utils:bytecode (*)) code)
            (type (integer 1 *) length))
   (let ((operand-count (1- length)))
     (if (<= (+ pc length) (length code))
@@ -43,7 +43,7 @@ LENGTH is total instruction length including opcode."
 
 (defun decode-opcode (byte)
   "Decode opcode from byte. Returns opcode value (identity for now)."
-  (declare (type maiko-lisp.utils:bytecode byte))
+  (declare (type laiko.utils:bytecode byte))
   byte)
 
 (defun get-instruction-length (opcode)
@@ -86,8 +86,8 @@ Returns symbol or NIL if undefined."
   stream using read-pc-* helpers, not via the operands list.
 "
   (declare (type vm vm)
-           (type (simple-array maiko-lisp.utils:bytecode (*)) code)
-           (type maiko-lisp.utils:lisp-ptr base-pc))
+           (type (simple-array laiko.utils:bytecode (*)) code)
+           (type laiko.utils:lisp-ptr base-pc))
 
   ;; Ensure undefined opcode handlers are initialized
   (initialize-undefined-opcode-handlers)
@@ -100,57 +100,118 @@ Returns symbol or NIL if undefined."
 
   ;; Bind special variables for handler access to instruction stream
   (let ((*current-code* code)
-        (*current-base-pc* base-pc)
-        (pc 0)
-        (step-count 0))
+         (*current-base-pc* base-pc)
+         (pc 0)
+         (step-count 0))
     (declare (special *current-code* *current-base-pc*))
-    (loop while (and (< pc (length code))
+    (loop while (and (< pc (length *current-code*))
                      (or (zerop *max-trace-steps*)
-                         (< step-count *max-trace-steps*)))
+                          (< step-count *max-trace-steps*)))
           do
-          (incf step-count)
+             (incf step-count)
 
-          ;; Check interrupts before execution
-          (when (check-interrupts vm)
-            (handle-pending-interrupts vm))
+             ;; Check interrupts before execution
+             (when (check-interrupts vm)
+               (handle-pending-interrupts vm))
 
-          ;; Fetch instruction
-          (let* ((opcode-byte (fetch-instruction-byte pc code))
-                 (instruction-len (get-instruction-length opcode-byte))
-                 (handler-fn (get-opcode-handler-function opcode-byte))
-                 (opcode-name (get-opcode-name opcode-byte)))
+             ;; Fetch instruction
+              (let* ((opcode-byte (fetch-instruction-byte pc *current-code*))
+                     (instruction-len (get-instruction-length opcode-byte))
+                     (handler-fn (get-opcode-handler-function opcode-byte))
+                     (opcode-name (get-opcode-name opcode-byte)))
 
-            ;; Log trace before execution
-            (when (trace-enabled-p)
-              (let ((operands (fetch-operands pc code instruction-len)))
-                (trace-log vm (+ base-pc pc) opcode-byte operands
-                           :instruction-name opcode-name)))
+               ;; Log trace before execution
+               (when (trace-enabled-p)
+                  (let ((operands (fetch-operands pc *current-code* instruction-len)))
+                    (trace-log vm (+ *current-base-pc* pc) opcode-byte operands
+                               :instruction-name opcode-name)))
 
-            ;; Execute handler
-            (handler-case
-                (if handler-fn
-                    (funcall handler-fn vm)
-                    (error 'maiko-lisp.utils:vm-error
-                           :message (format nil "No handler for opcode 0x~2,'0X" opcode-byte)))
-              (maiko-lisp.utils:vm-error (err)
-                (error err))
-              (error (err)
-                (error 'maiko-lisp.utils:vm-error
-                       :message (format nil "Error in opcode 0x~2,'0X: ~A" opcode-byte err))))
+               ;; Initialize VM-PC to point to operands (PC + 1)
+               ;; Handlers that read operands will increment this further
+               (setf (vm-pc vm) (+ pc 1))
 
-            ;; Update PC (unless handler modified it)
-            (let ((current-pc (vm-pc vm)))
-              (if (= current-pc pc)
-                  ;; PC wasn't modified, advance normally
-                  (progn
-                    (setf pc (+ pc instruction-len))
-                    (setf (vm-pc vm) pc))
-                  ;; PC was modified by opcode (e.g., JUMP, RETURN)
-                  (setf pc current-pc))))
+               ;; Execute handler
+               (handler-case
+                   (if handler-fn
+                       (funcall handler-fn vm)
+                       (error 'laiko.utils:vm-error
+                              :message (format nil "No handler for opcode 0x~2,'0X" opcode-byte)))
+                 (laiko.utils:vm-error (err)
+                   (error err))
+                 (error (err)
+                   (error 'laiko.utils:vm-error
+                          :message (format nil "Error in opcode 0x~2,'0X: ~A" opcode-byte err))))
 
-          ;; Check interrupts after execution
-          (when (check-interrupts vm)
-            (handle-pending-interrupts vm)))))
+                ;; Update PC
+                ;; If handler didn't modify VM-PC (beyond the initial +1), advance by instruction-len
+                ;; If handler modified VM-PC (jump, or read operands), use VM-PC
+                (let ((new-pc (vm-pc vm)))
+                  (cond
+                    ((= new-pc (+ pc 1))
+                     ;; Handler didn't touch VM-PC (e.g. POP, ADD)
+                     (setf pc (+ pc instruction-len)))
+                    ((>= new-pc (length *current-code*))
+                     ;; Handler switched to a different absolute PC/code region.
+                     (setf *current-base-pc* new-pc
+                           *current-code* (laiko.data:extract-bytecode-from-vm
+                                           (vm-virtual-memory vm)
+                                           new-pc)
+                           pc 0
+                           (vm-pc vm) 0))
+                    (t
+                     ;; Handler modified VM-PC within the current extracted block.
+                     (setf pc new-pc)))))
+
+             ;; Check interrupts after execution
+             (when (check-interrupts vm)
+               (handle-pending-interrupts vm)))))
+
+;;; ===========================================================================
+;;; INSTRUCTION STREAM READING HELPERS
+;;; ===========================================================================
+
+(defun read-pc-8 (vm)
+  "Read 8-bit value from PC and advance VM-PC by 1.
+   Reads from *current-code* at index (vm-pc vm)."
+  (declare (type vm vm))
+  (prog1 (fetch-instruction-byte (vm-pc vm) *current-code*)
+    (incf (vm-pc vm) 1)))
+
+(defun read-pc-8-signed (vm)
+  "Read signed 8-bit value from PC and advance VM-PC by 1."
+  (declare (type vm vm))
+  (let ((unsigned (read-pc-8 vm)))
+    (if (>= unsigned #x80) (- unsigned #x100) unsigned)))
+
+(defun read-pc-16-be (vm)
+  "Read 16-bit big-endian value from PC and advance VM-PC by 2."
+  (declare (type vm vm))
+  (let* ((pc (vm-pc vm))
+         (b1 (fetch-instruction-byte pc *current-code*))
+         (b2 (fetch-instruction-byte (1+ pc) *current-code*)))
+    (incf (vm-pc vm) 2)
+    (logior (ash b1 8) b2)))
+
+(defun read-pc-16-be-signed (vm)
+  "Read signed 16-bit big-endian value from PC and advance VM-PC by 2."
+  (declare (type vm vm))
+  (let ((unsigned (read-pc-16-be vm)))
+    (if (>= unsigned #x8000) (- unsigned #x10000) unsigned)))
+
+(defun read-pc-32-be (vm)
+  "Read 32-bit big-endian value from PC and advance VM-PC by 4."
+  (declare (type vm vm))
+  (let* ((pc (vm-pc vm))
+         (b1 (fetch-instruction-byte pc *current-code*))
+         (b2 (fetch-instruction-byte (+ pc 1) *current-code*))
+         (b3 (fetch-instruction-byte (+ pc 2) *current-code*))
+         (b4 (fetch-instruction-byte (+ pc 3) *current-code*)))
+    (incf (vm-pc vm) 4)
+    (logior (ash b1 24)
+            (ash b2 16)
+            (ash b3 8)
+            b4)))
+
 
 (defun handle-pending-interrupts (vm)
   "Handle any pending interrupts."

@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 
 ;; Interrupt handling
 ;; Per rewrite documentation vm-core/interrupt-handling.md
@@ -14,7 +14,7 @@
   (stack-overflow nil :type boolean)
   (storage-full nil :type boolean)
   (waiting-interrupt nil :type boolean)
-  (int-char-code 0 :type maiko-lisp.utils:dlword))
+  (int-char-code 0 :type laiko.utils:dlword))
 
 (defun create-interrupt-state ()
   "Create new interrupt state with all flags cleared"
@@ -85,7 +85,7 @@
          (clear-interrupt-flag vm :storage-full)))
       (:stack-overflow
        (when (int-stack-overflow int-state)
-         (error 'maiko-lisp.utils:stack-overflow
+         (error 'laiko.utils:stack-overflow
                 :message "Stack overflow detected")))
       (:log-file-io
        (when (int-log-file-io int-state)

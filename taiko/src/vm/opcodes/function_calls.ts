@@ -7,6 +7,7 @@ import { Opcode } from '../dispatch/opcode';
 import { registerOpcodeHandler } from './index';
 import { MemoryManager } from '../memory/manager';
 import { DefCellManager, FunctionHeader } from '../memory/defcell';
+import { FrameManager } from '../memory/frame';
 import { pushStack, popStack } from './stack_helpers';
 import { NIL_PTR, FRAMESIZE } from '../../utils/constants';
 
@@ -83,7 +84,7 @@ function handleFN(vm: VM, instruction: Instruction, argCount: number): number | 
     // C: CURRENTFX->nextblock = StackOffsetFromNative(IVARL)
     // IVAR points to where arguments start (before the frame)
     const ivarOffset = vm.stackPtr - (argCount * 4) + 4; // +4 for TOS
-    const nextblock = (ivarOffset - vm.stackBase) / 2; // Convert to DLword offset
+    const nextblock = MemoryManager.Address.byteToStackOffset(vm.stackBase, ivarOffset);
     vm.ivar = ivarOffset; // Set IVAR pointer
 
     // Push TOS (save current top of stack)
@@ -131,6 +132,8 @@ function handleFN(vm: VM, instruction: Instruction, argCount: number): number | 
     vm.stackPtr += (FRAMESIZE * 2); // FRAMESIZE DLwords = FRAMESIZE * 2 bytes
     vm.cstkptrl = vm.stackPtr;
     vm.pvar = vm.stackPtr;
+    vm.currentFrameOffset = vm.pvar - (FRAMESIZE * 2);
+    vm.currentFrame = FrameManager.parseFrame(vm, vm.currentFrameOffset);
 
     // Initialize PVAR slots with unbound values
     // C: for (int pv = LOCFNCELL->pv; pv >= 0; pv--) { HARD_PUSH(unboundval); HARD_PUSH(unboundval); }
@@ -201,29 +204,29 @@ function handleRETURN(vm: VM, instruction: Instruction): number | null {
     // Get return value from TOPOFSTACK
     const returnValue = vm.topOfStack;
 
-    // Find FX marker on stack (walk backwards from CSTKPTRL)
-    // C: Searches backwards for FX_MARK (0x40000000 in upper word)
-    let fxFound = false;
-    let fxOffset = vm.cstkptrl;
+    let fxOffset = vm.currentFrameOffset;
+    if (fxOffset === null) {
+        // Fallback for older code paths that do not track CURRENTFX explicitly.
+        let fxFound = false;
+        fxOffset = vm.cstkptrl;
 
-    // Search for FX marker (FX_MARK in upper word)
-    // FX marker is at: (FX_MARK << 16) | (pvarOffset & 0xFFFF)
-    for (let i = 0; i < 1000; i++) {
-        fxOffset -= 4;
-        if (fxOffset < vm.stackEnd || fxOffset >= vm.stackBase) {
-            break;
+        for (let i = 0; i < 1000; i++) {
+            fxOffset -= 4;
+            if (fxOffset < vm.stackEnd || fxOffset >= vm.stackBase) {
+                break;
+            }
+
+            const value = MemoryManager.Access.readLispPTR(vm.virtualMemory, fxOffset);
+            if ((value & FX_MARK) !== 0) {
+                fxFound = true;
+                break;
+            }
         }
 
-        const value = MemoryManager.Access.readLispPTR(vm.virtualMemory, fxOffset);
-        if ((value & FX_MARK) !== 0) { // FX_MARK = 0x40000000
-            fxFound = true;
-            break;
+        if (!fxFound) {
+            console.warn('RETURN: FX marker not found');
+            return null;
         }
-    }
-
-    if (!fxFound) {
-        console.warn('RETURN: FX marker not found');
-        return null;
     }
 
     // Read frame structure (FX is 10 DLwords = 20 bytes)
@@ -239,7 +242,7 @@ function handleRETURN(vm: VM, instruction: Instruction): number | null {
     const bfMarkerOffset = fxOffset - 4; // BF marker is 4 bytes before FX
     const bfMarker = MemoryManager.Access.readLispPTR(vm.virtualMemory, bfMarkerOffset);
     const nextblock = bfMarker & 0xFFFF; // Extract nextblock from BF marker
-    const ivarOffset = vm.stackBase + (nextblock * 2); // Convert DLword offset to byte offset
+    const ivarOffset = MemoryManager.Address.stackOffsetToByte(vm.stackBase, nextblock);
     vm.ivar = ivarOffset;
 
     // Read function header pointer from frame
@@ -263,12 +266,10 @@ function handleRETURN(vm: VM, instruction: Instruction): number | null {
     vm.pc = fnheaderByteOffset + savedPc;
     vm.funcObj = fnheaderByteOffset;
 
-    // Restore PVAR from FX marker
-    // C: PVar = ((DLword *)returnFX) + FRAMESIZE
-    // FX marker contains pvarOffset: (FX_MARK << 16) | (pvarOffset & 0xFFFF)
-    const fxMarker = MemoryManager.Access.readLispPTR(vm.virtualMemory, fxOffset);
-    const pvarOffset = (fxMarker & 0xFFFF) * 2; // Convert DLword offset to byte offset
-    vm.pvar = vm.stackBase + pvarOffset;
+    // Restore PVAR from frame base
+    vm.pvar = FrameManager.getPVarOffsetFromFX(fxOffset);
+    vm.currentFrameOffset = fxOffset;
+    vm.currentFrame = FrameManager.parseFrame(vm, fxOffset);
 
     // Restore stack pointer to position before FX marker
     // C: CurrentStackPTR = next68k - 2 (before FX marker)
@@ -277,9 +278,6 @@ function handleRETURN(vm: VM, instruction: Instruction): number | null {
 
     // Set return value as TOPOFSTACK
     vm.topOfStack = returnValue;
-
-    // Sync TOPOFSTACK
-    vm.syncTopOfStack();
 
     return null; // No jump offset - PC already updated
 }

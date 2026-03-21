@@ -1,4 +1,4 @@
-(in-package :maiko-lisp-tests)
+(in-package :laiko-tests)
 
 ;; Filesystem tests
 ;; Per task T052: Test cases for pathname translation
@@ -6,7 +6,7 @@
 (defun test-translate-pathname-unix ()
   "Test pathname translation on Unix-like systems"
   (let ((lisp-path "/home/user/file.lisp"))
-    (let ((platform-path (maiko-lisp.io:translate-pathname lisp-path)))
+    (let ((platform-path (laiko.io:translate-pathname lisp-path)))
       #+win32
       (assert (find #\\ platform-path) nil "Windows path should have backslashes")
       #-win32
@@ -14,20 +14,20 @@
 
 (defun test-open-close-file ()
   "Test file open and close operations"
-  (let ((test-file (format nil "/tmp/maiko-test-~A.tmp" (random 1000000))))
+  (let ((test-file (format nil "/tmp/laiko-test-~A.tmp" (random 1000000))))
     (handler-case
         (progn
           ;; Open file for output
-          (let ((stream (maiko-lisp.io:open-file test-file :output)))
+          (let ((stream (laiko.io:open-file test-file :output)))
             (assert stream nil "File should be opened")
             (write-byte 65 stream) ; Write 'A'
-            (maiko-lisp.io:close-file stream))
+            (laiko.io:close-file stream))
           ;; Open file for input
-          (let ((stream (maiko-lisp.io:open-file test-file :input)))
+          (let ((stream (laiko.io:open-file test-file :input)))
             (assert stream nil "File should be opened for reading")
             (let ((byte (read-byte stream)))
               (assert (= byte 65) nil "Should read byte 65"))
-            (maiko-lisp.io:close-file stream))
+            (laiko.io:close-file stream))
           ;; Cleanup
           (delete-file test-file))
       (file-error (err)

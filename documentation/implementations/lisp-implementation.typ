@@ -3,8 +3,8 @@
 *Navigation*: README | Index | Architecture
 
 *Feature*: 002-lisp-implementation
-*Date*: 2026-02-16
-*Status*: 🔧 IN DEVELOPMENT - Valspace Allocation Implemented
+*Date*: 2026-03-19 03:53
+*Status*: 🔧 PARITY DEBUGGING - Startup Path Advancing
 
 == Overview
 
@@ -15,15 +15,39 @@ Complete implementation of the Maiko emulator in Common Lisp (SBCL), following t
 - *Source Files*: 26+ Lisp files
 - *Test Files*: 11 test files
 - *Opcodes Implemented*: ~191 opcode handlers registered
-- *Actual Completeness*: ~30% (sysout loading, Valspace allocation, 4+ instructions executing)
+- *Actual Completeness*: ~30% (sysout loading, Valspace allocation, stack consolidation, 4+ instructions executing)
 - *Build System*: ASDF
 - *Target Platform*: Linux (SBCL), macOS, Windows (partial)
 
-== Current Status (2026-02-16)
+== Current Status (2026-03-19 03:53)
 
-=== Opcode alignment with Maiko (2026-02-26)
+=== Opcode alignment with Maiko (2026-03-19 03:53)
 
-Laiko stack-constant opcodes were corrected to match `maiko/inc/opcodes.h`: NIL = 0x68, T = 0x69, CONST_0 (opc_0) = 0x6A, CONST_1 (opc_1) = 0x6B. See `reports/laiko-opcode-audit-vs-maiko.md` for the audit and remaining discrepancies (comparison 0x3B-0x3F, logic 0xE0-0xE7).
+Laiko now loads `starter.sysout`, enters the startup bytecode, and matches Maiko substantially deeper into the trace than before, but it does #emph[not] yet run to completion.
+
+**2026-03-19 03:53 Update**:
+- Implemented `GVAR_` (`0x17`) using Maiko semantics: store cached `TOS` into the atom value cell without changing `TOS`.
+- Implemented `LISTP` (`0x03`) using the MDS type table rather than a heuristic.
+- Corrected the `JUMPX` family so `JUMPX`, `FJUMPX`, `TJUMPX`, `NFJUMPX`, and `NTJUMPX` use signed 8-bit offsets, while `JUMPXX` uses signed 16-bit offsets.
+- Corrected `RETURN` to preserve cached `TOS` and reworked the fast-return path around Maiko's `alink -> PVAR -> FX` model.
+- Replaced the `CONTEXTSWITCH` stub with a first real implementation that saves runtime FX state, writes the free-stack-block header, performs a `Midpunt`-style IFPAGE slot exchange, and resumes the selected frame.
+- Fixed Laiko's 16-bit VM word access to follow Maiko `GETWORD` semantics on BYTESWAP builds: logical word reads use address XOR `2`, while 32-bit Lisp pointer reads remain sequential.
+- Updated dispatch to reload the active bytecode window when a handler resumes execution at an absolute PC outside the currently extracted block.
+- Implemented `VAG2` (`0xD1`) using Maiko's cached-TOS and spill-slot stack model.
+- Corrected FX word decoding so the first two FX words match the C layout: `alink` is the first word, while `usecount` and the packed flag bits live in the second.
+- Corrected the packed FX flag masks so `nopush`, `validnametable`, and `incall` are decoded from the actual packed flag byte rather than from a swapped low-byte interpretation.
+- Rewired resumed-frame `PVAR` reads and writes to the real VM-memory PVAR area immediately after the current FX, instead of the obsolete array-based stack model.
+- Implemented the non-pop parameter-store family `PVAR_0`-`PVAR_6` and `PVARX_`, matching Maiko `PVARSETMACRO` / `PVARX_` behavior.
+- Corrected the `FVAR0`-`FVAR6` family to use Maiko DLword offsets (`0, 2, 4, 6, 8, 10, 12`) rather than a fake closure-environment index.
+- Implemented `FVARX` (`0x57`) and ported the unbound-chain lookup path needed by the startup trace: unresolved free-variable slots now scan caller frames via `alink`, choose `fnheader` vs `nametable` according to `validnametable`, and cache the resolved address back into the current frame slot.
+- Implemented the indexed non-pop store family needed immediately after that lookup work: `IVARX_` (`0x62`), `FVARX_` (`0x63`), and `PVARX` (`0x4F`).
+- Corrected `ACONST` for the actual BIGVM build: it now reads a 32-bit atom operand and advances by 5 bytes, matching Maiko `Get_AtomNo_PCMAC1` / `nextop_atom`.
+- Corrected BIGVM `FN0`-`FN4` / `FNX` operand widths to match Maiko: `FN0`-`FN4` are 5-byte instructions and `FNX` is a 6-byte instruction because `Get_AtomNo_PCMAC1` / `Get_AtomNo_PCMAC2` read 32-bit atom operands on BIGVM/BIGATOMS.
+- Corrected Laiko's raw `DefCell` / function-header readers for byte-swapped BIGVM VM images:
+  - `DefCell` now reads its first LispPTR with the same sequential 32-bit little-endian logic used elsewhere for swapped LispPTR cells, instead of treating the bytes as a big-endian host value.
+  - `read-function-header` now uses the same logical `GETWORD` offsets (`+2`, `+4`, `+6`, `+12`, `+14`) that already work in the live `FVAR` nametable scanner.
+- Revalidation showed that the old `0x78` (`MISC1`) frontier at `0x71cad6` was another false decode frontier caused by the wrong `FNx` sizes.
+- Current blocker: with the `FNx` widths fixed, startup now stops earlier at `FN0` (`0x08`) / PC `0x60f0af` with `FN0: Undefined function`. Probing the live byte stream shows that this instruction calls atom `3433` (`0x0D69`) whose literal-atom `DefCell` is still zero in Laiko; even `ATOM_INTERPRETER` (`256`) currently resolves to a zero defpointer. The next work is therefore to model the literal-atom bootstrap / initialization that Maiko relies on before the shared undefined-function / interpreter call path can succeed.
 
 === ✅ Completed
 
@@ -31,29 +55,343 @@ Laiko stack-constant opcodes were corrected to match `maiko/inc/opcodes.h`: NIL 
 - ✅ Sysout file loading (BIGVM format, FPtoVP table loading)
 - ✅ VM state structure (stack, PC, frame pointers, registers)
 - ✅ Dispatch loop with opcode fetching and execution
-- ✅ ~191 opcode handlers registered
-- ✅ **32-bit word swapping** for page loading
-- ✅ **XOR addressing** for bytecode access
-- ✅ **Frame Extension reading** and PC initialization
-- ✅ **Virtual memory stack operations**
-- ✅ **Atom/Defcell infrastructure**
-- ✅ **Valspace page allocation** (runtime memory, not from sysout)
-- ✅ **4+ instructions executing**:
-  1. POP (0xBF) at PC 0x60F130
-  2. GVAR (0x60) at PC 0x60F131
-  3. UNBIND (0x12) at PC 0x60F136
-  4. GETBASEPTR-N (0xC9) at PC 0x60F137
+- ✅ **186+/256 opcodes defined**
+- ✅ **Deep startup execution**: loads the sysout, initializes VM state, and executes into the startup control-flow path.
+- ✅ **Frame switching frontier advanced**: Laiko now matches Maiko through the first startup `CONTEXTSWITCH` into `faultfxp`.
+- ✅ **Later startup arithmetic/path progress**: execution now continues through `VAG2`, through the resumed startup frame, and into a deeper resumed call chain.
+- ✅ **Stack System**: Fully consolidated to use virtual memory byte offsets (matching C/Zig).
+- ✅ **Graphics**: Basic opcode definitions compiled without warnings (stubbed or partial).
 
 === ⚠️ Known Issues
 
-- ⚠️ GVAR reads value=0 instead of expected 0x0E
-- ⚠️ Value cells need initialization from Lisp startup code
-- ⚠ Stack underflow at instruction 4 (GETBASEPTR-N)
+- ⚠️ Graphics opcodes are largely stubs or have unverified implementations.
+- ⚠️ Subroutine calls are stubs.
+- ⚠️ `CONTEXTSWITCH` now has the correct overall control-transfer shape and no longer fails on the false `incall` path, but deeper resumed-frame opcode coverage is still incomplete.
+- ⚠️ `RETURN` slow path (`alink & 1`) is not yet implemented.
+- ⚠️ REPL interaction is not yet visible because startup parity is not complete.
 
 === 🔧 In Progress
 
-- Investigating value cell initialization
-- Checking C/Zig for Valspace value population
+- Parity testing against C emulator traces.
+- Implementing missing opcodes (graphics, I/O).
+- Establishing a persistent REPL loop.
+
+=== Critical Fix: VM Initialization & Stack Logic (2026-03-18)
+
+=== Problem
+
+The VM initialization logic in `laiko/src/main.lisp` was incorrectly calculating the initial Frame Pointer (FP) and Stack Pointer (SP) by mixing absolute Lisp addresses with relative stack offsets.
+
+- **Old Logic**:
+  - `FP = STK_OFFSET + (currentfxp * 2)` (Incorrect base)
+  - `SP = STK_OFFSET + (nextblock * 2)` (Incorrect base)
+
+- **Correct Logic (Maiko Reference)**:
+  - `FP = currentfxp` (Relative offset from start of stack space)
+  - `SP = stackbase + 2` (Absolute address from `IFPAGE->stackbase`)
+  - `TOS = *stackbase` (Top of stack value)
+
+=== Solution
+
+Updated `initialize-vm-from-ifpage` to match Maiko's `initsout.c`:
+
+1. **FP Calculation**: `currentfxp` from IFPAGE is treated as a relative offset.
+2. **SP Calculation**: `stackbase` from IFPAGE is treated as an absolute LispPTR.
+3. **TOS Initialization**: The value at `stackbase` is loaded as the initial Top-Of-Stack.
+
+This ensures the VM starts execution in the correct stack frame state, preventing immediate crashes or stack corruption upon the first return.
+
+== Critical Fix: Memory Operations (2026-03-20)
+
+=== Problem
+
+The memory access opcodes (`GETBASEBYTE`, `PUTBASEBYTE`, `GETBASE_N`, `GETBASEPTR_N`, `PUTBASE_N`, `PUTBASEPTR_N`) were incorrectly implemented using simple address arithmetic on stack values, returning addresses instead of reading/writing the memory at those addresses.
+
+- `GETBASEPTR_N` was pushing `base + index*4` (address) instead of reading the pointer at that address.
+- `GETBASEBYTE` was incorrectly masking the address instead of reading memory.
+
+=== Solution
+
+Implemented proper memory access using the `vm-read-*` and `vm-write-*` family of functions:
+
+1. **Byte Access**: `GETBASEBYTE`/`PUTBASEBYTE` now use `vm-read-byte` / `vm-write-byte`.
+2. **Word Access**: `GETBASE_N`/`PUTBASE_N` now use `vm-read-word` / `vm-write-word` (16-bit).
+3. **Pointer Access**: `GETBASEPTR_N`/`PUTBASEPTR_N` now use `vm-read-lispptr` / `vm-write-lispptr` (32-bit).
+
+Added `vm-read-word` and `vm-write-word` to `laiko/src/vm/stack.lisp` to support 16-bit memory operations with Little Endian handling.
+
+== Critical Fix: LISTP Uses the MDS Type Table (2026-03-18)
+
+=== Problem
+
+After fixing `GVAR_`, the next startup failure moved to opcode `0x03`. Investigation against the Maiko dispatch loop showed that `0x03` is `LISTP`, not `LISP`.
+
+The important semantic detail is that Maiko does #emph[not] implement `LISTP` as a simple non-NIL test or as a cons-space heuristic. Instead it consults the MDS type table:
+
+#codeblock(lang: "c", [
+#define GetTypeEntry(address)      ( GETWORD(MDStypetbl+((address)>>9)) )
+#define GetTypeNumber(address)     (GetTypeEntry(address) & 0x7ff)
+#define Listp(address)             (GetTypeNumber(address) == TYPE_LISTP)
+])
+
+For BIGVM, `MDStypetbl` is initialized from `MDS_OFFSET` in `build_lisp_map()`.
+
+=== Solution
+
+Laiko now implements opcode `0x03` by reading the 16-bit MDS entry for the page containing `TOS` and comparing its low 11 bits to `TYPE_LISTP = 5`.
+
+This matches the C logic exactly:
+
+1. Compute page index with `lispptr >> 9` (512-byte pages)
+2. Read the MDS entry from `MDS_OFFSET`
+3. Keep `TOS` unchanged only if the type number is `TYPE_LISTP`
+4. Otherwise replace `TOS` with `NIL`
+
+=== Debugging note
+
+The trace-name table in `maiko/src/xc.c` had historically labeled `0x03` as `LISP`, but the actual dispatch switch correctly executes `LISTP`. For parity work, the dispatch switch is the authoritative source.
+
+== Critical Fix: RETURN Preserves Cached TOS and Uses `alink` as a PVAR Pointer (2026-03-19 00:58)
+
+=== Problem
+
+After the `LISTP` and `NTJUMPX` fixes, Laiko advanced to a later `RETURN`, but resumed execution in the wrong frame and eventually crashed in `UNBIND`.
+
+Two Maiko-specific details turned out to be critical:
+
+1. `RETURN` does #emph[not] pop the return value first. It preserves cached `TOPOFSTACK` through frame restoration.
+2. In the fast path, raw `alink` is #emph[not] a caller-FX pointer. It points to the caller's PVAR area, and the caller FX is recovered with `alink - FRAMESIZE`.
+
+=== C reference
+
+The relevant Maiko logic is:
+
+#codeblock(lang: "c", [
+alink = CURRENTFX->alink;
+if (alink & 1) slowreturn();
+
+CSTKPTRL = (LispPTR *) IVAR;
+returnFX = (struct frameex2 *)
+  ((DLword *)(PVARL = (DLword *) NativeAligned2FromStackOffset(alink))
+   - FRAMESIZE);
+IVARL = (DLword *) NativeAligned2FromStackOffset(GETWORD((DLword *)returnFX - 1));
+PCMACL = returnFX->pc + (ByteCode *)(FuncObj = ...);
+])
+
+=== Solution
+
+Laiko now mirrors the fast-path structure more closely:
+
+1. `RETURN` reads the return value from cached `vm-tos`.
+2. `return-from-function` reads the active FX from VM using the current frame-pointer offset.
+3. Raw `alink` is interpreted as the caller PVAR offset.
+4. The caller FX is reconstructed at `alink - FRAMESIZE`.
+5. The stack spill pointer is restored from the IVAR word immediately preceding the caller FX.
+6. Cached `TOS` is preserved as the return value instead of being pushed back into memory immediately.
+
+=== Current limitation
+
+This fix corrected one major source of stack-model divergence, but it did not fully solve the later resume mismatch. The next remaining issue is that `CONTEXTSWITCH` still does not update runtime FX state the way Maiko does, so the frame visible to `RETURN` is still not the one Maiko would see.
+
+== Critical Fix: Frame Switching, BYTESWAP Word Access, and Dynamic Dispatch (2026-03-19 01:40)
+
+=== Problem
+
+Once `RETURN` preserved cached `TOS` correctly, the next authoritative Maiko trace step was a real `CONTEXTSWITCH` into `faultfxp`, not a no-op resume in the current frame.
+
+Laiko was missing three linked behaviors:
+
+1. `CONTEXTSWITCH` was still a stub and could not save the current FX, write an FSB, exchange the IFPAGE slot, and resume the selected frame.
+2. 16-bit stack/FX words were being read as plain little-endian words instead of using Maiko's BYTESWAP `GETWORD(base) = *(DLword *)(2 ^ address)` rule.
+3. Dispatch assumed a single extracted bytecode block and stopped once frame switching resumed execution at an absolute PC in a different function body.
+
+=== Solution
+
+Laiko now mirrors the C control-flow path much more closely:
+
+1. Added writable FX helpers and mutable IFPAGE FX-slot access so runtime frame state can be saved back into virtual memory.
+2. Implemented a first real `CONTEXTSWITCH` that:
+   - takes `fxnum` from the low 16 bits of cached `TOS`
+   - saves the current FX `pc`
+   - sets `nopush`
+   - stores the outgoing frame's `nextblock`
+   - writes an FSB header
+   - performs the `Midpunt`-style slot exchange with the chosen IFPAGE FX slot
+   - restores the selected frame using Maiko's `nopush` rule
+3. Fixed `vm-read-word` / `vm-write-word` so 16-bit stack and FX fields obey XOR-2 addressing on little-endian hosts.
+4. Updated dispatch so an absolute `vm-pc` outside the current bytecode buffer reloads a fresh code window from virtual memory and continues execution there.
+5. Implemented `VAG2` as Maiko defines it: combine the previous in-memory spill-slot word as the high 16 bits with cached `TOS` as the low 16 bits, then move the spill-slot pointer back by one LispPTR cell.
+
+=== Result
+
+These fixes moved Laiko past the old post-`RETURN` / `UNBIND` failure. It now follows Maiko through the startup transfer into `faultfxp`, through `VAG2`, and into the later switched-frame startup path.
+
+=== Current limitation
+
+The next live divergence is no longer the first context switch itself. The current blocker is a later switched-frame path where the resumed FX state is still being decoded incorrectly, causing Laiko to treat the target frame as `incall` when the C reference continues.
+
+== Critical Fix: FX packed-word decoding and resumed-frame PVAR access (2026-03-19 02:11)
+
+=== Problem
+
+After the first real `CONTEXTSWITCH` implementation, Laiko advanced into the later switched-frame startup path but then failed in two closely related ways:
+
+1. the resumed FX was falsely reported as `incall`
+2. once that was bypassed, resumed `PVAR` access still used the obsolete array-based stack helpers rather than the real PVAR area in VM memory
+
+Both issues came from low-level frame-layout interpretation rather than from the overall control-transfer shape.
+
+=== Solution
+
+Laiko now matches the C frame model more closely:
+
+1. The first two FX words are decoded in the C order:
+   - word 0 = `alink`
+   - word 1 = packed `usecount` + flag bits
+2. The packed FX flag byte now uses the correct bit assignments for `nopush`, `validnametable`, and `incall`.
+3. `get-pvar` and `set-pvar` now address the PVAR area in VM memory at `FP + FRAMESIZE`, matching Maiko `PVAR[x]`.
+4. The `PVAR_0`-`PVAR_6` and `PVARX_` family are now implemented so cached `TOS` can be written back without a pop, just like `PVARSETMACRO` / `PVARX_` in the C source.
+
+=== Result
+
+These fixes removed the false later `CONTEXTSWITCH returned to incall frame` failure and advanced parity through the resumed startup-frame `PVAR` / `PVAR_` sequence.
+
+=== Current limitation
+
+The next live parity frontier is no longer the first unbound free-variable access or the post-`ACONST` fake decode. After correcting BIGVM `FNx` widths, Laiko now exposes an earlier undefined-function call path at `FN0` (`0x08`) / `0x60f0af`; deeper probing shows this is atom `3433` (`0x0D69`), whose literal-atom `DefCell` is still zero in Laiko. The later `0x78` / `op_ufn` path remains relevant, but only after literal-atom bootstrap and the common call machinery are made Maiko-faithful.
+
+== Critical Fix: Free-variable chain resolution and indexed variable opcodes (2026-03-19 02:56)
+
+=== Problem
+
+After the resumed-frame `PVAR` / `PVAR_` fixes, Laiko advanced to `FVARX` (`0x57`) in the deeper startup call chain.
+
+The remaining issue was not just a missing handler:
+
+1. Laiko's `FVAR` helpers still treated free variables like a flat closure array.
+2. The C implementation actually addresses `FVAR` slots relative to the current PVAR area in #emph[DLword] units.
+3. When a slot is unbound, Maiko does #emph[not] fail immediately. It resolves the variable by scanning caller frames through `alink` and the active name table, then caches the discovered address back into the current frame's FVAR slot.
+
+That meant the whole `FVAR` family was wrong in kind, not just missing `FVARX`.
+
+=== Solution
+
+Laiko now follows the C model much more closely:
+
+1. `FVAR0`-`FVAR6` use DLword offsets `0, 2, 4, 6, 8, 10, 12`.
+2. `FVARX` uses the instruction operand as the same DLword offset format.
+3. Unbound `FVAR` slots now trigger a caller-frame scan that:
+   - starts from the current frame's `alink`
+   - reads the next FX from VM memory
+   - chooses `fnheader` vs `nametable` according to `validnametable`
+   - scans the name table for the target free-variable atom
+   - caches either a stack slot address, another free-variable chain pointer, or a top-level atom value-cell address
+4. The matching store-side opcodes were added in the same slice:
+   - `IVARX_` (`0x62`)
+   - `FVARX_` (`0x63`)
+   - `PVARX` (`0x4F`)
+
+=== Result
+
+These fixes moved Laiko past the first missing `FVARX` frontier, through several consecutive `FVARX` / `FVARX_` / `PVARX` operations in the resumed startup function, and into the next decode frontier after `ACONST`.
+
+=== Current limitation
+
+The current live mismatch is byte `0x00` at `0x71ca89`. Because this appears immediately after `ACONST`, the next step is to verify whether Laiko is actually reaching a real `opc_unused_0` byte or whether `ACONST` still disagrees with Maiko's `nextop_atom` stepping convention.
+
+== Critical Fix: BIGVM `ACONST` atom width (2026-03-19 03:53)
+
+=== Problem
+
+After the free-variable work, Laiko appeared to hit byte `0x00` immediately after `ACONST`.
+
+That looked at first like a new opcode-coverage gap, but the C reference showed a different story:
+
+1. On BIGATOMS builds, `Get_AtomNo_PCMAC1` reads a pointer-sized atom operand.
+2. On BIGVM, `nextop_atom` advances by 5 bytes, not 3.
+3. Laiko still implemented `ACONST` as a 3-byte instruction with a 16-bit atom operand.
+
+So the `0x00` frontier was not a real executable opcode. It was a decode drift caused by reading only half of the atom operand.
+
+=== Solution
+
+Laiko `ACONST` now matches the Maiko BIGVM path:
+
+1. instruction length updated from 3 to 5 bytes
+2. operand widened from a 16-bit atom index to a 32-bit big-endian atom pointer/index
+3. handler updated to use the 32-bit operand reader
+
+=== Result
+
+This removed the false post-`ACONST` `0x00` frontier and advanced the startup trace to the next genuine control-transfer gap.
+
+=== Current limitation
+
+That later `0x78` (`MISC1`) frontier turned out not to be the next real blocker. Once BIGVM `FN0`-`FN4` / `FNX` were corrected to use 32-bit atom operands and 5/6-byte instruction sizes, Laiko stopped earlier in the startup path at `FN0` (`0x08`) / `0x60f0af` with `FN0: Undefined function`. Reader fixes confirmed that this is not just a bad decode: the failing call targets atom `3433` (`0x0D69`), and even `ATOM_INTERPRETER` (`256`) still resolves to a zero literal-atom defpointer in Laiko's current VM state. The next parity slice therefore needs literal-atom bootstrap before the real Maiko undefined-function / interpreter call path can be trusted.
+
+=== Critical Fix: GVAR Bounds Check (2026-03-20)
+
+=== Problem
+
+The `GVAR` instruction was pushing `0` instead of `0x140000` (for Atom 522). This was traced to a bug in `laiko/src/data/atom.lisp` where bounds checks compared byte offsets against page counts:
+
+#codeblock(lang: "lisp", [
+(when (>= (+ value-cell-offset 4) (length vmem)) ...)
+])
+
+`value-cell-offset` is a byte offset (e.g., 131072), while `(length vmem)` is the number of pages (e.g., 256). This caused valid accesses to fail silently.
+
+=== Solution
+
+Fixed the bounds check logic in `read-atom-value`, `write-atom-value`, and `get-defcell` to correctly compare page indices derived from offsets.
+
+== Critical Fix: Stack System Consolidation (2026-03-01)
+
+=== Problem
+
+Laiko had **two incompatible stack systems** being used inconsistently:
+
+1. **Old System** (`vm-stack-ptr` - array index):
+   - `push-stack()`, `pop-stack()`, `get-top-of-stack()`, `set-top-of-stack()`
+   - Used by: POP, GETBASEPTR-N, and other opcodes
+
+2. **New System** (`vm-stack-ptr-offset` - byte offset in VM):
+   - `vm-push()`, `vm-pop()`, `vm-tos()`, `vm-set-tos()`
+   - Used by: GVAR (opcode 0x60)
+
+When GVAR pushed a value using the new system and POP tried to pop using the old system, this caused a **stack underflow** at GETBASEPTR-N.
+
+=== Solution
+
+The old stack functions in `laiko/src/vm/stack.lisp` were redirected to use the new VM-based operations:
+
+#codeblock(lang: "lisp", [
+;; DEPRECATED: Old array-based stack functions
+;; These now redirect to VM-based stack operations for consistency
+
+(defun push-stack (vm value)
+  "Push value onto stack. DEPRECATED - use vm-push instead."
+  (vm-push vm (if (typep value 'fixnum) value (logand value #xFFFFFFFF))))
+
+(defun pop-stack (vm)
+  "Pop value from stack. DEPRECATED - use vm-pop instead."
+  (vm-pop vm))
+
+(defun get-top-of-stack (vm)
+  "Get top of stack without popping. DEPRECATED - use vm-tos instead."
+  (vm-tos vm))
+
+(defun set-top-of-stack (vm value)
+  "Set top of stack. DEPRECATED - use vm-set-tos instead."
+  (vm-set-tos vm (if (typep value 'fixnum) value (logand value #xFFFFFFFF))))
+])
+
+This ensures all opcodes use the same virtual memory-based stack system, matching the C/Zig implementations.
+
+=== Additional Fixes
+
+- **UNBIND (0x12)**: Implemented proper stack pop per declared `:stack-effect (:pop 1)`
+- **GVAR (0x60)**: Fixed to read correctly from Valspace using proper address translation
 
 == Critical Discovery: Valspace Architecture
 
@@ -187,8 +525,32 @@ alternatives/lisp/
 - Cell creation (MAKECELL, FREECELL)
 - Base address operations (GETBASE, SETBASE)
 - Address manipulation (ADDBASE, SUBBASE)
-
 *Remaining*: 67 opcodes (mostly specialized operations, can be added incrementally)
+
+=== Centralized opcode metadata (2026-02-26)
+
+Laiko now uses a single declarative macro (`DEFOP` in `laiko/src/vm/op-macros.lisp`) to define each opcode and populate all dispatch/metadata tables:
+
+- **Primary fields** per opcode are provided as keywords: `:hexcode` (byte value 0–255) and `:instruction-length` (total bytes including operands).
+- **Additional metadata** is captured via keywords: `:operands`, `:stack-effect`, `:category`, `:side-effects`, and optional `:aliases`.
+- The macro fills:
+  - `*instruction-lengths*` (byte → instruction length),
+  - `*opcode-names*` (byte → symbolic name),
+  - `*opcode-handlers-array*` (byte → handler function),
+  - `*opcode-handlers*` (name → handler),
+  - `*opcode-metadata*` (name → plist of all fields, including documentation).
+
+This keeps the opcode table as the **single source of truth** for both the dispatcher and tooling (documentation generation, parity debugging, future introspection) and mirrors the centralized tables used in the C and Zig implementations.
+
+=== Opcode prioritization for parity work (2026-02-26)
+
+For Laiko, opcode implementation order is now driven by **trace-based divergence** rather than raw opcode number:
+
+- Tier 1: early-executed core instructions (stack operations, constants, variable access, control flow, base/memory ops that appear in the first few instructions of starter.sysout).
+- Tier 2: data and memory structure operations (lists, arrays, general arithmetic/comparisons, bitwise and shifts).
+- Tier 3: floating point, graphics, and advanced I/O (BitBLT, SDL display, subroutine I/O).
+
+When running `scripts/compare_emulator_execution.sh --with-laiko` with a small `EMULATOR_MAX_STEPS`, the **first divergence (PC + opcode)** determines which tier to work on next. See `reports/laiko-opcode-priority.md` for the current tier breakdown and concrete examples.
 
 === Memory Management
 
