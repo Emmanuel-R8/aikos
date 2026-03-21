@@ -3,6 +3,7 @@ import type { VM } from './vm';
 import { decodeInstructionFromMemory } from './dispatch/decoder';
 import type { Instruction } from './dispatch/opcode';
 import { routeOpcode } from './opcodes/index';
+import { popStack } from './opcodes/stack_helpers';
 import type { ExecutionTrace } from './trace';
 
 // Import opcode handlers to register them
@@ -53,17 +54,15 @@ function executeOpcode(vm: VM, instruction: Instruction): number | null {
         }
         if (opcode >= 0x90 && opcode <= 0x9F) {
             // FJUMP0-FJUMP15 encode 2-17 byte jumps in Maiko's dispatch table.
-            if (vm.topOfStack === 0) { // NIL = false
-                return (opcode - 0x90) + 2;
-            }
-            return null;
+            const shouldJump = vm.topOfStack === 0;
+            popStack(vm);
+            return shouldJump ? (opcode - 0x90) + 2 : null;
         }
         if (opcode >= 0xA0 && opcode <= 0xAF) {
             // TJUMP0-TJUMP15 encode 2-17 byte jumps in Maiko's dispatch table.
-            if (vm.topOfStack !== 0) { // Non-NIL = true
-                return (opcode - 0xA0) + 2;
-            }
-            return null;
+            const shouldJump = vm.topOfStack !== 0;
+            popStack(vm);
+            return shouldJump ? (opcode - 0xA0) + 2 : null;
         }
     }
 

@@ -167,26 +167,30 @@ describe('Sysout Loading', () => {
         expect(instruction).not.toBeNull();
         expect(instruction?.opcode).toBe(Opcode.POP);
 
-        const expectedPrefix: Array<[number, Opcode]> = [
-            [0x60F131, Opcode.GVAR],
-            [0x60F136, Opcode.UNBIND],
-            [0x60F137, Opcode.GETBASEPTR_N],
-            [0x60F139, Opcode.COPY],
-            [0x60F13A, Opcode.TJUMP1],
-            [0x60F13D, Opcode.COPY],
-            [0x60F13E, Opcode.CONST_1],
-            [0x60F13F, Opcode.EQ],
-            [0x60F140, Opcode.FJUMP7],
-            [0x60F149, Opcode.COPY],
-            [0x60F14A, Opcode.SIC],
-            [0x60F14C, Opcode.EQ],
-            [0x60F14D, Opcode.FJUMP7],
+        const expectedPrefix: Array<[number, Opcode, number | null]> = [
+            [0x60F131, Opcode.GVAR, null],
+            [0x60F136, Opcode.UNBIND, 0x00140000],
+            [0x60F137, Opcode.GETBASEPTR_N, 0x00140000],
+            [0x60F139, Opcode.COPY, 0x0000004C],
+            [0x60F13A, Opcode.TJUMP1, 0x0000004C],
+            [0x60F13D, Opcode.COPY, 0x0000004C],
+            [0x60F13E, Opcode.CONST_1, 0x0000004C],
+            [0x60F13F, Opcode.EQ, 0x00000001],
+            [0x60F140, Opcode.FJUMP7, 0x00000000],
+            [0x60F149, Opcode.COPY, 0x0000004C],
+            [0x60F14A, Opcode.SIC, 0x0000004C],
+            [0x60F14C, Opcode.EQ, 0xE0000002],
+            [0x60F14D, Opcode.FJUMP7, 0x00000000],
+            [0x60F156, Opcode.COPY, 0x0000004C],
         ];
 
-        for (const [expectedPc, expectedOpcode] of expectedPrefix) {
+        for (const [expectedPc, expectedOpcode, expectedTos] of expectedPrefix) {
             expect(executeStep(vm)).toBe(true);
             expect(vm.pc).toBe(expectedPc);
             expect(decodeInstructionFromMemory(vm, vm.pc)?.opcode).toBe(expectedOpcode);
+            if (expectedTos !== null) {
+                expect(vm.topOfStack >>> 0).toBe(expectedTos >>> 0);
+            }
         }
     });
 });

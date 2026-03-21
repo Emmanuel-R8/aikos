@@ -2,7 +2,7 @@
 
 *Navigation*: Implementations README | Main README
 
-*Date*: 2026-03-21 23:14 *Status*: ACTIVE - Bun-based parity work in progress *Location*: `taiko/` *Build
+*Date*: 2026-03-21 23:26 *Status*: ACTIVE - Bun-based parity work in progress *Location*: `taiko/` *Build
 System*: TypeScript/Bun *Target Platform*: Browser/WebGL plus Bun-based CLI and tests
 
 == Overview
@@ -191,9 +191,10 @@ TypeScript-specific outcomes:
 - base-memory opcodes now treat the live TOS value as a LispPTR base and convert it to a byte offset only after applying the opcode's field offset
 - `GETBASE_N`, `GETBASEPTR_N`, `PUTBASE_N`, and `PUTBASEPTR_N` are now decoded as 2-byte instructions, which removes false opcode decodes from operand bytes
 - the optimized `JUMP`, `FJUMP`, and `TJUMP` families now use Maiko's actual encoded forward offsets of 2-17 bytes instead of treating them as 1-16 byte jumps
+- both optimized and extended conditional jumps now pop the cached TOS before continuing, which restores the same underlying `0x4c` stack value that Maiko exposes at the later startup compare blocks
 - `SIC`, `SNIC`, and `SICX` are now implemented with the correct immediate widths, letting the real startup prefix continue through the later compare block instead of desynchronizing on the operand byte
-- the real-sysout Bun regression now checks a longer matched prefix: `POP`, `GVAR`, `UNBIND`, `GETBASEPTR_N`, `COPY`, `TJUMP1`, `COPY`, `CONST_1`, `EQ`, `FJUMP7`, `COPY`, `SIC`, `EQ`, `FJUMP7`
-- the current startup frontier has moved beyond `0x60f14d`, so the next mismatch is later in the compare sequence rather than in the first branch/immediate block
+- the real-sysout Bun regression now checks a longer matched prefix through the later compare block: `POP`, `GVAR`, `UNBIND`, `GETBASEPTR_N`, `COPY`, `TJUMP1`, `COPY`, `CONST_1`, `EQ`, `FJUMP7`, `COPY`, `SIC`, `EQ`, `FJUMP7`, `COPY`
+- the current startup frontier has moved beyond `0x60f156`, so the next mismatch is later in the compare sequence rather than in the first branch/immediate block
 
 == Related Documentation
 
@@ -208,4 +209,4 @@ TypeScript-specific outcomes:
 3. Reduce startup-path heuristics by replacing entry-point guessing with more direct sysout/runtime evidence where available
 4. Extend real-sysout validation from "first matched execution steps" to a longer matched startup prefix
 
-*Last Updated*: 2026-03-21 23:14
+*Last Updated*: 2026-03-21 23:26

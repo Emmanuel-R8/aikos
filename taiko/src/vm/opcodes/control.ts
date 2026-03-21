@@ -3,7 +3,7 @@ import type { VM } from '../vm';
 import type { Instruction } from '../dispatch/opcode';
 import { Opcode } from '../dispatch/opcode';
 import { registerOpcodeHandler } from './index';
-import { MemoryManager } from '../memory/manager';
+import { popStack } from './stack_helpers';
 
 /**
  * JUMPX opcode handler
@@ -23,11 +23,9 @@ function handleJUMPX(vm: VM, instruction: Instruction): number | null {
 function handleFJUMPX(vm: VM, instruction: Instruction): number | null {
     if (instruction.operands.length < 1) return null;
 
-    // Jump if TopOfStack is NIL (0) or false
-    if (vm.topOfStack === 0) { // NIL = false
-        return instruction.operands[0];
-    }
-    return null; // Don't jump
+    const shouldJump = vm.topOfStack === 0;
+    popStack(vm);
+    return shouldJump ? instruction.operands[0] : null;
 }
 
 /**
@@ -38,11 +36,9 @@ function handleFJUMPX(vm: VM, instruction: Instruction): number | null {
 function handleTJUMPX(vm: VM, instruction: Instruction): number | null {
     if (instruction.operands.length < 1) return null;
 
-    // Jump if TopOfStack is non-NIL (true)
-    if (vm.topOfStack !== 0) { // Non-NIL = true
-        return instruction.operands[0];
-    }
-    return null; // Don't jump
+    const shouldJump = vm.topOfStack !== 0;
+    popStack(vm);
+    return shouldJump ? instruction.operands[0] : null;
 }
 
 // Function call handlers are now in function_calls.ts
