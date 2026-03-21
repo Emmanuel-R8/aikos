@@ -1,6 +1,8 @@
 // Sysout loading tests
 import { describe, test, expect } from 'bun:test';
 import { loadSysout } from '../src/io/sysout';
+import { initializeVM } from '../src/vm/initialization';
+import { VM } from '../src/vm/vm';
 import { IFPAGE_KEYVAL, IFPAGE_ADDRESS, BYTESPER_PAGE, ATOMS_OFFSET, DEFS_OFFSET, VALS_OFFSET, PLIS_OFFSET, DTD_OFFSET } from '../src/utils/constants';
 import { MemoryManager } from '../src/vm/memory/manager';
 import { existsSync } from 'fs';
@@ -97,8 +99,23 @@ describe('Sysout Loading', () => {
             // Basic sanity checks – we only assert that the sysout can be parsed
             expect(result.virtualMemory.length).toBeGreaterThan(0);
             expect(result.fptovpTable.length).toBeGreaterThan(0);
-            expect(result.initialPC).toBeGreaterThan(0);
             expect(result.initialSP).toBeGreaterThan(0);
+
+            const vm = new VM();
+            vm.initializeMemory(
+                result.virtualMemory,
+                result.fptovpTable,
+                result.atomSpaceOffset,
+                result.defSpaceOffset,
+                result.valSpaceOffset,
+                result.plistSpaceOffset,
+                result.dtdOffset,
+            );
+
+            expect(initializeVM(vm, result.ifpage)).toBe(true);
+            expect(vm.pc).toBeGreaterThan(0);
+            expect(vm.funcObj).not.toBeNull();
+            expect(vm.currentFrameOffset).not.toBeNull();
         } catch (err: any) {
             // If the real sysout does not match the current loader assumptions
             // (e.g. different IFPAGE layout), treat this as a skipped integration

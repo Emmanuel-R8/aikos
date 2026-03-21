@@ -61,7 +61,7 @@ Format:
 
 *Status*: Active Bun-based validation
 
-- Current Bun status after the sysout test slice: `59 pass, 1 skip, 0 fail`
+- Current Bun status after the startup/sysout slice: `59 pass, 1 skip, 0 fail`
 - The newly stabilized area is frame-relative address calculation:
   - shared stack offset <-> byte helpers
   - explicit `CURRENTFX` tracking in VM state
@@ -109,6 +109,18 @@ TypeScript-specific outcomes:
 - sysout assertions now validate loader-visible bytes and computed offsets instead of assuming host-endian fixture writes
 - this slice improved coverage without requiring a production loader rewrite
 
+=== 2026-03-21 20:15 - Real Sysout Startup Restoration Slice
+
+The next Taiko slice tightened startup parity against Maiko's `start_lisp()` / `FastRetCALL` path for `starter.sysout`.
+
+TypeScript-specific outcomes:
+
+- `initializeVM()` now restores `PC` using the saved frame `pc` field directly relative to `FuncObj`, instead of re-adding `startpc`
+- sparse-stack initialization now writes a valid free-stack-block header with a 16-bit bounded size field
+- entry-point discovery now reads TypeScript function-header candidates using the same field order as Maiko (`stkmin`, `na`, `pv`, `startpc`)
+- the real-sysout Bun test now validates the actual runtime startup path (`loadSysout()` plus `initializeVM()`), not just the provisional loader hint values
+- `starter.sysout` now initializes to a non-zero `PC` under the Bun test environment
+
 == Related Documentation
 
 - Trace Format: `documentation/specifications/vm-core/trace-and-logging-formats.typ`
@@ -117,9 +129,9 @@ TypeScript-specific outcomes:
 
 == Next Steps
 
-1. Push the same address-discipline into sysout startup and entry-point restoration
-2. Investigate why real `starter.sysout` still yields `initialPC == 0` in Taiko's loader path
-3. Continue opcode and runtime parity work under Bun
-4. Re-run parity comparisons against the C reference as each slice lands
+1. Continue opcode and runtime parity work under Bun now that real sysout startup no longer blocks initialization
+2. Re-run parity comparisons against the C reference as each slice lands
+3. Reduce startup-path heuristics by replacing entry-point guessing with more direct sysout/runtime evidence where available
+4. Extend real-sysout validation beyond initialization into the first executed instruction stream
 
-*Last Updated*: 2026-03-21 20:00
+*Last Updated*: 2026-03-21 20:15

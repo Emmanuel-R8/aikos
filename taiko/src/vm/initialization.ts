@@ -215,23 +215,14 @@ export function initializeVM(vm: VM, ifpage: IFPAGE): boolean {
     // Per C: PC = (ByteCode *)FuncObj + CURRENTFX->pc
     const framePc = frameView.getUint16(10, false); // big-endian (PC offset in DLwords)
 
-    // Read function header to get startpc
     if (fnheaderByteOffset + 8 > vm.virtualMemory.length) {
         console.error(`initializeVM: Function header offset ${fnheaderByteOffset} out of bounds`);
         return false;
     }
 
-    const fnheaderView = new DataView(vm.virtualMemory.buffer, vm.virtualMemory.byteOffset + fnheaderByteOffset);
-    // Read startpc as little-endian (memory is byte-swapped from sysout)
-    const startpc = fnheaderView.getUint16(4, true); // little-endian (startpc in DLwords, offset 4-5 in fnheader)
+    vm.pc = fnheaderByteOffset + framePc;
 
-    // Calculate final PC: function header start + startpc + frame pc
-    // Per C: PC = (ByteCode *)FuncObj + CURRENTFX->pc
-    // FuncObj points to function header, so PC = fnheader_start + startpc + framePc
-    // All offsets are in DLwords, convert to bytes
-    vm.pc = fnheaderByteOffset + (startpc * 2) + (framePc * 2);
-
-    console.error(`initializeVM: PC calculation: fnheader=0x${fnheaderByteOffset.toString(16)}, startpc=${startpc}, framePc=${framePc}, finalPC=0x${vm.pc.toString(16)}`);
+    console.error(`initializeVM: PC calculation: fnheader=0x${fnheaderByteOffset.toString(16)}, framePc=${framePc}, finalPC=0x${vm.pc.toString(16)}`);
 
     return true;
 }
@@ -250,13 +241,8 @@ function initializeSparseStack(vm: VM, frameOffset: number, currentfxpStackOffse
         return false;
     }
 
-    // Calculate stack area boundaries
-    // Stack grows downward (from high addresses to low addresses)
-    // Stack base is at STK_OFFSET_BYTES (high address)
-    // We need to allocate space below (toward lower addresses)
-
-    // Frame is at frameOffset (STK_OFFSET_BYTES + currentfxp * 2)
-    // Free block should be placed after the frame (at lower address, since stack grows down)
+    // Stack offsets grow upward from Stackspace in DLword units, so keep the
+    // synthetic free block within the loaded virtual-memory arena.
     const frameEnd = frameOffset + FRAMESIZE_BYTES;
     const freeBlockStart = frameEnd;
 
@@ -267,13 +253,10 @@ function initializeSparseStack(vm: VM, frameOffset: number, currentfxpStackOffse
     }
 
     // Calculate free block size (in DLwords)
-    // Stack grows downward, so free block extends from freeBlockStart toward lower addresses
-    // Use a reasonable size: allocate space downward from the free block start
-    // Leave some margin at the end (e.g., 1KB)
     const marginBytes = 1024;
-    const availableSpace = freeBlockStart - marginBytes;
-    const freeBlockSizeBytes = Math.max(availableSpace - (STK_OFFSET_BYTES - (64 * 1024)), MINEXTRASTACKWORDS * 2);
-    const freeBlockSizeDLwords = Math.floor(freeBlockSizeBytes / 2);
+    const availableSpace = Math.max(vm.virtualMemory.length - marginBytes - freeBlockStart, 0);
+    const freeBlockSizeBytes = Math.max(availableSpace, MINEXTRASTACKWORDS * 2);
+    const freeBlockSizeDLwords = Math.min(Math.floor(freeBlockSizeBytes / 2), 0xFFFF);
 
     if (freeBlockSizeDLwords < MINEXTRASTACKWORDS) {
         console.error(`initializeSparseStack: Free block too small: ${freeBlockSizeDLwords} DLwords`);
@@ -342,7 +325,7 @@ function initializeSparseStack(vm: VM, frameOffset: number, currentfxpStackOffse
     // This is a 32-bit value: high 16 bits = STK_FSB_WORD, low 16 bits = size
     // Memory is little-endian (after byte-swapping from sysout), so write as little-endian
     const fsbView = new DataView(vm.virtualMemory.buffer, vm.virtualMemory.byteOffset + freeBlockStart);
-    const fsbValue = (STK_FSB_WORD << 16) | freeBlockSizeDLwords;
+    const fsbValue = (STK_FSB_WORD << 16) | (freeBlockSizeDLwords & 0xFFFF);
     fsbView.setUint32(0, fsbValue, true); // little-endian (our memory format)
 
     // Verify the write
@@ -388,7 +371,7 @@ function locateEntryPoint(vm: VM, ifpage: IFPAGE): { fnheaderOffset: number; pcO
                 if (resetfxpFnheaderOffset + 8 <= vm.virtualMemory.length) {
                     // Read function header to get startpc
                     const resetfxpFnheaderView = new DataView(vm.virtualMemory.buffer, vm.virtualMemory.byteOffset + resetfxpFnheaderOffset);
-                    const resetfxpStartpc = resetfxpFnheaderView.getUint16(4, true); // little-endian
+                    const resetfxpStartpc = resetfxpFnheaderView.getUint16(6, true); // little-endian
                     const resetfxpPc = resetfxpFrameView.getUint16(10, true); // little-endian (PC offset within function)
                     console.error(`locateEntryPoint: Found function header in resetfxp frame: 0x${resetfxpFnheaderOffset.toString(16)}, startpc=${resetfxpStartpc}, framePc=${resetfxpPc}`);
                     return { fnheaderOffset: resetfxpFnheaderOffset, pcOffset: resetfxpPc };
@@ -397,9 +380,9 @@ function locateEntryPoint(vm: VM, ifpage: IFPAGE): { fnheaderOffset: number; pcO
         }
     }
 
-    // Strategy 2: Search for function headers in memory
-    // Look for valid function header structures (startpc field should be reasonable)
-    // Function header structure: na (2 bytes), stkmin (2 bytes), startpc (2 bytes), pv (2 bytes), ...
+    // Strategy 2: Search for function headers in memory.
+    // Function header layout per maiko/inc/stack.h:
+    //   0-1 stkmin, 2-3 na, 4-5 pv, 6-7 startpc.
     // NOTE: Memory has been byte-swapped from big-endian sysout to little-endian
     // So we read function headers as little-endian
     // CRITICAL: Only search in areas that are likely to be loaded (not sparse)
@@ -433,10 +416,10 @@ function locateEntryPoint(vm: VM, ifpage: IFPAGE): { fnheaderOffset: number; pcO
             const fnheaderView = new DataView(vm.virtualMemory.buffer, vm.virtualMemory.byteOffset + offset);
 
             // Read function header fields (little-endian, since memory is byte-swapped)
-            const na = fnheaderView.getInt16(0, true); // signed, little-endian
-            const stkmin = fnheaderView.getUint16(2, true); // little-endian
-            const startpc = fnheaderView.getUint16(4, true); // little-endian
-            const pv = fnheaderView.getInt16(6, true); // signed, little-endian
+            const stkmin = fnheaderView.getUint16(0, true); // little-endian
+            const na = fnheaderView.getInt16(2, true); // signed, little-endian
+            const pv = fnheaderView.getInt16(4, true); // signed, little-endian
+            const startpc = fnheaderView.getUint16(6, true); // little-endian
 
             // Heuristic: valid function header should have:
             // - Reasonable na (-1 to 20) - number of arguments

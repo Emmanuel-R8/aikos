@@ -121,6 +121,19 @@ This means that an "unused" opcode such as `MISC1` (`0x78`) is not necessarily a
 
 The same common call machinery also serves ordinary `FNx` calls when the target atom does not yet name a compiled function: Maiko falls back into the interpreter path rather than treating that case as a hard opcode fault.
 
+=== FastRetCALL PC restoration rule
+
+Maiko's `FastRetCALL` restores the program counter as:
+
+`PC = FuncObj + CURRENTFX->pc`
+
+Two consequences matter for parity implementations:
+
+1. The frame `pc` slot is already the byte offset relative to the function header / `FuncObj`.
+2. Startup and return restoration must not add `startpc` a second time when rebuilding `PC` from a saved frame.
+
+This rule applies both during ordinary returns and during startup paths that reconstruct execution state from a saved or synthesized frame.
+
 == Function Call Process
 
 === Step 1: Save Current State

@@ -129,6 +129,16 @@ When constructing synthetic sysout buffers for tests, the following rules matter
 
 These rules are emulator-independent because they follow directly from the sysout file format and Maiko's loader behavior, not from a specific implementation language.
 
+=== Sparse-stack startup rule
+
+Real sysout files may leave the stack area sparse even when the IFPAGE contains a `currentfxp` value. In that situation:
+
+1. The loader may legitimately return a provisional `initialPC` of `0` because the frame payload is not yet materialized in loaded memory.
+2. The runtime startup path must then synthesize the necessary free-stack-block / frame state before restoring execution.
+3. Once a valid frame exists, `PC` must be restored using the `FastRetCALL` rule from the function-call specification: `PC = FuncObj + CURRENTFX->pc`.
+
+So, a zero loader-time `initialPC` does not by itself prove that the sysout is invalid; it can simply indicate that final startup state must be completed by the runtime initializer rather than by the file loader alone.
+
 == Version Compatibility
 
 === Version Checking

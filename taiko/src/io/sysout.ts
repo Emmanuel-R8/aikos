@@ -258,8 +258,8 @@ function loadVirtualMemory(buffer: ArrayBuffer, fptovpTable: Uint32Array, ifpage
 }
 
 /**
- * Initialize PC from current frame
- * Per C: start_lisp() -> FastRetCALL -> reads CURRENTFX->fnheader -> gets startpc
+ * Initialize PC from current frame.
+ * Per C: start_lisp() -> FastRetCALL restores PC as FuncObj + CURRENTFX->pc.
  *
  * FastRetCALL logic:
  *   1. FuncObj = NativeAligned4FromLAddr(FX_FNHEADER)
@@ -333,14 +333,7 @@ function initializePC(virtualMemory: Uint8Array, ifpage: IFPAGE): number {
         return 0; // Invalid function header
     }
 
-    // Read function header to get startpc (big-endian)
-    const fnheaderView = new DataView(virtualMemory.buffer, virtualMemory.byteOffset + fnheaderByteOffset);
-    const startpc = fnheaderView.getUint16(6, false); // big-endian
-
-    // Calculate final PC: function header start + startpc + frame pc
-    // Per C: PC = (ByteCode *)FuncObj + CURRENTFX->pc
-    // FuncObj points to function header, so PC = fnheader_start + startpc + frame_pc
-    const finalPC = fnheaderByteOffset + startpc + framePc;
+    const finalPC = fnheaderByteOffset + framePc;
 
     return finalPC;
 }
