@@ -44,7 +44,7 @@ function handleGVAR(vm: VM, instruction: Instruction): number | null {
 
     // Look up atom's GVAR slot from AtomSpace/Valspace
     // C: pslot = (LispPTR *)Valspace + atom_index;
-    const value = AtomSpaceManager.getValueCell(vm.virtualMemory, vm.valSpaceOffset, atomIndex);
+    const value = AtomSpaceManager.getValueCell(vm.virtualMemory, vm.atomSpaceOffset, atomIndex);
     pushStack(vm, value);
 
     return null; // No jump
@@ -282,7 +282,7 @@ function handleGVAR_(vm: VM, instruction: Instruction): number | null {
     // For now, just write the value
 
     // Write value to atom's GVAR slot
-    AtomSpaceManager.setValueCell(vm.virtualMemory, vm.valSpaceOffset, atomIndex, value);
+    AtomSpaceManager.setValueCell(vm.virtualMemory, vm.atomSpaceOffset, atomIndex, value);
 
     return null;
 }

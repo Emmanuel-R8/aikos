@@ -77,8 +77,9 @@ export enum Opcode {
     MISC10 = 0xC5,
     PUTBASEBYTE = 0xC7,
     GETBASE_N = 0xC8,
-    ITIMES2 = 0xC9,
+    GETBASEPTR_N = 0xC9,
     GETBITS_N_FD = 0xCA,
+    CMLEQUAL = 0xCC,
     PUTBASE_N = 0xCD,
     PUTBASEPTR_N = 0xCE,
     PUTBITS_N_FD = 0xCF,
@@ -90,30 +91,29 @@ export enum Opcode {
     DIFFERENCE = 0xD5,
     TIMES2 = 0xD6,
     QUOTIENT = 0xD7,
-    CMLEQUAL = 0xCC,
     IPLUS2 = 0xD8,
     IDIFFERENCE = 0xD9,
-    LLSH8 = 0xDA,
+    ITIMES2 = 0xDA,
     IQUOTIENT = 0xDB,
     IREMAINDER = 0xDC,
     IPLUS_N = 0xDD,
     IDIFFERENCE_N = 0xDE,
     BASE_LESSTHAN = 0xDF,
     LLSH1 = 0xE0,
+    LLSH8 = 0xE1,
     LRSH1 = 0xE2,
     LRSH8 = 0xE3,
     LOGOR2 = 0xE4,
     LOGAND2 = 0xE5,
     LOGXOR2 = 0xE6,
     LSH = 0xE7,
-    GETBASEPTR_N = 0xEC,
-    AREF2 = 0xEE,
-    UBFLOAT1 = 0xED,
-    UBFLOAT2 = 0xE1,
     FPLUS2 = 0xE8,
     FDIFFERENCE = 0xE9,
     FTIMES2 = 0xEA,
     FQUOTIENT = 0xEB,
+    UBFLOAT2 = 0xEC,
+    UBFLOAT1 = 0xED,
+    AREF2 = 0xEE,
     ASET2 = 0xEF,
     TYPEMASK_N = 0x33,
     MISC7 = 0x38,
@@ -281,12 +281,22 @@ export function getInstructionLength(opcode: Opcode): number {
     if (opcode === Opcode.JUMPXX) {
         return 5; // opcode + 4-byte offset
     }
+    if (opcode === Opcode.SIC || opcode === Opcode.SNIC) {
+        return 2; // opcode + 1-byte immediate
+    }
+    if (opcode === Opcode.SICX) {
+        return 3; // opcode + 2-byte immediate
+    }
     // Opcodes with 1-byte operands
     if (opcode === Opcode.RPLPTR_N ||
         opcode === Opcode.TYPEP ||
         opcode === Opcode.GCREF ||
         opcode === Opcode.ASSOC ||
-        opcode === Opcode.RESTLIST) {
+        opcode === Opcode.RESTLIST ||
+        opcode === Opcode.GETBASE_N ||
+        opcode === Opcode.GETBASEPTR_N ||
+        opcode === Opcode.PUTBASE_N ||
+        opcode === Opcode.PUTBASEPTR_N) {
         return 2; // opcode + 1-byte operand
     }
     // BIGATOMS/BIGVM atom-bearing opcodes carry a 32-bit atom number.

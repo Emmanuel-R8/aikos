@@ -3,6 +3,11 @@
 
 import type { LispPTR } from '../../utils/types';
 import { MemoryManager } from './manager';
+import { POINTERMASK, SEGMASK } from '../../utils/constants';
+
+const NEWATOM_VALUE_PTROFF = 1;
+const NEWATOM_STRIDE_LISPPTRS = 5;
+const DLWORDS_PER_LISPPTR = 2;
 
 /**
  * AtomSpace manager
@@ -22,14 +27,18 @@ export class AtomSpaceManager {
      * @param atomIndex Atom index (from GVAR operand)
      * @returns Value cell LispPTR
      */
-    static getValueCell(memory: Uint8Array, valSpaceOffset: number, atomIndex: number): LispPTR {
-        // Simplified: assume non-BIGATOMS layout
-        // Valspace layout: byte offset = valSpaceOffset + atom_index * 4
-        // Per C: Valspace + (atom_index << 1) = Valspace + (atom_index * 2) DLwords = (atom_index * 4) bytes
-        const valspaceOffset = valSpaceOffset + (atomIndex * 4);
+    static getValueCell(memory: Uint8Array, atomSpaceOffset: number, atomIndex: number): LispPTR {
+        let valueCellOffset: number;
 
-        if (valspaceOffset + 4 <= memory.length) {
-            return MemoryManager.Access.readLispPTR(memory, valspaceOffset);
+        if ((atomIndex & SEGMASK) !== 0) {
+            const valueCellPtr = (atomIndex + (NEWATOM_VALUE_PTROFF * DLWORDS_PER_LISPPTR)) & POINTERMASK;
+            valueCellOffset = MemoryManager.Address.lispPtrToByte(valueCellPtr);
+        } else {
+            valueCellOffset = atomSpaceOffset + ((NEWATOM_STRIDE_LISPPTRS * atomIndex) + NEWATOM_VALUE_PTROFF) * 4;
+        }
+
+        if (valueCellOffset + 4 <= memory.length) {
+            return MemoryManager.Access.readLispPTR(memory, valueCellOffset);
         }
 
         return 0; // NIL if invalid
@@ -44,11 +53,18 @@ export class AtomSpaceManager {
      * @param atomIndex Atom index
      * @param value New value
      */
-    static setValueCell(memory: Uint8Array, valSpaceOffset: number, atomIndex: number, value: LispPTR): void {
-        const valspaceOffset = valSpaceOffset + (atomIndex * 4);
+    static setValueCell(memory: Uint8Array, atomSpaceOffset: number, atomIndex: number, value: LispPTR): void {
+        let valueCellOffset: number;
 
-        if (valspaceOffset + 4 <= memory.length) {
-            MemoryManager.Access.writeLispPTR(memory, valspaceOffset, value);
+        if ((atomIndex & SEGMASK) !== 0) {
+            const valueCellPtr = (atomIndex + (NEWATOM_VALUE_PTROFF * DLWORDS_PER_LISPPTR)) & POINTERMASK;
+            valueCellOffset = MemoryManager.Address.lispPtrToByte(valueCellPtr);
+        } else {
+            valueCellOffset = atomSpaceOffset + ((NEWATOM_STRIDE_LISPPTRS * atomIndex) + NEWATOM_VALUE_PTROFF) * 4;
+        }
+
+        if (valueCellOffset + 4 <= memory.length) {
+            MemoryManager.Access.writeLispPTR(memory, valueCellOffset, value);
         }
     }
 
@@ -61,7 +77,12 @@ export class AtomSpaceManager {
      * @param atomIndex Atom index
      * @returns Byte offset of value cell in virtual memory
      */
-    static getGlobalVarValueCellAddress(memory: Uint8Array, valSpaceOffset: number, atomIndex: number): number {
-        return valSpaceOffset + (atomIndex * 4);
+    static getGlobalVarValueCellAddress(memory: Uint8Array, atomSpaceOffset: number, atomIndex: number): number {
+        if ((atomIndex & SEGMASK) !== 0) {
+            const valueCellPtr = (atomIndex + (NEWATOM_VALUE_PTROFF * DLWORDS_PER_LISPPTR)) & POINTERMASK;
+            return MemoryManager.Address.lispPtrToByte(valueCellPtr);
+        }
+
+        return atomSpaceOffset + ((NEWATOM_STRIDE_LISPPTRS * atomIndex) + NEWATOM_VALUE_PTROFF) * 4;
     }
 }

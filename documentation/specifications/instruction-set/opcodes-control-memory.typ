@@ -36,9 +36,9 @@ Control flow and memory operation opcodes (0x00-0x7F).
   - *Updated*: 2025-12-18 20:26 - Documented and implemented basic version
 
 === Jumps
-- *JUMP0-JUMP15 (0x80-0x8F)* [1] Unconditional jump, offset encoded in opcode (0-15). Stack: No effect.
-- *FJUMP0-FJUMP15 (0x90-0x9F)* [1] Jump if false (NIL), offset 0-15. Stack: Always pops TOS (pops regardless of condition).
-- *TJUMP0-TJUMP15 (0xA0-0xAF)* [1] Jump if true (non-NIL), offset 0-15. Stack: Always pops TOS (pops regardless of condition).
+- *JUMP0-JUMP15 (0x80-0x8F)* [1] Unconditional jump, offset encoded in opcode as a forward jump of 2-17 bytes. Stack: No effect.
+- *FJUMP0-FJUMP15 (0x90-0x9F)* [1] Jump if false (NIL), offset encoded in opcode as a forward jump of 2-17 bytes. Stack: Always pops TOS (pops regardless of condition).
+- *TJUMP0-TJUMP15 (0xA0-0xAF)* [1] Jump if true (non-NIL), offset encoded in opcode as a forward jump of 2-17 bytes. Stack: Always pops TOS (pops regardless of condition).
 - *JUMPX (0xB0)* [2] Unconditional jump, 8-bit signed offset. Stack: No effect.
   - *Operand*: 1 byte with XOR addressing (addr ^ 3)
   - *Sign-extension*: If byte >= 128, subtract 256 to get signed offset
@@ -53,6 +53,7 @@ Control flow and memory operation opcodes (0x00-0x7F).
 - TJUMP variants: Always pop TOS before checking condition. If TOS is non-NIL, jump; otherwise continue.
 - This matches C implementation: `FJUMPMACRO(x): if (TOPOFSTACK != 0) { POP; nextop1; } else { CHECK_INTERRUPT; POP; PCMACL += (x); nextop0; }`
 - The stack is popped in both branches of the conditional, ensuring TOS is always consumed.
+- Maiko's generated dispatch maps these opcode families to `JUMPMACRO(2..17)`, `FJUMPMACRO(2..17)`, and `TJUMPMACRO(2..17)`. `TJUMP1`, for example, advances to `PC + 3`, not `PC + 2`.
 
 === Other Control
 - *UNWIND (0x07)* [3] Unwind stack to specified frame.
@@ -152,6 +153,15 @@ Control flow and memory operation opcodes (0x00-0x7F).
   - GC errors are non-fatal (caught and ignored)
   - C: `N_OP_gvarset` in `maiko/src/gvar2.c`
 - *ACONST (0x67)* [3 or 5] Atom index. Push atom constant.
+- *SIC (0x6C)* [2] Small positive immediate. Format: `[opcode][imm8]`.
+  - Pushes `S_POSITIVE | imm8`
+  - Uses `nextop2`, so the operand byte remains part of the instruction stream
+- *SNIC (0x6D)* [2] Small negative immediate. Format: `[opcode][imm8]`.
+  - Pushes `S_NEGATIVE | 0xff00 | imm8`
+  - Uses `nextop2`
+- *SICX (0x6E)* [3] Extended small positive immediate. Format: `[opcode][imm16]`.
+  - Pushes `S_POSITIVE | imm16`
+  - Uses `Get_DLword_PCMAC1` and advances with `nextop3`
 - *GCONST (0x6F)* [3] Atom index (2B). Push global constant.
 
 === Variable Setting

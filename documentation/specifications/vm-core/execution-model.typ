@@ -10,6 +10,8 @@ Complete specification of the VM execution model, including the dispatch loop al
 
 The execution model defines how the VM executes bytecode instructions. The core is the dispatch loop that continuously fetches, decodes, and executes instructions until the program terminates or an error occurs.
 
+*CRITICAL*: `TopOfStack` is a cached execution value, not a field that should be blindly reloaded from memory before every opcode. Implementations may restore it when returning to the dispatch loop from a context that saved `CurrentStackPTR`, but an unconditional "sync from `(CSTKPTRL - 1)` before each instruction" will clobber legitimate opcode results such as `GVAR` immediately before the next consumer executes.
+
 == Dispatch Loop Algorithm
 
 === High-Level Algorithm

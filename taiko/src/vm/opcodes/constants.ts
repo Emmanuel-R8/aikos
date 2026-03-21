@@ -4,7 +4,7 @@ import type { Instruction } from '../dispatch/opcode';
 import { Opcode } from '../dispatch/opcode';
 import { registerOpcodeHandler } from './index';
 import { pushStack } from './stack_helpers';
-import { MemoryManager } from '../memory/manager';
+import { S_NEGATIVE, S_POSITIVE } from '../../utils/constants';
 
 /**
  * NIL opcode handler
@@ -50,18 +50,32 @@ function handleCONST_1(vm: VM, instruction: Instruction): number | null {
  * Per C: ACONST(Get_AtomNo_PCMAC1) macro
  */
 function handleACONST(vm: VM, instruction: Instruction): number | null {
-    if (vm.virtualMemory === null) return null;
-
-    // Read atom number from operand (PC+1 with XOR addressing)
-    const atomNoByte = MemoryManager.Access.readByteXor(vm.virtualMemory, vm.pc + 1);
-    if (atomNoByte === null) return null;
+    if (instruction.operands.length < 1) return null;
 
     // Push atom as SMALLP (S_POSITIVE | atom_index)
     // Per C: PUSH(S_POSITIVE | Get_AtomNo_PCMAC1)
-    const S_POSITIVE = 0xE00000; // Small positive number tag
-    const atomValue = S_POSITIVE | atomNoByte;
+    const atomValue = S_POSITIVE | instruction.operands[0];
     pushStack(vm, atomValue);
 
+    return null;
+}
+
+function handleSIC(vm: VM, instruction: Instruction): number | null {
+    if (instruction.operands.length < 1) return null;
+    pushStack(vm, S_POSITIVE | instruction.operands[0]);
+    return null;
+}
+
+function handleSNIC(vm: VM, instruction: Instruction): number | null {
+    if (instruction.operands.length < 1) return null;
+    pushStack(vm, S_NEGATIVE | 0xff00 | instruction.operands[0]);
+    return null;
+}
+
+function handleSICX(vm: VM, instruction: Instruction): number | null {
+    if (instruction.operands.length < 2) return null;
+    const value = (instruction.operands[0] << 8) | instruction.operands[1];
+    pushStack(vm, S_POSITIVE | value);
     return null;
 }
 
@@ -71,3 +85,6 @@ registerOpcodeHandler(Opcode.T, handleT);
 registerOpcodeHandler(Opcode.CONST_0, handleCONST_0);
 registerOpcodeHandler(Opcode.CONST_1, handleCONST_1);
 registerOpcodeHandler(Opcode.ACONST, handleACONST);
+registerOpcodeHandler(Opcode.SIC, handleSIC);
+registerOpcodeHandler(Opcode.SNIC, handleSNIC);
+registerOpcodeHandler(Opcode.SICX, handleSICX);

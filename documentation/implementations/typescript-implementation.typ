@@ -2,7 +2,7 @@
 
 *Navigation*: Implementations README | Main README
 
-*Date*: 2026-03-21 20:00 *Status*: ACTIVE - Bun-based parity work in progress *Location*: `taiko/` *Build
+*Date*: 2026-03-21 23:14 *Status*: ACTIVE - Bun-based parity work in progress *Location*: `taiko/` *Build
 System*: TypeScript/Bun *Target Platform*: Browser/WebGL plus Bun-based CLI and tests
 
 == Overview
@@ -61,7 +61,7 @@ Format:
 
 *Status*: Active Bun-based validation
 
-- Current Bun status after the startup/sysout slice: `59 pass, 1 skip, 0 fail`
+- Current Bun status after the startup/control-flow slice: `64 pass, 1 skip, 0 fail`
 - The newly stabilized area is frame-relative address calculation:
   - shared stack offset <-> byte helpers
   - explicit `CURRENTFX` tracking in VM state
@@ -179,6 +179,22 @@ TypeScript-specific outcomes:
 - Taiko now survives the old startup `UNBIND` frontier and reaches a later control-flow divergence after 8 startup steps (`PC = 0xfffe`)
 - the next parity slice is therefore no longer about sysout decoding or binding markers; it is about the later startup execution semantics that drive Taiko off the real control-flow path
 
+=== 2026-03-21 23:14 - Startup Control-Flow Alignment Slice
+
+The next Taiko slice corrected several instruction-stream mistakes that still pushed the real startup path off the C trace after the earlier `GVAR` and `UNBIND` fixes.
+
+TypeScript-specific outcomes:
+
+- `AtomSpaceManager` now uses the runtime `atomSpaceOffset` supplied by the loaded sysout instead of a stale compile-time base
+- `GVAR` and `GVAR_` now pass `vm.atomSpaceOffset` into atom-space helpers, so startup atom `522` resolves to the same `0x140000` value that Maiko pushes
+- the execution loop no longer reloads cached `TOPOFSTACK` from memory before every instruction, which had been overwriting real opcode results between steps
+- base-memory opcodes now treat the live TOS value as a LispPTR base and convert it to a byte offset only after applying the opcode's field offset
+- `GETBASE_N`, `GETBASEPTR_N`, `PUTBASE_N`, and `PUTBASEPTR_N` are now decoded as 2-byte instructions, which removes false opcode decodes from operand bytes
+- the optimized `JUMP`, `FJUMP`, and `TJUMP` families now use Maiko's actual encoded forward offsets of 2-17 bytes instead of treating them as 1-16 byte jumps
+- `SIC`, `SNIC`, and `SICX` are now implemented with the correct immediate widths, letting the real startup prefix continue through the later compare block instead of desynchronizing on the operand byte
+- the real-sysout Bun regression now checks a longer matched prefix: `POP`, `GVAR`, `UNBIND`, `GETBASEPTR_N`, `COPY`, `TJUMP1`, `COPY`, `CONST_1`, `EQ`, `FJUMP7`, `COPY`, `SIC`, `EQ`, `FJUMP7`
+- the current startup frontier has moved beyond `0x60f14d`, so the next mismatch is later in the compare sequence rather than in the first branch/immediate block
+
 == Related Documentation
 
 - Trace Format: `documentation/specifications/vm-core/trace-and-logging-formats.typ`
@@ -192,4 +208,4 @@ TypeScript-specific outcomes:
 3. Reduce startup-path heuristics by replacing entry-point guessing with more direct sysout/runtime evidence where available
 4. Extend real-sysout validation from "first matched execution steps" to a longer matched startup prefix
 
-*Last Updated*: 2026-03-21 22:50
+*Last Updated*: 2026-03-21 23:14
