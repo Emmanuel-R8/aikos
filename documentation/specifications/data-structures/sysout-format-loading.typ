@@ -136,6 +136,7 @@ Real sysout files may leave the stack area sparse even when the IFPAGE contains 
 1. The loader may legitimately return a provisional `initialPC` of `0` because the frame payload is not yet materialized in loaded memory.
 2. The runtime startup path must then synthesize the necessary free-stack-block / frame state before restoring execution.
 3. Once a valid frame exists, `PC` must be restored using the `FastRetCALL` rule from the function-call specification: `PC = FuncObj + CURRENTFX->pc`.
+4. If the runtime synthesizes a brand-new frame around a discovered entry function instead of restoring a saved one, it should seed the frame `pc` slot with `startpc + 1` so the first byte fetch lands on the function's first executable opcode.
 
 So, a zero loader-time `initialPC` does not by itself prove that the sysout is invalid; it can simply indicate that final startup state must be completed by the runtime initializer rather than by the file loader alone.
 

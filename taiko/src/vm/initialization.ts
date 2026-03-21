@@ -543,7 +543,7 @@ function locateEntryPoint(vm: VM, ifpage: IFPAGE): { fnheaderOffset: number; pcO
                                     if (consecutiveLoadedPages >= 3) {
                                         candidates.push({
                                             fnheaderOffset: offset,
-                                            pcOffset: 0,
+                                            pcOffset: startpc + 1,
                                             consecutivePages: consecutiveLoadedPages,
                                             startpc: startpc
                                         });

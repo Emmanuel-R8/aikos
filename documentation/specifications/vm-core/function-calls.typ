@@ -134,6 +134,8 @@ Two consequences matter for parity implementations:
 
 This rule applies both during ordinary returns and during startup paths that reconstruct execution state from a saved or synthesized frame.
 
+For freshly entered functions, Maiko seeds execution differently: the entry opcodes (`FN0`-`FN4`, `FNX`, `FNAPPLY`) jump to `FuncObj + startpc + 1`. So if a runtime has to synthesize a new startup frame around a discovered function header rather than restoring an already-saved frame, the synthetic `CURRENTFX->pc` value should be initialized to `startpc + 1`, not `0` and not raw `startpc`.
+
 == Function Call Process
 
 === Step 1: Save Current State

@@ -1,6 +1,7 @@
 // Sysout loading tests
 import { describe, test, expect } from 'bun:test';
 import { loadSysout } from '../src/io/sysout';
+import { decodeInstructionFromMemory } from '../src/vm/dispatch/decoder';
 import { initializeVM } from '../src/vm/initialization';
 import { VM } from '../src/vm/vm';
 import { IFPAGE_KEYVAL, IFPAGE_ADDRESS, BYTESPER_PAGE, ATOMS_OFFSET, DEFS_OFFSET, VALS_OFFSET, PLIS_OFFSET, DTD_OFFSET } from '../src/utils/constants';
@@ -116,6 +117,7 @@ describe('Sysout Loading', () => {
             expect(vm.pc).toBeGreaterThan(0);
             expect(vm.funcObj).not.toBeNull();
             expect(vm.currentFrameOffset).not.toBeNull();
+            expect(decodeInstructionFromMemory(vm, vm.pc)).not.toBeNull();
         } catch (err: any) {
             // If the real sysout does not match the current loader assumptions
             // (e.g. different IFPAGE layout), treat this as a skipped integration

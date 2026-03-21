@@ -121,6 +121,17 @@ TypeScript-specific outcomes:
 - the real-sysout Bun test now validates the actual runtime startup path (`loadSysout()` plus `initializeVM()`), not just the provisional loader hint values
 - `starter.sysout` now initializes to a non-zero `PC` under the Bun test environment
 
+=== 2026-03-21 20:35 - First Starter Instruction Slice
+
+The next Taiko slice closed the gap between "startup initializes" and "startup lands on a real first instruction".
+
+TypeScript-specific outcomes:
+
+- synthetic startup entry-point discovery now seeds `CURRENTFX->pc` with `startpc + 1`, matching Maiko's ordinary `FNx` entry convention
+- the real `starter.sysout` startup path now lands on a decodable opcode instead of on function-header data
+- the real-sysout Bun test now checks that `decodeInstructionFromMemory(vm, vm.pc)` succeeds after `initializeVM()`
+- this gives Taiko a stable first instruction boundary for the next parity slice
+
 == Related Documentation
 
 - Trace Format: `documentation/specifications/vm-core/trace-and-logging-formats.typ`
@@ -129,9 +140,9 @@ TypeScript-specific outcomes:
 
 == Next Steps
 
-1. Continue opcode and runtime parity work under Bun now that real sysout startup no longer blocks initialization
+1. Continue opcode and runtime parity work under Bun now that real sysout startup reaches a real first instruction
 2. Re-run parity comparisons against the C reference as each slice lands
 3. Reduce startup-path heuristics by replacing entry-point guessing with more direct sysout/runtime evidence where available
-4. Extend real-sysout validation beyond initialization into the first executed instruction stream
+4. Extend real-sysout validation from "first decodable instruction" to "first matched execution steps"
 
-*Last Updated*: 2026-03-21 20:15
+*Last Updated*: 2026-03-21 20:35
