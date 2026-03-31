@@ -3,6 +3,7 @@ import type { VM } from './vm';
 import { decodeInstructionFromMemory } from './dispatch/decoder';
 import type { Instruction } from './dispatch/opcode';
 import { routeOpcode } from './opcodes/index';
+import { popStack } from './opcodes/stack_helpers';
 import type { ExecutionTrace } from './trace';
 
 // Import opcode handlers to register them
@@ -43,27 +44,25 @@ function executeOpcode(vm: VM, instruction: Instruction): number | null {
     const jumpOffset = routeOpcode(vm, instruction);
 
     // Handle optimized jump opcodes if no handler registered
-    if (jumpOffset === null) {
-        const opcode = instruction.opcode;
+        if (jumpOffset === null) {
+            const opcode = instruction.opcode;
 
         // Handle jump opcodes
         if (opcode >= 0x80 && opcode <= 0x8F) {
-            // JUMP0-JUMP15: offset encoded in opcode (0-15)
-            return (opcode - 0x80) + 1; // +1 because offset is 1-based
+            // JUMP0-JUMP15 encode 2-17 byte jumps in Maiko's dispatch table.
+            return (opcode - 0x80) + 2;
         }
         if (opcode >= 0x90 && opcode <= 0x9F) {
-            // FJUMP0-FJUMP15: conditional jump if false
-            if (vm.topOfStack === 0) { // NIL = false
-                return (opcode - 0x90) + 1;
-            }
-            return null;
+            // FJUMP0-FJUMP15 encode 2-17 byte jumps in Maiko's dispatch table.
+            const shouldJump = vm.topOfStack === 0;
+            popStack(vm);
+            return shouldJump ? (opcode - 0x90) + 2 : null;
         }
         if (opcode >= 0xA0 && opcode <= 0xAF) {
-            // TJUMP0-TJUMP15: conditional jump if true
-            if (vm.topOfStack !== 0) { // Non-NIL = true
-                return (opcode - 0xA0) + 1;
-            }
-            return null;
+            // TJUMP0-TJUMP15 encode 2-17 byte jumps in Maiko's dispatch table.
+            const shouldJump = vm.topOfStack !== 0;
+            popStack(vm);
+            return shouldJump ? (opcode - 0xA0) + 2 : null;
         }
     }
 
@@ -92,10 +91,6 @@ export function executeStep(vm: VM, tracer?: ExecutionTrace): boolean {
     if (vm.stopRequested) {
         return false;
     }
-
-    // CRITICAL: Sync CSTKPTRL and TOPOFSTACK before each instruction
-    vm.initCSTKPTRLFromCurrentStackPTR();
-    vm.syncTopOfStack();
 
     // Decode instruction at PC
     const instruction = decodeInstructionFromMemory(vm, vm.pc);

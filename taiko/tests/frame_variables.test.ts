@@ -21,9 +21,10 @@ describe('Frame Variable Access', () => {
         );
 
         // Set up a test frame
-        vm.stackPtr = vm.stackBase - FRAMESIZE_BYTES - 40; // Frame + some PVARs
-        vm.pvar = vm.stackPtr;
-        vm.cstkptrl = vm.stackPtr;
+        vm.currentFrameOffset = vm.stackBase + 0x40;
+        vm.pvar = vm.currentFrameOffset + FRAMESIZE_BYTES;
+        vm.stackPtr = vm.pvar;
+        vm.cstkptrl = vm.pvar;
     });
 
     describe('PVAR Access', () => {
@@ -108,14 +109,14 @@ describe('Frame Variable Access', () => {
     describe('Frame Information', () => {
         beforeEach(() => {
             // Set up frame structure
-            const fxOffset = vm.pvar! - FRAMESIZE_BYTES;
+            const fxOffset = vm.currentFrameOffset!;
             MemoryManager.Access.writeDLword(memory, fxOffset + 2, 0x1234); // alink
             MemoryManager.Access.writeDLword(memory, fxOffset + 16, 0x5678); // blink
         });
 
         test('gets current FX offset', () => {
             const fxOffset = FrameManager.getCurrentFX(vm);
-            expect(fxOffset).toBe(vm.pvar! - FRAMESIZE_BYTES);
+            expect(fxOffset).toBe(vm.currentFrameOffset);
         });
 
         test('reads alink from frame', () => {
@@ -142,6 +143,21 @@ describe('Frame Variable Access', () => {
 
             // Should return SMALLP
             expect((alink & S_POSITIVE) !== 0).toBe(true);
+        });
+
+        test('derives PVAR and IVAR offsets from frame helpers', () => {
+            const fxOffset = vm.currentFrameOffset!;
+            const nextblock = 0x0020;
+            MemoryManager.Access.writeDLword(memory, fxOffset + 8, nextblock);
+            MemoryManager.Access.writeDLword(memory, fxOffset - 4, nextblock + 1);
+
+            expect(FrameManager.getPVarOffsetFromFX(fxOffset)).toBe(vm.pvar);
+            expect(FrameManager.getIVarOffsetFromFrame(vm, nextblock)).toBe(
+                MemoryManager.Address.stackOffsetToByte(vm.stackBase, nextblock),
+            );
+            expect(FrameManager.getIVarOffsetFromBF(vm, fxOffset)).toBe(
+                MemoryManager.Address.stackOffsetToByte(vm.stackBase, nextblock + 1),
+            );
         });
     });
 });

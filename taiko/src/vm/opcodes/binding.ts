@@ -93,28 +93,26 @@ function handleBIND(vm: VM, instruction: Instruction): number | null {
  * 3. Restore PVAR slots to unbound state (0xFFFFFFFF)
  */
 function handleUNBIND(vm: VM, instruction: Instruction): number | null {
-    if (vm.virtualMemory === null || vm.cstkptrl === null) return null;
+    if (vm.virtualMemory === null || vm.cstkptrl === null || vm.pvar === null) return null;
 
-    // CRITICAL: Walk backwards through stack to find BIND marker
-    // C: for (; !(*--stack_pointer & 0x80000000););
-    // Marker has MSB (0x80000000) set in upper word
+    // C: for (; (((int)*--CSTKPTRL) >= 0);) ;
+    // Search from the current evaluation-stack pointer toward older cells.
     let markerFound = false;
     let markerValue = 0;
     let searchOffset = vm.cstkptrl;
 
-    // Search for marker (scan backwards)
     for (let i = 0; i < 1000; i++) { // Safety limit
-        searchOffset -= 4; // Decrement by 4 bytes (LispPTR size)
-        if (searchOffset < vm.stackEnd || searchOffset >= vm.stackBase) {
-            break; // Out of bounds
+        searchOffset -= 4;
+        if (searchOffset < vm.stackBase || searchOffset + 4 > vm.virtualMemory.length) {
+            break;
         }
 
         const value = MemoryManager.Access.readLispPTR(vm.virtualMemory, searchOffset);
-        if ((value & 0x80000000) !== 0) {
-            // Found marker (MSB set)
+        if ((value | 0) < 0) {
             markerFound = true;
-            markerValue = value;
-            vm.cstkptrl = searchOffset; // Update CSTKPTRL to marker position
+            markerValue = value >>> 0;
+            vm.cstkptrl = searchOffset;
+            vm.stackPtr = searchOffset;
             break;
         }
     }
@@ -126,27 +124,20 @@ function handleUNBIND(vm: VM, instruction: Instruction): number | null {
 
     // Extract marker information
     // C: num = (DLword) ~(value >> 16);
-    const num = (~(markerValue >> 16)) & 0xFFFF;
-    const offset = (markerValue & 0xFFFF) >> 1; // Extract offset (was << 1)
+    const num = ((~markerValue) >>> 16) & 0xFFFF;
+    const offset = (markerValue & 0xFFFF) >> 1;
 
-    // Setup PVAR pointer for restoration
-    // C: ppvar = (LispPTR *)(PVar + 2 + GetLoWord(value));
-    const pvarBase = vm.stackPtr + (10 * 2); // FRAMESIZE = 10 DLwords
-    const ppvarOffset = pvarBase + ((2 + offset) * 4);
+    // C: ppvar = (LispPTR *)((DLword *)PVAR + 2 + GetLoWord(value));
+    // `offset` is byte2, so convert it back to LispPTR cell spacing from PVAR.
+    let ppvarOffset = vm.pvar + 4 + (offset * 4);
 
-    // Restore PVAR slots to unbound state (0xFFFFFFFF)
-    // C: for (i = 0; i < num; i++) { *--ppvar = 0xffffffff; }
     const unboundValue = 0xFFFFFFFF;
-    for (let i = 0; i < num; i++) {
-        const slotOffset = ppvarOffset - ((i + 1) * 4);
-        if (slotOffset >= 0 && slotOffset + 4 <= vm.virtualMemory.length) {
-            MemoryManager.Access.writeLispPTR(vm.virtualMemory, slotOffset, unboundValue);
+    for (let i = num; --i >= 0;) {
+        ppvarOffset -= 4;
+        if (ppvarOffset >= 0 && ppvarOffset + 4 <= vm.virtualMemory.length) {
+            MemoryManager.Access.writeLispPTR(vm.virtualMemory, ppvarOffset, unboundValue);
         }
     }
-
-    // CRITICAL: Sync TOPOFSTACK after UNBIND
-    // UNBIND may have changed CSTKPTRL, so we need to re-read TOPOFSTACK
-    vm.syncTopOfStack();
 
     return null;
 }

@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.vm)
+(in-package :laiko.vm)
 
 ;; Constant operations
 ;; aconst, sic, snic, sicx, gconst, makenumber, swap, nop, cl_equal
@@ -7,22 +7,54 @@
 ;; ATOM CONSTANT
 ;;; ===========================================================================
 
-(defop aconst #x67 3
+(defop aconst :hexcode #x67 :instruction-length 5
   "ACONST: Push atom constant onto stack.
-Reads 2-byte atom index from instruction stream.
+Reads 4-byte atom index from instruction stream on BIGVM/BIGATOMS.
 Pushes the atom index as a Lisp pointer."
-  :operands ((atom-index :atom-index "Atom index (2 bytes)"))
+  :operands ((atom-index :uint32-be "Atom index (4 bytes, big-endian)"))
   :stack-effect (:push 1)
   :category :constants
   :side-effects nil
-  (let ((atom-idx (read-pc-16-be vm)))
+  (let ((atom-idx (read-pc-32-be vm)))
     (push-stack vm atom-idx)))
+
+(defop nil-op :hexcode #x68 :instruction-length 1
+  "NIL: Push NIL (0)."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :constants
+  :side-effects nil
+  (push-stack vm 0))
+
+(defop t-op :hexcode #x69 :instruction-length 1
+  "T: Push T (Atom T)."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :constants
+  :side-effects nil
+  (push-stack vm laiko.data:+atom-t-index+))
+
+(defop zero :hexcode #x6A :instruction-length 1
+  "ZERO: Push 0 (Small Integer)."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :constants
+  :side-effects nil
+  (push-stack vm #xE0000))
+
+(defop one :hexcode #x6B :instruction-length 1
+  "ONE: Push 1 (Small Integer)."
+  :operands nil
+  :stack-effect (:push 1)
+  :category :constants
+  :side-effects nil
+  (push-stack vm #xE0001))
 
 ;;; ===========================================================================
 ;; SMALL INTEGER CONSTANTS
 ;;; ===========================================================================
 
-(defop sic #x6C 2
+(defop sic :hexcode #x6C :instruction-length 2
   "SIC: Small Integer Constant (positive).
 Reads 1-byte value, pushes as SMALLPOSP.
 Format: (value | #xE0000) where #xE0000 = S_POSITIVE."
@@ -33,7 +65,7 @@ Format: (value | #xE0000) where #xE0000 = S_POSITIVE."
   (let ((val (read-pc-8 vm)))
     (push-stack vm (logior #xE0000 val))))
 
-(defop snic #x6D 2
+(defop snic :hexcode #x6D :instruction-length 2
   "SNIC: Small Negative Integer Constant.
 Reads 1-byte value, pushes as SMALLNEG.
 Format: (value | #xFF00) for negative values."
@@ -44,7 +76,7 @@ Format: (value | #xFF00) for negative values."
   (let ((val (read-pc-8 vm)))
     (push-stack vm (logior #xFF00 val))))
 
-(defop sicx #x6E 3
+(defop sicx :hexcode #x6E :instruction-length 3
   "SICX: Small Integer Constant Extended.
 Reads 2-byte value, pushes as SMALLPOSP.
 Format: (value | #xE0000) for larger positive integers."
@@ -59,7 +91,7 @@ Format: (value | #xE0000) for larger positive integers."
 ;; GLOBAL CONSTANT
 ;;; ===========================================================================
 
-(defop gconst #x6F 3
+(defop gconst :hexcode #x6F :instruction-length 3
   "GCONST: Global Constant.
 Reads 2-byte index, looks up global constant value.
 Pushes the constant value onto stack."
@@ -75,7 +107,7 @@ Pushes the constant value onto stack."
 ;; NUMBER CONSTRUCTION
 ;;; ===========================================================================
 
-(defop makenumber #xF5 1
+(defop makenumber :hexcode #xF5 :instruction-length 1
   "MAKENUMBER: Construct number from raw value.
 Pops value, applies number tag, pushes result."
   :operands nil
@@ -89,7 +121,7 @@ Pops value, applies number tag, pushes result."
 ;; STACK MANIPULATION
 ;;; ===========================================================================
 
-(defop swap #xFD 1
+(defop swap :hexcode #xFD :instruction-length 1
   "SWAP: Exchange top two stack values.
 Pops A, pops B, pushes A, pushes B."
   :operands nil
@@ -105,7 +137,7 @@ Pops A, pops B, pushes A, pushes B."
 ;; MISC
 ;;; ===========================================================================
 
-(defop nop #xFE 1
+(defop nop :hexcode #xFE :instruction-length 1
   "NOP: No operation.
 Does nothing, advances PC by 1."
   :operands nil
@@ -114,7 +146,7 @@ Does nothing, advances PC by 1."
   :side-effects nil
   nil)
 
-(defop cl-equal #xFF 1
+(defop cl-equal :hexcode #xFF :instruction-length 1
   "CL_EQUAL: Common Lisp EQUAL (case-insensitive string compare).
 Pops B and A, pushes T if equal, NIL otherwise."
   :operands nil
@@ -130,14 +162,4 @@ Pops B and A, pushes T if equal, NIL otherwise."
 ;; HELPER FUNCTIONS
 ;;; ===========================================================================
 
-(defun read-pc-8 (vm)
-  "Read 8-bit value from PC and advance PC by 1."
-  (declare (type vm vm))
-  ;; Placeholder - actual implementation depends on VM structure
-  0)
-
-(defun read-pc-16-be (vm)
-  "Read 16-bit big-endian value from PC and advance PC by 2."
-  (declare (type vm vm))
-  ;; Placeholder
-  0)
+;; Helper functions moved to laiko/src/vm/dispatch.lisp

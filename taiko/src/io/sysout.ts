@@ -17,6 +17,10 @@ export interface SysoutLoadResult {
     dtdOffset: number; // Byte offset of DTD space in virtual memory
 }
 
+function readSwappedDLword(memory: Uint8Array, offset: number): number {
+    return MemoryManager.Access.readDLword(memory, offset ^ 2);
+}
+
 /**
  * Parse IFPAGE from sysout file
  * IFPAGE is located at offset 512 bytes from start
@@ -24,73 +28,74 @@ export interface SysoutLoadResult {
 function parseIFPAGE(buffer: ArrayBuffer, offset: number): IFPAGE | null {
     const view = new DataView(buffer, offset);
 
-    // Read IFPAGE structure as big-endian (sysout files are big-endian)
-    // Per C: word_swap_page() swaps bytes for BYTESWAP builds, but we read directly as big-endian
-    // See maiko/inc/ifpage.h lines 257-328
+    // Read IFPAGE structure in file order as big-endian.
+    // Because we parse directly from the big-endian sysout bytes, the field
+    // order matches the normal on-disk IFPAGE definition rather than the host
+    // BYTESWAP in-memory struct layout used by Maiko after loading.
     const ifpage: IFPAGE = {
-        resetfxp: view.getUint16(0, false), // big-endian
-        currentfxp: view.getUint16(2, false),
-        kbdfxp: view.getUint16(4, false),
-        subovfxp: view.getUint16(6, false),
-        gcfxp: view.getUint16(8, false),
-        hardreturnfxp: view.getUint16(10, false),
-        endofstack: view.getUint16(12, false),
-        faultfxp: view.getUint16(14, false),
-        minrversion: view.getUint16(16, false),
-        lversion: view.getUint16(18, false),
-        rversion: view.getUint16(20, false),
-        minbversion: view.getUint16(22, false),
-        machinetype: view.getUint16(24, false),
-        bversion: view.getUint16(26, false),
-        key: view.getUint16(30, false), // big-endian: at offset 30 (0x1E), should read 0x15e3
-        miscfxp: view.getUint16(28, false), // miscfxp is at offset 28
-        emulatorspace: view.getUint16(32, false),
-        serialnumber: view.getUint16(34, false),
-        nxtpmaddr: view.getUint16(36, false),
-        screenwidth: view.getUint16(38, false),
-        ndirtypages: view.getUint16(40, false),
-        nactivepages: view.getUint16(42, false),
-        filepnpmt0: view.getUint16(44, false),
-        filepnpmp0: view.getUint16(46, false),
+        currentfxp: view.getUint16(0, false),
+        resetfxp: view.getUint16(2, false),
+        subovfxp: view.getUint16(4, false),
+        kbdfxp: view.getUint16(6, false),
+        hardreturnfxp: view.getUint16(8, false),
+        gcfxp: view.getUint16(10, false),
+        faultfxp: view.getUint16(12, false),
+        endofstack: view.getUint16(14, false),
+        lversion: view.getUint16(16, false),
+        minrversion: view.getUint16(18, false),
+        minbversion: view.getUint16(20, false),
+        rversion: view.getUint16(22, false),
+        bversion: view.getUint16(24, false),
+        machinetype: view.getUint16(26, false),
+        miscfxp: view.getUint16(28, false),
+        key: view.getUint16(30, false),
+        serialnumber: view.getUint16(32, false),
+        emulatorspace: view.getUint16(34, false),
+        screenwidth: view.getUint16(36, false),
+        nxtpmaddr: view.getUint16(38, false),
+        nactivepages: view.getUint16(40, false),
+        ndirtypages: view.getUint16(42, false),
+        filepnpmp0: view.getUint16(44, false),
+        filepnpmt0: view.getUint16(46, false),
         filler1: view.getUint16(48, false),
         teleraidfxp: view.getUint16(50, false),
-        filler3: view.getUint16(52, false),
-        filler2: view.getUint16(54, false),
-        userpswdaddr: view.getUint16(56, false),
-        usernameaddr: view.getUint16(58, false),
-        faulthi: view.getUint16(60, false),
-        stackbase: view.getUint16(62, false),
-        devconfig: view.getUint16(64, false),
-        faultlo: view.getUint16(66, false),
-        rpoffset: view.getUint16(68, false),
-        rptsize: view.getUint16(70, false),
-        embufvp: view.getUint16(72, false),
-        wasrptlast: view.getUint16(74, false),
-        nshost1: view.getUint16(76, false),
-        nshost0: view.getUint16(78, false),
-        mdszone: view.getUint16(80, false),
-        nshost2: view.getUint16(82, false),
-        emubuffers: view.getUint16(84, false),
-        mdszonelength: view.getUint16(86, false),
+        filler2: view.getUint16(52, false),
+        filler3: view.getUint16(54, false),
+        usernameaddr: view.getUint16(56, false),
+        userpswdaddr: view.getUint16(58, false),
+        stackbase: view.getUint16(60, false),
+        faulthi: view.getUint16(62, false),
+        faultlo: view.getUint16(64, false),
+        devconfig: view.getUint16(66, false),
+        rptsize: view.getUint16(68, false),
+        rpoffset: view.getUint16(70, false),
+        wasrptlast: view.getUint16(72, false),
+        embufvp: view.getUint16(74, false),
+        nshost0: view.getUint16(76, false),
+        nshost1: view.getUint16(78, false),
+        nshost2: view.getUint16(80, false),
+        mdszone: view.getUint16(82, false),
+        mdszonelength: view.getUint16(84, false),
+        emubuffers: view.getUint16(86, false),
         process_size: view.getUint16(88, false),
         emubuflength: view.getUint16(90, false),
-        isfmap: view.getUint16(92, false),
-        storagefullstate: view.getUint16(94, false),
+        storagefullstate: view.getUint16(92, false),
+        isfmap: view.getUint16(94, false),
         miscstackfn: view.getUint32(96, false), // big-endian
         miscstackarg1: view.getUint32(100, false),
         miscstackarg2: view.getUint32(104, false),
         miscstackresult: view.getUint32(108, false),
-        lastlockedfilepage: view.getUint16(112, false),
-        nrealpages: view.getUint16(114, false),
-        fptovpstart: view.getUint16(116, false),
-        lastdominofilepage: view.getUint16(118, false),
-        dl24bitaddressable: view.getUint16(120, false),
-        fakemousebits: view.getUint16(122, false),
+        nrealpages: view.getUint16(112, false),
+        lastlockedfilepage: view.getUint16(114, false),
+        lastdominofilepage: view.getUint16(116, false),
+        fptovpstart: view.getUint16(118, false),
+        fakemousebits: view.getUint16(120, false),
+        dl24bitaddressable: view.getUint16(122, false),
         realpagetableptr: view.getUint32(124, false), // big-endian
-        fullspaceused: view.getUint16(128, false),
-        dllastvmempage: view.getUint16(130, false),
-        fakekbdad5: view.getUint16(132, false),
-        fakekbdad4: view.getUint16(134, false),
+        dllastvmempage: view.getUint16(128, false),
+        fullspaceused: view.getUint16(130, false),
+        fakekbdad4: view.getUint16(132, false),
+        fakekbdad5: view.getUint16(134, false),
     };
 
     // Validate IFPAGE key
@@ -144,13 +149,11 @@ function loadFPtoVPTable(buffer: ArrayBuffer, ifpage: IFPAGE, fileSize: number):
     const numEntries = Math.floor(actualReadSize / 4);
     const fptovpTable = new Uint32Array(numEntries);
 
-    // Read entries as big-endian and byte-swap
+    // Read entries as big-endian.
+    // DataView already returns the logical numeric value, so do not swap again.
     const view = new DataView(buffer, fptovpOffset, actualReadSize);
     for (let i = 0; i < numEntries; i++) {
-        // Read as big-endian from sysout file
-        const bigEndianValue = view.getUint32(i * 4, false);
-        // Swap to little-endian for our use
-        fptovpTable[i] = MemoryManager.Endianness.swapU32(bigEndianValue);
+        fptovpTable[i] = view.getUint32(i * 4, false);
     }
 
 
@@ -240,13 +243,13 @@ function loadVirtualMemory(buffer: ArrayBuffer, fptovpTable: Uint32Array, ifpage
         // Write page to virtual memory
         virtualMemory.set(pageData, virtualOffset);
 
-        // Byte-swap page (sysout is big-endian, we need little-endian)
+        // Byte-swap page (sysout is big-endian, memory is little-endian)
         // Per C: word_swap_page((DLword *)(lispworld_scratch + lispworld_offset), 128)
         // 128 = BYTESPER_PAGE / 4 (number of 32-bit words per page)
         const pageView = new DataView(virtualMemory.buffer, virtualMemory.byteOffset + virtualOffset, BYTESPER_PAGE);
         for (let wordOffset = 0; wordOffset < BYTESPER_PAGE; wordOffset += 4) {
             const word = pageView.getUint32(wordOffset, false); // Read as big-endian
-            pageView.setUint32(wordOffset, MemoryManager.Endianness.swapU32(word), true); // Write as little-endian
+            pageView.setUint32(wordOffset, word, true); // Write host-order little-endian bytes
         }
 
         pagesLoaded++;
@@ -258,8 +261,8 @@ function loadVirtualMemory(buffer: ArrayBuffer, fptovpTable: Uint32Array, ifpage
 }
 
 /**
- * Initialize PC from current frame
- * Per C: start_lisp() -> FastRetCALL -> reads CURRENTFX->fnheader -> gets startpc
+ * Initialize PC from current frame.
+ * Per C: start_lisp() -> FastRetCALL restores PC as FuncObj + CURRENTFX->pc.
  *
  * FastRetCALL logic:
  *   1. FuncObj = NativeAligned4FromLAddr(FX_FNHEADER)
@@ -302,29 +305,17 @@ function initializePC(virtualMemory: Uint8Array, ifpage: IFPAGE): number {
         return 0;
     }
 
-    // Read frame structure (FX) - need to handle byte-swapping for big-endian sysout
-    // Frame layout per maiko/inc/stack.h (non-BIGVM):
-    //   offset 0-1: flags+usecount (DLword)
-    //   offset 2-3: alink (DLword)
-    //   offset 4-5: lofnheader (DLword) - low 16 bits of function header pointer
-    //   offset 6: hi1fnheader (8 bits)
-    //   offset 7: hi2fnheader (8 bits) - high 8 bits of function header pointer
-    //   offset 8-9: nextblock (DLword)
-    //   offset 10-11: pc (DLword) - PC offset within function
-
-    // Read fnheader pointer (non-BIGVM format: lofnheader + hi2fnheader)
-    // Note: sysout is big-endian, so we need to read as big-endian
-    const view = new DataView(virtualMemory.buffer, virtualMemory.byteOffset + frameOffset);
-    const lofnheader = view.getUint16(4, false); // big-endian
-    const hi2fnheader = virtualMemory[frameOffset + 7];
-    const fnheaderPtr: LispPTR = (hi2fnheader << 16) | lofnheader;
+    // Loaded pages are 32-bit word-swapped into host order. LispPTR fields can
+    // be read as little-endian 32-bit values, while DLword fields follow the
+    // BYTESWAP GETWORD convention (address ^ 2).
+    const fnheaderPtr: LispPTR = MemoryManager.Access.readLispPTR(virtualMemory, frameOffset + 4);
 
     if (fnheaderPtr === 0) {
         return 0; // Invalid function header pointer
     }
 
     // Read pc field from frame (offset 10-11)
-    const framePc = view.getUint16(10, false); // big-endian
+    const framePc = readSwappedDLword(virtualMemory, frameOffset + 10);
 
     // Convert fnheader pointer to byte offset
     const fnheaderByteOffset = MemoryManager.Address.lispPtrToByte(fnheaderPtr);
@@ -333,14 +324,7 @@ function initializePC(virtualMemory: Uint8Array, ifpage: IFPAGE): number {
         return 0; // Invalid function header
     }
 
-    // Read function header to get startpc (big-endian)
-    const fnheaderView = new DataView(virtualMemory.buffer, virtualMemory.byteOffset + fnheaderByteOffset);
-    const startpc = fnheaderView.getUint16(6, false); // big-endian
-
-    // Calculate final PC: function header start + startpc + frame pc
-    // Per C: PC = (ByteCode *)FuncObj + CURRENTFX->pc
-    // FuncObj points to function header, so PC = fnheader_start + startpc + frame_pc
-    const finalPC = fnheaderByteOffset + startpc + framePc;
+    const finalPC = fnheaderByteOffset + framePc;
 
     return finalPC;
 }

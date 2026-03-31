@@ -1,11 +1,11 @@
-(in-package :maiko-lisp.data)
+(in-package :laiko.data)
 
 ;; Sysout utility functions
 ;; Per maiko/src/ldsout.c
 
-(defconstant +ifpage-address+ 512)
+(defconstant +ifpage-address+ #x200)
 
-(defconstant +bytesper-page+ 512)
+(defconstant +bytesper-page+ #x200)
 
 (defconstant +sysout-keyval+ #x15e3)
 
@@ -22,11 +22,11 @@
         (minbversion (ifpage-minbversion ifpage)))
     (cond
       ((< lversion +lversion+)
-       (error 'maiko-lisp.utils:sysout-load-failed
+       (error 'laiko.utils:sysout-load-failed
               :message (format nil "Lisp version ~D is too old (minimum: ~D)"
                                lversion +lversion+)))
       ((> minbversion +minbversion+)
-       (error 'maiko-lisp.utils:sysout-load-failed
+       (error 'laiko.utils:sysout-load-failed
               :message (format nil "Emulator too old (needs ~D, have ~D)"
                                minbversion +minbversion+))))
     t))

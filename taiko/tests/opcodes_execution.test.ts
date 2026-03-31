@@ -36,6 +36,14 @@ describe('Opcode Execution', () => {
         return jumpOffset;
     }
 
+    function seedTopAndPrevious(top: number, previous: number): void {
+        vm.cstkptrl = vm.stackBase - 8;
+        vm.stackPtr = vm.cstkptrl;
+        MemoryManager.Access.writeLispPTR(memory, vm.cstkptrl, top);
+        MemoryManager.Access.writeLispPTR(memory, vm.cstkptrl + 4, previous);
+        vm.topOfStack = top;
+    }
+
     describe('Stack Operations', () => {
         test('NIL pushes NIL onto stack', () => {
             vm.pc = 0x1000;
@@ -63,6 +71,14 @@ describe('Opcode Execution', () => {
 
             expect(vm.stackPtr).toBe(vm.stackBase);
             expect(vm.pc).toBe(0x1001);
+        });
+
+        test('SIC pushes a tagged small positive immediate', () => {
+            vm.pc = 0x1000;
+            runOpcode(vm, Opcode.SIC, [0x02]);
+
+            expect(vm.topOfStack).toBe(S_POSITIVE | 0x02);
+            expect(vm.pc).toBe(0x1002);
         });
     });
 
@@ -145,6 +161,24 @@ describe('Opcode Execution', () => {
     });
 
     describe('Control Flow', () => {
+        test('optimized TJUMP family uses Maiko byte offsets', () => {
+            seedTopAndPrevious(ATOM_T, 0x4c);
+
+            const jumpOffset = runOpcode(vm, Opcode.TJUMP1);
+
+            expect(jumpOffset).toBe(3);
+            expect(vm.topOfStack).toBe(0x4c);
+        });
+
+        test('optimized FJUMP family uses Maiko byte offsets', () => {
+            seedTopAndPrevious(NIL_PTR, 0x4c);
+
+            const jumpOffset = runOpcode(vm, Opcode.FJUMP7);
+
+            expect(jumpOffset).toBe(9);
+            expect(vm.topOfStack).toBe(0x4c);
+        });
+
         test('JUMPX jumps to offset', () => {
             vm.pc = 0x1000;
             const jumpOffset = runOpcode(vm, Opcode.JUMPX, [ 0x1234 ]);
@@ -154,41 +188,46 @@ describe('Opcode Execution', () => {
 
         test('FJUMPX jumps if false (NIL)', () => {
             vm.pc = 0x1000;
-            vm.topOfStack = NIL_PTR;
+            seedTopAndPrevious(NIL_PTR, 0x4c);
             const jumpOffset = runOpcode(vm, Opcode.FJUMPX, [ 0x1234 ]);
 
             expect(jumpOffset).toBe(0x1234);
+            expect(vm.topOfStack).toBe(0x4c);
         });
 
         test('FJUMPX does not jump if true (non-NIL)', () => {
             vm.pc = 0x1000;
-            vm.topOfStack = ATOM_T;
+            seedTopAndPrevious(ATOM_T, 0x4c);
             const jumpOffset = runOpcode(vm, Opcode.FJUMPX, [ 0x1234 ]);
 
             expect(jumpOffset).toBeNull();
+            expect(vm.topOfStack).toBe(0x4c);
         });
 
         test('TJUMPX jumps if true (non-NIL)', () => {
             vm.pc = 0x1000;
-            vm.topOfStack = ATOM_T;
+            seedTopAndPrevious(ATOM_T, 0x4c);
             const jumpOffset = runOpcode(vm, Opcode.TJUMPX, [ 0x1234 ]);
 
             expect(jumpOffset).toBe(0x1234);
+            expect(vm.topOfStack).toBe(0x4c);
         });
 
         test('TJUMPX does not jump if false (NIL)', () => {
             vm.pc = 0x1000;
-            vm.topOfStack = NIL_PTR;
+            seedTopAndPrevious(NIL_PTR, 0x4c);
             const jumpOffset = runOpcode(vm, Opcode.TJUMPX, [ 0x1234 ]);
 
             expect(jumpOffset).toBeNull();
+            expect(vm.topOfStack).toBe(0x4c);
         });
     });
 
     describe('Memory Operations', () => {
         test('GETBASE_N reads word from base + offset', () => {
             vm.pc = 0x1000;
-            const base = 0x5000;
+            const baseByteOffset = 0x5000;
+            const base = MemoryManager.Address.byteToLispPtr(baseByteOffset);
             const offset = 4;
             const value = 0x1234;
 
@@ -196,7 +235,7 @@ describe('Opcode Execution', () => {
             vm.cstkptrl = vm.stackPtr;
             MemoryManager.Access.writeLispPTR(memory, vm.stackPtr, base);
             vm.topOfStack = base;
-            MemoryManager.Access.writeDLword(memory, base + offset, value);
+            MemoryManager.Access.writeDLword(memory, baseByteOffset + (offset * 2), value);
 
             runOpcode(vm, Opcode.GETBASE_N, [ offset ]);
 
@@ -206,7 +245,8 @@ describe('Opcode Execution', () => {
 
         test('PUTBASE_N writes word to base + offset', () => {
             vm.pc = 0x1000;
-            const base = 0x5000;
+            const baseByteOffset = 0x5000;
+            const base = MemoryManager.Address.byteToLispPtr(baseByteOffset);
             const offset = 4;
             const value = S_POSITIVE | 0x5678;
 
@@ -218,9 +258,27 @@ describe('Opcode Execution', () => {
 
             runOpcode(vm, Opcode.PUTBASE_N, [ offset ]);
 
-            const written = MemoryManager.Access.readDLword(memory, base + offset);
+            const written = MemoryManager.Access.readDLword(memory, baseByteOffset + (offset * 2));
             expect(written).toBe(0x5678);
             expect(vm.topOfStack).toBe(base);
+        });
+
+        test('GETBASEPTR_N reads pointer from LispPTR base + offset', () => {
+            vm.pc = 0x1000;
+            const baseByteOffset = 0x5000;
+            const base = MemoryManager.Address.byteToLispPtr(baseByteOffset);
+            const offset = 2;
+            const targetPointer = MemoryManager.Address.byteToLispPtr(0x12340);
+
+            vm.stackPtr = vm.stackBase - 4;
+            vm.cstkptrl = vm.stackPtr;
+            MemoryManager.Access.writeLispPTR(memory, vm.stackPtr, base);
+            vm.topOfStack = base;
+            MemoryManager.Access.writeLispPTR(memory, baseByteOffset + (offset * 2), targetPointer);
+
+            runOpcode(vm, Opcode.GETBASEPTR_N, [ offset ]);
+
+            expect(vm.topOfStack).toBe(targetPointer);
         });
     });
 });

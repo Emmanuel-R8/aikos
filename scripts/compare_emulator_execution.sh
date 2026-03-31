@@ -42,6 +42,8 @@ rm -f "$REPO_ROOT/laiko/lisp_emulator_execution_log.txt"
 C_EMULATOR=""
 if [ -f "$REPO_ROOT/maiko/build/c/linux.x86_64/ldesdl" ]; then
 	C_EMULATOR="$REPO_ROOT/maiko/build/c/linux.x86_64/ldesdl"
+elif [ -f "$REPO_ROOT/maiko/bin/ldesdl" ]; then
+	C_EMULATOR="$REPO_ROOT/maiko/bin/ldesdl"
 elif [ -f "$REPO_ROOT/maiko/linux.x86_64/ldesdl" ]; then
 	C_EMULATOR="$REPO_ROOT/maiko/linux.x86_64/ldesdl"
 else
@@ -71,7 +73,7 @@ echo ""
 echo "=== Running C Emulator ==="
 echo "Command: $C_EMULATOR $SYSOUT_FILE"
 cd "$REPO_ROOT"
-timeout 10 "$C_EMULATOR" "$SYSOUT_FILE" >/dev/null 2>&1 || true
+timeout --signal=KILL 10 "$C_EMULATOR" "$SYSOUT_FILE" >/dev/null 2>&1 || true
 
 if [ -f "$REPO_ROOT/c_emulator_execution_log.txt" ]; then
 	C_LINES=$(wc -l <"$REPO_ROOT/c_emulator_execution_log.txt")
@@ -126,7 +128,8 @@ elif [ -f "$REPO_ROOT/zig_emulator_execution_log.txt" ]; then
 	fi
 else
 	echo "✗ Zig emulator log not created"
-	exit 1
+	# exit 1
+	ZIG_LINES=0
 fi
 
 # Optionally run Laiko emulator
@@ -140,7 +143,7 @@ if [ "$WITH_LAIKO" = true ]; then
 	else
 		echo "Command: $LAIKO_RUN $SYSOUT_PATH"
 		cd "$REPO_ROOT"
-		timeout 90 "$LAIKO_RUN" "$SYSOUT_PATH" >/dev/null 2>&1 || true
+		timeout --signal=KILL 90 "$LAIKO_RUN" "$SYSOUT_PATH" >/dev/null 2>&1 || true
 		if [ -f "$REPO_ROOT/lisp_emulator_execution_log.txt" ]; then
 			LISP_LOG="$REPO_ROOT/lisp_emulator_execution_log.txt"
 		elif [ -f "$REPO_ROOT/laiko/lisp_emulator_execution_log.txt" ]; then

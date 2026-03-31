@@ -1,7 +1,9 @@
-(in-package :maiko-lisp.utils)
+(in-package :laiko.utils)
 
 (define-condition vm-error (error)
   ((message :initarg :message :reader vm-error-message))
+  (:report (lambda (condition stream)
+             (format stream "VM Error: ~A" (vm-error-message condition))))
   (:documentation "VM execution error"))
 
 (define-condition memory-error (error)

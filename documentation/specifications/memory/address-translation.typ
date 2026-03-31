@@ -135,7 +135,46 @@ function NativeAligned4FromLAddr(lisp_address):
 
 *C Reference*: `maiko/inc/adr68k.h:49-55` - `return (void *)(Lisp_world + LAddr);`
 
-*INVESTIGATION NOTE (2025-12-12 16:45)*: There is an ongoing investigation into whether this function should actually use byte addressing: `(char *)Lisp_world + lisp_address`. See "Address Translation Investigation" section below.
+=== Stackspace Translation
+
+Stack-relative addresses use a different base than general LispPTR translation.
+
+#codeblock(lang: "pseudocode", [
+function NativeAligned2FromStackOffset(stack_offset):
+    // stack_offset is measured in DLwords from Stackspace
+    return Stackspace + stack_offset
+
+function StackOffsetFromNative(stack_address):
+    // Convert native stack address back to DLword offset from Stackspace
+    return stack_address - Stackspace
+])
+
+This distinction is critical:
+
+- General LispPTR translation uses `Lisp_world` as the base.
+- Stack offsets use `Stackspace` as the base.
+- Both are expressed in DLword units, but they are not interchangeable.
+- Implementations should use explicit helpers for Lisp-world and stack-space conversions rather than reusing one formula for both.
+
+=== Frame-Derived Address Relationships
+
+The current stack frame and frame-relative areas have stable relationships that should be modeled explicitly:
+
+#codeblock(lang: "pseudocode", [
+CURRENTFX = current frame base address
+PVAR = CURRENTFX + FRAMESIZE
+IVAR = NativeAligned2FromStackOffset(CURRENTFX.nextblock)
+
+// On return / restart paths:
+IVAR = NativeAligned2FromStackOffset(GETWORD((DLword *)CURRENTFX - 1))
+])
+
+Where:
+
+- `FRAMESIZE` is measured in DLwords.
+- `CURRENTFX` is the base of the frame structure itself.
+- `PVAR` is the byte-addressable/native location immediately after the frame header.
+- `IVAR` must be derived from a stored stack offset, not inferred from `PVAR`.
 
 === NativeAligned4FromLPage
 
@@ -274,7 +313,7 @@ For contiguous memory:
 == Address Translation Investigation
 
 *Date*: 2025-12-12 16:45
-*Status*: Investigation in progress
+*Status*: Historical investigation note
 
 === Hypothesis
 
@@ -330,6 +369,15 @@ return (void *)((char *)Lisp_world + LAddr);  // Byte arithmetic
 2. Verify if `NativeAligned4FromLAddr` should cast to `char *` first
 3. Check if CURRENTFX->pc is actually stored as 52 (bytes) or 104 (DLwords)
 4. Update this documentation based on findings
+
+=== Later Clarification
+
+Subsequent parity work confirmed that implementors should not collapse all address-like quantities into one byte-based model.
+
+- LispPTR values remain DLword offsets from `Lisp_world`.
+- Stack offsets remain DLword offsets from `Stackspace`.
+- Native/runtime bookkeeping may still store computed byte offsets for convenience, but only after translating from the correct base.
+- Frame bookkeeping is more reliable when `CURRENTFX`, `PVAR`, and `IVAR` are tracked explicitly instead of being recomputed indirectly from one another.
 
 == Related Documentation
 

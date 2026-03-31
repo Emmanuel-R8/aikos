@@ -5,7 +5,7 @@ import { Opcode } from '../dispatch/opcode';
 import { registerOpcodeHandler } from './index';
 import { MemoryManager } from '../memory/manager';
 import { popStack, pushStack } from './stack_helpers';
-import { S_POSITIVE } from '../../utils/constants';
+import { POINTERMASK, S_POSITIVE } from '../../utils/constants';
 import type { LispPTR } from '../../utils/types';
 
 /**
@@ -17,15 +17,14 @@ import type { LispPTR } from '../../utils/types';
 function handleGETBASE_N(vm: VM, instruction: Instruction): number | null {
     if (vm.virtualMemory === null || instruction.operands.length < 1) return null;
 
-    const base = popStack(vm); // Pop base address
+    const base = vm.topOfStack;
     const n = instruction.operands[0]; // Offset N
 
-    // In these tests, 'base' is a raw byte offset into virtual memory.
-    const targetOffset = (base & 0x7FFFFFFF) + n;
+    const targetLispPtr = ((base & POINTERMASK) + n) & POINTERMASK;
+    const targetOffset = MemoryManager.Address.lispPtrToByte(targetLispPtr);
 
     if (targetOffset + 2 <= vm.virtualMemory.length) {
         const value = MemoryManager.Access.readDLword(vm.virtualMemory, targetOffset);
-        // Return as SMALLP (S_POSITIVE | value)
         pushStack(vm, S_POSITIVE | value);
     } else {
         pushStack(vm, 0); // NIL on error
@@ -47,8 +46,8 @@ function handlePUTBASE_N(vm: VM, instruction: Instruction): number | null {
     const base = popStack(vm); // Pop base address
     const n = instruction.operands[0]; // Offset N
 
-    // In these tests, 'base' is a raw byte offset into virtual memory.
-    const targetOffset = (base & 0x7FFFFFFF) + n;
+    const targetLispPtr = ((base & POINTERMASK) + n) & POINTERMASK;
+    const targetOffset = MemoryManager.Address.lispPtrToByte(targetLispPtr);
     const wordValue = value & 0xFFFF; // GetLoWord
 
     if (targetOffset + 2 <= vm.virtualMemory.length) {
@@ -68,15 +67,15 @@ function handlePUTBASE_N(vm: VM, instruction: Instruction): number | null {
 function handleGETBASEPTR_N(vm: VM, instruction: Instruction): number | null {
     if (vm.virtualMemory === null || instruction.operands.length < 1) return null;
 
-    const base = popStack(vm); // Pop base address
+    const base = vm.topOfStack;
     const n = instruction.operands[0]; // Offset N
 
-    // In these tests, 'base' is a raw byte offset into virtual memory.
-    const targetOffset = (base & 0x7FFFFFFF) + n;
+    const targetLispPtr = ((base & POINTERMASK) + n) & POINTERMASK;
+    const targetOffset = MemoryManager.Address.lispPtrToByte(targetLispPtr);
 
     if (targetOffset + 4 <= vm.virtualMemory.length) {
         const pointer = MemoryManager.Access.readLispPTR(vm.virtualMemory, targetOffset);
-        pushStack(vm, pointer & 0x7FFFFFFF); // POINTERMASK
+        pushStack(vm, pointer & POINTERMASK);
     } else {
         pushStack(vm, 0); // NIL on error
     }
@@ -97,11 +96,11 @@ function handlePUTBASEPTR_N(vm: VM, instruction: Instruction): number | null {
     const base = popStack(vm); // Pop base address
     const n = instruction.operands[0]; // Offset N
 
-    // In these tests, 'base' is a raw byte offset into virtual memory.
-    const targetOffset = (base & 0x7FFFFFFF) + n;
+    const targetLispPtr = ((base & POINTERMASK) + n) & POINTERMASK;
+    const targetOffset = MemoryManager.Address.lispPtrToByte(targetLispPtr);
 
     if (targetOffset + 4 <= vm.virtualMemory.length) {
-        MemoryManager.Access.writeLispPTR(vm.virtualMemory, targetOffset, pointer & 0x7FFFFFFF); // POINTERMASK
+        MemoryManager.Access.writeLispPTR(vm.virtualMemory, targetOffset, pointer & POINTERMASK);
     }
 
     pushStack(vm, base); // Return base address

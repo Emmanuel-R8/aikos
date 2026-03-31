@@ -25,9 +25,9 @@ Function calls in the VM involve:
 - *Length*: 3 bytes for non-BIGATOMS (FN_OPCODE_SIZE = 3)
   - Byte 0: Opcode (0x08-0x0C)
   - Bytes 1-2: Atom index (DLword, 2 bytes) - `Get_AtomNo_PCMAC1` in C
-- *Length*: 4-5 bytes for BIGATOMS (FN_OPCODE_SIZE = 4-5)
+- *Length*: 5 bytes for BIGVM/BIGATOMS (FN_OPCODE_SIZE = 5)
   - Byte 0: Opcode
-  - Bytes 1-3/4: Atom index (extended size)
+  - Bytes 1-4: Atom index (32-bit atom operand)
 
 *Argument Count*: Fixed by opcode (FN0=0, FN1=1, FN2=2, FN3=3, FN4=4)
 
@@ -61,9 +61,16 @@ function ExecuteFN(arg_count, atom_index):
         // If defpointer is 0 or not a compiled closure, uses ATOM_INTERPRETER
         // If defpointer is 0, should trigger UFN (Undefined Function Name) lookup
         if fnheader_ptr == 0:
-            // Atom has no function definition - trigger UFN lookup
-            // C: goto op_ufn; - looks up function in UFN table
-            TriggerUFNLookup(atom_index)
+            // Atom has no compiled defpointer. Maiko does not treat this as
+            // an opcode decode failure; op_fn_common falls back to
+            // ATOM_INTERPRETER and pushes the original atom when needed.
+            //
+            // Parity note from Laiko startup work: if ATOM_INTERPRETER also
+            // resolves to a zero literal-atom defpointer, the remaining bug is
+            // no longer in FNx decode. It is in the literal-atom bootstrap /
+            // initialization that must make the interpreter atom callable
+            // before this fallback can succeed.
+            UseInterpreterFallback(atom_index)
             return
         
         function_obj = ReadFunctionHeader(fnheader_ptr)
@@ -94,6 +101,40 @@ function ExecuteFNX():
     // Call function with variable arguments
     CallFunction(function_obj, arg_count)
 ])
+
+=== UFN-routed opcodes
+
+Some bytecodes that appear "unused" in the opcode table are still executable in Maiko. Instead of trapping immediately, the dispatcher routes them through `op_ufn`, which consults the UFN table and turns the bytecode into a Lisp-level function call.
+
+At a high level:
+
+1. Read the `UFN` entry for the current opcode.
+2. Extract:
+   - `arg_num`
+   - `byte_num`
+   - `atom_name`
+3. Set `fn_opcode_size = byte_num + 1`.
+4. Load the handler function from `GetDEFCELL(atom_name)`.
+5. Enter the same common call path used by `FNx`, while applying the UFN-specific operand-push rules from `APPLY_POP_PUSH_TEST`.
+
+This means that an "unused" opcode such as `MISC1` (`0x78`) is not necessarily an error. On a real Maiko build it may be a UFN-dispatched Lisp call, so parity implementations must not equate "unused in the main switch" with "abort immediately".
+
+The same common call machinery also serves ordinary `FNx` calls when the target atom does not yet name a compiled function: Maiko falls back into the interpreter path rather than treating that case as a hard opcode fault.
+
+=== FastRetCALL PC restoration rule
+
+Maiko's `FastRetCALL` restores the program counter as:
+
+`PC = FuncObj + CURRENTFX->pc`
+
+Two consequences matter for parity implementations:
+
+1. The frame `pc` slot is already the byte offset relative to the function header / `FuncObj`.
+2. Startup and return restoration must not add `startpc` a second time when rebuilding `PC` from a saved frame.
+
+This rule applies both during ordinary returns and during startup paths that reconstruct execution state from a saved or synthesized frame.
+
+For freshly entered functions, Maiko seeds execution differently: the entry opcodes (`FN0`-`FN4`, `FNX`, `FNAPPLY`) jump to `FuncObj + startpc + 1`. So if a runtime has to synthesize a new startup frame around a discovered function header rather than restoring an already-saved frame, the synthetic `CURRENTFX->pc` value should be initialized to `startpc + 1`, not `0` and not raw `startpc`.
 
 == Function Call Process
 
@@ -226,20 +267,30 @@ function TransferControl(function_obj):
 
 #codeblock(lang: "pseudocode", [
 function ExecuteRETURN():
-    // Get return value
+    // Preserve cached top-of-stack as the return value
     return_value = TopOfStack
 
-    // Get previous frame
-    previous_frame = GetPreviousFrame(CurrentFrame)
+    // Read raw activation link from the current frame
+    alink = CurrentFrame.alink
 
-    // Restore execution state
-    RestoreExecutionState(previous_frame)
+    if (alink is slow-return marker):
+        ExecuteSlowReturn()
+    else:
+        // Fast path: raw alink points to caller PVAR, not caller FX
+        PVar = NativeAligned2FromStackOffset(alink)
+        previous_frame = PVar - FRAMESIZE
 
-    // Set return value
-    TopOfStack = return_value
+        // Restore spill-slot stack pointer from the IVAR offset word
+        IVar = NativeAligned2FromStackOffset(*(previous_frame - 1))
+        CurrentStackPTR = IVar
 
-    // Continue dispatch loop
-    ContinueDispatch()
+        // Restore frame and function/PC
+        CurrentFrame = previous_frame
+        FunctionObject = GetFunctionFromFrame(previous_frame)
+        PC = FunctionObject.code_start + previous_frame.pc
+
+        // Keep cached TOS as the function result
+        TopOfStack = return_value
 ])
 
 === State Restoration
@@ -255,13 +306,111 @@ function RestoreExecutionState(frame):
     // Restore program counter
     PC = FunctionObject.code_start + frame.pc
 
-    // Restore stack pointer
-    CurrentStackPTR = CalculateStackPointer(frame)
+    // Restore spill-slot stack pointer
+    // CurrentStackPTR / CSTKPTR points to where cached TopOfStack would spill,
+    // not directly to the in-memory top value.
+    CurrentStackPTR = GetIVarPointerFromFrame(frame)
 
     // Restore IVar and PVar
-    IVar = NativeAligned2FromStackOffset(frame.nextblock)
-    PVar = CurrentStackPTR + FRAMESIZE
+    IVar = GetIVarPointerFromFrame(frame)
+    PVar = GetPVarPointerFromActivationLink(frame.alink)
 ])
+
+=== Fast Return Semantics
+
+In the Maiko fast path, `alink` is interpreted as the caller's PVAR stack offset, not as a direct pointer to the caller FX. The caller frame is recovered by subtracting `FRAMESIZE` from that PVAR pointer.
+
+This distinction is easy to get wrong when translating the code, because helper macros such as `GETALINK` expose a caller-frame view, while `OPRETURN` itself works from the raw encoded `alink` slot.
+
+=== Implementation Guidance: explicit frame bookkeeping
+
+Parity implementations may choose to cache the current frame base (`CURRENTFX`) explicitly in VM state, as long as the cached value remains equivalent to the frame that Maiko would recover from the active stack layout.
+
+This is often safer than repeatedly inferring the frame from another derived pointer such as `PVAR`, because:
+
+- `PVAR` is itself derived from `CURRENTFX + FRAMESIZE`
+- `IVAR` is derived from a stored stack offset, not from `PVAR`
+- return and context-resume paths often need the frame base first, then reconstruct the other frame-relative addresses
+
+So a reliable implementation pattern is:
+
+#codeblock(lang: "pseudocode", [
+CURRENTFX = explicit cached frame base
+PVAR = CURRENTFX + FRAMESIZE
+IVAR = NativeAligned2FromStackOffset(BF_or_nextblock_offset)
+])
+
+The important invariant is not whether the implementation caches `CURRENTFX`, but that all derived addresses are recomputed from the correct stack-relative source.
+
+=== CONTEXTSWITCH and switched-frame resumption
+
+`CONTEXTSWITCH` is part of the same frame-resumption machinery as fast `RETURN`. It does not merely branch to another PC; it saves the current FX, updates free-stack-block metadata, exchanges an IFPAGE slot, and resumes a different frame.
+
+At a high level:
+
+1. The selector is the low 16 bits of cached `TOPOFSTACK` (`fxnum = TopOfStack & 0xffff`).
+2. Before switching away, the emulator updates the current FX:
+   - save the current `pc` as a byte offset relative to the current function object
+   - set the outgoing FX `nopush` flag
+   - store the outgoing `nextblock`
+3. The emulator writes a free-stack-block header at the outgoing frame's stack frontier.
+4. A `Midpunt`-style exchange swaps the requested IFPAGE FX slot with the current FX slot.
+5. The selected FX is resumed using the same reconstruction pattern as `FastRetCALL`:
+   - recover `IVAR` from the word immediately preceding the resumed FX
+   - recover `FuncObj` from the FX function-header slot
+   - set `PC = FuncObj + fx.pc`
+6. If the resumed FX has `nopush` set, cached `TOPOFSTACK` is restored from the word just below the resumed free-stack-block marker before clearing `nopush`.
+
+This means `RETURN`, `CONTEXTSWITCH`, and later frame resumes all share the same invariants:
+
+- frame links and slot references are stack offsets, not host pointers
+- `pc` stored in an FX is relative to the active function object
+- cached `TOPOFSTACK` and the spill-slot pointer (`CSTKPTRL`) must stay synchronized with the free-stack-block layout
+
+For resumed execution, the current frame's PVAR area begins immediately after the current FX (`PVAR = CURRENTFX + FRAMESIZE` in DLword units). Parameter-variable loads and stores therefore address memory relative to the current frame, not to a separate logical stack array.
+
+This matters for both families of parameter writes:
+
+- the `PVARSETPOP` family stores cached `TOPOFSTACK` into `PVAR[x]` and then performs the normal pop
+- the `PVAR_` / `PVARX_` family stores cached `TOPOFSTACK` into `PVAR[x]` without popping
+
+=== BYTESWAP rule for stack and FX words
+
+On BYTESWAP builds, all 16-bit stack, FX, and IFPAGE word accesses use Maiko's `GETWORD` rule:
+
+#codeblock(lang: "c", [
+#define GETWORD(base) (* (DLword *) (2 ^ (UNSIGNED)(base)))
+])
+
+So a logical 16-bit word at address `A` is physically read from address `A xor 2` on little-endian hosts. This applies to 16-bit fields such as `alink`, `pc`, `nextblock`, free-stack-block markers, and IFPAGE FX slots.
+
+By contrast, 32-bit Lisp pointers remain ordinary sequential values. Implementations must not apply XOR-2 separately to each byte of a 32-bit Lisp pointer read.
+
+=== Free-variable lookup across caller frames
+
+`FVAR` / `FVARX` are part of the frame-link mechanism, not a separate closure-array abstraction.
+
+In Maiko:
+
+1. The current frame's free-variable slots live in the PVAR area and are addressed in #emph[DLword] units from `PVAR`.
+2. Fixed opcodes `FVAR0`-`FVAR6` therefore use offsets `0, 2, 4, 6, 8, 10, 12`.
+3. `FVARX` uses a byte operand in the same DLword-offset space.
+4. If the slot is already resolved, it contains a cached address (or chained free-variable pointer) that can be dereferenced directly.
+5. If the slot is still unbound, the emulator resolves it by scanning caller frames through `alink` and the active name table:
+   - start from the current frame's `alink`
+   - follow caller frames one by one
+   - choose `fnheader` or `nametable` according to the caller FX `validnametable` flag
+   - search the name table for the target atom
+   - cache the discovered address back into the current frame's FVAR slot
+
+The cached target may be:
+
+- a caller PVAR address
+- another caller FVAR chain pointer
+- an IVAR-derived stack address
+- or, at top level, the atom's global value-cell address
+
+The store form `FVARX_` uses the same resolution path, then writes cached `TOPOFSTACK` to the resolved address without popping.
 
 == Function Object Structure
 
@@ -325,6 +474,19 @@ function HandleReturnValue(return_value):
     // Previous frame's TOS is restored
     TopOfStack = return_value
 ])
+
+=== Cached-TOS restoration rule
+
+On return, the cached `TopOfStack` value is the function result and must survive frame restoration.
+
+This means implementations must be careful not to immediately overwrite the cached return value by re-reading a stale spill slot from memory before the restored stack pointer and spill-slot conventions are fully re-established.
+
+Practical rule:
+
+- capture the cached return value first
+- restore frame-relative pointers (`CURRENTFX`, `PVAR`, `IVAR`, `FuncObj`, `PC`)
+- keep the cached return value as the post-return `TopOfStack`
+- only perform a memory re-sync when the restored spill-slot pointer is known to reference the correct post-return top-of-stack location
 
 === Multiple Return Values
 

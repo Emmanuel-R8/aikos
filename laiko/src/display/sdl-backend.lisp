@@ -1,4 +1,4 @@
-(in-package :maiko-lisp.display)
+(in-package :laiko.display)
 
 ;; SDL3 display backend
 ;; Per rewrite documentation display/interface-abstraction.md
@@ -18,30 +18,30 @@
   (handler-case
       ;; Try to use cl-sdl3 if available
       #+cl-sdl3
-      (progn
-        ;; TODO: Initialize SDL3 when cl-sdl3 is available
-        ;; For now, create display structure without actual SDL window
-        (make-display-interface
-         :window nil
-         :renderer nil
-         :width width
-         :height height
-         :buffer (make-array (* width height 4) ; RGBA buffer
-                            :element-type '(unsigned-byte 8)
-                            :initial-element 0)))
-      #-cl-sdl3
-      ;; Fallback: Create display structure without SDL
+    (progn
+      ;; TODO: Initialize SDL3 when cl-sdl3 is available
+      ;; For now, create display structure without actual SDL window
       (make-display-interface
        :window nil
        :renderer nil
        :width width
        :height height
        :buffer (make-array (* width height 4) ; RGBA buffer
-                          :element-type '(unsigned-byte 8)
-                          :initial-element 0))
+                           :element-type '(unsigned-byte 8)
+                           :initial-element 0)))
+    #-cl-sdl3
+    ;; Fallback: Create display structure without SDL
+    (make-display-interface
+        :window nil
+        :renderer nil
+        :width width
+        :height height
+        :buffer (make-array (* width height 4) ; RGBA buffer
+                            :element-type '(unsigned-byte 8)
+                            :initial-element 0))
     (error (err)
       ;; Edge case: SDL initialization failure per task T072
-      (error 'maiko-lisp.utils:display-error
+      (error 'laiko.utils:display-error
              :message (format nil "Failed to initialize display: ~A. SDL3 may not be available. Install cl-sdl3 or use without display." err)))))
 
 (defun destroy-display (display)

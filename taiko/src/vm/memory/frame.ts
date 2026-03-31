@@ -4,7 +4,7 @@
 import type { VM } from '../vm';
 import type { LispPTR, DLword } from '../../utils/types';
 import { MemoryManager } from './manager';
-import { FRAMESIZE, S_POSITIVE } from '../../utils/constants';
+import { FRAMESIZE, FRAMESIZE_BYTES, S_POSITIVE } from '../../utils/constants';
 
 /**
  * Stack frame structure (matches C FX structure)
@@ -29,6 +29,65 @@ export interface StackFrame {
  * Per maiko/inc/tosfns.h and maiko/inc/inlineC.h
  */
 export class FrameManager {
+    /**
+     * Convert a frame byte offset to the byte offset of the PVAR area.
+     * Per C: PVar = NativeAligned2FromStackOffset(currentfxp) + FRAMESIZE.
+     */
+    static getPVarOffsetFromFX(frameOffset: number): number {
+        return frameOffset + FRAMESIZE_BYTES;
+    }
+
+    /**
+     * Convert a stack-space offset stored in a frame or BF slot to a byte offset.
+     */
+    static stackOffsetToByte(vm: VM, stackOffset: number): number {
+        return MemoryManager.Address.stackOffsetToByte(vm.stackBase, stackOffset);
+    }
+
+    /**
+     * Read the BF slot immediately before a frame and return the IVAR byte offset.
+     * Per C FastRetCALL: IVar = NativeAligned2FromStackOffset(GETWORD((DLword *)CURRENTFX - 1))
+     */
+    static getIVarOffsetFromBF(vm: VM, frameOffset: number): number | null {
+        if (vm.virtualMemory === null || frameOffset < 4) return null;
+
+        const bfOffset = frameOffset - 4;
+        if (bfOffset + 2 > vm.virtualMemory.length) return null;
+
+        const ivarStackOffset = MemoryManager.Access.readDLword(vm.virtualMemory, bfOffset);
+        return FrameManager.stackOffsetToByte(vm, ivarStackOffset);
+    }
+
+    /**
+     * Convert CURRENTFX->nextblock to the byte offset of the IVAR/free-block base.
+     */
+    static getIVarOffsetFromFrame(vm: VM, frameOrNextblock: number | StackFrame): number {
+        const nextblock = typeof frameOrNextblock === 'number'
+            ? frameOrNextblock
+            : frameOrNextblock.nextblock;
+        return FrameManager.stackOffsetToByte(vm, nextblock);
+    }
+
+    /**
+     * Compose the non-BIGVM function header pointer from a parsed frame.
+     * Per C: FX_FNHEADER = (CURRENTFX->hi2fnheader << 16) | CURRENTFX->lofnheader
+     */
+    static getFnHeaderPointer(frame: StackFrame): LispPTR {
+        const hi2fnheader = (frame.hi1fnheader_hi2fnheader >> 8) & 0xFF;
+        return ((hi2fnheader << 16) | frame.lofnheader) >>> 0;
+    }
+
+    /**
+     * Update VM bookkeeping for CURRENTFX and PVAR from a frame byte offset.
+     */
+    static setCurrentFrame(vm: VM, frameOffset: number): StackFrame | null {
+        const frame = FrameManager.parseFrame(vm, frameOffset);
+        vm.currentFrameOffset = frameOffset;
+        vm.currentFrame = frame;
+        vm.pvar = FrameManager.getPVarOffsetFromFX(frameOffset);
+        return frame;
+    }
+
     /**
      * Read parameter variable from current frame
      * Per C: PVARMACRO(x) -> PUSH(PVAR[x])
@@ -181,9 +240,10 @@ export class FrameManager {
      * @returns Byte offset of current frame, or null if invalid
      */
     static getCurrentFX(vm: VM): number | null {
+        if (vm.currentFrameOffset !== null) return vm.currentFrameOffset;
         if (vm.pvar === null) return null;
         // CURRENTFX = PVAR - FRAMESIZE
-        return vm.pvar - (FRAMESIZE * 2); // FRAMESIZE DLwords = FRAMESIZE * 2 bytes
+        return vm.pvar - FRAMESIZE_BYTES;
     }
 
     /**
@@ -283,26 +343,24 @@ export class FrameManager {
      * Parse frame structure from memory
      *
      * @param vm VM instance
-     * @param frameOffset DLword offset of frame
+     * @param frameOffset Byte offset of frame
      * @returns Parsed frame structure or null
      */
     static parseFrame(vm: VM, frameOffset: number): StackFrame | null {
         if (vm.virtualMemory === null) return null;
-
-        const byteOffset = MemoryManager.Address.lispPtrToByte(frameOffset);
-        if (byteOffset + 20 > vm.virtualMemory.length) return null;
+        if (frameOffset + FRAMESIZE_BYTES > vm.virtualMemory.length) return null;
 
         const frame: StackFrame = {
-            flags_usecount: MemoryManager.Access.readDLword(vm.virtualMemory, byteOffset),
-            alink: MemoryManager.Access.readDLword(vm.virtualMemory, byteOffset + 2),
-            lofnheader: MemoryManager.Access.readDLword(vm.virtualMemory, byteOffset + 4),
-            hi1fnheader_hi2fnheader: MemoryManager.Access.readDLword(vm.virtualMemory, byteOffset + 6),
-            nextblock: MemoryManager.Access.readDLword(vm.virtualMemory, byteOffset + 8),
-            pc: MemoryManager.Access.readDLword(vm.virtualMemory, byteOffset + 10),
-            lonametable: MemoryManager.Access.readDLword(vm.virtualMemory, byteOffset + 12),
-            hi1nametable_hi2nametable: MemoryManager.Access.readDLword(vm.virtualMemory, byteOffset + 14),
-            blink: MemoryManager.Access.readDLword(vm.virtualMemory, byteOffset + 16),
-            clink: MemoryManager.Access.readDLword(vm.virtualMemory, byteOffset + 18),
+            flags_usecount: MemoryManager.Access.readDLword(vm.virtualMemory, frameOffset),
+            alink: MemoryManager.Access.readDLword(vm.virtualMemory, frameOffset + 2),
+            lofnheader: MemoryManager.Access.readDLword(vm.virtualMemory, frameOffset + 4),
+            hi1fnheader_hi2fnheader: MemoryManager.Access.readDLword(vm.virtualMemory, frameOffset + 6),
+            nextblock: MemoryManager.Access.readDLword(vm.virtualMemory, frameOffset + 8),
+            pc: MemoryManager.Access.readDLword(vm.virtualMemory, frameOffset + 10),
+            lonametable: MemoryManager.Access.readDLword(vm.virtualMemory, frameOffset + 12),
+            hi1nametable_hi2nametable: MemoryManager.Access.readDLword(vm.virtualMemory, frameOffset + 14),
+            blink: MemoryManager.Access.readDLword(vm.virtualMemory, frameOffset + 16),
+            clink: MemoryManager.Access.readDLword(vm.virtualMemory, frameOffset + 18),
         };
 
         return frame;

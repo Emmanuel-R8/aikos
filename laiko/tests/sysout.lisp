@@ -1,11 +1,11 @@
-(in-package :maiko-lisp-tests)
+(in-package :laiko-tests)
 
 ;; Sysout loading tests
 ;; Per task T029: Test cases for loading and validating sysout files
 
 (defun test-validate-sysout ()
   "Test sysout validation"
-  (let ((ifpage (maiko-lisp.data:make-ifpage
+  (let ((ifpage (laiko.data:make-ifpage
                  :keyval #x12345678
                  :lversion 1
                  :minbversion 1
@@ -16,11 +16,11 @@
                  :stackbase 0
                  :endofstack 0
                  :currentfxp 0)))
-    (assert (maiko-lisp.data:validate-sysout ifpage) nil "Valid sysout should pass validation")))
+    (assert (laiko.data:validate-sysout ifpage) nil "Valid sysout should pass validation")))
 
 (defun test-validate-sysout-invalid-keyval ()
   "Test sysout validation with invalid keyval"
-  (let ((ifpage (maiko-lisp.data:make-ifpage
+  (let ((ifpage (laiko.data:make-ifpage
                  :keyval #xDEADBEEF ; Invalid keyval
                  :lversion 1
                  :minbversion 1
@@ -31,15 +31,15 @@
                  :stackbase 0
                  :endofstack 0
                  :currentfxp 0)))
-    (assert (not (maiko-lisp.data:validate-sysout ifpage)) nil "Invalid keyval should fail validation")))
+    (assert (not (laiko.data:validate-sysout ifpage)) nil "Invalid keyval should fail validation")))
 
 (defun test-load-sysout-file-not-found ()
   "Test loading non-existent sysout file"
   (handler-case
       (progn
-        (maiko-lisp.data:load-sysout "/nonexistent/path/to/sysout")
+        (laiko.data:load-sysout "/nonexistent/path/to/sysout")
         (assert nil nil "Should have raised sysout-load-failed error"))
-    (maiko-lisp.utils:sysout-load-failed (err)
+    (laiko.utils:sysout-load-failed (err)
       (assert t nil "Correctly raised sysout-load-failed error"))))
 
 (defun run-sysout-tests ()

@@ -8,6 +8,10 @@ Complete specification of all 256 bytecode opcodes (0x00-0xFF). Format: `Name (0
 
 *All opcode byte values must match the C reference*: `maiko/inc/opcodes.h` (enum opcodes). Decimal enum values correspond to byte values (e.g. opc_NIL = 104 implies NIL = 0x68). In C source, constants may be written in octal (e.g. case 0150 for NIL); 0150 octal = 104 decimal = 0x68 hex.
 
+*Important historical note*: when reconstructing opcode names, trust the actual C dispatch implementation in `maiko/src/xc.c` and the opcode enum in `maiko/inc/opcodes.h` over ad hoc trace label tables. For example, opcode `0x03` is `LISTP`; older name tables may misleadingly label it `LISP`.
+
+*Execution note*: several opcodes in the startup path depend on Maiko's cached-TOS and BYTESWAP rules, not just their mnemonic name. In particular, `RETURN`, `CONTEXTSWITCH`, and `VAG2` interact through the spill-slot stack model, and 16-bit stack/FX words on BYTESWAP builds use `GETWORD(base) = *(DLword *)(2 ^ address)`.
+
 == Opcode Categories
 
 - Control Flow & Memory Operations - Control flow, function calls, jumps, variable access
@@ -25,10 +29,24 @@ This document provides a high-level overview. For detailed opcode specifications
 - Jumps: JUMP0-JUMP15, JUMPX, FJUMP0-FJUMP15, FJUMPX, TJUMP0-TJUMP15, TJUMPX, NFJUMPX, NTJUMPX
 - Other control: UNWIND, BIND, UNBIND, DUNBIND
 
+`RETURN` preserves cached `TOPOFSTACK` as the function result in the fast path. Raw `alink` identifies the caller PVAR area, so the caller FX is recovered as `alink - FRAMESIZE`.
+
 === Memory Operations (0x40-0x7F)
 - Variable access: IVAR0-IVAR6, IVARX, PVAR0-PVAR6, PVARX, FVAR0-FVAR6, FVARX, GVAR, GVAR\_
-- Variable setting: PVARSETPOP0-PVARSETPOP6
+- Variable setting: PVAR_0-PVAR_6, PVARX_, PVARSETPOP0-PVARSETPOP6
 - Stack operations: POP, POP_N
+
+`CONTEXTSWITCH` (`0x7E`) uses the low 16 bits of cached `TOPOFSTACK` as an IFPAGE FX-slot selector. It saves the current FX, writes a free-stack-block header, exchanges the chosen slot (`Midpunt` semantics), and resumes the selected frame.
+
+`PVAR_0`-`PVAR_6` and `PVARX_` store cached `TOPOFSTACK` into the current frame's PVAR area without popping. The `PVARSETPOP` family performs the same store followed by the normal pop. `PVARX` is the indexed read form of the same PVAR-area access.
+
+The `FVAR` family is resolved relative to the current PVAR base in #emph[DLword] units, not by indexing a separate closure array:
+
+- `FVAR0`-`FVAR6` use offsets `0, 2, 4, 6, 8, 10, 12`
+- `FVARX` uses an explicit byte operand in the same DLword-offset space
+- `FVARX_` stores cached `TOPOFSTACK` through the same resolved chain without popping
+
+If an `FVAR` slot is still unbound, Maiko resolves it by walking caller frames via `alink` and the active name table, then caches the discovered address back into the current frame slot.
 
 === Data Operations (0x00-0x3F, 0x80-0xBF)
 - Cons operations: CAR, CDR, CONS, RPLACA, RPLACD, CREATECELL, RPLPTR_N
@@ -53,11 +71,40 @@ This document provides a high-level overview. For detailed opcode specifications
 === Address Manipulation
 - ADDBASE, HILOC, LOLOC, BASE_LESSTHAN
 
+`VAG2` (`0xD1`) combines the previous in-memory stack word as the high 16 bits with the low 16 bits of cached `TOPOFSTACK`, then moves the spill-slot pointer back by one LispPTR cell.
+
 === GC Operations
 - GCREF
 
 === Miscellaneous
 - COPY, SWAP, NOP, MAKENUMBER, MYALINK, MYARGCOUNT, STKSCAN
+
+=== Frontier note from startup parity work
+
+Recent startup-path parity work advanced Laiko through resumed-frame `FVARX`, `FVARX_`, and `PVARX`, and then exposed two linked BIGVM operand-width bugs:
+
+- `ACONST` uses `nextop_atom`, so it is 5 bytes on BIGVM/BIGATOMS.
+- `FN0`-`FN4` also use 32-bit atom operands (`FN_OPCODE_SIZE = 5`), and `FNX` uses a 32-bit atom operand plus an 8-bit count (`FNX_OPCODE_SIZE = 6`).
+
+After fixing those width mismatches, the earlier apparent `0x78` (`MISC1`) frontier turned out to be another false decode frontier. The current live blocker is now the first real `FN0` undefined-function path at `0x60f0af`; the later `0x78` / `op_ufn` route still matters, but only after the shared call machinery is corrected.
+
+=== Implementation guidance: opcode metadata tables
+
+All emulator implementations SHOULD maintain a centralized opcode metadata table that, for each bytecode, records at least:
+
+- The **opcode byte value** (0x00–0xFF), which MUST match `maiko/inc/opcodes.h`.
+- The **instruction length** in bytes (including operands).
+- The **operand specification** (types and encoding in the instruction stream).
+- The **stack effect** (values popped/pushed).
+- A **human-readable name and category** (constants, control flow, arithmetic, etc.).
+
+In practice this usually takes the form of:
+
+- A byte-indexed **length table** for advancing the PC.
+- A byte-indexed **handler table** for dispatch (byte → function or closure).
+- A **metadata map** (name → record) used by documentation, parity tooling, and introspection.
+
+Implementations are free to express this as macros, structs, or data tables, but they SHOULD derive all dispatch and documentation from this single source of truth to avoid divergence across code paths.
 
 For detailed specifications, see:
 - Control Flow & Memory Operations

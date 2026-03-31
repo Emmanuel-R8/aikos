@@ -1,6 +1,6 @@
-(in-package :maiko-lisp.utils)
+(in-package :laiko.utils)
 
-;; Core types for Maiko VM implementation
+;; Core types for Laiko VM implementation
 ;; All types must maintain exact compatibility with C implementation
 
 (deftype lisp-ptr ()
@@ -18,12 +18,12 @@
 ;; Platform detection
 (defun little-endian-p ()
   "Returns T if running on a little-endian host.
-   
+
    DISCUSSION:
    Sysout files are stored in big-endian format. On little-endian hosts
    (x86/x64), byte-swapping is required. This function detects the host
    endianness at runtime.
-   
+
    Per maiko/src/ldsout.c: BYTESWAP is defined on little-endian hosts."
   (let ((test-32 #x12345678))
     (declare (type (unsigned-byte 32) test-32))

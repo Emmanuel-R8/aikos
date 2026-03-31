@@ -66,48 +66,20 @@ Interlisp/
 └── medley/                    # Medley Interlisp system
 ```
 
-## Current Status (2026-02-20)
+## Current Status
 
-### C Implementation State: PRODUCTION READY
+**Last Updated**: 2026-02-27
 
-- **Status**: Fully functional and production-ready
-- **Comments**: Enhanced with comprehensive documentation (superior to maiko_untouched/)
-- **Completeness**: 94.5% opcode coverage (242/256 opcodes implemented)
-- **Quality**: Production-grade with extensive testing framework
-- **Introspection**: Fully functional introspection module (see Introspection Module section)
+For detailed implementation status of all Maiko emulator implementations, see [`reports/IMPLEMENTATION_STATUS.md`](reports/IMPLEMENTATION_STATUS.md).
 
-### Zig Implementation State: INCOMPLETE
+**Summary**:
 
-- **Actual Coverage**: 60-70% (despite 89.2% task completion)
-- **Critical Issues**: 245 TODO/FIXME markers (8x more than C)
-- **Missing Features**: Floating point (completely stubbed), advanced graphics, I/O subsystems
-- **Quality**: Development-grade with numerous placeholder implementations
+- **C (Maiko)**: Production-ready (94.5% opcode coverage)
+- **Zig (Zaiko)**: Incomplete (~60-70% actual coverage, 245 TODO markers)
+- **Common Lisp (Laiko)**: In progress (early stage)
+- **TypeScript (Taiko)**: In progress (early stage)
 
-### Common Lisp Implementation State: IN PROGRESS
-
-- **Status**: Active development
-- **Location**: `laiko/`
-- **Completeness**: Early stage with project structure and ASDF build system in place
-- **Current Focus**: VM core implementation, memory management
-- **Backend**: SDL3 for display
-- **Known Issues** (from `reports/laiko-gvar-parity-analysis.md`):
-  - `read-pc-32-be` is a placeholder returning 0 (GVAR always reads atom 0)
-  - `*bigatoms*` set to nil but C uses BIGVM/BIGATOMS
-  - Atom index incorrectly masked to 16 bits in GVAR handler
-
-### TypeScript Implementation State: IN PROGRESS
-
-- **Status**: Active development
-- **Location**: `taiko/`
-- **Target**: Browser-based emulator with WebGL rendering
-- **Goal**: Full parity with C implementation (94.5% opcode coverage)
-- **Features**: Drag-and-drop sysout loading, execution trace export for parity testing
-
-### Documentation Accuracy Gap
-
-- **Task Tracking**: Overstates Zig completion by 20-30%
-- **Specifications**: Assume higher Zig implementation than actually exists
-- **Issue**: Completion percentages do not reflect implementation quality
+**Note**: Previous documentation overstated Zig completion by 20-30%. See consolidated status for accurate details.
 
 ## Introspection Module
 
@@ -307,74 +279,27 @@ Language-Specific Documentation Updates:
 - **Trace Analysis**: Use comparison tools for divergence identification
 - **Performance Profiling**: Monitor execution speed during testing
 
-### 4.1 Parity Workflow (C vs Zig) – Canonical
+### 4.1 Parity Testing and Debugging
 
-For repeatable execution-trace parity work:
+For comprehensive parity testing methodology, workflows, and tools, see [`reports/PARITY_TESTING_GUIDE.md`](reports/PARITY_TESTING_GUIDE.md).
 
-- **Canonical script**: `scripts/compare_emulator_execution.sh`
-  - Supports the shared runtime cap knob **`EMULATOR_MAX_STEPS`** (unset/0 → run to completion).
-- **Unified trace format**: Single-line column-formatted traces for rapid comparison
-  - **C trace**: `c_emulator_unified_trace.txt`
-  - **Zig trace**: `zig_emulator_unified_trace.txt`
-  - **Comparison scripts**: `scripts/compare_unified_traces.awk`, `scripts/compare_unified_traces.py`
-- **Divergence analysis**: `scripts/analyze_execution_divergence.py` (supports LCP skip + `--start-line` resume).
-- **Path robustness**: Prefer **absolute sysout paths** (scripts should not depend on cwd).
+**Key Points**:
 
-### 4.2 Unified Trace Format
+- **Canonical Script**: `scripts/compare_emulator_execution.sh` with `EMULATOR_MAX_STEPS` runtime cap
+- **Unified Trace Format**: Single-line pipe-delimited format for rapid divergence identification
+- **Comparison Tools**: `scripts/compare_unified_traces.awk` (fast), `scripts/compare_unified_traces.py` (detailed)
+- **Divergence Analysis**: `scripts/analyze_execution_divergence.py` with LCP skip and resume support
+- **Centralized Memory Management**: `zaiko/src/memory/manager.zig` for consistent address translation
+- **Systematic Debugging**: Cross-reference C traces, validate incrementally, document findings
 
-**Purpose**: Enable rapid divergence identification between C and Zig emulators
+**Multi-Implementation Support**:
 
-**Format**: Single-line, pipe-delimited columns:
+- C (Maiko): Production-ready reference
+- Zig (Zaiko): Incomplete (~60-70% actual coverage)
+- Common Lisp (Laiko): In progress
+- TypeScript (Taiko): In progress
 
-```
-LINE#|PC|INSTRUCTION|OPCODE|OPERANDS|REGISTERS|FLAGS|SP_FP|STACK_SUMMARY|MEMORY_CONTEXT|FP_VP_FO_VA|BS_MEM|NOTES
-```
-
-**Key Benefits**:
-
-- **Rapid comparison** with awk/Python scripts
-- **Comprehensive context** in single line
-- **Consistent format** across both emulators
-- **Memory issue triage** with dedicated fields
-
-**Comparison Tools**:
-
-- `scripts/compare_unified_traces.awk` - Fast awk-based comparison
-- `scripts/compare_unified_traces.py` - Detailed Python analysis
-
-### 4.3 Centralized Memory Management
-
-**Problem Solved**: Scattered memory logic causing recurring address translation, endianness, and paging issues
-
-**Solution**: Centralized memory management module (`zaiko/src/memory/manager.zig`)
-
-**Components**:
-
-- **AddressManager**: LispPTR ↔ byte conversions, virtual page calculations
-- **FPtoVPManager**: File page ↔ virtual page mapping, page OK flags
-- **EndiannessManager**: Byte-swapping logic, XOR addressing
-- **MemoryAccessManager**: Safe memory reads, bounds checking
-
-**Integration**: Both C and Zig emulators use centralized functions for consistency
-
-### 4.4 Systematic Debugging Workflow
-
-**CRITICAL**: For any implementation divergence or bug, follow this systematic process:
-
-1. **Cross-reference C traces** - Establish baseline with verified C emulator output
-2. **Instrument execution** - Add targeted debug prints following technique hierarchy
-3. **Validate incrementally** - Test after each code change, not at the end
-4. **Document findings** - Update both specifications and implementation docs
-5. **Regression test** - Ensure no existing functionality breaks
-
-**Key Principle**: Never implement blindly - always validate against C reference first.
-
-**Performance Considerations**:
-
-- VM emulators require careful optimization - profile memory access patterns
-- Stack operations are performance-critical - minimize redundant calculations
-- Memory translation overhead should be amortized across operations
-- Consider instruction caching for frequently executed opcodes
+See [`reports/PARITY_TESTING_GUIDE.md`](reports/PARITY_TESTING_GUIDE.md) for complete documentation including detailed workflow procedures, all testing tools, and best practices.
 
 ### 5. Build System
 
@@ -483,6 +408,8 @@ In the normal Phase 2 flow, AGENTS.md is re-read in full and not compressed. If 
 
 ## Documentation Accuracy Warning
 
+For comprehensive task tracking, implementation status, and completion criteria for all emulator implementations, see [`reports/TASK_TRACKING.md`](reports/TASK_TRACKING.md).
+
 ### Known Discrepancies
 
 1. **Task Tracking Inaccuracy**: Zig completion shown as 89.2% vs actual 60-70%
@@ -546,11 +473,12 @@ When a file exceeds 500 lines:
 
 ### Memory Management
 
-- **LispPTR**: 32-bit virtual address (DLword offset from Lisp_world, multiply by 2 for bytes)
-- **DLword**: 16-bit unsigned integer
-- **Virtual Memory**: Complete Lisp address space, allocated based on `process_size`
-- **FPtoVP Table**: Maps file page numbers to virtual page numbers
-- **Stack**: Part of virtual memory, grows DOWN
+For comprehensive memory management documentation, see [`documentation/components/memory-management.typ`](documentation/components/memory-management.typ). This document covers:
+
+- Virtual memory architecture and address translation (LispPTR, DLword, FPtoVP table)
+- Garbage collection algorithm (reference counting, scan/reclaim phases)
+- Storage allocation (cons cells, arrays, memory regions)
+- Memory access functions and performance considerations
 
 ### VM Execution
 
@@ -559,24 +487,16 @@ When a file exceeds 500 lines:
 - **Function Header**: Contains `startpc` (byte offset), `na` (arg count), `pv` (param var count)
 - **Dispatch Loop**: Fetches, decodes, and executes bytecode instructions
 
-### Common Debugging Gotchas (read before parity fixes)
+### Common Debugging Gotchas
 
-- **PC units**: traces may show both `PC` (bytes) and `PC/2` (DLword address). When indexing `virtual_memory`, use **byte PC**.
-- **FPtoVP units**: FPtoVP "virtual page" values correspond to **512-byte pages** (matches trace `[vpage:...]`), not DLword pages.
-- **Byte swap vs XOR addressing**:
-  - Sysout pages are typically **32-bit byte-swapped** on load on little-endian hosts.
-  - Instruction decode may apply **XOR (`addr ^ 3`)** for BYTESWAP byte access; however, trace logging often prints **raw bytes at PC** (no XOR) to match C.
-- **CSTKPTRL/TOPOFSTACK synchronization (CRITICAL)**:
-  - The C code's `StackPtrRestore()` macro restores `CSTKPTRL` from `CurrentStackPTR` before each opcode
-  - **TOPOFSTACK must be read from memory** (`*(CSTKPTRL - 1)`) after restoring CSTKPTRL, NOT from a cached value
-  - This is because operations like GVAR push values (changing TOPOFSTACK), and UNBIND walks CSTKPTRL into the binding stack
-  - Without syncing TOPOFSTACK from memory, operations after UNBIND see stale cached values
-  - **Fix**: Call `readTopOfStackFromMemory()` after `initCSTKPTRLFromCurrentStackPTR()` in the dispatch loop
-- **Introspection TOS timing (CRITICAL)**:
-  - TOS values in the introspection `events` table are recorded **AFTER the PREVIOUS instruction**, **BEFORE the current instruction** executes
-  - Event N shows the TOS value that resulted from instruction N-1, not from instruction N
-  - This means a GVAR event shows the TOS _before_ GVAR pushed its value, not after
-  - To see the value GVAR pushed, look at the TOS in the _next_ event
+For comprehensive debugging techniques and systematic debugging workflows, see [`documentation/core/critical-debugging-technique.typ`](documentation/core/critical-debugging-technique.typ). This document covers:
+
+- Cross-referencing C traces for baseline establishment
+- Step-by-instruction validation with EMULATOR_MAX_STEPS
+- Debug instrumentation hierarchy
+- Memory integrity verification techniques
+- Algorithm reverse engineering from C code
+- Project-specific pitfalls (PC units, FPtoVP units, byte swap vs XOR, CSTKPTRL/TOPOFSTACK synchronization, introspection TOS timing)
 
 ### SDL2 Integration
 

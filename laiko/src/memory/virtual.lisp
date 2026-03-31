@@ -1,15 +1,15 @@
-(in-package :maiko-lisp.memory)
+(in-package :laiko.memory)
 
 ;; Virtual memory management
 ;; Per rewrite documentation memory/virtual-memory.md
 
 ;; Import page number/offset functions from layout
-(import 'maiko-lisp.memory:get-page-number)
-(import 'maiko-lisp.memory:get-page-offset)
+(import 'laiko.memory:get-page-number)
+(import 'laiko.memory:get-page-offset)
 
 (defstruct (virtual-memory (:conc-name vmem-))
   "Virtual memory structure"
-  (fptovp nil :type (simple-array maiko-lisp.utils:lisp-ptr (*)))
+  (fptovp nil :type (simple-array laiko.utils:lisp-ptr (*)))
   (page-map nil :type (simple-array (unsigned-byte 8) (*)))
   (size 0 :type (integer 0 *)))
 
@@ -17,28 +17,28 @@
   "Create virtual memory with given size"
   (declare (type (integer 1 *) size))
   (make-virtual-memory :fptovp (make-array size
-                                            :element-type 'maiko-lisp.utils:lisp-ptr
-                                            :initial-element 0)
+                                           :element-type 'laiko.utils:lisp-ptr
+                                           :initial-element 0)
                        :page-map (make-array size
-                                              :element-type '(unsigned-byte 8)
-                                              :initial-element 0)
+                                             :element-type '(unsigned-byte 8)
+                                             :initial-element 0)
                        :size size))
 
 (defun translate-address (vmem ptr size)
   "Translate virtual address to native address using FPtoVP mapping"
   (declare (type virtual-memory vmem)
-           (type maiko-lisp.utils:lisp-ptr ptr)
+           (type laiko.utils:lisp-ptr ptr)
            (type (integer 1 4) size))
   (let ((fptovp (vmem-fptovp vmem))
         (page-num (get-page-number ptr))
         (page-offset (get-page-offset ptr)))
     ;; Check if page is mapped
     (when (>= page-num (length fptovp))
-      (error 'maiko-lisp.utils:invalid-address
+      (error 'laiko.utils:invalid-address
              :message (format nil "Page number ~A out of bounds" page-num)))
     (let ((virtual-page (aref fptovp page-num)))
       (when (zerop virtual-page)
-        (error 'maiko-lisp.utils:invalid-address
+        (error 'laiko.utils:invalid-address
                :message (format nil "Page ~A not mapped" page-num)))
       ;; Calculate native address: virtual_page_base + offset
       ;; For now, assume direct mapping (will need proper page mapping later)
@@ -50,6 +50,6 @@
            (type (integer 0 *) file-page virtual-page))
   (let ((fptovp (vmem-fptovp vmem)))
     (when (>= file-page (length fptovp))
-      (error 'maiko-lisp.utils:memory-error
+      (error 'laiko.utils:memory-error
              :message (format nil "File page ~A out of bounds" file-page)))
     (setf (aref fptovp file-page) virtual-page)))
